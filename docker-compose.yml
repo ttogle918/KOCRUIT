@@ -17,24 +17,12 @@ services:
       - ./initdb:/docker-entrypoint-initdb.d
 
   backend:
-    build: ./backend
-    container_name: kosa_backend
-    depends_on:
-      - db
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/kosa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-      SPRING_DATASOURCE_USERNAME: kosa
-      SPRING_DATASOURCE_PASSWORD: kosa1234
-    ports:
-      - "8081:8081"
+    image: busybox
+    command: ["echo", "backend placeholder"]
 
   frontend:
-    build: ./frontend
-    container_name: kosa_frontend
-    depends_on:
-      - backend
-    ports:
-      - "3000:80"
+    image: busybox
+    command: ["echo", "frontend placeholder"]
 
 volumes:
   mysqldata:
