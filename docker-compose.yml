@@ -15,7 +15,14 @@ services:
     volumes:
       - mysqldata:/var/lib/mysql
       - ./initdb:/docker-entrypoint-initdb.d
-
+  adminer:
+    image: adminer:latest
+    container_name: kosa_adminer
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "8081:8081"
   backend:
     image: busybox
     command: ["echo", "backend placeholder"]
