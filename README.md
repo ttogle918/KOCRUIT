@@ -110,4 +110,3 @@ OPENAI_API_KEY=sk-...
 
 ## 서버 실행
 uvicorn main:app --reload --port 8001
-

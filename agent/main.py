@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from agents.graph_agent import build_graph
+from dotenv import load_dotenv
 
 load_dotenv()
 
