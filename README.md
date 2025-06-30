@@ -18,6 +18,7 @@ initdb/ 경로는 컨테이너 최초 띄울 때 자동 실행되는 스크립�
 
 sql을 넣어두면 자동 반영됩니다.
 
+
 ---
 
 ## 🛠️ 설치 및 실행 방법 (팀원용)
@@ -88,3 +89,25 @@ recruit 디렉토리에 들어온 다음
 ./gradlew bootRun  # 또는
 mvn spring-boot:run
 ```
+
+# Agent 폴더 초기 세팅법
+# 파이썬 3.11.9 추천 (3.13)
+
+## 현재 디렉토리에서 가상환경 생성
+python3 -m venv .venv
+
+## 가상환경 활성화 (macOS/Linux)
+source .venv/bin/activate
+
+## Windows 사용자는:
+# .venv\Scripts\activate
+
+## 의존성 설치
+pip install -r requirements.txt
+
+## .env 파일 추가 & 설정
+OPENAI_API_KEY=sk-...
+
+## 서버 실행
+uvicorn main:app --reload --port 8001
+

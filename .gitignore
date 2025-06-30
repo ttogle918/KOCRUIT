@@ -40,3 +40,6 @@ recruit/src/main/resources/application.yaml
 
 # PWA dev dist 디렉토리(webapp install) 무시
 /frontend/dev-dist/
+
+.env
+.venv/
