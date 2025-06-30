@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 
 def resume_score_tool(state):
     resume = state.get("resume", "")
-    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
     prompt = (
         "아래 이력서를 간단히 읽고, 0~100점으로 간단히 점수를 매겨줘. "
         "점수 기준: 경력, 기술, 자기소개, 맞춤성, 표현력. "
