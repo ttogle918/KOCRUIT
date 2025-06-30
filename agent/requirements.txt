@@ -11,6 +11,13 @@ langchain-community==0.3.13
 # LangGraph
 langgraph==0.2.60
 
+# RAG and Vector Database
+chromadb==0.4.24
+sentence-transformers==3.0.1
+
+# Memory and State Management
+redis==5.2.1
+
 # Utilities
 python-dotenv==1.0.1
 pydantic==2.9.2
