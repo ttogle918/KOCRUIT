@@ -1,0 +1,16 @@
+# FastAPI and server
+fastapi==0.110.0
+uvicorn==0.29.0
+
+# LangChain ecosystem
+langchain==0.3.13
+langchain-core>=0.3.56
+langchain-openai==0.2.14
+langchain-community==0.3.13
+
+# LangGraph
+langgraph==0.2.60
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.9.2
