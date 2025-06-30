@@ -1,35 +1,63 @@
-version: "3.8"
+version: '3.8'
+
 services:
-  db:
-    image: mysql:8
-    container_name: kosa_mysql
-    restart: always
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
     environment:
-      MYSQL_DATABASE: kosa_db
-      MYSQL_USER: kosa
-      MYSQL_PASSWORD: kosa1234
-      MYSQL_ROOT_PASSWORD: kosa1234
-      TZ: Asia/Seoul
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: kocruit_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: 1234
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
-    volumes:
-      - mysqldata:/var/lib/mysql
-      - ./initdb:/docker-entrypoint-initdb.d
-  adminer:
-    image: adminer:latest
-    container_name: kosa_adminer
-    restart: always
-    depends_on:
-      - db
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kocruit_springboot
     ports:
       - "8081:8081"
-  backend:
-    image: busybox
-    command: ["echo", "backend placeholder"]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/kocruit_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: 1234
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-net
 
   frontend:
-    image: busybox
-    command: ["echo", "frontend placeholder"]
+    image: node:18-alpine
+    container_name: kocruit_react
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    command: sh -c "npm install && npm run dev -- --host"
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
 
 volumes:
-  mysqldata:
+  mysql_data:
