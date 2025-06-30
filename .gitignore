@@ -43,3 +43,4 @@ recruit/src/main/resources/application.yaml
 
 .env
 .venv/
+__pycache__/
