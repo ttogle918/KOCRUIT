@@ -128,6 +128,46 @@ def check_email_exists(email: str = Query(...), db: Session = Depends(get_db)):
     return {"exists": exists}
 
 
+# 이메일 인증 전용 API
+@router.post("/send-verification-email")
+async def send_verification_email_only(request: dict, db: Session = Depends(get_db)):
+    email = request.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="이메일이 필요합니다.")
+    
+    # 이메일 중복 체크
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
+    
+    try:
+        # 이메일 인증 토큰 생성 및 저장
+        verification_token = str(uuid4())
+        db_token = EmailVerificationToken(
+            token=verification_token, 
+            email=email,
+            is_verified=False
+        )
+        db.add(db_token)
+        db.commit()
+
+        # 인증 메일 전송
+        try:
+            await send_verification_email(email, verification_token)
+            print(f"Verification email sent successfully to {email}")
+            return {"message": "인증 이메일이 발송되었습니다."}
+        except Exception as email_error:
+            print(f"Failed to send verification email: {email_error}")
+            # 토큰 삭제
+            db.delete(db_token)
+            db.commit()
+            raise HTTPException(status_code=500, detail="이메일 발송에 실패했습니다.")
+            
+    except Exception as e:
+        print(f"Error sending verification email: {e}")
+        raise HTTPException(status_code=500, detail="이메일 인증 처리 중 오류가 발생했습니다.")
+
+
 @router.get("/verify-email")
 def verify_email(token: str, db: Session = Depends(get_db)):
     record = db.query(EmailVerificationToken).filter(EmailVerificationToken.token == token).first()

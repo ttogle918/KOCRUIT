@@ -125,18 +125,16 @@ function Signup() {
     }
 
     try {
-      // 회원가입 API를 호출해서 이메일 인증 메일 발송
-      const signupData = {
+      // 이메일 인증만을 위한 임시 요청 (실제 회원가입은 하지 않음)
+      const verificationData = {
         email: form.email,
-        name: form.name || '임시',
-        password: 'temp123456',
-        userType: 'company',
+        action: 'send_verification'
       };
 
-      const res = await fetch('http://localhost:8000/api/v1/auth/signup', {
+      const res = await fetch('http://localhost:8000/api/v1/auth/send-verification-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signupData),
+        body: JSON.stringify(verificationData),
       });
       
       if (res.ok) {
@@ -144,11 +142,7 @@ function Signup() {
         alert('인증 이메일이 전송되었습니다. 이메일을 확인해주세요.');
       } else {
         const data = await res.json();
-        if (data.detail && data.detail.includes("이미 가입된 이메일")) {
-          setError('이미 사용 중인 이메일입니다.');
-        } else {
-          setError('이메일 전송에 실패했습니다.');
-        }
+        setError(data.detail || '이메일 전송에 실패했습니다.');
       }
     } catch (err) {
       console.error('이메일 전송 오류:', err);
