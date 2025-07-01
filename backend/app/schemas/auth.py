@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
-from datetime import datetime
+from typing import Literal, Optional
+from datetime import datetime, date
 from app.models.user import Role, GenderType
 
 
@@ -21,7 +21,8 @@ class SignupRequest(BaseModel):
     address: Optional[str] = None
     gender: Optional[GenderType] = None
     phone: Optional[str] = None
-    birth_date: Optional[datetime] = None
+    birth_date: Optional[date] = None
+    userType: Literal["applicant", "company"]
 
 
 class RefreshTokenRequest(BaseModel):
@@ -38,7 +39,7 @@ class UserDetail(BaseModel):
     role: Role
     created_at: datetime
     updated_at: datetime
-    birth_date: Optional[datetime] = None
+    birth_date: Optional[date] = None
     
     class Config:
         from_attributes = True 

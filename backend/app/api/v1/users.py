@@ -47,9 +47,4 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
         raise HTTPException(status_code=403, detail="권한이 없습니다.")
     db.delete(user)
     db.commit()
-    return {"message": "User deleted successfully"}
-
-@router.get("/check-email")
-def check_email_exists(email: str = Query(...), db: Session = Depends(get_db)):
-    exists = db.query(User).filter(User.email == email).first() is not None
-    return {"exists": exists} 
+    return {"message": "User deleted successfully"} 

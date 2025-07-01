@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from uuid import uuid4
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import LoginRequest, LoginResponse, SignupRequest, RefreshTokenRequest, UserDetail
@@ -8,6 +9,9 @@ from app.core.config import settings
 from jose import JWTError
 from typing import Optional
 from fastapi.security import OAuth2PasswordBearer
+from app.utils.send_email import send_verification_email
+from app.models.EmailVerificationToken import EmailVerificationToken
+
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -27,23 +31,60 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 @router.post("/signup", response_model=str)
-def signup(request: SignupRequest, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == request.email).first():
+async def signup(request: SignupRequest, db: Session = Depends(get_db)):
+    print(f"Signup request received: {request}")
+    
+    # 이메일 중복 체크
+    existing_user = db.query(User).filter(User.email == request.email).first()
+    if existing_user:
         raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
-    user = CompanyUser(
-        email=request.email,
-        name=request.name,
-        password=security.get_password_hash(request.password),
-        role=Role.USER,
-        address=request.address,
-        gender=request.gender,
-        phone=request.phone,
-        birth_date=request.birth_date
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return "회원가입 성공"
+    
+    try:
+        user = CompanyUser(
+            email=request.email,
+            name=request.name,
+            password=security.get_password_hash(request.password),
+            role=Role.USER,
+            address=request.address,
+            gender=request.gender,
+            phone=request.phone,
+            birth_date=request.birth_date
+        )
+        print(f"Creating user: {user}")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        # 이메일 인증 토큰 생성 및 저장
+        verification_token = str(uuid4())
+        db_token = EmailVerificationToken(
+            token=verification_token, 
+            email=user.email,
+            is_verified=False
+        )
+        db.add(db_token)
+        db.commit()
+
+        # 인증 메일 비동기 전송
+        try:
+            await send_verification_email(user.email, verification_token)
+            print(f"Verification email sent successfully to {user.email}")
+            email_sent = True
+        except Exception as email_error:
+            print(f"Failed to send verification email: {email_error}")
+            print("Note: Please check your .env file for correct Gmail credentials")
+            email_sent = False
+
+        print(f"User created successfully: {user.id}")
+        
+        if email_sent:
+            return "회원가입 성공! 이메일 인증을 확인해주세요."
+        else:
+            return "회원가입 성공! (이메일 발송 실패 - Gmail 설정 확인 필요)"
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"회원가입 중 오류가 발생했습니다: {str(e)}")
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -77,4 +118,25 @@ def logout(response: Response):
     # 실제 로그아웃 처리는 프론트에서 토큰 삭제로 처리
     response.delete_cookie(key="access_token")
     response.delete_cookie(key="refresh_token")
-    return {"msg": "로그아웃 성공"} 
+    return {"msg": "로그아웃 성공"}
+
+
+# 이메일 중복 체크 - 인증 불필요
+@router.get("/check-email")
+def check_email_exists(email: str = Query(...), db: Session = Depends(get_db)):
+    exists = db.query(User).filter(User.email == email).first() is not None
+    return {"exists": exists}
+
+
+@router.get("/verify-email")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    record = db.query(EmailVerificationToken).filter(EmailVerificationToken.token == token).first()
+    if not record:
+        raise HTTPException(status_code=400, detail="잘못된 토큰입니다.")
+    
+    if record.is_verified:
+        return {"msg": "이미 인증된 이메일입니다."}
+
+    record.is_verified = True
+    db.commit()
+    return {"msg": "이메일 인증이 완료되었습니다."}

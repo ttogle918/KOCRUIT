@@ -4,6 +4,16 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
+
+    # 메일 설정
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "your_email@gmail.com")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "your_app_password")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "your_email@gmail.com")
+    MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+
+
+
     # Database (환경변수 우선, 기본값 fallback)
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: str = os.getenv("DB_PORT", "3306")
@@ -32,5 +42,4 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
-
-settings = Settings() 
+settings = Settings()
