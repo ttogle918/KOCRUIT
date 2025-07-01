@@ -23,6 +23,8 @@ class SignupRequest(BaseModel):
     phone: Optional[str] = None
     birth_date: Optional[date] = None
     userType: Literal["applicant", "company"] = Field(..., alias="userType")
+    company_id: Optional[int] = None
+    company_name: Optional[str] = None
 
 
 class RefreshTokenRequest(BaseModel):

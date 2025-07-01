@@ -34,8 +34,7 @@ def get_company(company_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=CompanyDetail)
 def create_company(
     company: CompanyCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     db_company = Company(**company.dict())
     db.add(db_company)

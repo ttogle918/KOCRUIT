@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Layout from '../../layout/Layout';
 import axios from 'axios';
+import CompanySelectModal from '../../components/CompanySelectModal';
 
 function Signup() {
   const navigate = useNavigate();
@@ -14,13 +15,18 @@ function Signup() {
     gender: '',
     phone: '',
     birth_date: '',
-    userType: '' // 일반 or 기업
+    userType: '', // 일반 or 기업
+    company_name: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // 기업회원 이메일 인증 관련 상태
   const [emailSent, setEmailSent] = useState(false);
+
+  const [companyId, setCompanyId] = useState(null);
+  const [companyName, setCompanyName] = useState('');
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
 
   const isCompanyUser = form.userType === 'company';
 
@@ -88,6 +94,8 @@ function Signup() {
         phone: form.phone || null,
         birth_date: form.birth_date || null,
         userType: form.userType || 'applicant',
+        company_id: isCompanyUser ? companyId : null,
+        company_name: isCompanyUser ? companyName : null,
       };
 
       const res = await fetch('http://localhost:8000/api/v1/auth/signup', {
@@ -197,6 +205,21 @@ function Signup() {
           <option value="company">기업 회원</option>
         </select>
 
+        {isCompanyUser && (
+          <div className="flex gap-2 items-center">
+            <input
+              name="company_name"
+              value={companyName}
+              placeholder="회사명"
+              required
+              className={`flex-1 px-4 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${companyName ? 'bg-blue-100' : ''}`}
+              disabled={isLoading}
+              onClick={() => setShowCompanyModal(true)}
+              readOnly
+            />
+          </div>
+        )}
+
         <input 
           name="email" 
           type="email"
@@ -305,6 +328,18 @@ function Signup() {
           이미 계정이 있으신가요? 로그인
         </Link>
       </form>
+
+      {showCompanyModal && (
+        <CompanySelectModal
+          onSelect={(id, name) => {
+            setCompanyId(id);
+            setCompanyName(name);
+            setForm({ ...form, company_id: id, company_name: name });
+            setShowCompanyModal(false);
+          }}
+          onClose={() => setShowCompanyModal(false)}
+        />
+      )}
     </Layout>
   );
 }

@@ -53,6 +53,7 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="이메일 인증을 먼저 완료해주세요.")
     
     try:
+        company_id = request.company_id if request.userType == 'company' else None
         user = CompanyUser(
             email=request.email,
             name=request.name,
@@ -61,7 +62,8 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
             address=request.address,
             gender=request.gender,
             phone=request.phone,
-            birth_date=request.birth_date
+            birth_date=request.birth_date,
+            company_id=company_id
         )
         print(f"Creating user: {user}")
         db.add(user)
