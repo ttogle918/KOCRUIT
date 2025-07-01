@@ -33,18 +33,31 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 @router.post("/signup", response_model=str)
 async def signup(request: SignupRequest, db: Session = Depends(get_db)):
     print(f"Signup request received: {request}")
+    print(f"userType: {request.userType}")
     
     # 이메일 중복 체크
     existing_user = db.query(User).filter(User.email == request.email).first()
     if existing_user:
+        print("이미 가입된 이메일입니다.")
         raise HTTPException(status_code=400, detail="이미 가입된 이메일입니다.")
+    
+    # 기업 회원인 경우 이메일 인증 확인
+    if request.userType == 'company':
+        verification_token = db.query(EmailVerificationToken).filter(
+            EmailVerificationToken.email == request.email,
+            EmailVerificationToken.is_verified == True
+        ).first()
+        print(f"verification_token: {verification_token}")
+        if not verification_token:
+            print("이메일 인증이 완료되지 않았습니다.")
+            raise HTTPException(status_code=400, detail="이메일 인증을 먼저 완료해주세요.")
     
     try:
         user = CompanyUser(
             email=request.email,
             name=request.name,
             password=security.get_password_hash(request.password),
-            role=Role.USER,
+            role=Role.MEMBER,
             address=request.address,
             gender=request.gender,
             phone=request.phone,
@@ -54,16 +67,7 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
         db.add(user)
         db.commit()
         db.refresh(user)
-
-        # 이메일 인증 토큰 생성 및 저장
-        verification_token = str(uuid4())
-        db_token = EmailVerificationToken(
-            token=verification_token, 
-            email=user.email,
-            is_verified=False
-        )
-        db.add(db_token)
-        db.commit()
+        print(f"User created successfully: {user.id}, type: {type(user)}")
 
         # 인증 메일 비동기 전송
         try:
@@ -84,7 +88,15 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Error creating user: {e}")
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"회원가입 중 오류가 발생했습니다: {str(e)}")
+        msg = '회원가입 중 오류가 발생했습니다.';
+        if (isinstance(e, HTTPException) and e.detail):
+            if (isinstance(e.detail, str)):
+                msg = e.detail
+            elif (isinstance(e.detail, list) and all(isinstance(i, str) for i in e.detail)):
+                msg = '\n'.join(e.detail)
+            elif (isinstance(e.detail, dict)):
+                msg = str(e.detail)
+        raise HTTPException(status_code=400, detail=msg)
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -166,6 +178,17 @@ async def send_verification_email_only(request: dict, db: Session = Depends(get_
     except Exception as e:
         print(f"Error sending verification email: {e}")
         raise HTTPException(status_code=500, detail="이메일 인증 처리 중 오류가 발생했습니다.")
+
+
+# 이메일 인증 완료 여부 확인
+@router.get("/check-email-verification")
+def check_email_verification(email: str = Query(...), db: Session = Depends(get_db)):
+    verification_token = db.query(EmailVerificationToken).filter(
+        EmailVerificationToken.email == email,
+        EmailVerificationToken.is_verified == True
+    ).first()
+    
+    return {"verified": verification_token is not None}
 
 
 @router.get("/verify-email")

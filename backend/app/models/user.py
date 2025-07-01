@@ -14,6 +14,7 @@ class GenderType(str, enum.Enum):
 class Role(str, enum.Enum):
     USER = "USER"
     ADMIN = "ADMIN"
+    MEMBER = "MEMBER"  # 기업회원 권한
 
 
 class User(Base):

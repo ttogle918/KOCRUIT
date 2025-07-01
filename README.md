@@ -54,6 +54,22 @@ cd kocruit-project
 
 ```docker exec -it mysql8 mysql -umyuser -p1234```
 
+docker 켜진 상태에서 mysql 터미널로 들어가기
+
+```docker exec -it mysql bash```
+
+bash-5.1# 
+```mysql -u myuser -p```
+
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 183       
+Server version: 8.0.42 MySQL Community Server - GPL 
+
+```mysql> USE kocruit_db;```
+
+Database changed
+
 #### backend 에러 코드 보기
 
 ```docker-compose logs backend```

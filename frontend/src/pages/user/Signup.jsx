@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Layout from '../../layout/Layout';
+import axios from 'axios';
 
 function Signup() {
   const navigate = useNavigate();
@@ -33,6 +34,21 @@ function Signup() {
     setError('');
     setIsLoading(true);
 
+    if (form.userType === 'company') {
+      // 기업 회원인 경우 이메일 인증 완료 여부 확인
+      try {
+        const verificationResponse = await axios.get(`http://localhost:8000/api/v1/auth/check-email-verification?email=${form.email}`);
+        if (!verificationResponse.data.verified) {
+          alert('이메일 인증을 먼저 완료해주세요. 이메일의 링크를 클릭해주세요.');
+          return;
+        }
+      } catch (error) {
+        console.error('이메일 인증 확인 실패:', error);
+        alert('이메일 인증 확인에 실패했습니다.');
+        return;
+      }
+    }
+
     // 비밀번호 길이 검사
     if (form.password.length < 6) {
       setError('비밀번호는 최소 6자 이상이어야 합니다.');
@@ -56,7 +72,7 @@ function Signup() {
 
     // 기업회원 인증 미완료 시
     if (isCompanyUser && !emailSent) {
-      setError('이메일 인증을 완료해야 합니다.');
+      setError('이메일 인증을 먼저 완료해주세요.');
       setIsLoading(false);
       return;
     }
@@ -92,8 +108,21 @@ function Signup() {
       
       alert('회원가입 성공! 이메일 인증을 확인해주세요.');
       navigate('/login');
-    } catch (err) {
-      setError(err.message || '서버 오류가 발생했습니다.');
+    } catch (error) {
+      console.error('Signup error:', error);
+      let msg = '회원가입 중 오류가 발생했습니다.';
+      if (error.response?.data?.detail) {
+        if (typeof error.response.data.detail === 'string') {
+          msg = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          // FastAPI validation error: 배열
+          msg = error.response.data.detail.map(e => e.msg).join('\\n');
+        } else if (typeof error.response.data.detail === 'object') {
+          // 객체일 경우
+          msg = JSON.stringify(error.response.data.detail);
+        }
+      }
+      alert(msg);
     } finally {
       setIsLoading(false);
     }
