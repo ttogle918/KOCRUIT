@@ -13,7 +13,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./initdb:/docker-entrypoint-initdb.d
     ports:
-      - "3306:3306"
+      - "3307:3306"  # ← 여기! 로컬에서는 3307로 접속
     networks:
       - app-net
     healthcheck:
@@ -25,20 +25,26 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: kocruit_springboot
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: kocruit_fastapi
     ports:
-      - "8081:8081"
+      - "8000:8000"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/kocruit_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-      SPRING_DATASOURCE_USERNAME: myuser
-      SPRING_DATASOURCE_PASSWORD: 1234
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: kocruit_db
+      DB_USER: myuser
+      DB_PASSWORD: 1234
     depends_on:
       mysql:
         condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - ./agent:/app/agent
     networks:
       - app-net
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
     image: node:18-alpine

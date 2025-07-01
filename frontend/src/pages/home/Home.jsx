@@ -13,11 +13,11 @@ function Home() {
   const company_itemsPerPage = 6;
 
   useEffect(() => {
-    api.get('/common/jobposts')
+    api.get('/jobs/common/jobposts')
       .then((res) => setJobPosts(res.data))
       .catch((err) => console.error('공고 목록 요청 실패:', err));
 
-    api.get('/common/company')
+    api.get('/companies/common/company')
       .then((res) => setCompanies(res.data))
       .catch((err) => console.error('기업 목록 요청 실패:', err));
   }, []);

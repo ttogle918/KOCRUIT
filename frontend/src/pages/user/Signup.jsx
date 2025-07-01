@@ -32,7 +32,7 @@ function Signup() {
     }
 
     try {
-      const res = await fetch('http://localhost:8081/users/signup', {
+      const res = await fetch('http://localhost:8000/api/v1/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -60,7 +60,7 @@ function Signup() {
     if (!form.email) return;
     
     try {
-      const res = await fetch(`http://localhost:8081/users/check-email?email=${form.email}`);
+      const res = await fetch(`http://localhost:8000/api/v1/users/check-email?email=${form.email}`);
       const data = await res.json();
       
       if (data.exists) {

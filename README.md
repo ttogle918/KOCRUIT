@@ -96,11 +96,11 @@ mvn spring-boot:run
 ## 현재 디렉토리에서 가상환경 생성
 python3 -m venv .venv
 
-## 가상환경 활성화 (Windows)
-.venv\Scripts\activate
-
-## macOS/Linux 사용자는:
+## 가상환경 활성화 (macOS/Linux)
 source .venv/bin/activate
+
+## Windows 사용자는:
+# .venv\Scripts\activate
 
 ## 의존성 설치
 pip install -r requirements.txt
@@ -110,3 +110,4 @@ OPENAI_API_KEY=sk-...
 
 ## 서버 실행
 uvicorn main:app --reload --port 8001
+

@@ -1,0 +1,28 @@
+# FastAPI and server
+fastapi==0.110.0
+uvicorn==0.29.0
+
+# LangChain ecosystem
+langchain==0.3.13
+langchain-core>=0.3.56
+langchain-openai==0.2.14
+langchain-community==0.3.13
+
+# LangGraph
+langgraph==0.2.60
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.9.2
+email-validator==2.1.1
+pydantic-settings==2.5.2
+
+# DB & Security
+sqlalchemy==2.0.23
+alembic==1.13.1
+pymysql==1.1.0
+python-multipart==0.0.7
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+redis==5.0.1
+httpx==0.25.2

@@ -1,0 +1,36 @@
+import os
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+
+class Settings(BaseSettings):
+    # Database (환경변수 우선, 기본값 fallback)
+    DB_HOST: str = os.getenv("DB_HOST", "localhost")
+    DB_PORT: str = os.getenv("DB_PORT", "3306")
+    DB_NAME: str = os.getenv("DB_NAME", "recruit")
+    DB_USER: str = os.getenv("DB_USER", "root")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "password")
+    DATABASE_URL: str = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    
+    # JWT
+    SECRET_KEY: str = "your-secret-key-here"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379"
+    
+    # OAuth
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    KAKAO_CLIENT_ID: Optional[str] = None
+    KAKAO_CLIENT_SECRET: Optional[str] = None
+    NAVER_CLIENT_ID: Optional[str] = None
+    NAVER_CLIENT_SECRET: Optional[str] = None
+    
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings() 
