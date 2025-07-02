@@ -1,1454 +1,5084 @@
 [
   {
-    "field_name": "job_category",
-    "score": 10
-  },
-  {
-    "field_name": "department",
-    "score": 100
-  },
-  {
-    "field_name": "location",
-    "score": 5
-  },
-  {
-    "field_name": "career_level",
-    "score": 71
-  },
-  {
-    "field_name": "required_skill",
-    "score": 10
-  },
-  {
-    "field_name": "employment_type",
-    "score": 51
-  },
-  {
-    "field_name": "job_category",
-    "score": 3
-  },
-  {
-    "field_name": "department",
-    "score": 27
-  },
-  {
-    "field_name": "required_skill",
-    "score": 20
-  },
-  {
-    "field_name": "license",
+    "email": "hong1@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
     "score": 64
   },
   {
-    "field_name": "employment_type",
-    "score": 6
-  },
-  {
-    "field_name": "performance_pay",
-    "score": 82
-  },
-  {
-    "field_name": "job_category",
-    "score": 10
-  },
-  {
-    "field_name": "department",
-    "score": 32
-  },
-  {
-    "field_name": "career_level",
-    "score": 95
-  },
-  {
-    "field_name": "required_skill",
-    "score": 60
-  },
-  {
-    "field_name": "employment_type",
-    "score": 37
-  },
-  {
-    "field_name": "work_type",
-    "score": 35
-  },
-  {
-    "field_name": "job_category",
-    "score": 91
-  },
-  {
-    "field_name": "department",
-    "score": 17
-  },
-  {
-    "field_name": "required_major",
-    "score": 3
-  },
-  {
-    "field_name": "career_level",
-    "score": 94
-  },
-  {
-    "field_name": "employment_type",
-    "score": 42
-  },
-  {
-    "field_name": "required_interest",
-    "score": 20
-  },
-  {
-    "field_name": "job_category",
-    "score": 63
-  },
-  {
-    "field_name": "department",
-    "score": 2
-  },
-  {
-    "field_name": "required_skill",
-    "score": 60
-  },
-  {
-    "field_name": "work_type",
-    "score": 35
-  },
-  {
-    "field_name": "employment_type",
-    "score": 7
-  },
-  {
-    "field_name": "benefit",
-    "score": 8
-  },
-  {
-    "field_name": "job_category",
-    "score": 12
-  },
-  {
-    "field_name": "department",
-    "score": 31
-  },
-  {
-    "field_name": "required_skill",
-    "score": 1
-  },
-  {
-    "field_name": "career_level",
-    "score": 4
-  },
-  {
-    "field_name": "employment_type",
-    "score": 1
-  },
-  {
-    "field_name": "location",
-    "score": 80
-  },
-  {
-    "field_name": "job_category",
-    "score": 3
-  },
-  {
-    "field_name": "department",
-    "score": 35
-  },
-  {
-    "field_name": "required_skill",
-    "score": 99
-  },
-  {
-    "field_name": "license",
-    "score": 1
-  },
-  {
-    "field_name": "employment_type",
+    "email": "hong1@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
     "score": 56
   },
   {
-    "field_name": "benefit",
-    "score": 11
-  },
-  {
-    "field_name": "job_category",
-    "score": 63
-  },
-  {
-    "field_name": "department",
-    "score": 34
-  },
-  {
-    "field_name": "required_skill",
-    "score": 86
-  },
-  {
-    "field_name": "employment_type",
-    "score": 62
-  },
-  {
-    "field_name": "work_type",
-    "score": 55
-  },
-  {
-    "field_name": "benefit",
-    "score": 5
-  },
-  {
-    "field_name": "job_category",
-    "score": 92
-  },
-  {
-    "field_name": "department",
-    "score": 87
-  },
-  {
-    "field_name": "required_skill",
-    "score": 56
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 63
-  },
-  {
-    "field_name": "employment_type",
-    "score": 81
-  },
-  {
-    "field_name": "benefit",
+    "email": "hong1@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
     "score": 79
   },
   {
-    "field_name": "job_category",
-    "score": 71
-  },
-  {
-    "field_name": "department",
-    "score": 89
-  },
-  {
-    "field_name": "career_level",
-    "score": 78
-  },
-  {
-    "field_name": "employment_type",
-    "score": 33
-  },
-  {
-    "field_name": "work_type",
-    "score": 67
-  },
-  {
-    "field_name": "benefit",
-    "score": 35
-  },
-  {
-    "field_name": "job_category",
-    "score": 5
-  },
-  {
-    "field_name": "department",
-    "score": 13
-  },
-  {
-    "field_name": "required_major",
-    "score": 15
-  },
-  {
-    "field_name": "required_skill",
-    "score": 23
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 90
-  },
-  {
-    "field_name": "employment_type",
-    "score": 27
-  },
-  {
-    "field_name": "location",
-    "score": 21
-  },
-  {
-    "field_name": "job_category",
-    "score": 39
-  },
-  {
-    "field_name": "department",
-    "score": 31
-  },
-  {
-    "field_name": "required_skill",
-    "score": 67
-  },
-  {
-    "field_name": "required_skill",
-    "score": 27
-  },
-  {
-    "field_name": "employment_type",
-    "score": 33
-  },
-  {
-    "field_name": "job_details",
-    "score": 29
-  },
-  {
-    "field_name": "job_category",
-    "score": 52
-  },
-  {
-    "field_name": "department",
-    "score": 7
-  },
-  {
-    "field_name": "required_skill",
-    "score": 84
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 11
-  },
-  {
-    "field_name": "employment_type",
-    "score": 24
-  },
-  {
-    "field_name": "work_type",
-    "score": 56
-  },
-  {
-    "field_name": "job_category",
-    "score": 15
-  },
-  {
-    "field_name": "department",
-    "score": 36
-  },
-  {
-    "field_name": "required_major",
-    "score": 62
-  },
-  {
-    "field_name": "required_skill",
-    "score": 37
-  },
-  {
-    "field_name": "employment_type",
-    "score": 67
-  },
-  {
-    "field_name": "benefit",
-    "score": 74
-  },
-  {
-    "field_name": "job_category",
-    "score": 43
-  },
-  {
-    "field_name": "department",
-    "score": 41
-  },
-  {
-    "field_name": "required_major",
-    "score": 23
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 92
-  },
-  {
-    "field_name": "employment_type",
-    "score": 70
-  },
-  {
-    "field_name": "work_type",
-    "score": 25
-  },
-  {
-    "field_name": "job_category",
-    "score": 75
-  },
-  {
-    "field_name": "department",
-    "score": 30
-  },
-  {
-    "field_name": "required_major",
-    "score": 99
-  },
-  {
-    "field_name": "required_skill",
-    "score": 86
-  },
-  {
-    "field_name": "location",
-    "score": 57
-  },
-  {
-    "field_name": "employment_type",
-    "score": 2
-  },
-  {
-    "field_name": "job_category",
-    "score": 89
-  },
-  {
-    "field_name": "department",
-    "score": 41
-  },
-  {
-    "field_name": "required_license",
-    "score": 97
-  },
-  {
-    "field_name": "career_level",
-    "score": 13
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 9
-  },
-  {
-    "field_name": "employment_type",
-    "score": 20
-  },
-  {
-    "field_name": "job_category",
-    "score": 54
-  },
-  {
-    "field_name": "department",
-    "score": 93
-  },
-  {
-    "field_name": "required_skill",
-    "score": 46
-  },
-  {
-    "field_name": "required_skill",
-    "score": 56
-  },
-  {
-    "field_name": "location",
-    "score": 8
-  },
-  {
-    "field_name": "employment_type",
-    "score": 88
-  },
-  {
-    "field_name": "job_category",
-    "score": 66
-  },
-  {
-    "field_name": "department",
-    "score": 63
-  },
-  {
-    "field_name": "required_skill",
-    "score": 36
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 84
-  },
-  {
-    "field_name": "employment_type",
-    "score": 29
-  },
-  {
-    "field_name": "location",
-    "score": 13
-  },
-  {
-    "field_name": "job_category",
-    "score": 71
-  },
-  {
-    "field_name": "department",
-    "score": 98
-  },
-  {
-    "field_name": "required_skill",
-    "score": 99
-  },
-  {
-    "field_name": "required_skill",
-    "score": 27
-  },
-  {
-    "field_name": "employment_type",
-    "score": 47
-  },
-  {
-    "field_name": "benefit",
-    "score": 83
-  },
-  {
-    "field_name": "job_category",
-    "score": 98
-  },
-  {
-    "field_name": "department",
-    "score": 59
-  },
-  {
-    "field_name": "required_major",
-    "score": 32
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 60
-  },
-  {
-    "field_name": "employment_type",
-    "score": 38
-  },
-  {
-    "field_name": "location",
-    "score": 66
-  },
-  {
-    "field_name": "job_category",
-    "score": 82
-  },
-  {
-    "field_name": "department",
-    "score": 71
-  },
-  {
-    "field_name": "required_skill",
-    "score": 70
-  },
-  {
-    "field_name": "employment_type",
-    "score": 68
-  },
-  {
-    "field_name": "benefit",
-    "score": 60
-  },
-  {
-    "field_name": "location",
-    "score": 67
-  },
-  {
-    "field_name": "job_category",
-    "score": 42
-  },
-  {
-    "field_name": "department",
-    "score": 24
-  },
-  {
-    "field_name": "required_major",
-    "score": 95
-  },
-  {
-    "field_name": "required_skill",
-    "score": 45
-  },
-  {
-    "field_name": "employment_type",
-    "score": 91
-  },
-  {
-    "field_name": "benefit",
-    "score": 49
-  },
-  {
-    "field_name": "job_category",
-    "score": 12
-  },
-  {
-    "field_name": "department",
-    "score": 70
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 32
-  },
-  {
-    "field_name": "employment_type",
-    "score": 47
-  },
-  {
-    "field_name": "work_type",
-    "score": 65
-  },
-  {
-    "field_name": "benefit",
-    "score": 33
-  },
-  {
-    "field_name": "job_category",
-    "score": 5
-  },
-  {
-    "field_name": "department",
-    "score": 71
-  },
-  {
-    "field_name": "required_license",
-    "score": 35
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 5
-  },
-  {
-    "field_name": "employment_type",
-    "score": 22
-  },
-  {
-    "field_name": "benefit",
-    "score": 17
-  },
-  {
-    "field_name": "job_category",
-    "score": 36
-  },
-  {
-    "field_name": "department",
-    "score": 64
-  },
-  {
-    "field_name": "required_major",
-    "score": 43
-  },
-  {
-    "field_name": "career_level",
-    "score": 34
-  },
-  {
-    "field_name": "employment_type",
-    "score": 13
-  },
-  {
-    "field_name": "benefit",
-    "score": 9
-  },
-  {
-    "field_name": "job_category",
-    "score": 48
-  },
-  {
-    "field_name": "department",
-    "score": 24
-  },
-  {
-    "field_name": "required_major",
-    "score": 50
-  },
-  {
-    "field_name": "required_skill",
-    "score": 55
-  },
-  {
-    "field_name": "employment_type",
-    "score": 72
-  },
-  {
-    "field_name": "benefit",
-    "score": 80
-  },
-  {
-    "field_name": "job_category",
-    "score": 18
-  },
-  {
-    "field_name": "department",
-    "score": 11
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 64
-  },
-  {
-    "field_name": "employment_type",
-    "score": 29
-  },
-  {
-    "field_name": "benefit",
-    "score": 66
-  },
-  {
-    "field_name": "job_category",
-    "score": 68
-  },
-  {
-    "field_name": "department",
-    "score": 80
-  },
-  {
-    "field_name": "required_major",
-    "score": 9
-  },
-  {
-    "field_name": "employment_type",
-    "score": 33
-  },
-  {
-    "field_name": "benefit",
-    "score": 11
-  },
-  {
-    "field_name": "job_category",
-    "score": 69
-  },
-  {
-    "field_name": "department",
-    "score": 17
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 49
-  },
-  {
-    "field_name": "work_type",
-    "score": 68
-  },
-  {
-    "field_name": "employment_type",
-    "score": 9
-  },
-  {
-    "field_name": "benefit",
-    "score": 21
-  },
-  {
-    "field_name": "job_category",
-    "score": 98
-  },
-  {
-    "field_name": "department",
-    "score": 70
-  },
-  {
-    "field_name": "required_major",
-    "score": 57
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 34
-  },
-  {
-    "field_name": "employment_type",
-    "score": 56
-  },
-  {
-    "field_name": "benefit",
-    "score": 17
-  },
-  {
-    "field_name": "job_category",
-    "score": 66
-  },
-  {
-    "field_name": "department",
-    "score": 77
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 66
-  },
-  {
-    "field_name": "employment_type",
-    "score": 33
-  },
-  {
-    "field_name": "benefit",
-    "score": 95
-  },
-  {
-    "field_name": "job_category",
-    "score": 78
-  },
-  {
-    "field_name": "department",
-    "score": 48
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 63
-  },
-  {
-    "field_name": "employment_type",
-    "score": 56
-  },
-  {
-    "field_name": "benefit",
-    "score": 60
-  },
-  {
-    "field_name": "job_category",
-    "score": 87
-  },
-  {
-    "field_name": "department",
-    "score": 95
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 93
-  },
-  {
-    "field_name": "employment_type",
-    "score": 9
-  },
-  {
-    "field_name": "work_type",
-    "score": 96
-  },
-  {
-    "field_name": "benefit",
-    "score": 76
-  },
-  {
-    "field_name": "job_category",
+    "email": "hong1@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
     "score": 10
   },
   {
-    "field_name": "department",
-    "score": 43
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 68
-  },
-  {
-    "field_name": "employment_type",
-    "score": 37
-  },
-  {
-    "field_name": "job_category",
-    "score": 70
-  },
-  {
-    "field_name": "department",
-    "score": 87
-  },
-  {
-    "field_name": "required_major",
-    "score": 42
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 57
-  },
-  {
-    "field_name": "employment_type",
-    "score": 87
-  },
-  {
-    "field_name": "benefit",
-    "score": 77
-  },
-  {
-    "field_name": "job_category",
-    "score": 87
-  },
-  {
-    "field_name": "department",
-    "score": 58
-  },
-  {
-    "field_name": "required_major",
-    "score": 77
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 23
-  },
-  {
-    "field_name": "employment_type",
-    "score": 36
-  },
-  {
-    "field_name": "benefit",
-    "score": 55
-  },
-  {
-    "field_name": "job_category",
+    "email": "hong1@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
     "score": 54
   },
   {
-    "field_name": "department",
-    "score": 97
-  },
-  {
-    "field_name": "required_license",
-    "score": 73
-  },
-  {
-    "field_name": "employment_type",
-    "score": 86
-  },
-  {
-    "field_name": "benefit",
-    "score": 40
-  },
-  {
-    "field_name": "job_category",
-    "score": 23
-  },
-  {
-    "field_name": "department",
-    "score": 59
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 12
-  },
-  {
-    "field_name": "employment_type",
-    "score": 75
-  },
-  {
-    "field_name": "benefit",
-    "score": 57
-  },
-  {
-    "field_name": "job_category",
-    "score": 68
-  },
-  {
-    "field_name": "department",
-    "score": 85
-  },
-  {
-    "field_name": "required_major",
-    "score": 51
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 20
-  },
-  {
-    "field_name": "employment_type",
-    "score": 29
-  },
-  {
-    "field_name": "benefit",
-    "score": 63
-  },
-  {
-    "field_name": "job_category",
-    "score": 79
-  },
-  {
-    "field_name": "department",
-    "score": 48
-  },
-  {
-    "field_name": "required_major",
-    "score": 31
-  },
-  {
-    "field_name": "career_level",
-    "score": 11
-  },
-  {
-    "field_name": "work_type",
-    "score": 30
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 17
-  },
-  {
-    "field_name": "job_category",
-    "score": 32
-  },
-  {
-    "field_name": "department",
-    "score": 55
-  },
-  {
-    "field_name": "required_major",
-    "score": 73
-  },
-  {
-    "field_name": "career_level",
-    "score": 82
-  },
-  {
-    "field_name": "preferred_license",
-    "score": 9
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 86
-  },
-  {
-    "field_name": "job_category",
-    "score": 89
-  },
-  {
-    "field_name": "department",
-    "score": 30
-  },
-  {
-    "field_name": "required_skill",
-    "score": 75
-  },
-  {
-    "field_name": "required_skill",
-    "score": 20
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 21
-  },
-  {
-    "field_name": "employment_type",
-    "score": 40
-  },
-  {
-    "field_name": "job_category",
-    "score": 22
-  },
-  {
-    "field_name": "department",
-    "score": 80
-  },
-  {
-    "field_name": "required_skill",
-    "score": 31
-  },
-  {
-    "field_name": "required_skill",
-    "score": 50
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 62
-  },
-  {
-    "field_name": "employment_type",
-    "score": 63
-  },
-  {
-    "field_name": "job_category",
-    "score": 5
-  },
-  {
-    "field_name": "department",
-    "score": 76
-  },
-  {
-    "field_name": "required_skill",
-    "score": 56
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 30
-  },
-  {
-    "field_name": "employment_type",
-    "score": 40
-  },
-  {
-    "field_name": "job_category",
-    "score": 24
-  },
-  {
-    "field_name": "department",
-    "score": 92
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 22
-  },
-  {
-    "field_name": "work_type",
-    "score": 55
-  },
-  {
-    "field_name": "employment_type",
-    "score": 20
-  },
-  {
-    "field_name": "job_category",
+    "email": "hong1@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
     "score": 38
   },
   {
-    "field_name": "department",
-    "score": 48
-  },
-  {
-    "field_name": "required_license",
-    "score": 42
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 81
-  },
-  {
-    "field_name": "employment_type",
-    "score": 21
-  },
-  {
-    "field_name": "job_category",
-    "score": 19
-  },
-  {
-    "field_name": "department",
-    "score": 43
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 63
-  },
-  {
-    "field_name": "employment_type",
-    "score": 61
-  },
-  {
-    "field_name": "job_category",
-    "score": 96
-  },
-  {
-    "field_name": "department",
-    "score": 50
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 2
-  },
-  {
-    "field_name": "employment_type",
-    "score": 31
-  },
-  {
-    "field_name": "job_category",
-    "score": 70
-  },
-  {
-    "field_name": "department",
-    "score": 46
-  },
-  {
-    "field_name": "preferred_license",
-    "score": 49
-  },
-  {
-    "field_name": "work_type",
-    "score": 25
-  },
-  {
-    "field_name": "employment_type",
-    "score": 76
-  },
-  {
-    "field_name": "job_category",
-    "score": 75
-  },
-  {
-    "field_name": "department",
-    "score": 5
-  },
-  {
-    "field_name": "required_skill",
-    "score": 68
-  },
-  {
-    "field_name": "preferred_license",
-    "score": 88
-  },
-  {
-    "field_name": "employment_type",
-    "score": 28
-  },
-  {
-    "field_name": "job_category",
-    "score": 75
-  },
-  {
-    "field_name": "department",
-    "score": 55
-  },
-  {
-    "field_name": "required_skill",
-    "score": 37
-  },
-  {
-    "field_name": "preferred_skill",
+    "email": "hong1@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
     "score": 16
   },
   {
-    "field_name": "employment_type",
-    "score": 19
+    "email": "hong2@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 37
   },
   {
-    "field_name": "job_category",
-    "score": 11
+    "email": "hong2@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 35
   },
   {
-    "field_name": "department",
-    "score": 11
-  },
-  {
-    "field_name": "required_skill",
+    "email": "hong2@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
     "score": 59
   },
   {
-    "field_name": "preferred_major",
-    "score": 93
+    "email": "hong2@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 14
   },
   {
-    "field_name": "employment_type",
-    "score": 11
+    "email": "hong2@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 14
   },
   {
-    "field_name": "job_category",
-    "score": 66
-  },
-  {
-    "field_name": "department",
-    "score": 18
-  },
-  {
-    "field_name": "required_skill",
-    "score": 29
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 95
-  },
-  {
-    "field_name": "employment_type",
-    "score": 61
-  },
-  {
-    "field_name": "job_category",
-    "score": 76
-  },
-  {
-    "field_name": "department",
-    "score": 62
-  },
-  {
-    "field_name": "required_skill",
-    "score": 48
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 66
-  },
-  {
-    "field_name": "employment_type",
-    "score": 41
-  },
-  {
-    "field_name": "job_category",
-    "score": 15
-  },
-  {
-    "field_name": "department",
-    "score": 97
-  },
-  {
-    "field_name": "required_skill",
-    "score": 76
-  },
-  {
-    "field_name": "required_skill",
-    "score": 57
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 18
-  },
-  {
-    "field_name": "employment_type",
-    "score": 60
-  },
-  {
-    "field_name": "job_category",
-    "score": 66
-  },
-  {
-    "field_name": "department",
-    "score": 38
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 12
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 56
-  },
-  {
-    "field_name": "employment_type",
-    "score": 51
-  },
-  {
-    "field_name": "job_category",
-    "score": 98
-  },
-  {
-    "field_name": "department",
-    "score": 31
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 32
-  },
-  {
-    "field_name": "employment_type",
-    "score": 25
-  },
-  {
-    "field_name": "job_category",
-    "score": 1
-  },
-  {
-    "field_name": "department",
-    "score": 42
-  },
-  {
-    "field_name": "required_skill",
-    "score": 70
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 94
-  },
-  {
-    "field_name": "employment_type",
-    "score": 88
-  },
-  {
-    "field_name": "job_category",
-    "score": 69
-  },
-  {
-    "field_name": "department",
-    "score": 30
-  },
-  {
-    "field_name": "required_skill",
-    "score": 83
-  },
-  {
-    "field_name": "employment_type",
-    "score": 40
-  },
-  {
-    "field_name": "job_category",
-    "score": 21
-  },
-  {
-    "field_name": "department",
-    "score": 43
-  },
-  {
-    "field_name": "required_major",
-    "score": 58
-  },
-  {
-    "field_name": "required_skill",
-    "score": 8
-  },
-  {
-    "field_name": "employment_type",
-    "score": 73
-  },
-  {
-    "field_name": "benefit",
-    "score": 4
-  },
-  {
-    "field_name": "job_category",
-    "score": 51
-  },
-  {
-    "field_name": "department",
-    "score": 79
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 58
-  },
-  {
-    "field_name": "work_type",
-    "score": 10
-  },
-  {
-    "field_name": "benefit",
-    "score": 18
-  },
-  {
-    "field_name": "employment_type",
-    "score": 48
-  },
-  {
-    "field_name": "job_category",
-    "score": 42
-  },
-  {
-    "field_name": "department",
-    "score": 76
-  },
-  {
-    "field_name": "preferred_skill",
-    "score": 84
-  },
-  {
-    "field_name": "work_type",
-    "score": 100
-  },
-  {
-    "field_name": "benefit",
+    "email": "hong2@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
     "score": 13
   },
   {
-    "field_name": "employment_type",
-    "score": 65
+    "email": "hong2@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 43
   },
   {
-    "field_name": "job_category",
-    "score": 60
+    "email": "hong3@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 17
   },
   {
-    "field_name": "department",
-    "score": 6
+    "email": "hong3@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 71
   },
   {
-    "field_name": "preferred_skill",
-    "score": 39
+    "email": "hong3@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 28
   },
   {
-    "field_name": "employment_type",
+    "email": "hong3@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
     "score": 32
   },
   {
-    "field_name": "benefit",
-    "score": 56
+    "email": "hong3@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 39
   },
   {
-    "field_name": "job_category",
-    "score": 18
+    "email": "hong3@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 29
   },
   {
-    "field_name": "department",
-    "score": 64
+    "email": "hong3@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 93
   },
   {
-    "field_name": "required_major",
-    "score": 38
+    "email": "hong4@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 27
   },
   {
-    "field_name": "preferred_skill",
-    "score": 64
+    "email": "hong4@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 100
   },
   {
-    "field_name": "employment_type",
+    "email": "hong4@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 92
+  },
+  {
+    "email": "hong4@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 13
+  },
+  {
+    "email": "hong4@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 57
+  },
+  {
+    "email": "hong4@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 45
+  },
+  {
+    "email": "hong4@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 59
+  },
+  {
+    "email": "hong5@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 96
+  },
+  {
+    "email": "hong5@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 28
+  },
+  {
+    "email": "hong5@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 46
+  },
+  {
+    "email": "hong5@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 10
+  },
+  {
+    "email": "hong5@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 60
+  },
+  {
+    "email": "hong5@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
     "score": 15
   },
   {
-    "field_name": "benefit",
+    "email": "hong5@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 92
+  },
+  {
+    "email": "hong6@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 46
+  },
+  {
+    "email": "hong6@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 69
+  },
+  {
+    "email": "hong6@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 12
+  },
+  {
+    "email": "hong6@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 53
+  },
+  {
+    "email": "hong6@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 90
+  },
+  {
+    "email": "hong6@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 69
+  },
+  {
+    "email": "hong6@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 98
+  },
+  {
+    "email": "hong7@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 6
+  },
+  {
+    "email": "hong7@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 16
+  },
+  {
+    "email": "hong7@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 59
+  },
+  {
+    "email": "hong7@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 40
+  },
+  {
+    "email": "hong7@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 74
+  },
+  {
+    "email": "hong7@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 97
+  },
+  {
+    "email": "hong7@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 4
+  },
+  {
+    "email": "hong8@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 21
+  },
+  {
+    "email": "hong8@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 29
+  },
+  {
+    "email": "hong8@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 44
+  },
+  {
+    "email": "hong8@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 45
+  },
+  {
+    "email": "hong8@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 22
+  },
+  {
+    "email": "hong8@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 94
+  },
+  {
+    "email": "hong8@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 96
+  },
+  {
+    "email": "hong9@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 52
+  },
+  {
+    "email": "hong9@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 42
+  },
+  {
+    "email": "hong9@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 69
+  },
+  {
+    "email": "hong9@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 36
+  },
+  {
+    "email": "hong9@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 24
+  },
+  {
+    "email": "hong9@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 79
+  },
+  {
+    "email": "hong9@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 28
+  },
+  {
+    "email": "hong10@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 22
+  },
+  {
+    "email": "hong10@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 23
+  },
+  {
+    "email": "hong10@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 77
+  },
+  {
+    "email": "hong10@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 94
+  },
+  {
+    "email": "hong10@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 81
+  },
+  {
+    "email": "hong10@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 84
+  },
+  {
+    "email": "hong10@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 91
+  },
+  {
+    "email": "hong11@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 77
+  },
+  {
+    "email": "hong11@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 50
+  },
+  {
+    "email": "hong11@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 43
+  },
+  {
+    "email": "hong11@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 24
+  },
+  {
+    "email": "hong11@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 37
+  },
+  {
+    "email": "hong11@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 77
+  },
+  {
+    "email": "hong11@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 90
+  },
+  {
+    "email": "hong12@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 59
+  },
+  {
+    "email": "hong12@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 23
+  },
+  {
+    "email": "hong12@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 89
+  },
+  {
+    "email": "hong12@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 99
+  },
+  {
+    "email": "hong12@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 22
+  },
+  {
+    "email": "hong12@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 44
+  },
+  {
+    "email": "hong12@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 74
+  },
+  {
+    "email": "hong13@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 74
+  },
+  {
+    "email": "hong13@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 21
+  },
+  {
+    "email": "hong13@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 98
+  },
+  {
+    "email": "hong13@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 17
+  },
+  {
+    "email": "hong13@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 40
+  },
+  {
+    "email": "hong13@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 74
+  },
+  {
+    "email": "hong13@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 28
+  },
+  {
+    "email": "hong14@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 84
+  },
+  {
+    "email": "hong14@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 26
+  },
+  {
+    "email": "hong14@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 79
+  },
+  {
+    "email": "hong14@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 88
+  },
+  {
+    "email": "hong14@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 46
+  },
+  {
+    "email": "hong14@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 28
+  },
+  {
+    "email": "hong14@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 49
+  },
+  {
+    "email": "hong15@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 95
+  },
+  {
+    "email": "hong15@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 62
+  },
+  {
+    "email": "hong15@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 49
+  },
+  {
+    "email": "hong15@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 31
+  },
+  {
+    "email": "hong15@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 76
+  },
+  {
+    "email": "hong15@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 40
+  },
+  {
+    "email": "hong15@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 50
+  },
+  {
+    "email": "hong16@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 67
+  },
+  {
+    "email": "hong16@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 10
+  },
+  {
+    "email": "hong16@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 27
+  },
+  {
+    "email": "hong16@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 45
+  },
+  {
+    "email": "hong16@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 71
+  },
+  {
+    "email": "hong16@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 1
+  },
+  {
+    "email": "hong16@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 29
+  },
+  {
+    "email": "hong17@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 34
+  },
+  {
+    "email": "hong17@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 47
+  },
+  {
+    "email": "hong17@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 21
+  },
+  {
+    "email": "hong17@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 92
+  },
+  {
+    "email": "hong17@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 96
+  },
+  {
+    "email": "hong17@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 68
+  },
+  {
+    "email": "hong17@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 25
+  },
+  {
+    "email": "hong18@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 71
+  },
+  {
+    "email": "hong18@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 74
+  },
+  {
+    "email": "hong18@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 35
+  },
+  {
+    "email": "hong18@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 60
+  },
+  {
+    "email": "hong18@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 34
+  },
+  {
+    "email": "hong18@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 84
+  },
+  {
+    "email": "hong18@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 74
+  },
+  {
+    "email": "hong19@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 54
+  },
+  {
+    "email": "hong19@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 60
+  },
+  {
+    "email": "hong19@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 23
+  },
+  {
+    "email": "hong19@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 43
+  },
+  {
+    "email": "hong19@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 52
+  },
+  {
+    "email": "hong19@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 83
+  },
+  {
+    "email": "hong19@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 54
+  },
+  {
+    "email": "hong20@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 8
+  },
+  {
+    "email": "hong20@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 45
+  },
+  {
+    "email": "hong20@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 6
+  },
+  {
+    "email": "hong20@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 28
+  },
+  {
+    "email": "hong20@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 18
+  },
+  {
+    "email": "hong20@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 13
+  },
+  {
+    "email": "hong20@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 79
+  },
+  {
+    "email": "hong21@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 50
+  },
+  {
+    "email": "hong21@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 8
+  },
+  {
+    "email": "hong21@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 90
+  },
+  {
+    "email": "hong21@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 62
+  },
+  {
+    "email": "hong21@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 46
+  },
+  {
+    "email": "hong21@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 35
+  },
+  {
+    "email": "hong21@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 64
+  },
+  {
+    "email": "hong22@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 37
+  },
+  {
+    "email": "hong22@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 37
+  },
+  {
+    "email": "hong22@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 96
+  },
+  {
+    "email": "hong22@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 91
+  },
+  {
+    "email": "hong22@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 45
+  },
+  {
+    "email": "hong22@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 93
+  },
+  {
+    "email": "hong22@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 20
+  },
+  {
+    "email": "hong23@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 40
+  },
+  {
+    "email": "hong23@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 29
+  },
+  {
+    "email": "hong23@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 75
+  },
+  {
+    "email": "hong23@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 53
+  },
+  {
+    "email": "hong23@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 8
+  },
+  {
+    "email": "hong23@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 1
+  },
+  {
+    "email": "hong23@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 69
+  },
+  {
+    "email": "hong24@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 31
+  },
+  {
+    "email": "hong24@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 75
+  },
+  {
+    "email": "hong24@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 78
+  },
+  {
+    "email": "hong24@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 78
+  },
+  {
+    "email": "hong24@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 45
+  },
+  {
+    "email": "hong24@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 35
+  },
+  {
+    "email": "hong24@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 25
+  },
+  {
+    "email": "hong25@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 48
+  },
+  {
+    "email": "hong25@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 47
+  },
+  {
+    "email": "hong25@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 54
+  },
+  {
+    "email": "hong25@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 36
+  },
+  {
+    "email": "hong25@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 90
+  },
+  {
+    "email": "hong25@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 45
+  },
+  {
+    "email": "hong25@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 44
+  },
+  {
+    "email": "hong26@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 41
+  },
+  {
+    "email": "hong26@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 96
+  },
+  {
+    "email": "hong26@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 4
+  },
+  {
+    "email": "hong26@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 88
+  },
+  {
+    "email": "hong26@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 62
+  },
+  {
+    "email": "hong26@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 74
+  },
+  {
+    "email": "hong26@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 46
+  },
+  {
+    "email": "hong27@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 54
+  },
+  {
+    "email": "hong27@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 97
+  },
+  {
+    "email": "hong27@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 98
+  },
+  {
+    "email": "hong27@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 79
+  },
+  {
+    "email": "hong27@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 15
+  },
+  {
+    "email": "hong27@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 40
+  },
+  {
+    "email": "hong27@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 72
+  },
+  {
+    "email": "hong28@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 91
+  },
+  {
+    "email": "hong28@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 9
+  },
+  {
+    "email": "hong28@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 98
+  },
+  {
+    "email": "hong28@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 40
+  },
+  {
+    "email": "hong28@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 60
+  },
+  {
+    "email": "hong28@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 18
+  },
+  {
+    "email": "hong28@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 8
+  },
+  {
+    "email": "hong29@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 98
+  },
+  {
+    "email": "hong29@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 86
+  },
+  {
+    "email": "hong29@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 75
+  },
+  {
+    "email": "hong29@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 60
+  },
+  {
+    "email": "hong29@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 26
+  },
+  {
+    "email": "hong29@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 95
+  },
+  {
+    "email": "hong29@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 92
+  },
+  {
+    "email": "hong30@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 34
+  },
+  {
+    "email": "hong30@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 44
+  },
+  {
+    "email": "hong30@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 45
+  },
+  {
+    "email": "hong30@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 100
+  },
+  {
+    "email": "hong30@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 26
+  },
+  {
+    "email": "hong30@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 2
+  },
+  {
+    "email": "hong30@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 52
+  },
+  {
+    "email": "hong31@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 45
+  },
+  {
+    "email": "hong31@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 79
+  },
+  {
+    "email": "hong31@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 10
+  },
+  {
+    "email": "hong31@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 94
+  },
+  {
+    "email": "hong31@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 53
+  },
+  {
+    "email": "hong31@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 93
+  },
+  {
+    "email": "hong31@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 86
+  },
+  {
+    "email": "hong32@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 93
+  },
+  {
+    "email": "hong32@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 45
+  },
+  {
+    "email": "hong32@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 28
+  },
+  {
+    "email": "hong32@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 56
+  },
+  {
+    "email": "hong32@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 50
+  },
+  {
+    "email": "hong32@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 27
+  },
+  {
+    "email": "hong32@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 56
+  },
+  {
+    "email": "hong33@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 84
+  },
+  {
+    "email": "hong33@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 96
+  },
+  {
+    "email": "hong33@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 96
+  },
+  {
+    "email": "hong33@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 10
+  },
+  {
+    "email": "hong33@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 52
+  },
+  {
+    "email": "hong33@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 14
+  },
+  {
+    "email": "hong33@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 95
+  },
+  {
+    "email": "hong34@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 16
+  },
+  {
+    "email": "hong34@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 68
+  },
+  {
+    "email": "hong34@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 95
+  },
+  {
+    "email": "hong34@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 12
+  },
+  {
+    "email": "hong34@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 55
+  },
+  {
+    "email": "hong34@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 53
+  },
+  {
+    "email": "hong34@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 4
+  },
+  {
+    "email": "hong35@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 62
+  },
+  {
+    "email": "hong35@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 92
+  },
+  {
+    "email": "hong35@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 92
+  },
+  {
+    "email": "hong35@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 11
+  },
+  {
+    "email": "hong35@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 89
+  },
+  {
+    "email": "hong35@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 83
+  },
+  {
+    "email": "hong35@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 27
+  },
+  {
+    "email": "hong36@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 60
+  },
+  {
+    "email": "hong36@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 81
+  },
+  {
+    "email": "hong36@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 80
+  },
+  {
+    "email": "hong36@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 17
+  },
+  {
+    "email": "hong36@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 56
+  },
+  {
+    "email": "hong36@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 44
+  },
+  {
+    "email": "hong36@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 90
+  },
+  {
+    "email": "hong37@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 10
+  },
+  {
+    "email": "hong37@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 100
+  },
+  {
+    "email": "hong37@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 6
+  },
+  {
+    "email": "hong37@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 71
+  },
+  {
+    "email": "hong37@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 34
+  },
+  {
+    "email": "hong37@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 92
+  },
+  {
+    "email": "hong37@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 62
+  },
+  {
+    "email": "hong38@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 4
+  },
+  {
+    "email": "hong38@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 71
+  },
+  {
+    "email": "hong38@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
     "score": 65
+  },
+  {
+    "email": "hong38@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 50
+  },
+  {
+    "email": "hong38@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 43
+  },
+  {
+    "email": "hong38@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 68
+  },
+  {
+    "email": "hong38@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 20
+  },
+  {
+    "email": "hong39@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 99
+  },
+  {
+    "email": "hong39@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 93
+  },
+  {
+    "email": "hong39@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 69
+  },
+  {
+    "email": "hong39@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 26
+  },
+  {
+    "email": "hong39@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 37
+  },
+  {
+    "email": "hong39@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 12
+  },
+  {
+    "email": "hong39@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 42
+  },
+  {
+    "email": "hong40@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 68
+  },
+  {
+    "email": "hong40@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 83
+  },
+  {
+    "email": "hong40@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 60
+  },
+  {
+    "email": "hong40@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 32
+  },
+  {
+    "email": "hong40@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 77
+  },
+  {
+    "email": "hong40@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 50
+  },
+  {
+    "email": "hong40@example.com",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 50
+  },
+  {
+    "email": "hong41@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 29
+  },
+  {
+    "email": "hong41@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 14
+  },
+  {
+    "email": "hong41@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 35
+  },
+  {
+    "email": "hong41@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 34
+  },
+  {
+    "email": "hong41@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 19
+  },
+  {
+    "email": "hong41@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 61
+  },
+  {
+    "email": "hong41@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 8
+  },
+  {
+    "email": "hong42@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 35
+  },
+  {
+    "email": "hong42@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 94
+  },
+  {
+    "email": "hong42@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 50
+  },
+  {
+    "email": "hong42@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 29
+  },
+  {
+    "email": "hong42@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 9
+  },
+  {
+    "email": "hong42@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 44
+  },
+  {
+    "email": "hong42@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 67
+  },
+  {
+    "email": "hong43@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 59
+  },
+  {
+    "email": "hong43@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 37
+  },
+  {
+    "email": "hong43@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 67
+  },
+  {
+    "email": "hong43@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 43
+  },
+  {
+    "email": "hong43@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 23
+  },
+  {
+    "email": "hong43@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 2
+  },
+  {
+    "email": "hong43@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 50
+  },
+  {
+    "email": "hong44@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 15
+  },
+  {
+    "email": "hong44@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 67
+  },
+  {
+    "email": "hong44@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 54
+  },
+  {
+    "email": "hong44@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 44
+  },
+  {
+    "email": "hong44@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 66
+  },
+  {
+    "email": "hong44@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 50
+  },
+  {
+    "email": "hong44@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 72
+  },
+  {
+    "email": "hong45@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 44
+  },
+  {
+    "email": "hong45@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 54
+  },
+  {
+    "email": "hong45@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 14
+  },
+  {
+    "email": "hong45@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 77
+  },
+  {
+    "email": "hong45@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 47
+  },
+  {
+    "email": "hong45@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 4
+  },
+  {
+    "email": "hong45@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 63
+  },
+  {
+    "email": "hong46@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 84
+  },
+  {
+    "email": "hong46@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 72
+  },
+  {
+    "email": "hong46@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 68
+  },
+  {
+    "email": "hong46@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 29
+  },
+  {
+    "email": "hong46@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 62
+  },
+  {
+    "email": "hong46@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 45
+  },
+  {
+    "email": "hong46@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 4
+  },
+  {
+    "email": "hong47@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 11
+  },
+  {
+    "email": "hong47@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 96
+  },
+  {
+    "email": "hong47@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 20
+  },
+  {
+    "email": "hong47@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 40
+  },
+  {
+    "email": "hong47@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 74
+  },
+  {
+    "email": "hong47@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 94
+  },
+  {
+    "email": "hong47@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 37
+  },
+  {
+    "email": "hong48@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 81
+  },
+  {
+    "email": "hong48@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 16
+  },
+  {
+    "email": "hong48@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 22
+  },
+  {
+    "email": "hong48@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 72
+  },
+  {
+    "email": "hong48@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 28
+  },
+  {
+    "email": "hong48@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 49
+  },
+  {
+    "email": "hong48@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 14
+  },
+  {
+    "email": "hong49@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 61
+  },
+  {
+    "email": "hong49@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 57
+  },
+  {
+    "email": "hong49@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 72
+  },
+  {
+    "email": "hong49@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 28
+  },
+  {
+    "email": "hong49@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 45
+  },
+  {
+    "email": "hong49@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 80
+  },
+  {
+    "email": "hong49@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 67
+  },
+  {
+    "email": "hong50@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 74
+  },
+  {
+    "email": "hong50@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 87
+  },
+  {
+    "email": "hong50@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 18
+  },
+  {
+    "email": "hong50@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 92
+  },
+  {
+    "email": "hong50@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 63
+  },
+  {
+    "email": "hong50@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 76
+  },
+  {
+    "email": "hong50@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 75
+  },
+  {
+    "email": "hong51@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 20
+  },
+  {
+    "email": "hong51@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 5
+  },
+  {
+    "email": "hong51@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 41
+  },
+  {
+    "email": "hong51@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 65
+  },
+  {
+    "email": "hong51@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 71
+  },
+  {
+    "email": "hong51@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 51
+  },
+  {
+    "email": "hong51@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 97
+  },
+  {
+    "email": "hong52@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 66
+  },
+  {
+    "email": "hong52@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 92
+  },
+  {
+    "email": "hong52@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 5
+  },
+  {
+    "email": "hong52@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 99
+  },
+  {
+    "email": "hong52@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 34
+  },
+  {
+    "email": "hong52@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 61
+  },
+  {
+    "email": "hong52@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 75
+  },
+  {
+    "email": "hong1@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 88
+  },
+  {
+    "email": "hong1@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 15
+  },
+  {
+    "email": "hong1@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 82
+  },
+  {
+    "email": "hong1@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 66
+  },
+  {
+    "email": "hong1@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 70
+  },
+  {
+    "email": "hong1@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 55
+  },
+  {
+    "email": "hong1@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 96
+  },
+  {
+    "email": "hong53@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 54
+  },
+  {
+    "email": "hong53@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 41
+  },
+  {
+    "email": "hong53@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 73
+  },
+  {
+    "email": "hong53@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 21
+  },
+  {
+    "email": "hong53@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 77
+  },
+  {
+    "email": "hong53@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 24
+  },
+  {
+    "email": "hong53@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 42
+  },
+  {
+    "email": "hong54@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 61
+  },
+  {
+    "email": "hong54@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 15
+  },
+  {
+    "email": "hong54@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 37
+  },
+  {
+    "email": "hong54@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 5
+  },
+  {
+    "email": "hong54@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 39
+  },
+  {
+    "email": "hong54@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 76
+  },
+  {
+    "email": "hong54@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 72
+  },
+  {
+    "email": "hong55@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 94
+  },
+  {
+    "email": "hong55@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 12
+  },
+  {
+    "email": "hong55@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 67
+  },
+  {
+    "email": "hong55@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 38
+  },
+  {
+    "email": "hong55@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 55
+  },
+  {
+    "email": "hong55@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 71
+  },
+  {
+    "email": "hong55@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 30
+  },
+  {
+    "email": "hong56@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 5
+  },
+  {
+    "email": "hong56@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 65
+  },
+  {
+    "email": "hong56@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 49
+  },
+  {
+    "email": "hong56@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 83
+  },
+  {
+    "email": "hong56@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 79
+  },
+  {
+    "email": "hong56@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 3
+  },
+  {
+    "email": "hong56@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 73
+  },
+  {
+    "email": "hong57@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 63
+  },
+  {
+    "email": "hong57@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 98
+  },
+  {
+    "email": "hong57@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 21
+  },
+  {
+    "email": "hong57@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 88
+  },
+  {
+    "email": "hong57@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 97
+  },
+  {
+    "email": "hong57@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 4
+  },
+  {
+    "email": "hong57@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 66
+  },
+  {
+    "email": "hong58@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 35
+  },
+  {
+    "email": "hong58@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 69
+  },
+  {
+    "email": "hong58@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 61
+  },
+  {
+    "email": "hong58@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 63
+  },
+  {
+    "email": "hong58@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 63
+  },
+  {
+    "email": "hong58@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 4
+  },
+  {
+    "email": "hong58@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 46
+  },
+  {
+    "email": "hong59@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 78
+  },
+  {
+    "email": "hong59@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 57
+  },
+  {
+    "email": "hong59@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 56
+  },
+  {
+    "email": "hong59@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 31
+  },
+  {
+    "email": "hong59@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 43
+  },
+  {
+    "email": "hong59@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 11
+  },
+  {
+    "email": "hong59@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 30
+  },
+  {
+    "email": "hong60@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 43
+  },
+  {
+    "email": "hong60@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 98
+  },
+  {
+    "email": "hong60@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 91
+  },
+  {
+    "email": "hong60@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 57
+  },
+  {
+    "email": "hong60@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 59
+  },
+  {
+    "email": "hong60@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 91
+  },
+  {
+    "email": "hong60@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 57
+  },
+  {
+    "email": "hong61@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 75
+  },
+  {
+    "email": "hong61@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 89
+  },
+  {
+    "email": "hong61@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 38
+  },
+  {
+    "email": "hong61@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 82
+  },
+  {
+    "email": "hong61@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 33
+  },
+  {
+    "email": "hong61@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 64
+  },
+  {
+    "email": "hong61@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 60
+  },
+  {
+    "email": "hong62@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 49
+  },
+  {
+    "email": "hong62@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 21
+  },
+  {
+    "email": "hong62@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 80
+  },
+  {
+    "email": "hong62@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 11
+  },
+  {
+    "email": "hong62@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 66
+  },
+  {
+    "email": "hong62@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 11
+  },
+  {
+    "email": "hong62@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 84
+  },
+  {
+    "email": "hong63@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 81
+  },
+  {
+    "email": "hong63@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 2
+  },
+  {
+    "email": "hong63@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 14
+  },
+  {
+    "email": "hong63@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 27
+  },
+  {
+    "email": "hong63@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 60
+  },
+  {
+    "email": "hong63@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 25
+  },
+  {
+    "email": "hong63@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 39
+  },
+  {
+    "email": "hong64@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 46
+  },
+  {
+    "email": "hong64@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 72
+  },
+  {
+    "email": "hong64@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 61
+  },
+  {
+    "email": "hong64@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 1
+  },
+  {
+    "email": "hong64@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 67
+  },
+  {
+    "email": "hong64@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 64
+  },
+  {
+    "email": "hong64@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 78
+  },
+  {
+    "email": "hong65@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 18
+  },
+  {
+    "email": "hong65@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 49
+  },
+  {
+    "email": "hong65@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 99
+  },
+  {
+    "email": "hong65@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 60
+  },
+  {
+    "email": "hong65@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 22
+  },
+  {
+    "email": "hong65@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 61
+  },
+  {
+    "email": "hong65@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 11
+  },
+  {
+    "email": "hong66@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 40
+  },
+  {
+    "email": "hong66@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 74
+  },
+  {
+    "email": "hong66@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 47
+  },
+  {
+    "email": "hong66@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 92
+  },
+  {
+    "email": "hong66@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 16
+  },
+  {
+    "email": "hong66@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 21
+  },
+  {
+    "email": "hong66@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 41
+  },
+  {
+    "email": "hong67@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 90
+  },
+  {
+    "email": "hong67@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 17
+  },
+  {
+    "email": "hong67@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 4
+  },
+  {
+    "email": "hong67@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 65
+  },
+  {
+    "email": "hong67@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 72
+  },
+  {
+    "email": "hong67@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 13
+  },
+  {
+    "email": "hong67@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 36
+  },
+  {
+    "email": "hong68@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 20
+  },
+  {
+    "email": "hong68@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 61
+  },
+  {
+    "email": "hong68@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 4
+  },
+  {
+    "email": "hong68@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 10
+  },
+  {
+    "email": "hong68@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 84
+  },
+  {
+    "email": "hong68@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 44
+  },
+  {
+    "email": "hong68@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 86
+  },
+  {
+    "email": "hong69@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 21
+  },
+  {
+    "email": "hong69@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 10
+  },
+  {
+    "email": "hong69@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 85
+  },
+  {
+    "email": "hong69@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 85
+  },
+  {
+    "email": "hong69@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 49
+  },
+  {
+    "email": "hong69@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 51
+  },
+  {
+    "email": "hong69@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 87
+  },
+  {
+    "email": "hong70@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 56
+  },
+  {
+    "email": "hong70@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 94
+  },
+  {
+    "email": "hong70@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 76
+  },
+  {
+    "email": "hong70@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 23
+  },
+  {
+    "email": "hong70@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 85
+  },
+  {
+    "email": "hong70@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 2
+  },
+  {
+    "email": "hong70@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 27
+  },
+  {
+    "email": "hong71@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 94
+  },
+  {
+    "email": "hong71@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 5
+  },
+  {
+    "email": "hong71@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 49
+  },
+  {
+    "email": "hong71@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 58
+  },
+  {
+    "email": "hong71@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 16
+  },
+  {
+    "email": "hong71@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 49
+  },
+  {
+    "email": "hong71@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 97
+  },
+  {
+    "email": "hong72@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 57
+  },
+  {
+    "email": "hong72@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 28
+  },
+  {
+    "email": "hong72@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 70
+  },
+  {
+    "email": "hong72@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 90
+  },
+  {
+    "email": "hong72@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 78
+  },
+  {
+    "email": "hong72@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 30
+  },
+  {
+    "email": "hong72@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 78
+  },
+  {
+    "email": "hong73@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 51
+  },
+  {
+    "email": "hong73@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 65
+  },
+  {
+    "email": "hong73@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 49
+  },
+  {
+    "email": "hong73@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 32
+  },
+  {
+    "email": "hong73@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 67
+  },
+  {
+    "email": "hong73@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 7
+  },
+  {
+    "email": "hong73@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 10
+  },
+  {
+    "email": "hong74@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 26
+  },
+  {
+    "email": "hong74@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 10
+  },
+  {
+    "email": "hong74@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 92
+  },
+  {
+    "email": "hong74@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 21
+  },
+  {
+    "email": "hong74@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 71
+  },
+  {
+    "email": "hong74@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 58
+  },
+  {
+    "email": "hong74@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 67
+  },
+  {
+    "email": "hong75@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 44
+  },
+  {
+    "email": "hong75@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 2
+  },
+  {
+    "email": "hong75@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 2
+  },
+  {
+    "email": "hong75@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 20
+  },
+  {
+    "email": "hong75@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 57
+  },
+  {
+    "email": "hong75@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 92
+  },
+  {
+    "email": "hong75@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 93
+  },
+  {
+    "email": "hong76@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 77
+  },
+  {
+    "email": "hong76@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 86
+  },
+  {
+    "email": "hong76@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 45
+  },
+  {
+    "email": "hong76@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 70
+  },
+  {
+    "email": "hong76@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 30
+  },
+  {
+    "email": "hong76@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 81
+  },
+  {
+    "email": "hong76@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 85
+  },
+  {
+    "email": "hong77@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 87
+  },
+  {
+    "email": "hong77@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 60
+  },
+  {
+    "email": "hong77@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 65
+  },
+  {
+    "email": "hong77@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 45
+  },
+  {
+    "email": "hong77@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 99
+  },
+  {
+    "email": "hong77@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 14
+  },
+  {
+    "email": "hong77@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 72
+  },
+  {
+    "email": "hong78@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 10
+  },
+  {
+    "email": "hong78@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 4
+  },
+  {
+    "email": "hong78@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 41
+  },
+  {
+    "email": "hong78@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 26
+  },
+  {
+    "email": "hong78@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 27
+  },
+  {
+    "email": "hong78@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 50
+  },
+  {
+    "email": "hong78@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 28
+  },
+  {
+    "email": "hong79@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 43
+  },
+  {
+    "email": "hong79@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 3
+  },
+  {
+    "email": "hong79@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 56
+  },
+  {
+    "email": "hong79@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 41
+  },
+  {
+    "email": "hong79@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 77
+  },
+  {
+    "email": "hong79@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 39
+  },
+  {
+    "email": "hong79@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 22
+  },
+  {
+    "email": "hong80@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "activity_award",
+    "score": 19
+  },
+  {
+    "email": "hong80@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "age",
+    "score": 5
+  },
+  {
+    "email": "hong80@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "cert_count",
+    "score": 36
+  },
+  {
+    "email": "hong80@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "education_level",
+    "score": 26
+  },
+  {
+    "email": "hong80@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "experience_year",
+    "score": 55
+  },
+  {
+    "email": "hong80@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "project_count",
+    "score": 13
+  },
+  {
+    "email": "hong80@example.com",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "field_name": "skill_count",
+    "score": 22
+  },
+  {
+    "email": "hong81@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 26
+  },
+  {
+    "email": "hong81@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 10
+  },
+  {
+    "email": "hong81@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 34
+  },
+  {
+    "email": "hong81@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 54
+  },
+  {
+    "email": "hong81@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 64
+  },
+  {
+    "email": "hong81@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 40
+  },
+  {
+    "email": "hong81@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 89
+  },
+  {
+    "email": "hong82@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 26
+  },
+  {
+    "email": "hong82@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 70
+  },
+  {
+    "email": "hong82@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 57
+  },
+  {
+    "email": "hong82@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 60
+  },
+  {
+    "email": "hong82@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 91
+  },
+  {
+    "email": "hong82@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 12
+  },
+  {
+    "email": "hong82@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 98
+  },
+  {
+    "email": "hong83@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 17
+  },
+  {
+    "email": "hong83@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 4
+  },
+  {
+    "email": "hong83@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 46
+  },
+  {
+    "email": "hong83@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 40
+  },
+  {
+    "email": "hong83@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 59
+  },
+  {
+    "email": "hong83@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 46
+  },
+  {
+    "email": "hong83@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 16
+  },
+  {
+    "email": "hong84@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 55
+  },
+  {
+    "email": "hong84@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 80
+  },
+  {
+    "email": "hong84@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 69
+  },
+  {
+    "email": "hong84@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 44
+  },
+  {
+    "email": "hong84@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 20
+  },
+  {
+    "email": "hong84@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 22
+  },
+  {
+    "email": "hong84@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 99
+  },
+  {
+    "email": "hong85@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 48
+  },
+  {
+    "email": "hong85@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 47
+  },
+  {
+    "email": "hong85@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 77
+  },
+  {
+    "email": "hong85@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 1
+  },
+  {
+    "email": "hong85@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 90
+  },
+  {
+    "email": "hong85@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 100
+  },
+  {
+    "email": "hong85@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 62
+  },
+  {
+    "email": "hong86@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 18
+  },
+  {
+    "email": "hong86@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 28
+  },
+  {
+    "email": "hong86@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 27
+  },
+  {
+    "email": "hong86@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 86
+  },
+  {
+    "email": "hong86@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 55
+  },
+  {
+    "email": "hong86@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 19
+  },
+  {
+    "email": "hong86@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 35
+  },
+  {
+    "email": "hong87@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 32
+  },
+  {
+    "email": "hong87@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 33
+  },
+  {
+    "email": "hong87@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 30
+  },
+  {
+    "email": "hong87@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 85
+  },
+  {
+    "email": "hong87@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 32
+  },
+  {
+    "email": "hong87@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 69
+  },
+  {
+    "email": "hong87@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 62
+  },
+  {
+    "email": "hong88@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 88
+  },
+  {
+    "email": "hong88@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 16
+  },
+  {
+    "email": "hong88@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 24
+  },
+  {
+    "email": "hong88@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 17
+  },
+  {
+    "email": "hong88@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 99
+  },
+  {
+    "email": "hong88@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 22
+  },
+  {
+    "email": "hong88@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 50
+  },
+  {
+    "email": "hong89@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 100
+  },
+  {
+    "email": "hong89@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 94
+  },
+  {
+    "email": "hong89@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 2
+  },
+  {
+    "email": "hong89@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 3
+  },
+  {
+    "email": "hong89@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 69
+  },
+  {
+    "email": "hong89@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 44
+  },
+  {
+    "email": "hong89@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 96
+  },
+  {
+    "email": "hong90@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 67
+  },
+  {
+    "email": "hong90@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 45
+  },
+  {
+    "email": "hong90@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 99
+  },
+  {
+    "email": "hong90@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 100
+  },
+  {
+    "email": "hong90@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 43
+  },
+  {
+    "email": "hong90@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 52
+  },
+  {
+    "email": "hong90@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 33
+  },
+  {
+    "email": "hong91@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 33
+  },
+  {
+    "email": "hong91@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 28
+  },
+  {
+    "email": "hong91@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 1
+  },
+  {
+    "email": "hong91@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 87
+  },
+  {
+    "email": "hong91@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 59
+  },
+  {
+    "email": "hong91@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 26
+  },
+  {
+    "email": "hong91@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 34
+  },
+  {
+    "email": "hong92@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 19
+  },
+  {
+    "email": "hong92@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 31
+  },
+  {
+    "email": "hong92@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 27
+  },
+  {
+    "email": "hong92@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 41
+  },
+  {
+    "email": "hong92@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 36
+  },
+  {
+    "email": "hong92@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 3
+  },
+  {
+    "email": "hong92@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 95
+  },
+  {
+    "email": "hong93@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 63
+  },
+  {
+    "email": "hong93@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 5
+  },
+  {
+    "email": "hong93@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 28
+  },
+  {
+    "email": "hong93@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 60
+  },
+  {
+    "email": "hong93@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 77
+  },
+  {
+    "email": "hong93@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 35
+  },
+  {
+    "email": "hong93@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 11
+  },
+  {
+    "email": "hong94@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 8
+  },
+  {
+    "email": "hong94@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 61
+  },
+  {
+    "email": "hong94@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 92
+  },
+  {
+    "email": "hong94@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 4
+  },
+  {
+    "email": "hong94@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 36
+  },
+  {
+    "email": "hong94@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 84
+  },
+  {
+    "email": "hong94@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 26
+  },
+  {
+    "email": "hong95@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 57
+  },
+  {
+    "email": "hong95@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 28
+  },
+  {
+    "email": "hong95@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 65
+  },
+  {
+    "email": "hong95@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 21
+  },
+  {
+    "email": "hong95@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 22
+  },
+  {
+    "email": "hong95@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 95
+  },
+  {
+    "email": "hong95@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 48
+  },
+  {
+    "email": "hong96@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 66
+  },
+  {
+    "email": "hong96@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 18
+  },
+  {
+    "email": "hong96@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 5
+  },
+  {
+    "email": "hong96@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 65
+  },
+  {
+    "email": "hong96@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 59
+  },
+  {
+    "email": "hong96@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 56
+  },
+  {
+    "email": "hong96@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 10
+  },
+  {
+    "email": "hong97@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 17
+  },
+  {
+    "email": "hong97@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 48
+  },
+  {
+    "email": "hong97@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 49
+  },
+  {
+    "email": "hong97@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 39
+  },
+  {
+    "email": "hong97@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 54
+  },
+  {
+    "email": "hong97@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 79
+  },
+  {
+    "email": "hong97@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 14
+  },
+  {
+    "email": "hong98@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 93
+  },
+  {
+    "email": "hong98@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 35
+  },
+  {
+    "email": "hong98@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 28
+  },
+  {
+    "email": "hong98@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 89
+  },
+  {
+    "email": "hong98@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 85
+  },
+  {
+    "email": "hong98@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 15
+  },
+  {
+    "email": "hong98@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 69
+  },
+  {
+    "email": "hong99@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 91
+  },
+  {
+    "email": "hong99@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 69
+  },
+  {
+    "email": "hong99@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 96
+  },
+  {
+    "email": "hong99@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 50
+  },
+  {
+    "email": "hong99@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 67
+  },
+  {
+    "email": "hong99@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 32
+  },
+  {
+    "email": "hong99@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 57
+  },
+  {
+    "email": "hong100@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 39
+  },
+  {
+    "email": "hong100@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 75
+  },
+  {
+    "email": "hong100@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 17
+  },
+  {
+    "email": "hong100@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 6
+  },
+  {
+    "email": "hong100@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 31
+  },
+  {
+    "email": "hong100@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 81
+  },
+  {
+    "email": "hong100@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 2
+  },
+  {
+    "email": "hong101@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 82
+  },
+  {
+    "email": "hong101@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 15
+  },
+  {
+    "email": "hong101@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 98
+  },
+  {
+    "email": "hong101@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 40
+  },
+  {
+    "email": "hong101@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 57
+  },
+  {
+    "email": "hong101@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 17
+  },
+  {
+    "email": "hong101@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 98
+  },
+  {
+    "email": "hong102@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 37
+  },
+  {
+    "email": "hong102@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 79
+  },
+  {
+    "email": "hong102@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 2
+  },
+  {
+    "email": "hong102@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 94
+  },
+  {
+    "email": "hong102@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 84
+  },
+  {
+    "email": "hong102@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 73
+  },
+  {
+    "email": "hong102@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 71
+  },
+  {
+    "email": "hong103@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 2
+  },
+  {
+    "email": "hong103@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 66
+  },
+  {
+    "email": "hong103@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 10
+  },
+  {
+    "email": "hong103@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 54
+  },
+  {
+    "email": "hong103@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 14
+  },
+  {
+    "email": "hong103@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 42
+  },
+  {
+    "email": "hong103@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 100
+  },
+  {
+    "email": "hong104@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 68
+  },
+  {
+    "email": "hong104@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 13
+  },
+  {
+    "email": "hong104@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 41
+  },
+  {
+    "email": "hong104@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 80
+  },
+  {
+    "email": "hong104@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 40
+  },
+  {
+    "email": "hong104@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 12
+  },
+  {
+    "email": "hong104@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 49
+  },
+  {
+    "email": "hong105@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 59
+  },
+  {
+    "email": "hong105@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 54
+  },
+  {
+    "email": "hong105@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 9
+  },
+  {
+    "email": "hong105@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 47
+  },
+  {
+    "email": "hong105@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 78
+  },
+  {
+    "email": "hong105@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 10
+  },
+  {
+    "email": "hong105@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 52
+  },
+  {
+    "email": "hong106@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 12
+  },
+  {
+    "email": "hong106@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 41
+  },
+  {
+    "email": "hong106@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 22
+  },
+  {
+    "email": "hong106@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 43
+  },
+  {
+    "email": "hong106@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 35
+  },
+  {
+    "email": "hong106@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 13
+  },
+  {
+    "email": "hong106@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 93
+  },
+  {
+    "email": "hong107@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 26
+  },
+  {
+    "email": "hong107@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 60
+  },
+  {
+    "email": "hong107@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 90
+  },
+  {
+    "email": "hong107@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 99
+  },
+  {
+    "email": "hong107@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 3
+  },
+  {
+    "email": "hong107@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 2
+  },
+  {
+    "email": "hong107@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 62
+  },
+  {
+    "email": "hong108@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 50
+  },
+  {
+    "email": "hong108@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 75
+  },
+  {
+    "email": "hong108@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 46
+  },
+  {
+    "email": "hong108@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 83
+  },
+  {
+    "email": "hong108@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 58
+  },
+  {
+    "email": "hong108@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 57
+  },
+  {
+    "email": "hong108@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 41
+  },
+  {
+    "email": "hong109@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 47
+  },
+  {
+    "email": "hong109@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 15
+  },
+  {
+    "email": "hong109@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 82
+  },
+  {
+    "email": "hong109@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 1
+  },
+  {
+    "email": "hong109@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 73
+  },
+  {
+    "email": "hong109@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 34
+  },
+  {
+    "email": "hong109@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 30
+  },
+  {
+    "email": "hong110@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 89
+  },
+  {
+    "email": "hong110@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 43
+  },
+  {
+    "email": "hong110@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 93
+  },
+  {
+    "email": "hong110@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 17
+  },
+  {
+    "email": "hong110@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 38
+  },
+  {
+    "email": "hong110@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 85
+  },
+  {
+    "email": "hong110@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 59
+  },
+  {
+    "email": "hong111@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 2
+  },
+  {
+    "email": "hong111@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 71
+  },
+  {
+    "email": "hong111@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 61
+  },
+  {
+    "email": "hong111@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 65
+  },
+  {
+    "email": "hong111@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 96
+  },
+  {
+    "email": "hong111@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 38
+  },
+  {
+    "email": "hong111@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 42
+  },
+  {
+    "email": "hong112@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 76
+  },
+  {
+    "email": "hong112@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 30
+  },
+  {
+    "email": "hong112@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 99
+  },
+  {
+    "email": "hong112@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 90
+  },
+  {
+    "email": "hong112@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 41
+  },
+  {
+    "email": "hong112@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 62
+  },
+  {
+    "email": "hong112@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 6
+  },
+  {
+    "email": "hong113@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 99
+  },
+  {
+    "email": "hong113@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 17
+  },
+  {
+    "email": "hong113@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 69
+  },
+  {
+    "email": "hong113@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 10
+  },
+  {
+    "email": "hong113@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 8
+  },
+  {
+    "email": "hong113@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 100
+  },
+  {
+    "email": "hong113@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 75
+  },
+  {
+    "email": "hong114@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 58
+  },
+  {
+    "email": "hong114@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 95
+  },
+  {
+    "email": "hong114@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 53
+  },
+  {
+    "email": "hong114@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 77
+  },
+  {
+    "email": "hong114@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 72
+  },
+  {
+    "email": "hong114@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 45
+  },
+  {
+    "email": "hong114@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 75
+  },
+  {
+    "email": "hong115@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 78
+  },
+  {
+    "email": "hong115@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 4
+  },
+  {
+    "email": "hong115@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 10
+  },
+  {
+    "email": "hong115@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 70
+  },
+  {
+    "email": "hong115@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 21
+  },
+  {
+    "email": "hong115@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 84
+  },
+  {
+    "email": "hong115@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 41
+  },
+  {
+    "email": "hong116@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 31
+  },
+  {
+    "email": "hong116@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 19
+  },
+  {
+    "email": "hong116@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 68
+  },
+  {
+    "email": "hong116@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 16
+  },
+  {
+    "email": "hong116@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 91
+  },
+  {
+    "email": "hong116@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 52
+  },
+  {
+    "email": "hong116@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 72
+  },
+  {
+    "email": "hong117@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 51
+  },
+  {
+    "email": "hong117@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 69
+  },
+  {
+    "email": "hong117@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 9
+  },
+  {
+    "email": "hong117@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 99
+  },
+  {
+    "email": "hong117@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 58
+  },
+  {
+    "email": "hong117@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 35
+  },
+  {
+    "email": "hong117@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 5
+  },
+  {
+    "email": "hong118@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 56
+  },
+  {
+    "email": "hong118@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 85
+  },
+  {
+    "email": "hong118@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 12
+  },
+  {
+    "email": "hong118@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 7
+  },
+  {
+    "email": "hong118@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 24
+  },
+  {
+    "email": "hong118@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 21
+  },
+  {
+    "email": "hong118@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 70
+  },
+  {
+    "email": "hong119@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 19
+  },
+  {
+    "email": "hong119@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 78
+  },
+  {
+    "email": "hong119@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 23
+  },
+  {
+    "email": "hong119@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 98
+  },
+  {
+    "email": "hong119@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 1
+  },
+  {
+    "email": "hong119@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 26
+  },
+  {
+    "email": "hong119@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 77
+  },
+  {
+    "email": "hong120@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "activity_award",
+    "score": 72
+  },
+  {
+    "email": "hong120@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "age",
+    "score": 12
+  },
+  {
+    "email": "hong120@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "cert_count",
+    "score": 9
+  },
+  {
+    "email": "hong120@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "education_level",
+    "score": 6
+  },
+  {
+    "email": "hong120@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "experience_year",
+    "score": 9
+  },
+  {
+    "email": "hong120@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "project_count",
+    "score": 35
+  },
+  {
+    "email": "hong120@example.com",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "field_name": "skill_count",
+    "score": 5
   }
 ]

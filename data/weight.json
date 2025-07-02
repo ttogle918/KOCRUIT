@@ -1,0 +1,3283 @@
+[
+  {
+    "company": "KOSA일반회사",
+    "jobposts": [
+      {
+        "department_name": "경영지원팀",
+        "title": "총무/인사 담당자 신입 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "영업1팀",
+        "title": "B2B 영업 담당자 모집",
+        "weigth": [
+          {
+            "targetType": "job_category",
+            "fieldName": "영업",
+            "weightValue": 1.0
+          },
+          {
+            "targetType": "department",
+            "fieldName": "영업1팀",
+            "weightValue": 0.8
+          },
+          {
+            "targetType": "required_skill",
+            "fieldName": "영업 경험",
+            "weightValue": 0.9
+          },
+          {
+            "targetType": "license",
+            "fieldName": "운전면허",
+            "weightValue": 0.7
+          },
+          {
+            "targetType": "employment_type",
+            "fieldName": "정규직",
+            "weightValue": 0.5
+          },
+          {
+            "targetType": "performance_pay",
+            "fieldName": "성과급 별도",
+            "weightValue": 0.4
+          }
+        ],
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "구매팀",
+        "title": "구매/자재 담당자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "기획팀",
+        "title": "경영기획 신입/경력 채용",
+        "weigth": [
+          {
+            "targetType": "job_category",
+            "fieldName": "경영기획",
+            "weightValue": 1.0
+          },
+          {
+            "targetType": "department",
+            "fieldName": "기획팀",
+            "weightValue": 0.8
+          },
+          {
+            "targetType": "required_major",
+            "fieldName": "경영/경제/통계",
+            "weightValue": 0.8
+          },
+          {
+            "targetType": "career_level",
+            "fieldName": "신입/경력",
+            "weightValue": 0.7
+          },
+          {
+            "targetType": "employment_type",
+            "fieldName": "정규직",
+            "weightValue": 0.5
+          },
+          {
+            "targetType": "required_interest",
+            "fieldName": "기획 업무 관심",
+            "weightValue": 0.5
+          }
+        ],
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "고객지원팀",
+        "title": "고객지원(AS/CS) 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA소비재",
+    "jobposts": [
+      {
+        "department_name": "상품기획팀",
+        "title": "상품기획(MD) 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "유통관리팀",
+        "title": "유통관리/물류 신입채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "디자인팀",
+        "title": "패키지 디자이너 모집",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "마케팅팀",
+        "title": "마케팅/브랜드매니저 채용",
+        "weigth": [
+          {
+            "targetType": "job_category",
+            "fieldName": "마케팅/브랜드매니저",
+            "weightValue": 1.0
+          },
+          {
+            "targetType": "department",
+            "fieldName": "마케팅팀",
+            "weightValue": 0.8
+          },
+          {
+            "targetType": "required_skill",
+            "fieldName": "SNS/온라인 마케팅 경험",
+            "weightValue": 0.9
+          },
+          {
+            "targetType": "preferred_skill",
+            "fieldName": "브랜드 전략 기획 경험",
+            "weightValue": 0.7
+          },
+          {
+            "targetType": "employment_type",
+            "fieldName": "정규직",
+            "weightValue": 0.5
+          },
+          {
+            "targetType": "benefit",
+            "fieldName": "사내 동호회 지원, 중식 제공",
+            "weightValue": 0.3
+          }
+        ],
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "품질관리팀",
+        "title": "품질관리(QC) 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA전자",
+    "jobposts": [
+      {
+        "department_name": "하드웨어개발팀",
+        "title": "회로설계 엔지니어 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "펌웨어개발팀",
+        "title": "펌웨어 개발자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "품질관리팀",
+        "title": "품질관리(QA) 담당자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "R&D센터",
+        "title": "신제품 연구개발 엔지니어 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "생산기술팀",
+        "title": "전자제품 생산기술 담당자 모집",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA공공",
+    "jobposts": [
+      {
+        "department_name": "공공정책기획팀",
+        "title": "공공정책 연구원 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "공공IT사업팀",
+        "title": "공공기관 IT사업 PM/PL 모집",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "행정지원팀",
+        "title": "행정사무 담당자 모집",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "정보보호팀",
+        "title": "공공 정보보안 담당자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "공공데이터팀",
+        "title": "공공데이터 분석가 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA에너지",
+    "jobposts": [
+      {
+        "department_name": "신재생에너지팀",
+        "title": "신재생에너지 엔지니어 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "에너지사업기획팀",
+        "title": "에너지 사업기획/전략 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "전력IT팀",
+        "title": "전력IT 시스템 개발자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "설비관리팀",
+        "title": "발전설비 유지보수 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "안전관리팀",
+        "title": "안전관리자(에너지설비) 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA금융",
+    "jobposts": [
+      {
+        "department_name": "자산관리팀",
+        "title": "PB(프라이빗뱅커) 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "금융IT개발팀",
+        "title": "금융 IT 시스템 개발자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "기업금융팀",
+        "title": "기업금융/투자심사 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "리스크관리팀",
+        "title": "리스크 분석/관리자 신입채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "고객센터",
+        "title": "금융고객상담사 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA바이오",
+    "jobposts": [
+      {
+        "department_name": "연구개발팀",
+        "title": "바이오의약품 R&D 연구원 모집",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "품질보증팀",
+        "title": "품질보증(QA) 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "생산관리팀",
+        "title": "바이오 생산관리 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "임상개발팀",
+        "title": "임상시험 CRA 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "사업개발팀",
+        "title": "바이오사업 기획/BD 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA건설",
+    "jobposts": [
+      {
+        "department_name": "건축설계팀",
+        "title": "건축설계 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "토목사업팀",
+        "title": "토목시공/현장관리 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "안전관리팀",
+        "title": "건설안전관리자 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "견적팀",
+        "title": "건설견적/원가관리 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "기계설비팀",
+        "title": "건설기계/설비 엔지니어 모집",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA보안",
+    "jobposts": [
+      {
+        "department_name": "보안관제센터",
+        "title": "정보보안/네트워크 관제 신입·경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "보안컨설팅본부",
+        "title": "보안컨설팅/모의해킹 신입·경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "IT인프라보안팀",
+        "title": "IT 인프라 보안 엔지니어 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "솔루션개발팀",
+        "title": "보안 솔루션 SW개발자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "보안기획팀",
+        "title": "보안 정책·기획 담당자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA물류",
+    "jobposts": [
+      {
+        "department_name": "창고운영팀",
+        "title": "창고관리 및 입출고 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "물류운송팀",
+        "title": "운송·배송기사 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "수출입팀",
+        "title": "국제물류/수출입 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "운영기획팀",
+        "title": "물류운영 기획·분석 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "안전관리팀",
+        "title": "물류센터 안전관리자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA마케팅",
+    "jobposts": [
+      {
+        "department_name": "디지털마케팅팀",
+        "title": "디지털 마케팅 담당자 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "콘텐츠마케팅팀",
+        "title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "브랜딩팀",
+        "title": "브랜드 마케팅/PR 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "데이터분석팀",
+        "title": "마케팅 데이터 분석가 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "이벤트기획팀",
+        "title": "이벤트·프로모션 기획 담당자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA엔터",
+    "jobposts": [
+      {
+        "department_name": "매니지먼트팀",
+        "title": "아티스트 매니저 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "콘텐츠기획팀",
+        "title": "콘텐츠 기획/운영 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "마케팅팀",
+        "title": "엔터 마케팅/프로모션 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "A&R팀",
+        "title": "A&R 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "홍보팀",
+        "title": "엔터테인먼트 PR 담당자 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "company": "KOSA기계",
+    "jobposts": [
+      {
+        "department_name": "기계설계팀",
+        "title": "기계설계 엔지니어 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "생산관리팀",
+        "title": "기계장비 생산관리 담당자",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "설비기술팀",
+        "title": "설비유지보수 기술자 모집",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "품질보증팀",
+        "title": "품질보증(QA) 담당자 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      },
+      {
+        "department_name": "연구개발팀",
+        "title": "기계 R&D 연구원 신입/경력 채용",
+        "weight": [
+          {
+            "targetType": "resume_feature",
+            "fieldName": "activity_award",
+            "weightValue": 1.0,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "age",
+            "weightValue": 0.95,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "cert_count",
+            "weightValue": 0.9,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "education_level",
+            "weightValue": 0.85,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "experience_year",
+            "weightValue": 0.8,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "project_count",
+            "weightValue": 0.75,
+            "updated_at": "2025-07-02 02:29:22"
+          },
+          {
+            "targetType": "resume_feature",
+            "fieldName": "skill_count",
+            "weightValue": 0.7,
+            "updated_at": "2025-07-02 02:29:22"
+          }
+        ]
+      }
+    ]
+  }
+]
