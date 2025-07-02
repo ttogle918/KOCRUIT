@@ -54,6 +54,22 @@ cd kocruit-project
 
 ```docker exec -it mysql8 mysql -umyuser -p1234```
 
+docker 켜진 상태에서 mysql 터미널로 들어가기
+
+```docker exec -it mysql bash```
+
+bash-5.1# 
+```mysql -u myuser -p```
+
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 183       
+Server version: 8.0.42 MySQL Community Server - GPL 
+
+```mysql> USE kocruit_db;```
+
+Database changed
+
 #### backend 에러 코드 보기
 
 ```docker-compose logs backend```
@@ -96,11 +112,11 @@ mvn spring-boot:run
 ## 현재 디렉토리에서 가상환경 생성
 python3 -m venv .venv
 
-## 가상환경 활성화 (Windows)
-.venv\Scripts\activate
-
-## macOS/Linux 사용자는:
+## 가상환경 활성화 (macOS/Linux)
 source .venv/bin/activate
+
+## Windows 사용자는:
+# .venv\Scripts\activate
 
 ## 의존성 설치
 pip install -r requirements.txt
@@ -110,3 +126,4 @@ OPENAI_API_KEY=sk-...
 
 ## 서버 실행
 uvicorn main:app --reload --port 8001
+

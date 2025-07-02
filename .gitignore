@@ -1,13 +1,35 @@
-# --- Logs ---
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# === Python / FastAPI ===
+*.py[cod]
+__pycache__/
+*.so
+*.egg-info/
+.eggs/
+*.sqlite3
+*.db
+*.db-journal
+instance/
+.venv/
+venv/
+ENV/
+env/
+env.bak/
 
-# --- Node ---
+# === FastAPI secrets ===
+.env
+backend/.env
+backend/.env.*
+
+# === Python test artifacts ===
+coverage/
+htmlcov/
+.tox/
+.pytest_cache/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# === Node.js / React / Vite ===
 node_modules/
 dist/
 dist-ssr/
@@ -15,7 +37,6 @@ dist-ssr/
 .cache/
 *.local
 
-# --- Vite / React / Frontend ---
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
@@ -23,7 +44,32 @@ frontend/.cache/
 frontend/.env
 frontend/.env.*
 
-# --- System files ---
+# === Spring Boot ===
+*.jar
+*.war
+*.class
+target/
+recruit/src/main/resources/application.yaml
+
+# === Docker ===
+docker-compose.override.yml
+*.tar
+initdb/*
+!initdb/.gitkeep
+
+# === Logs ===
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# === Editor / OS Files ===
+.vscode/
+!.vscode/extensions.json
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -31,16 +77,6 @@ frontend/.env.*
 *.sln
 *.sw?
 *.iml
-recruit/src/main/resources/application.yaml
 
-# --- Editor configs ---
-.vscode/
-!.vscode/extensions.json
-.idea/
-
-# PWA dev dist 디렉토리(webapp install) 무시
+# === PWA dev dist ===
 /frontend/dev-dist/
-
-.env
-.venv/
-__pycache__/

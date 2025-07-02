@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8081', // 백엔드 주소에 맞게 수정
+  baseURL: 'http://localhost:8000/api/v1', // 백엔드 주소에 맞게 수정
   withCredentials: false, // 쿠키 인증 시 필요
   headers: {
     'Content-Type': 'application/json',
