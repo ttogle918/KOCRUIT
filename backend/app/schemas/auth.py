@@ -42,6 +42,7 @@ class UserDetail(BaseModel):
     created_at: datetime
     updated_at: datetime
     birth_date: Optional[date] = None
+    company_id: Optional[int] = None  # 회사 ID 추가
     
     class Config:
         from_attributes = True 

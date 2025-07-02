@@ -3,28 +3,49 @@ from typing import Optional, List
 from datetime import datetime
 
 
-class JobPostBase(BaseModel):
+class TeamMemberDto(BaseModel):
+    email: str
+    role: str
+
+
+class WeightDto(BaseModel):
+    item: str
+    score: float
+
+
+class JobPost(BaseModel):
     title: str
-    description: Optional[str] = None
-    requirements: Optional[str] = None
-    salary_min: Optional[int] = None
-    salary_max: Optional[int] = None
+    department: Optional[str] = None
+    qualifications: Optional[str] = None
+    conditions: Optional[str] = None
+    jobDetails: Optional[str] = None
+    procedure: Optional[str] = None
+    headcount: Optional[int] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
     location: Optional[str] = None
-    job_type: Optional[str] = None
+    employmentType: Optional[str] = None
+    deadline: Optional[str] = None
     status: Optional[str] = "ACTIVE"
 
 
-class JobPostCreate(JobPostBase):
-    company_id: int
+class JobPostCreate(JobPost):
+    company_id: Optional[int] = None  # 선택적 필드로 변경
+    teamMembers: Optional[List[TeamMemberDto]] = None
+    weights: Optional[List[WeightDto]] = None
 
 
-class JobPostUpdate(JobPostBase):
-    pass
+class JobPostUpdate(JobPost):
+    teamMembers: Optional[List[TeamMemberDto]] = None
+    weights: Optional[List[WeightDto]] = None
 
 
-class JobPostDetail(JobPostBase):
+class JobPostDetail(JobPost):
     id: int
     company_id: int
+    companyName: Optional[str] = None
+    teamMembers: Optional[List[TeamMemberDto]] = None
+    weights: Optional[List[WeightDto]] = None
     created_at: datetime
     updated_at: datetime
     
@@ -35,11 +56,13 @@ class JobPostDetail(JobPostBase):
 class JobPostList(BaseModel):
     id: int
     title: str
-    location: Optional[str] = None
-    job_type: Optional[str] = None
-    status: str
-    company_id: int
-    created_at: datetime
+    procedure: Optional[str] = None
+    headcount: Optional[int] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+    companyName: Optional[str] = None
+    status: Optional[str] = None
+    created_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

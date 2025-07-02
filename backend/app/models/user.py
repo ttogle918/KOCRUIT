@@ -14,7 +14,10 @@ class GenderType(str, enum.Enum):
 class Role(str, enum.Enum):
     USER = "USER"
     ADMIN = "ADMIN"
-    MEMBER = "MEMBER"  # 기업회원 권한
+    MEMBER = "MEMBER"  # 기업회원(채용담당자로 초대된)권한
+    MANAGER = "MANAGER"  # 기업회원 공고 생성자 권한
+    EMPLOYEE = "EMPLOYEE"  # 기업회원 권한
+    
 
 
 class User(Base):

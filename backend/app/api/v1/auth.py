@@ -24,7 +24,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     email = payload.get("sub")
     if not email:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-    user = db.query(User).filter(User.email == email).first()
+    
+    # CompanyUser를 먼저 조회
+    user = db.query(CompanyUser).filter(CompanyUser.email == email).first()
+    if not user:
+        # CompanyUser가 없으면 일반 User 조회
+        user = db.query(User).filter(User.email == email).first()
+    
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user

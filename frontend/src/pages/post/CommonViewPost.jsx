@@ -12,7 +12,7 @@ function CommonViewPost() {
   useEffect(() => {
     const fetchJobPost = async () => {
       try {
-        const response = await api.get(`/common/jobposts/${id}`);
+        const response = await api.get(`/public/jobposts/${id}`);
         console.log('Job Post Data:', response.data);
         setJobPost(response.data);
         setLoading(false);

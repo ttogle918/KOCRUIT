@@ -40,8 +40,8 @@ export default function ApplicantList() {
       setError(null);
       try {
         const [appRes, postRes, appDetailRes] = await Promise.all([
-          api.get(`/company/jobposts/${jobPostId}/applications`),
-          api.get(`/company/jobposts/detail/${jobPostId}`)
+        api.get(`/company/jobposts/${jobPostId}/applications`),
+        api.get(`/company/jobposts/detail/${jobPostId}`)
 
         ]);
         const applicants = appRes.data;

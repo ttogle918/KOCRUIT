@@ -50,7 +50,7 @@ function EditPost() {
   useEffect(() => {
     const fetchJobPost = async () => {
       try {
-        const response = await api.get(`/common/jobposts/${jobPostId}`);
+        const response = await api.get(`/company/jobposts/${jobPostId}`);
         const jobPost = response.data;
         
         // Pre-populate all form fields with fetched data
@@ -109,7 +109,7 @@ function EditPost() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/company/jobposts/${jobPostId}`, {
+              await api.put(`/company/jobposts/${jobPostId}`, {
         companyName: title,
         title: subtitle,
         qualifications,

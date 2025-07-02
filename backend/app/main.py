@@ -35,7 +35,7 @@ app.add_middleware(
 )
 
 # API 라우터 등록
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router, prefix="")
 
 
 if __name__ == "__main__":
