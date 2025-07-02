@@ -1,0 +1,914 @@
+[
+  {
+    "company": "KOSA일반회사",
+    "jobposts": [
+      {
+        "department_name": "경영지원팀",
+        "title": "총무/인사 담당자 신입 채용",
+        "qualifications": "[필수]\n- 전공 무관\n- 신입/경력 무관\n[우대]\n- 인사/총무 인턴 경험자",
+        "conditions": "- 정규직, 충북 청주\n- 주 5일, 4대보험, 중식 제공",
+        "job_details": "- 사내 인사/총무 행정 지원\n- 복리후생 및 사내 행사 관리\n- 비품 및 자산 관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T08:00:00",
+        "updated_at": "2025-06-24T08:00:00"
+      },
+      {
+        "department_name": "영업1팀",
+        "title": "B2B 영업 담당자 모집",
+        "qualifications": "[필수]\n- 영업 경험 우대\n- 운전면허 소지자",
+        "conditions": "- 정규직, 성과급 별도\n- 주 5일, 차량 지원",
+        "job_details": "- 법인/기업 고객 대상 제품 영업\n- 거래처 관리 및 신규 발굴",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-01T23:59:59",
+        "created_at": "2025-06-24T08:10:00",
+        "updated_at": "2025-06-24T08:10:00"
+      },
+      {
+        "department_name": "구매팀",
+        "title": "구매/자재 담당자 채용",
+        "qualifications": "[필수]\n- 자재/구매 경력 1년 이상 우대\n[우대]\n- ERP 사용 가능자",
+        "conditions": "- 정규직, 탄력근무\n- 중식 제공, 자격증 지원",
+        "job_details": "- 자재 발주 및 입고관리\n- 공급사 협상 및 단가 관리\n- 재고/물류 연동 관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T08:20:00",
+        "updated_at": "2025-06-24T08:20:00"
+      },
+      {
+        "department_name": "기획팀",
+        "title": "경영기획 신입/경력 채용",
+        "qualifications": "[필수]\n- 경영/경제/통계 전공 우대\n- 기획 업무 관심자",
+        "conditions": "- 정규직, 주 5일, 복지 다양",
+        "job_details": "- 사업계획 수립 및 실적 관리\n- 경영지표 분석\n- 각종 대내외 보고서 작성",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T08:30:00",
+        "updated_at": "2025-06-24T08:30:00"
+      },
+      {
+        "department_name": "고객지원팀",
+        "title": "고객지원(AS/CS) 담당자",
+        "qualifications": "[필수]\n- 커뮤니케이션 능력 우수자",
+        "conditions": "- 정규직, 교대 근무 가능\n- 명절 선물, 휴게 공간 제공",
+        "job_details": "- 고객 문의 및 불만 접수/해결\n- 제품 사용 안내 및 사후 관리",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T08:40:00",
+        "updated_at": "2025-06-24T08:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA소비재",
+    "jobposts": [
+      {
+        "department_name": "상품기획팀",
+        "title": "상품기획(MD) 신입/경력 채용",
+        "qualifications": "[필수]\n- 소비재/MD 관련 경험 우대\n- 신입/경력 무관",
+        "conditions": "- 정규직, 울산 삼산로 17\n- 주 5일, 사내카페 운영",
+        "job_details": "- 신상품 기획 및 트렌드 분석\n- 시즌별 상품 기획안 작성\n- 협력사 미팅 및 발주",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T09:00:00",
+        "updated_at": "2025-06-24T09:00:00"
+      },
+      {
+        "department_name": "유통관리팀",
+        "title": "유통관리/물류 신입채용",
+        "qualifications": "[필수]\n- 물류/유통 경력 우대\n[우대]\n- 운전면허 소지자",
+        "conditions": "- 정규직, 성과급 지급\n- 중식 제공, 근무복 지급",
+        "job_details": "- 재고/입출고 관리\n- 전국 유통망 운영 지원",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 3,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T09:10:00",
+        "updated_at": "2025-06-24T09:10:00"
+      },
+      {
+        "department_name": "디자인팀",
+        "title": "패키지 디자이너 모집",
+        "qualifications": "[필수]\n- 포토샵/일러스트 활용 능력",
+        "conditions": "- 정규직, 유연근무제\n- 자기계발 지원",
+        "job_details": "- 제품 패키지 디자인 개발\n- 신상품 런칭 디자인 협업",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T09:20:00",
+        "updated_at": "2025-06-24T09:20:00"
+      },
+      {
+        "department_name": "마케팅팀",
+        "title": "마케팅/브랜드매니저 채용",
+        "qualifications": "[필수]\n- SNS/온라인 마케팅 경험자\n[우대]\n- 브랜드 전략 기획 경험",
+        "conditions": "- 정규직, 주 5일\n- 사내 동호회 지원, 중식 제공",
+        "job_details": "- 온라인 마케팅, 브랜드 홍보\n- SNS 컨텐츠 기획 및 실행",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T09:30:00",
+        "updated_at": "2025-06-24T09:30:00"
+      },
+      {
+        "department_name": "품질관리팀",
+        "title": "품질관리(QC) 신입/경력 채용",
+        "qualifications": "[필수]\n- 품질관리 경력 1년 이상 우대",
+        "conditions": "- 정규직, 탄력근무\n- 중식, 자기계발비 지원",
+        "job_details": "- 생산 제품 품질 검사\n- 불량 분석 및 개선안 제시",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T09:40:00",
+        "updated_at": "2025-06-24T09:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA전자",
+    "jobposts": [
+      {
+        "department_name": "하드웨어개발팀",
+        "title": "회로설계 엔지니어 신입/경력 채용",
+        "qualifications": "[필수]\n- 전자/전기공학 전공자\n- 회로설계 경험\n[우대]\n- PCB 설계툴 활용 경험",
+        "conditions": "- 정규직, 주 5일\n- 제주 첨단로 55 본사\n- 복리후생: 4대보험, 중식 제공",
+        "job_details": "- 아날로그/디지털 회로 설계 및 시뮬레이션\n- PCB 아트웍 및 시제품 제작\n- 제품 양산 프로세스 협업\n- 부품 BOM 및 원가 관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T09:00:00",
+        "updated_at": "2025-06-24T09:00:00"
+      },
+      {
+        "department_name": "펌웨어개발팀",
+        "title": "펌웨어 개발자 채용",
+        "qualifications": "[필수]\n- 임베디드 C/C++ 가능자\n- MCU 개발 경험",
+        "conditions": "- 정규직, 주 5일, 복리후생 다양",
+        "job_details": "- 임베디드 시스템 펌웨어 설계\n- RTOS 환경 개발 및 디버깅\n- 센서·무선 통신 모듈 연동",
+        "procedure": "서류 → 실무테스트 → 면접 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T09:10:00",
+        "updated_at": "2025-06-24T09:10:00"
+      },
+      {
+        "department_name": "품질관리팀",
+        "title": "품질관리(QA) 담당자 채용",
+        "qualifications": "[필수]\n- QA/품질관리 경험자(신입 가능)\n[우대]\n- 전자제품 테스트 경험",
+        "conditions": "- 정규직, 탄력근무\n- 중식, 자격증 지원",
+        "job_details": "- 완제품 품질검사, 신뢰성 평가\n- 불량분석 및 개선\n- 품질문서 및 인증관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T09:20:00",
+        "updated_at": "2025-06-24T09:20:00"
+      },
+      {
+        "department_name": "R&D센터",
+        "title": "신제품 연구개발 엔지니어 채용",
+        "qualifications": "[필수]\n- 전자/소프트웨어 전공자\n- R&D 경험 또는 열정",
+        "conditions": "- 정규직, 연구수당 별도",
+        "job_details": "- 신제품 회로·구조 설계\n- 신기술 트렌드 리서치 및 테스트\n- 특허/논문자료 작성 협업",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-12T00:00:00",
+        "end_date": "2025-08-12T23:59:59",
+        "created_at": "2025-06-24T09:30:00",
+        "updated_at": "2025-06-24T09:30:00"
+      },
+      {
+        "department_name": "생산기술팀",
+        "title": "전자제품 생산기술 담당자 모집",
+        "qualifications": "[필수]\n- 전자/기계공학 전공자\n- 생산라인 경험 우대",
+        "conditions": "- 정규직, 3교대/주간선택",
+        "job_details": "- 생산설비 운영, 공정개선\n- 생산공정 자동화, 불량분석\n- 현장 안전관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 3,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T09:40:00",
+        "updated_at": "2025-06-24T09:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA공공",
+    "jobposts": [
+      {
+        "department_name": "공공정책기획팀",
+        "title": "공공정책 연구원 채용",
+        "qualifications": "[필수]\n- 정책학/행정학 전공 또는 관련 경험자",
+        "conditions": "- 정규직, 대전 유성구 대학로 99\n- 복리후생: 4대보험, 연구수당",
+        "job_details": "- 정책 연구 및 보고서 작성\n- 공공기관 연구과제 참여\n- 관련 통계 분석 및 자료조사",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T10:00:00",
+        "updated_at": "2025-06-24T10:00:00"
+      },
+      {
+        "department_name": "공공IT사업팀",
+        "title": "공공기관 IT사업 PM/PL 모집",
+        "qualifications": "[필수]\n- 정보처리기사 또는 PM 경력\n[우대]\n- SI/SM 프로젝트 경험",
+        "conditions": "- 정규직, 주 5일, 대전 본사",
+        "job_details": "- 공공 IT사업 PM, 프로젝트관리\n- 공공기관 SI 프로젝트 수행\n- 요구사항 분석, 산출물 관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T10:10:00",
+        "updated_at": "2025-06-24T10:10:00"
+      },
+      {
+        "department_name": "행정지원팀",
+        "title": "행정사무 담당자 모집",
+        "qualifications": "[필수]\n- 행정/총무 경험자\n- 엑셀/워드 가능",
+        "conditions": "- 정규직, 대전 유성구\n- 주 5일, 복지 다양",
+        "job_details": "- 공공사업 문서관리\n- 예산·회계 업무 지원\n- 행정업무 전반",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T10:20:00",
+        "updated_at": "2025-06-24T10:20:00"
+      },
+      {
+        "department_name": "정보보호팀",
+        "title": "공공 정보보안 담당자 채용",
+        "qualifications": "[필수]\n- 정보보호/보안 실무 경험자\n[우대]\n- 공공기관 ISMS-P 경험",
+        "conditions": "- 정규직, 주 5일, 대전",
+        "job_details": "- 정보보호 정책 수립\n- 침해사고 대응 및 시스템 점검\n- 보안감사/인증 대응",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T10:30:00",
+        "updated_at": "2025-06-24T10:30:00"
+      },
+      {
+        "department_name": "공공데이터팀",
+        "title": "공공데이터 분석가 채용",
+        "qualifications": "[필수]\n- 데이터 분석/통계 경험\n- Python/R 활용 가능",
+        "conditions": "- 정규직, 연구수당 별도",
+        "job_details": "- 공공데이터 수집·분석\n- 데이터 기반 정책 리포트 작성\n- 오픈데이터 활용 연구",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T10:40:00",
+        "updated_at": "2025-06-24T10:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA에너지",
+    "jobposts": [
+      {
+        "department_name": "신재생에너지팀",
+        "title": "신재생에너지 엔지니어 신입/경력 채용",
+        "qualifications": "[필수]\n- 에너지/전기공학 전공자\n- 신재생(태양광/풍력) 실습 경험 우대",
+        "conditions": "- 정규직, 경기 수원 광교\n- 주 5일, 연구수당, 중식 제공",
+        "job_details": "- 신재생 발전소 설계/시공\n- 발전 효율 분석 및 데이터 수집\n- 현장 관리 및 시운전",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T11:00:00",
+        "updated_at": "2025-06-24T11:00:00"
+      },
+      {
+        "department_name": "에너지사업기획팀",
+        "title": "에너지 사업기획/전략 담당자",
+        "qualifications": "[필수]\n- 전공 무관, 에너지 산업 관심자",
+        "conditions": "- 정규직, 수원 본사, 연구수당",
+        "job_details": "- 에너지 시장/정책 동향 조사\n- 신사업 기획 및 제안서 작성\n- 사업타당성 분석",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T11:10:00",
+        "updated_at": "2025-06-24T11:10:00"
+      },
+      {
+        "department_name": "전력IT팀",
+        "title": "전력IT 시스템 개발자 채용",
+        "qualifications": "[필수]\n- 컴퓨터/IT 전공자\n- Python/Java 가능자",
+        "conditions": "- 정규직, 본사 근무\n- 4대보험, 자기계발비 지원",
+        "job_details": "- 전력 데이터 관리 시스템 개발\n- EMS/스마트그리드 구축\n- IT 인프라 유지보수",
+        "procedure": "서류 → 코딩테스트 → 면접 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T11:20:00",
+        "updated_at": "2025-06-24T11:20:00"
+      },
+      {
+        "department_name": "설비관리팀",
+        "title": "발전설비 유지보수 담당자",
+        "qualifications": "[필수]\n- 설비/전기/기계 경력 우대",
+        "conditions": "- 정규직, 교대근무\n- 중식, 교통비 지원",
+        "job_details": "- 발전설비 점검/정비/보수\n- 설비 고장 진단 및 개선",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T11:30:00",
+        "updated_at": "2025-06-24T11:30:00"
+      },
+      {
+        "department_name": "안전관리팀",
+        "title": "안전관리자(에너지설비) 채용",
+        "qualifications": "[필수]\n- 산업안전기사, 경력 우대",
+        "conditions": "- 정규직, 수원 본사\n- 특근수당, 자격수당",
+        "job_details": "- 현장 안전교육/점검/관리\n- 안전사고 예방대책 수립",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T11:40:00",
+        "updated_at": "2025-06-24T11:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA금융",
+    "jobposts": [
+      {
+        "department_name": "자산관리팀",
+        "title": "PB(프라이빗뱅커) 신입/경력 채용",
+        "qualifications": "[필수]\n- 금융/경영 관련 전공자 우대\n- 신입 가능",
+        "conditions": "- 정규직, 전주 본사\n- 성과급, 자기계발 지원",
+        "job_details": "- 고객 투자 포트폴리오 설계\n- 자산 관리 및 리스크 분석\n- 자산운용 상품 제안",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T12:00:00",
+        "updated_at": "2025-06-24T12:00:00"
+      },
+      {
+        "department_name": "금융IT개발팀",
+        "title": "금융 IT 시스템 개발자 채용",
+        "qualifications": "[필수]\n- 컴퓨터/소프트웨어 전공자\n- Java/Spring 가능자",
+        "conditions": "- 정규직, 본사 근무\n- 주 5일, 복리후생 다양",
+        "job_details": "- 금융권 IT서비스 개발 및 유지보수\n- 핀테크 API/보안 개발\n- 신규 시스템 기획 및 구현",
+        "procedure": "서류 → 코딩테스트 → 면접 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T12:10:00",
+        "updated_at": "2025-06-24T12:10:00"
+      },
+      {
+        "department_name": "기업금융팀",
+        "title": "기업금융/투자심사 담당자",
+        "qualifications": "[필수]\n- 금융/투자 경력자 우대",
+        "conditions": "- 정규직, 성과급 별도\n- 자기계발비, 중식 제공",
+        "job_details": "- 기업금융 상품 기획/심사\n- 대출 심사 및 리스크 관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T12:20:00",
+        "updated_at": "2025-06-24T12:20:00"
+      },
+      {
+        "department_name": "리스크관리팀",
+        "title": "리스크 분석/관리자 신입채용",
+        "qualifications": "[필수]\n- 계량/수리/통계 전공 우대",
+        "conditions": "- 정규직, 주 5일\n- 연구수당, 자격증 지원",
+        "job_details": "- 투자·대출 리스크 분석\n- 리스크 모델링 및 모니터링\n- 사내 리스크 관리체계 개선",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T12:30:00",
+        "updated_at": "2025-06-24T12:30:00"
+      },
+      {
+        "department_name": "고객센터",
+        "title": "금융고객상담사 신입/경력 채용",
+        "qualifications": "[필수]\n- 고객상담 경험 우대\n- 콜센터 근무 가능자",
+        "conditions": "- 정규직, 교대근무\n- 복리후생 다양, 중식 제공",
+        "job_details": "- 고객 금융상품 상담 및 응대\n- 금융 민원 처리 및 접수",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 3,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T12:40:00",
+        "updated_at": "2025-06-24T12:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA바이오",
+    "jobposts": [
+      {
+        "department_name": "연구개발팀",
+        "title": "바이오의약품 R&D 연구원 모집",
+        "qualifications": "[필수]\n- 생명과학/화학/약학 전공자\n[우대]\n- 바이오의약품 개발 경험",
+        "conditions": "- 정규직, 판교 본사\n- 연구수당, 중식 제공",
+        "job_details": "- 신약 후보물질 탐색 및 실험\n- 세포/동물 실험, 데이터 분석\n- 특허/논문 자료조사 및 보고서 작성",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T13:00:00",
+        "updated_at": "2025-06-24T13:00:00"
+      },
+      {
+        "department_name": "품질보증팀",
+        "title": "품질보증(QA) 신입/경력 채용",
+        "qualifications": "[필수]\n- QC/QA 경험자 우대",
+        "conditions": "- 정규직, 주 5일\n- 복리후생: 4대보험, 자기계발비",
+        "job_details": "- GMP 문서관리, 공정 모니터링\n- 제품 출하 품질검사\n- 품질 감사 및 인증대응",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T13:10:00",
+        "updated_at": "2025-06-24T13:10:00"
+      },
+      {
+        "department_name": "생산관리팀",
+        "title": "바이오 생산관리 담당자",
+        "qualifications": "[필수]\n- 생산관리/공정 경험자 우대",
+        "conditions": "- 정규직, 판교 공장\n- 중식, 교통비 지원",
+        "job_details": "- 생산계획 및 실적관리\n- 생산공정 개선 및 설비관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T13:20:00",
+        "updated_at": "2025-06-24T13:20:00"
+      },
+      {
+        "department_name": "임상개발팀",
+        "title": "임상시험 CRA 채용",
+        "qualifications": "[필수]\n- 임상시험 모니터링 경험자 우대",
+        "conditions": "- 정규직, 탄력근무\n- 연구수당, 자기계발비 지원",
+        "job_details": "- 임상시험 모니터링 및 관리\n- 임상 관련 문서작성 및 점검",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T13:30:00",
+        "updated_at": "2025-06-24T13:30:00"
+      },
+      {
+        "department_name": "사업개발팀",
+        "title": "바이오사업 기획/BD 담당자",
+        "qualifications": "[필수]\n- 영어/일어 등 외국어 능통자 우대",
+        "conditions": "- 정규직, 주 5일, 판교 본사",
+        "job_details": "- 바이오 신사업 발굴, 해외 파트너십\n- 사업제안서/자료 작성",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T13:40:00",
+        "updated_at": "2025-06-24T13:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA건설",
+    "jobposts": [
+      {
+        "department_name": "건축설계팀",
+        "title": "건축설계 신입/경력 채용",
+        "qualifications": "[필수]\n- 건축학 전공자\n[우대]\n- CAD/스케치업 활용 가능자",
+        "conditions": "- 정규직, 대구 수성구 동대구로\n- 중식 제공, 자기계발 지원",
+        "job_details": "- 건축 도면작성 및 설계\n- 설계 검토 및 인허가 자료 준비",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T14:00:00",
+        "updated_at": "2025-06-24T14:00:00"
+      },
+      {
+        "department_name": "토목사업팀",
+        "title": "토목시공/현장관리 담당자",
+        "qualifications": "[필수]\n- 토목공학 전공 또는 경력자",
+        "conditions": "- 정규직, 현장 수당 별도",
+        "job_details": "- 토목공사 현장관리 및 시공\n- 자재관리, 준공관리",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 3,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T14:10:00",
+        "updated_at": "2025-06-24T14:10:00"
+      },
+      {
+        "department_name": "안전관리팀",
+        "title": "건설안전관리자 신입/경력 채용",
+        "qualifications": "[필수]\n- 산업안전/건설안전 자격증 보유",
+        "conditions": "- 정규직, 특근수당\n- 자기계발비 지원",
+        "job_details": "- 건설현장 안전점검/교육\n- 안전관리계획 수립 및 이행",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T14:20:00",
+        "updated_at": "2025-06-24T14:20:00"
+      },
+      {
+        "department_name": "견적팀",
+        "title": "건설견적/원가관리 담당자",
+        "qualifications": "[필수]\n- 건설견적/원가 업무 경험자",
+        "conditions": "- 정규직, 주 5일\n- 명절 선물, 교통비 지원",
+        "job_details": "- 견적서/내역서 작성\n- 원가분석 및 협력업체 관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T14:30:00",
+        "updated_at": "2025-06-24T14:30:00"
+      },
+      {
+        "department_name": "기계설비팀",
+        "title": "건설기계/설비 엔지니어 모집",
+        "qualifications": "[필수]\n- 기계공학 전공, 관련 자격증 우대",
+        "conditions": "- 정규직, 대구 본사\n- 연차, 특근수당, 중식 제공",
+        "job_details": "- 건설기계 장비관리\n- 설비 유지보수 및 정비",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T14:40:00",
+        "updated_at": "2025-06-24T14:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA보안",
+    "jobposts": [
+      {
+        "department_name": "보안관제센터",
+        "title": "정보보안/네트워크 관제 신입·경력 채용",
+        "qualifications": "[필수]\n- 정보보호/컴퓨터공학 전공 또는 관련 실무 경험\n- 신입/경력(3년 이하)\n- 보안관제 3교대 근무 가능\n[우대]\n- 보안관제 경험자, 관련 자격증 소지자",
+        "conditions": "- 정규직, 수습 3개월\n- 대구광역시 수성구 동대구로 23(본사)\n- 주 5일 또는 3교대\n- 복리후생: 4대보험, 중식 제공, 자기계발비 지원",
+        "job_details": "- 침해사고 대응 및 모니터링\n- 보안 이벤트 분석\n- 관제 보고서 작성",
+        "procedure": "서류전형 → 실무면접 → 임원면접 → 최종합격",
+        "headcount": 3,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T16:00:00",
+        "updated_at": "2025-06-24T16:00:00"
+      },
+      {
+        "department_name": "보안컨설팅본부",
+        "title": "보안컨설팅/모의해킹 신입·경력 채용",
+        "qualifications": "[필수]\n- 정보보호/IT 관련 전공 또는 실무 경험\n- 신입 및 경력(5년 이하)\n[우대]\n- OSCP, CISSP 등 자격증\n- 컨설팅 경험",
+        "conditions": "- 정규직, 본사 근무\n- 주 5일, 교육비 지원, 복리후생 다양",
+        "job_details": "- 모의해킹, 취약점 진단, 보고서 작성\n- 고객사 보안컨설팅",
+        "procedure": "서류전형 → PT면접 → 임원면접 → 최종합격",
+        "headcount": 2,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-07-30T23:59:59",
+        "created_at": "2025-06-24T16:01:00",
+        "updated_at": "2025-06-24T16:01:00"
+      },
+      {
+        "department_name": "IT인프라보안팀",
+        "title": "IT 인프라 보안 엔지니어 채용",
+        "qualifications": "[필수]\n- 윈도우/리눅스 서버 운영 경험\n- 네트워크 이해도\n[우대]\n- 방화벽/IPS 등 보안장비 운영 경험",
+        "conditions": "- 정규직, 주 5일, 대구 본사\n- 자기계발비, 중식 제공",
+        "job_details": "- 사내 인프라 보안관리 및 점검\n- 장애 대응, 시스템 유지보수",
+        "procedure": "서류 → 실무 → 임원 → 최종합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T16:02:00",
+        "updated_at": "2025-06-24T16:02:00"
+      },
+      {
+        "department_name": "솔루션개발팀",
+        "title": "보안 솔루션 SW개발자 채용",
+        "qualifications": "[필수]\n- C/C++, Python 등 SW개발 경험\n- 정보보호 관련 지식\n[우대]\n- 보안 솔루션 개발 경력",
+        "conditions": "- 정규직, 주 5일\n- 복지포인트, 재택 일부 가능",
+        "job_details": "- 보안 솔루션(Agent, Module) 개발\n- 신규 보안기술 연구",
+        "procedure": "코딩테스트 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T16:03:00",
+        "updated_at": "2025-06-24T16:03:00"
+      },
+      {
+        "department_name": "보안기획팀",
+        "title": "보안 정책·기획 담당자 채용",
+        "qualifications": "[필수]\n- 보안 정책 수립/기획 경험\n[우대]\n- 정보보호관리체계(ISMS) 인증 경험",
+        "conditions": "- 정규직, 본사 근무\n- 자기계발, 복리후생 다양",
+        "job_details": "- 보안 정책 수립/개정\n- 관련 문서화 및 감사 대응",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-25T00:00:00",
+        "end_date": "2025-08-25T23:59:59",
+        "created_at": "2025-06-24T16:04:00",
+        "updated_at": "2025-06-24T16:04:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA물류",
+    "jobposts": [
+      {
+        "department_name": "창고운영팀",
+        "title": "창고관리 및 입출고 담당자",
+        "qualifications": "[필수]\n- 물류/창고 경력 우대\n- 신입 지원 가능",
+        "conditions": "- 정규직, 전주 덕진구\n- 교대근무 가능, 중식 제공",
+        "job_details": "- 입출고, 재고관리 및 자재 정리\n- 창고 운영, 물류 시스템 데이터 관리",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T15:00:00",
+        "updated_at": "2025-06-24T15:00:00"
+      },
+      {
+        "department_name": "물류운송팀",
+        "title": "운송·배송기사 신입/경력 채용",
+        "qualifications": "[필수]\n- 1종 보통 운전면허 필수\n[우대]\n- 배송·운송 경력자",
+        "conditions": "- 정규직, 교대근무\n- 교통비/식대 지원",
+        "job_details": "- 제품 운송 및 안전배송\n- 운송일지 작성 및 차량관리",
+        "procedure": "서류 → 실무 → 면접 → 합격",
+        "headcount": 3,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T15:10:00",
+        "updated_at": "2025-06-24T15:10:00"
+      },
+      {
+        "department_name": "수출입팀",
+        "title": "국제물류/수출입 담당자",
+        "qualifications": "[필수]\n- 영어/중국어 가능자 우대\n- 수출입업무 관심자",
+        "conditions": "- 정규직, 주 5일\n- 자기계발비 지원",
+        "job_details": "- 수출입 서류 관리\n- 해외 협력사 대응 및 통관업무 지원",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T15:20:00",
+        "updated_at": "2025-06-24T15:20:00"
+      },
+      {
+        "department_name": "운영기획팀",
+        "title": "물류운영 기획·분석 담당자",
+        "qualifications": "[필수]\n- 물류/운영 데이터 분석 경험 우대",
+        "conditions": "- 정규직, 전주 본사\n- 중식 제공, 복지포인트 지급",
+        "job_details": "- 물류 KPI·성과분석\n- 물류 효율화 기획/프로세스 개선",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T15:30:00",
+        "updated_at": "2025-06-24T15:30:00"
+      },
+      {
+        "department_name": "안전관리팀",
+        "title": "물류센터 안전관리자 채용",
+        "qualifications": "[필수]\n- 산업안전 자격증 우대",
+        "conditions": "- 정규직, 교대근무\n- 중식, 특근수당 지급",
+        "job_details": "- 현장 안전점검 및 교육\n- 시설 및 장비 안전관리",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T15:40:00",
+        "updated_at": "2025-06-24T15:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA마케팅",
+    "jobposts": [
+      {
+        "department_name": "디지털마케팅팀",
+        "title": "디지털 마케팅 담당자 신입/경력 채용",
+        "qualifications": "[필수]\n- 대졸 이상\n- 온라인 마케팅/SNS 운영 경험\n[우대]\n- 마케팅 관련 자격증",
+        "conditions": "- 정규직, 제주 본사 근무\n- 4대보험, 자기계발비 지원",
+        "job_details": "- 자사 SNS/블로그 관리\n- 캠페인 기획·운영",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-20T23:59:59",
+        "created_at": "2025-06-24T16:10:00",
+        "updated_at": "2025-06-24T16:10:00"
+      },
+      {
+        "department_name": "콘텐츠마케팅팀",
+        "title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+        "qualifications": "[필수]\n- 콘텐츠 기획/제작 경험\n- 포토샵, 프리미어 활용 가능\n[우대]\n- 광고대행사 근무 경험",
+        "conditions": "- 정규직, 복리후생 다양\n- 재택근무 일부 가능",
+        "job_details": "- 영상, 카드뉴스 기획 및 제작\n- SNS 바이럴 마케팅 실행",
+        "procedure": "서류 → 실무면접 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-03T00:00:00",
+        "end_date": "2025-07-25T23:59:59",
+        "created_at": "2025-06-24T16:11:00",
+        "updated_at": "2025-06-24T16:11:00"
+      },
+      {
+        "department_name": "브랜딩팀",
+        "title": "브랜드 마케팅/PR 담당자",
+        "qualifications": "[필수]\n- PR/브랜딩 실무 경험자\n[우대]\n- 관련 전공(광고/홍보/경영)",
+        "conditions": "- 정규직, 제주 본사\n- 복리후생 다양",
+        "job_details": "- 브랜드 전략 수립 및 실행\n- 언론 PR, 보도자료 작성",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-01T23:59:59",
+        "created_at": "2025-06-24T16:12:00",
+        "updated_at": "2025-06-24T16:12:00"
+      },
+      {
+        "department_name": "데이터분석팀",
+        "title": "마케팅 데이터 분석가 채용",
+        "qualifications": "[필수]\n- 데이터 분석 경험\n- 구글 Analytics, Excel 등 가능자\n[우대]\n- 관련 자격증, 통계/마케팅 전공",
+        "conditions": "- 정규직, 주 5일, 자기계발 지원",
+        "job_details": "- 마케팅 데이터 수집/분석\n- 효과 리포트 작성",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-01T23:59:59",
+        "created_at": "2025-06-24T16:13:00",
+        "updated_at": "2025-06-24T16:13:00"
+      },
+      {
+        "department_name": "이벤트기획팀",
+        "title": "이벤트·프로모션 기획 담당자 채용",
+        "qualifications": "[필수]\n- 행사·이벤트 기획 경험\n[우대]\n- 제주 거주자, 운전 가능자",
+        "conditions": "- 정규직, 탄력근무제 가능\n- 명절·생일선물, 워케이션 지원",
+        "job_details": "- 각종 온/오프라인 이벤트 기획·운영\n- 협력사·파트너 관리",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-12T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T16:14:00",
+        "updated_at": "2025-06-24T16:14:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA엔터",
+    "jobposts": [
+      {
+        "department_name": "매니지먼트팀",
+        "title": "아티스트 매니저 신입/경력 채용",
+        "qualifications": "[필수]\n- 대인관계 능력, 운전 가능자\n[우대]\n- 매니지먼트 경력자",
+        "conditions": "- 정규직, 전주 본사\n- 교통비 지원, 중식 제공",
+        "job_details": "- 아티스트 스케줄 관리 및 동행\n- 방송·공연·촬영 현장 지원",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T17:00:00",
+        "updated_at": "2025-06-24T17:00:00"
+      },
+      {
+        "department_name": "콘텐츠기획팀",
+        "title": "콘텐츠 기획/운영 담당자",
+        "qualifications": "[필수]\n- 콘텐츠 기획/운영 경험자 우대\n[우대]\n- 영상/음원 관련 경험",
+        "conditions": "- 정규직, 주 5일\n- 자기계발비 지원",
+        "job_details": "- 아티스트 콘텐츠(영상/음원) 기획\n- SNS/유튜브 채널 운영",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T17:10:00",
+        "updated_at": "2025-06-24T17:10:00"
+      },
+      {
+        "department_name": "마케팅팀",
+        "title": "엔터 마케팅/프로모션 담당자",
+        "qualifications": "[필수]\n- 온라인/오프라인 마케팅 경험자 우대",
+        "conditions": "- 정규직, 탄력근무\n- 중식 제공, 워케이션 일부 가능",
+        "job_details": "- 공연·앨범 마케팅 기획\n- 팬 이벤트, 굿즈 프로모션 운영",
+        "procedure": "서류 → 면접 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T17:20:00",
+        "updated_at": "2025-06-24T17:20:00"
+      },
+      {
+        "department_name": "A&R팀",
+        "title": "A&R 신입/경력 채용",
+        "qualifications": "[필수]\n- 음악, 음반 제작 관심자\n[우대]\n- 음악·미디어 관련 경력",
+        "conditions": "- 정규직, 전주 본사\n- 복리후생 다양",
+        "job_details": "- 신인 아티스트 발굴/기획\n- 앨범 제작 및 음원 유통 관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T17:30:00",
+        "updated_at": "2025-06-24T17:30:00"
+      },
+      {
+        "department_name": "홍보팀",
+        "title": "엔터테인먼트 PR 담당자 채용",
+        "qualifications": "[필수]\n- 언론홍보/미디어 커뮤니케이션 경험",
+        "conditions": "- 정규직, 주 5일\n- 명절·생일선물, 자기계발비 지원",
+        "job_details": "- 언론사·미디어 응대\n- 보도자료 작성 및 배포",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T17:40:00",
+        "updated_at": "2025-06-24T17:40:00"
+      }
+    ]
+  },
+  {
+    "company": "KOSA기계",
+    "jobposts": [
+      {
+        "department_name": "기계설계팀",
+        "title": "기계설계 엔지니어 신입/경력 채용",
+        "qualifications": "[필수]\n- 기계공학 전공자\n- CAD/3D 설계툴 가능자",
+        "conditions": "- 정규직, 경기 수원 광교\n- 중식 제공, 자기계발비 지원",
+        "job_details": "- 기계 부품·장비 3D 설계 및 도면 작성\n- 신제품 구조/내구성 해석\n- 설계 검토 및 양산 협업",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-01T00:00:00",
+        "end_date": "2025-07-31T23:59:59",
+        "created_at": "2025-06-24T18:00:00",
+        "updated_at": "2025-06-24T18:00:00"
+      },
+      {
+        "department_name": "생산관리팀",
+        "title": "기계장비 생산관리 담당자",
+        "qualifications": "[필수]\n- 생산/제조 현장 경험 우대",
+        "conditions": "- 정규직, 3교대\n- 교통비/식대 지원",
+        "job_details": "- 생산계획 수립 및 실적 관리\n- 공정 품질 및 원가 분석\n- 생산현장 문제해결 및 개선",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-05T00:00:00",
+        "end_date": "2025-08-05T23:59:59",
+        "created_at": "2025-06-24T18:10:00",
+        "updated_at": "2025-06-24T18:10:00"
+      },
+      {
+        "department_name": "설비기술팀",
+        "title": "설비유지보수 기술자 모집",
+        "qualifications": "[필수]\n- 기계 설비 유지보수 경력자 우대\n- 신입 지원 가능",
+        "conditions": "- 정규직, 주 5일\n- 연차/특근수당 지급",
+        "job_details": "- 생산설비 정기점검 및 보수\n- 고장 진단 및 수리\n- 설비 매뉴얼 및 이력관리",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-10T00:00:00",
+        "end_date": "2025-08-10T23:59:59",
+        "created_at": "2025-06-24T18:20:00",
+        "updated_at": "2025-06-24T18:20:00"
+      },
+      {
+        "department_name": "품질보증팀",
+        "title": "품질보증(QA) 담당자 신입/경력 채용",
+        "qualifications": "[필수]\n- 품질관리/품질보증 경력자 우대",
+        "conditions": "- 정규직, 경기 수원 본사\n- 자격증 지원, 복지포인트 지급",
+        "job_details": "- 생산공정 품질검사 및 보고서 작성\n- 외주업체 품질관리 및 클레임 대응\n- 품질 감사 및 인증 대응",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 1,
+        "start_date": "2025-07-15T00:00:00",
+        "end_date": "2025-08-15T23:59:59",
+        "created_at": "2025-06-24T18:30:00",
+        "updated_at": "2025-06-24T18:30:00"
+      },
+      {
+        "department_name": "연구개발팀",
+        "title": "기계 R&D 연구원 신입/경력 채용",
+        "qualifications": "[필수]\n- 기계/자동차/로봇 전공자\n[우대]\n- 연구개발 경험 우대",
+        "conditions": "- 정규직, 경기 수원 R&D센터\n- 연구수당, 중식 제공",
+        "job_details": "- 신기술/신제품 연구개발\n- 시제품 설계·제작 및 테스트\n- 연구결과 분석 및 자료작성",
+        "procedure": "서류 → 실무 → 임원 → 합격",
+        "headcount": 2,
+        "start_date": "2025-07-20T00:00:00",
+        "end_date": "2025-08-20T23:59:59",
+        "created_at": "2025-06-24T18:40:00",
+        "updated_at": "2025-06-24T18:40:00"
+      }
+    ]
+  }
+]
+
+
