@@ -1,0 +1,1454 @@
+[
+  {
+    "field_name": "job_category",
+    "score": 10
+  },
+  {
+    "field_name": "department",
+    "score": 100
+  },
+  {
+    "field_name": "location",
+    "score": 5
+  },
+  {
+    "field_name": "career_level",
+    "score": 71
+  },
+  {
+    "field_name": "required_skill",
+    "score": 10
+  },
+  {
+    "field_name": "employment_type",
+    "score": 51
+  },
+  {
+    "field_name": "job_category",
+    "score": 3
+  },
+  {
+    "field_name": "department",
+    "score": 27
+  },
+  {
+    "field_name": "required_skill",
+    "score": 20
+  },
+  {
+    "field_name": "license",
+    "score": 64
+  },
+  {
+    "field_name": "employment_type",
+    "score": 6
+  },
+  {
+    "field_name": "performance_pay",
+    "score": 82
+  },
+  {
+    "field_name": "job_category",
+    "score": 10
+  },
+  {
+    "field_name": "department",
+    "score": 32
+  },
+  {
+    "field_name": "career_level",
+    "score": 95
+  },
+  {
+    "field_name": "required_skill",
+    "score": 60
+  },
+  {
+    "field_name": "employment_type",
+    "score": 37
+  },
+  {
+    "field_name": "work_type",
+    "score": 35
+  },
+  {
+    "field_name": "job_category",
+    "score": 91
+  },
+  {
+    "field_name": "department",
+    "score": 17
+  },
+  {
+    "field_name": "required_major",
+    "score": 3
+  },
+  {
+    "field_name": "career_level",
+    "score": 94
+  },
+  {
+    "field_name": "employment_type",
+    "score": 42
+  },
+  {
+    "field_name": "required_interest",
+    "score": 20
+  },
+  {
+    "field_name": "job_category",
+    "score": 63
+  },
+  {
+    "field_name": "department",
+    "score": 2
+  },
+  {
+    "field_name": "required_skill",
+    "score": 60
+  },
+  {
+    "field_name": "work_type",
+    "score": 35
+  },
+  {
+    "field_name": "employment_type",
+    "score": 7
+  },
+  {
+    "field_name": "benefit",
+    "score": 8
+  },
+  {
+    "field_name": "job_category",
+    "score": 12
+  },
+  {
+    "field_name": "department",
+    "score": 31
+  },
+  {
+    "field_name": "required_skill",
+    "score": 1
+  },
+  {
+    "field_name": "career_level",
+    "score": 4
+  },
+  {
+    "field_name": "employment_type",
+    "score": 1
+  },
+  {
+    "field_name": "location",
+    "score": 80
+  },
+  {
+    "field_name": "job_category",
+    "score": 3
+  },
+  {
+    "field_name": "department",
+    "score": 35
+  },
+  {
+    "field_name": "required_skill",
+    "score": 99
+  },
+  {
+    "field_name": "license",
+    "score": 1
+  },
+  {
+    "field_name": "employment_type",
+    "score": 56
+  },
+  {
+    "field_name": "benefit",
+    "score": 11
+  },
+  {
+    "field_name": "job_category",
+    "score": 63
+  },
+  {
+    "field_name": "department",
+    "score": 34
+  },
+  {
+    "field_name": "required_skill",
+    "score": 86
+  },
+  {
+    "field_name": "employment_type",
+    "score": 62
+  },
+  {
+    "field_name": "work_type",
+    "score": 55
+  },
+  {
+    "field_name": "benefit",
+    "score": 5
+  },
+  {
+    "field_name": "job_category",
+    "score": 92
+  },
+  {
+    "field_name": "department",
+    "score": 87
+  },
+  {
+    "field_name": "required_skill",
+    "score": 56
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 63
+  },
+  {
+    "field_name": "employment_type",
+    "score": 81
+  },
+  {
+    "field_name": "benefit",
+    "score": 79
+  },
+  {
+    "field_name": "job_category",
+    "score": 71
+  },
+  {
+    "field_name": "department",
+    "score": 89
+  },
+  {
+    "field_name": "career_level",
+    "score": 78
+  },
+  {
+    "field_name": "employment_type",
+    "score": 33
+  },
+  {
+    "field_name": "work_type",
+    "score": 67
+  },
+  {
+    "field_name": "benefit",
+    "score": 35
+  },
+  {
+    "field_name": "job_category",
+    "score": 5
+  },
+  {
+    "field_name": "department",
+    "score": 13
+  },
+  {
+    "field_name": "required_major",
+    "score": 15
+  },
+  {
+    "field_name": "required_skill",
+    "score": 23
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 90
+  },
+  {
+    "field_name": "employment_type",
+    "score": 27
+  },
+  {
+    "field_name": "location",
+    "score": 21
+  },
+  {
+    "field_name": "job_category",
+    "score": 39
+  },
+  {
+    "field_name": "department",
+    "score": 31
+  },
+  {
+    "field_name": "required_skill",
+    "score": 67
+  },
+  {
+    "field_name": "required_skill",
+    "score": 27
+  },
+  {
+    "field_name": "employment_type",
+    "score": 33
+  },
+  {
+    "field_name": "job_details",
+    "score": 29
+  },
+  {
+    "field_name": "job_category",
+    "score": 52
+  },
+  {
+    "field_name": "department",
+    "score": 7
+  },
+  {
+    "field_name": "required_skill",
+    "score": 84
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 11
+  },
+  {
+    "field_name": "employment_type",
+    "score": 24
+  },
+  {
+    "field_name": "work_type",
+    "score": 56
+  },
+  {
+    "field_name": "job_category",
+    "score": 15
+  },
+  {
+    "field_name": "department",
+    "score": 36
+  },
+  {
+    "field_name": "required_major",
+    "score": 62
+  },
+  {
+    "field_name": "required_skill",
+    "score": 37
+  },
+  {
+    "field_name": "employment_type",
+    "score": 67
+  },
+  {
+    "field_name": "benefit",
+    "score": 74
+  },
+  {
+    "field_name": "job_category",
+    "score": 43
+  },
+  {
+    "field_name": "department",
+    "score": 41
+  },
+  {
+    "field_name": "required_major",
+    "score": 23
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 92
+  },
+  {
+    "field_name": "employment_type",
+    "score": 70
+  },
+  {
+    "field_name": "work_type",
+    "score": 25
+  },
+  {
+    "field_name": "job_category",
+    "score": 75
+  },
+  {
+    "field_name": "department",
+    "score": 30
+  },
+  {
+    "field_name": "required_major",
+    "score": 99
+  },
+  {
+    "field_name": "required_skill",
+    "score": 86
+  },
+  {
+    "field_name": "location",
+    "score": 57
+  },
+  {
+    "field_name": "employment_type",
+    "score": 2
+  },
+  {
+    "field_name": "job_category",
+    "score": 89
+  },
+  {
+    "field_name": "department",
+    "score": 41
+  },
+  {
+    "field_name": "required_license",
+    "score": 97
+  },
+  {
+    "field_name": "career_level",
+    "score": 13
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 9
+  },
+  {
+    "field_name": "employment_type",
+    "score": 20
+  },
+  {
+    "field_name": "job_category",
+    "score": 54
+  },
+  {
+    "field_name": "department",
+    "score": 93
+  },
+  {
+    "field_name": "required_skill",
+    "score": 46
+  },
+  {
+    "field_name": "required_skill",
+    "score": 56
+  },
+  {
+    "field_name": "location",
+    "score": 8
+  },
+  {
+    "field_name": "employment_type",
+    "score": 88
+  },
+  {
+    "field_name": "job_category",
+    "score": 66
+  },
+  {
+    "field_name": "department",
+    "score": 63
+  },
+  {
+    "field_name": "required_skill",
+    "score": 36
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 84
+  },
+  {
+    "field_name": "employment_type",
+    "score": 29
+  },
+  {
+    "field_name": "location",
+    "score": 13
+  },
+  {
+    "field_name": "job_category",
+    "score": 71
+  },
+  {
+    "field_name": "department",
+    "score": 98
+  },
+  {
+    "field_name": "required_skill",
+    "score": 99
+  },
+  {
+    "field_name": "required_skill",
+    "score": 27
+  },
+  {
+    "field_name": "employment_type",
+    "score": 47
+  },
+  {
+    "field_name": "benefit",
+    "score": 83
+  },
+  {
+    "field_name": "job_category",
+    "score": 98
+  },
+  {
+    "field_name": "department",
+    "score": 59
+  },
+  {
+    "field_name": "required_major",
+    "score": 32
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 60
+  },
+  {
+    "field_name": "employment_type",
+    "score": 38
+  },
+  {
+    "field_name": "location",
+    "score": 66
+  },
+  {
+    "field_name": "job_category",
+    "score": 82
+  },
+  {
+    "field_name": "department",
+    "score": 71
+  },
+  {
+    "field_name": "required_skill",
+    "score": 70
+  },
+  {
+    "field_name": "employment_type",
+    "score": 68
+  },
+  {
+    "field_name": "benefit",
+    "score": 60
+  },
+  {
+    "field_name": "location",
+    "score": 67
+  },
+  {
+    "field_name": "job_category",
+    "score": 42
+  },
+  {
+    "field_name": "department",
+    "score": 24
+  },
+  {
+    "field_name": "required_major",
+    "score": 95
+  },
+  {
+    "field_name": "required_skill",
+    "score": 45
+  },
+  {
+    "field_name": "employment_type",
+    "score": 91
+  },
+  {
+    "field_name": "benefit",
+    "score": 49
+  },
+  {
+    "field_name": "job_category",
+    "score": 12
+  },
+  {
+    "field_name": "department",
+    "score": 70
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 32
+  },
+  {
+    "field_name": "employment_type",
+    "score": 47
+  },
+  {
+    "field_name": "work_type",
+    "score": 65
+  },
+  {
+    "field_name": "benefit",
+    "score": 33
+  },
+  {
+    "field_name": "job_category",
+    "score": 5
+  },
+  {
+    "field_name": "department",
+    "score": 71
+  },
+  {
+    "field_name": "required_license",
+    "score": 35
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 5
+  },
+  {
+    "field_name": "employment_type",
+    "score": 22
+  },
+  {
+    "field_name": "benefit",
+    "score": 17
+  },
+  {
+    "field_name": "job_category",
+    "score": 36
+  },
+  {
+    "field_name": "department",
+    "score": 64
+  },
+  {
+    "field_name": "required_major",
+    "score": 43
+  },
+  {
+    "field_name": "career_level",
+    "score": 34
+  },
+  {
+    "field_name": "employment_type",
+    "score": 13
+  },
+  {
+    "field_name": "benefit",
+    "score": 9
+  },
+  {
+    "field_name": "job_category",
+    "score": 48
+  },
+  {
+    "field_name": "department",
+    "score": 24
+  },
+  {
+    "field_name": "required_major",
+    "score": 50
+  },
+  {
+    "field_name": "required_skill",
+    "score": 55
+  },
+  {
+    "field_name": "employment_type",
+    "score": 72
+  },
+  {
+    "field_name": "benefit",
+    "score": 80
+  },
+  {
+    "field_name": "job_category",
+    "score": 18
+  },
+  {
+    "field_name": "department",
+    "score": 11
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 64
+  },
+  {
+    "field_name": "employment_type",
+    "score": 29
+  },
+  {
+    "field_name": "benefit",
+    "score": 66
+  },
+  {
+    "field_name": "job_category",
+    "score": 68
+  },
+  {
+    "field_name": "department",
+    "score": 80
+  },
+  {
+    "field_name": "required_major",
+    "score": 9
+  },
+  {
+    "field_name": "employment_type",
+    "score": 33
+  },
+  {
+    "field_name": "benefit",
+    "score": 11
+  },
+  {
+    "field_name": "job_category",
+    "score": 69
+  },
+  {
+    "field_name": "department",
+    "score": 17
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 49
+  },
+  {
+    "field_name": "work_type",
+    "score": 68
+  },
+  {
+    "field_name": "employment_type",
+    "score": 9
+  },
+  {
+    "field_name": "benefit",
+    "score": 21
+  },
+  {
+    "field_name": "job_category",
+    "score": 98
+  },
+  {
+    "field_name": "department",
+    "score": 70
+  },
+  {
+    "field_name": "required_major",
+    "score": 57
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 34
+  },
+  {
+    "field_name": "employment_type",
+    "score": 56
+  },
+  {
+    "field_name": "benefit",
+    "score": 17
+  },
+  {
+    "field_name": "job_category",
+    "score": 66
+  },
+  {
+    "field_name": "department",
+    "score": 77
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 66
+  },
+  {
+    "field_name": "employment_type",
+    "score": 33
+  },
+  {
+    "field_name": "benefit",
+    "score": 95
+  },
+  {
+    "field_name": "job_category",
+    "score": 78
+  },
+  {
+    "field_name": "department",
+    "score": 48
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 63
+  },
+  {
+    "field_name": "employment_type",
+    "score": 56
+  },
+  {
+    "field_name": "benefit",
+    "score": 60
+  },
+  {
+    "field_name": "job_category",
+    "score": 87
+  },
+  {
+    "field_name": "department",
+    "score": 95
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 93
+  },
+  {
+    "field_name": "employment_type",
+    "score": 9
+  },
+  {
+    "field_name": "work_type",
+    "score": 96
+  },
+  {
+    "field_name": "benefit",
+    "score": 76
+  },
+  {
+    "field_name": "job_category",
+    "score": 10
+  },
+  {
+    "field_name": "department",
+    "score": 43
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 68
+  },
+  {
+    "field_name": "employment_type",
+    "score": 37
+  },
+  {
+    "field_name": "job_category",
+    "score": 70
+  },
+  {
+    "field_name": "department",
+    "score": 87
+  },
+  {
+    "field_name": "required_major",
+    "score": 42
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 57
+  },
+  {
+    "field_name": "employment_type",
+    "score": 87
+  },
+  {
+    "field_name": "benefit",
+    "score": 77
+  },
+  {
+    "field_name": "job_category",
+    "score": 87
+  },
+  {
+    "field_name": "department",
+    "score": 58
+  },
+  {
+    "field_name": "required_major",
+    "score": 77
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 23
+  },
+  {
+    "field_name": "employment_type",
+    "score": 36
+  },
+  {
+    "field_name": "benefit",
+    "score": 55
+  },
+  {
+    "field_name": "job_category",
+    "score": 54
+  },
+  {
+    "field_name": "department",
+    "score": 97
+  },
+  {
+    "field_name": "required_license",
+    "score": 73
+  },
+  {
+    "field_name": "employment_type",
+    "score": 86
+  },
+  {
+    "field_name": "benefit",
+    "score": 40
+  },
+  {
+    "field_name": "job_category",
+    "score": 23
+  },
+  {
+    "field_name": "department",
+    "score": 59
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 12
+  },
+  {
+    "field_name": "employment_type",
+    "score": 75
+  },
+  {
+    "field_name": "benefit",
+    "score": 57
+  },
+  {
+    "field_name": "job_category",
+    "score": 68
+  },
+  {
+    "field_name": "department",
+    "score": 85
+  },
+  {
+    "field_name": "required_major",
+    "score": 51
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 20
+  },
+  {
+    "field_name": "employment_type",
+    "score": 29
+  },
+  {
+    "field_name": "benefit",
+    "score": 63
+  },
+  {
+    "field_name": "job_category",
+    "score": 79
+  },
+  {
+    "field_name": "department",
+    "score": 48
+  },
+  {
+    "field_name": "required_major",
+    "score": 31
+  },
+  {
+    "field_name": "career_level",
+    "score": 11
+  },
+  {
+    "field_name": "work_type",
+    "score": 30
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 17
+  },
+  {
+    "field_name": "job_category",
+    "score": 32
+  },
+  {
+    "field_name": "department",
+    "score": 55
+  },
+  {
+    "field_name": "required_major",
+    "score": 73
+  },
+  {
+    "field_name": "career_level",
+    "score": 82
+  },
+  {
+    "field_name": "preferred_license",
+    "score": 9
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 86
+  },
+  {
+    "field_name": "job_category",
+    "score": 89
+  },
+  {
+    "field_name": "department",
+    "score": 30
+  },
+  {
+    "field_name": "required_skill",
+    "score": 75
+  },
+  {
+    "field_name": "required_skill",
+    "score": 20
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 21
+  },
+  {
+    "field_name": "employment_type",
+    "score": 40
+  },
+  {
+    "field_name": "job_category",
+    "score": 22
+  },
+  {
+    "field_name": "department",
+    "score": 80
+  },
+  {
+    "field_name": "required_skill",
+    "score": 31
+  },
+  {
+    "field_name": "required_skill",
+    "score": 50
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 62
+  },
+  {
+    "field_name": "employment_type",
+    "score": 63
+  },
+  {
+    "field_name": "job_category",
+    "score": 5
+  },
+  {
+    "field_name": "department",
+    "score": 76
+  },
+  {
+    "field_name": "required_skill",
+    "score": 56
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 30
+  },
+  {
+    "field_name": "employment_type",
+    "score": 40
+  },
+  {
+    "field_name": "job_category",
+    "score": 24
+  },
+  {
+    "field_name": "department",
+    "score": 92
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 22
+  },
+  {
+    "field_name": "work_type",
+    "score": 55
+  },
+  {
+    "field_name": "employment_type",
+    "score": 20
+  },
+  {
+    "field_name": "job_category",
+    "score": 38
+  },
+  {
+    "field_name": "department",
+    "score": 48
+  },
+  {
+    "field_name": "required_license",
+    "score": 42
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 81
+  },
+  {
+    "field_name": "employment_type",
+    "score": 21
+  },
+  {
+    "field_name": "job_category",
+    "score": 19
+  },
+  {
+    "field_name": "department",
+    "score": 43
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 63
+  },
+  {
+    "field_name": "employment_type",
+    "score": 61
+  },
+  {
+    "field_name": "job_category",
+    "score": 96
+  },
+  {
+    "field_name": "department",
+    "score": 50
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 2
+  },
+  {
+    "field_name": "employment_type",
+    "score": 31
+  },
+  {
+    "field_name": "job_category",
+    "score": 70
+  },
+  {
+    "field_name": "department",
+    "score": 46
+  },
+  {
+    "field_name": "preferred_license",
+    "score": 49
+  },
+  {
+    "field_name": "work_type",
+    "score": 25
+  },
+  {
+    "field_name": "employment_type",
+    "score": 76
+  },
+  {
+    "field_name": "job_category",
+    "score": 75
+  },
+  {
+    "field_name": "department",
+    "score": 5
+  },
+  {
+    "field_name": "required_skill",
+    "score": 68
+  },
+  {
+    "field_name": "preferred_license",
+    "score": 88
+  },
+  {
+    "field_name": "employment_type",
+    "score": 28
+  },
+  {
+    "field_name": "job_category",
+    "score": 75
+  },
+  {
+    "field_name": "department",
+    "score": 55
+  },
+  {
+    "field_name": "required_skill",
+    "score": 37
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 16
+  },
+  {
+    "field_name": "employment_type",
+    "score": 19
+  },
+  {
+    "field_name": "job_category",
+    "score": 11
+  },
+  {
+    "field_name": "department",
+    "score": 11
+  },
+  {
+    "field_name": "required_skill",
+    "score": 59
+  },
+  {
+    "field_name": "preferred_major",
+    "score": 93
+  },
+  {
+    "field_name": "employment_type",
+    "score": 11
+  },
+  {
+    "field_name": "job_category",
+    "score": 66
+  },
+  {
+    "field_name": "department",
+    "score": 18
+  },
+  {
+    "field_name": "required_skill",
+    "score": 29
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 95
+  },
+  {
+    "field_name": "employment_type",
+    "score": 61
+  },
+  {
+    "field_name": "job_category",
+    "score": 76
+  },
+  {
+    "field_name": "department",
+    "score": 62
+  },
+  {
+    "field_name": "required_skill",
+    "score": 48
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 66
+  },
+  {
+    "field_name": "employment_type",
+    "score": 41
+  },
+  {
+    "field_name": "job_category",
+    "score": 15
+  },
+  {
+    "field_name": "department",
+    "score": 97
+  },
+  {
+    "field_name": "required_skill",
+    "score": 76
+  },
+  {
+    "field_name": "required_skill",
+    "score": 57
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 18
+  },
+  {
+    "field_name": "employment_type",
+    "score": 60
+  },
+  {
+    "field_name": "job_category",
+    "score": 66
+  },
+  {
+    "field_name": "department",
+    "score": 38
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 12
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 56
+  },
+  {
+    "field_name": "employment_type",
+    "score": 51
+  },
+  {
+    "field_name": "job_category",
+    "score": 98
+  },
+  {
+    "field_name": "department",
+    "score": 31
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 32
+  },
+  {
+    "field_name": "employment_type",
+    "score": 25
+  },
+  {
+    "field_name": "job_category",
+    "score": 1
+  },
+  {
+    "field_name": "department",
+    "score": 42
+  },
+  {
+    "field_name": "required_skill",
+    "score": 70
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 94
+  },
+  {
+    "field_name": "employment_type",
+    "score": 88
+  },
+  {
+    "field_name": "job_category",
+    "score": 69
+  },
+  {
+    "field_name": "department",
+    "score": 30
+  },
+  {
+    "field_name": "required_skill",
+    "score": 83
+  },
+  {
+    "field_name": "employment_type",
+    "score": 40
+  },
+  {
+    "field_name": "job_category",
+    "score": 21
+  },
+  {
+    "field_name": "department",
+    "score": 43
+  },
+  {
+    "field_name": "required_major",
+    "score": 58
+  },
+  {
+    "field_name": "required_skill",
+    "score": 8
+  },
+  {
+    "field_name": "employment_type",
+    "score": 73
+  },
+  {
+    "field_name": "benefit",
+    "score": 4
+  },
+  {
+    "field_name": "job_category",
+    "score": 51
+  },
+  {
+    "field_name": "department",
+    "score": 79
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 58
+  },
+  {
+    "field_name": "work_type",
+    "score": 10
+  },
+  {
+    "field_name": "benefit",
+    "score": 18
+  },
+  {
+    "field_name": "employment_type",
+    "score": 48
+  },
+  {
+    "field_name": "job_category",
+    "score": 42
+  },
+  {
+    "field_name": "department",
+    "score": 76
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 84
+  },
+  {
+    "field_name": "work_type",
+    "score": 100
+  },
+  {
+    "field_name": "benefit",
+    "score": 13
+  },
+  {
+    "field_name": "employment_type",
+    "score": 65
+  },
+  {
+    "field_name": "job_category",
+    "score": 60
+  },
+  {
+    "field_name": "department",
+    "score": 6
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 39
+  },
+  {
+    "field_name": "employment_type",
+    "score": 32
+  },
+  {
+    "field_name": "benefit",
+    "score": 56
+  },
+  {
+    "field_name": "job_category",
+    "score": 18
+  },
+  {
+    "field_name": "department",
+    "score": 64
+  },
+  {
+    "field_name": "required_major",
+    "score": 38
+  },
+  {
+    "field_name": "preferred_skill",
+    "score": 64
+  },
+  {
+    "field_name": "employment_type",
+    "score": 15
+  },
+  {
+    "field_name": "benefit",
+    "score": 65
+  }
+]

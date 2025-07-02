@@ -1,0 +1,392 @@
+[
+  {
+    "name": "경영지원팀",
+    "job_function": "총무/인사 담당자 신입 채용",
+    "created_at": "2025-06-23T06:24:22.671557",
+    "company": "KOSA일반회사"
+  },
+  {
+    "name": "영업1팀",
+    "job_function": "B2B 영업 담당자 모집",
+    "created_at": "2025-06-23T06:24:22.671569",
+    "company": "KOSA소비재"
+  },
+  {
+    "name": "구매팀",
+    "job_function": "구매/자재 담당자 채용",
+    "created_at": "2025-06-23T06:24:22.671573",
+    "company": "KOSA전자"
+  },
+  {
+    "name": "기획팀",
+    "job_function": "경영기획 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671576",
+    "company": "KOSA공공"
+  },
+  {
+    "name": "고객지원팀",
+    "job_function": "고객지원(AS/CS) 담당자",
+    "created_at": "2025-06-23T06:24:22.671579",
+    "company": "KOSA에너지"
+  },
+  {
+    "name": "상품기획팀",
+    "job_function": "상품기획(MD) 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671585",
+    "company": "KOSA금융"
+  },
+  {
+    "name": "유통관리팀",
+    "job_function": "유통관리/물류 신입채용",
+    "created_at": "2025-06-23T06:24:22.671590",
+    "company": "KOSA바이오"
+  },
+  {
+    "name": "디자인팀",
+    "job_function": "패키지 디자이너 모집",
+    "created_at": "2025-06-23T06:24:22.671595",
+    "company": "KOSA건설"
+  },
+  {
+    "name": "마케팅팀",
+    "job_function": "마케팅/브랜드매니저 채용",
+    "created_at": "2025-06-23T06:24:22.671598",
+    "company": "KOSA보안"
+  },
+  {
+    "name": "품질관리팀",
+    "job_function": "품질관리(QC) 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671601",
+    "company": "KOSA물류"
+  },
+  {
+    "name": "하드웨어개발팀",
+    "job_function": "회로설계 엔지니어 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671605",
+    "company": "KOSA마케팅"
+  },
+  {
+    "name": "펌웨어개발팀",
+    "job_function": "펌웨어 개발자 채용",
+    "created_at": "2025-06-23T06:24:22.671608",
+    "company": "KOSA엔터"
+  },
+  {
+    "name": "품질관리팀",
+    "job_function": "품질관리(QA) 담당자 채용",
+    "created_at": "2025-06-23T06:24:22.671611",
+    "company": "KOSA기계"
+  },
+  {
+    "name": "R&D센터",
+    "job_function": "신제품 연구개발 엔지니어 채용",
+    "created_at": "2025-06-23T06:24:22.671614",
+    "company": "KOSA일반회사"
+  },
+  {
+    "name": "생산기술팀",
+    "job_function": "전자제품 생산기술 담당자 모집",
+    "created_at": "2025-06-23T06:24:22.671617",
+    "company": "KOSA소비재"
+  },
+  {
+    "name": "공공정책기획팀",
+    "job_function": "공공정책 연구원 채용",
+    "created_at": "2025-06-23T06:24:22.671620",
+    "company": "KOSA전자"
+  },
+  {
+    "name": "공공IT사업팀",
+    "job_function": "공공기관 IT사업 PM/PL 모집",
+    "created_at": "2025-06-23T06:24:22.671623",
+    "company": "KOSA공공"
+  },
+  {
+    "name": "행정지원팀",
+    "job_function": "행정사무 담당자 모집",
+    "created_at": "2025-06-23T06:24:22.671626",
+    "company": "KOSA에너지"
+  },
+  {
+    "name": "정보보호팀",
+    "job_function": "공공 정보보안 담당자 채용",
+    "created_at": "2025-06-23T06:24:22.671629",
+    "company": "KOSA금융"
+  },
+  {
+    "name": "공공데이터팀",
+    "job_function": "공공데이터 분석가 채용",
+    "created_at": "2025-06-23T06:24:22.671633",
+    "company": "KOSA바이오"
+  },
+  {
+    "name": "신재생에너지팀",
+    "job_function": "신재생에너지 엔지니어 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671636",
+    "company": "KOSA건설"
+  },
+  {
+    "name": "에너지사업기획팀",
+    "job_function": "에너지 사업기획/전략 담당자",
+    "created_at": "2025-06-23T06:24:22.671639",
+    "company": "KOSA보안"
+  },
+  {
+    "name": "전력IT팀",
+    "job_function": "전력IT 시스템 개발자 채용",
+    "created_at": "2025-06-23T06:24:22.671643",
+    "company": "KOSA물류"
+  },
+  {
+    "name": "설비관리팀",
+    "job_function": "발전설비 유지보수 담당자",
+    "created_at": "2025-06-23T06:24:22.671646",
+    "company": "KOSA마케팅"
+  },
+  {
+    "name": "안전관리팀",
+    "job_function": "안전관리자(에너지설비) 채용",
+    "created_at": "2025-06-23T06:24:22.671649",
+    "company": "KOSA엔터"
+  },
+  {
+    "name": "자산관리팀",
+    "job_function": "PB(프라이빗뱅커) 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671652",
+    "company": "KOSA기계"
+  },
+  {
+    "name": "금융IT개발팀",
+    "job_function": "금융 IT 시스템 개발자 채용",
+    "created_at": "2025-06-23T06:24:22.671655",
+    "company": "KOSA일반회사"
+  },
+  {
+    "name": "기업금융팀",
+    "job_function": "기업금융/투자심사 담당자",
+    "created_at": "2025-06-23T06:24:22.671658",
+    "company": "KOSA소비재"
+  },
+  {
+    "name": "리스크관리팀",
+    "job_function": "리스크 분석/관리자 신입채용",
+    "created_at": "2025-06-23T06:24:22.671661",
+    "company": "KOSA전자"
+  },
+  {
+    "name": "고객센터",
+    "job_function": "금융고객상담사 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671664",
+    "company": "KOSA공공"
+  },
+  {
+    "name": "연구개발팀",
+    "job_function": "바이오의약품 R&D 연구원 모집",
+    "created_at": "2025-06-23T06:24:22.671667",
+    "company": "KOSA에너지"
+  },
+  {
+    "name": "품질보증팀",
+    "job_function": "품질보증(QA) 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671670",
+    "company": "KOSA금융"
+  },
+  {
+    "name": "생산관리팀",
+    "job_function": "바이오 생산관리 담당자",
+    "created_at": "2025-06-23T06:24:22.671673",
+    "company": "KOSA바이오"
+  },
+  {
+    "name": "임상개발팀",
+    "job_function": "임상시험 CRA 채용",
+    "created_at": "2025-06-23T06:24:22.671677",
+    "company": "KOSA건설"
+  },
+  {
+    "name": "사업개발팀",
+    "job_function": "바이오사업 기획/BD 담당자",
+    "created_at": "2025-06-23T06:24:22.671681",
+    "company": "KOSA보안"
+  },
+  {
+    "name": "건축설계팀",
+    "job_function": "건축설계 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671684",
+    "company": "KOSA물류"
+  },
+  {
+    "name": "토목사업팀",
+    "job_function": "토목시공/현장관리 담당자",
+    "created_at": "2025-06-23T06:24:22.671687",
+    "company": "KOSA마케팅"
+  },
+  {
+    "name": "안전관리팀",
+    "job_function": "건설안전관리자 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671690",
+    "company": "KOSA엔터"
+  },
+  {
+    "name": "견적팀",
+    "job_function": "건설견적/원가관리 담당자",
+    "created_at": "2025-06-23T06:24:22.671693",
+    "company": "KOSA기계"
+  },
+  {
+    "name": "기계설비팀",
+    "job_function": "건설기계/설비 엔지니어 모집",
+    "created_at": "2025-06-23T06:24:22.671696",
+    "company": "KOSA일반회사"
+  },
+  {
+    "name": "보안관제센터",
+    "job_function": "정보보안/네트워크 관제 신입·경력 채용",
+    "created_at": "2025-06-23T06:24:22.671699",
+    "company": "KOSA소비재"
+  },
+  {
+    "name": "보안컨설팅본부",
+    "job_function": "보안컨설팅/모의해킹 신입·경력 채용",
+    "created_at": "2025-06-23T06:24:22.671703",
+    "company": "KOSA전자"
+  },
+  {
+    "name": "IT인프라보안팀",
+    "job_function": "IT 인프라 보안 엔지니어 채용",
+    "created_at": "2025-06-23T06:24:22.671706",
+    "company": "KOSA공공"
+  },
+  {
+    "name": "솔루션개발팀",
+    "job_function": "보안 솔루션 SW개발자 채용",
+    "created_at": "2025-06-23T06:24:22.671709",
+    "company": "KOSA에너지"
+  },
+  {
+    "name": "보안기획팀",
+    "job_function": "보안 정책·기획 담당자 채용",
+    "created_at": "2025-06-23T06:24:22.671727",
+    "company": "KOSA금융"
+  },
+  {
+    "name": "창고운영팀",
+    "job_function": "창고관리 및 입출고 담당자",
+    "created_at": "2025-06-23T06:24:22.671730",
+    "company": "KOSA바이오"
+  },
+  {
+    "name": "물류운송팀",
+    "job_function": "운송·배송기사 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671733",
+    "company": "KOSA건설"
+  },
+  {
+    "name": "수출입팀",
+    "job_function": "국제물류/수출입 담당자",
+    "created_at": "2025-06-23T06:24:22.671737",
+    "company": "KOSA보안"
+  },
+  {
+    "name": "운영기획팀",
+    "job_function": "물류운영 기획·분석 담당자",
+    "created_at": "2025-06-23T06:24:22.671739",
+    "company": "KOSA물류"
+  },
+  {
+    "name": "안전관리팀",
+    "job_function": "물류센터 안전관리자 채용",
+    "created_at": "2025-06-23T06:24:22.671743",
+    "company": "KOSA마케팅"
+  },
+  {
+    "name": "디지털마케팅팀",
+    "job_function": "디지털 마케팅 담당자 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671746",
+    "company": "KOSA엔터"
+  },
+  {
+    "name": "콘텐츠마케팅팀",
+    "job_function": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "created_at": "2025-06-23T06:24:22.671749",
+    "company": "KOSA기계"
+  },
+  {
+    "name": "브랜딩팀",
+    "job_function": "브랜드 마케팅/PR 담당자",
+    "created_at": "2025-06-23T06:24:22.671752",
+    "company": "KOSA일반회사"
+  },
+  {
+    "name": "데이터분석팀",
+    "job_function": "마케팅 데이터 분석가 채용",
+    "created_at": "2025-06-23T06:24:22.671755",
+    "company": "KOSA소비재"
+  },
+  {
+    "name": "이벤트기획팀",
+    "job_function": "이벤트·프로모션 기획 담당자 채용",
+    "created_at": "2025-06-23T06:24:22.671758",
+    "company": "KOSA전자"
+  },
+  {
+    "name": "매니지먼트팀",
+    "job_function": "아티스트 매니저 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671761",
+    "company": "KOSA공공"
+  },
+  {
+    "name": "콘텐츠기획팀",
+    "job_function": "콘텐츠 기획/운영 담당자",
+    "created_at": "2025-06-23T06:24:22.671764",
+    "company": "KOSA에너지"
+  },
+  {
+    "name": "마케팅팀",
+    "job_function": "엔터 마케팅/프로모션 담당자",
+    "created_at": "2025-06-23T06:24:22.671767",
+    "company": "KOSA금융"
+  },
+  {
+    "name": "A&R팀",
+    "job_function": "A&R 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671770",
+    "company": "KOSA바이오"
+  },
+  {
+    "name": "홍보팀",
+    "job_function": "엔터테인먼트 PR 담당자 채용",
+    "created_at": "2025-06-23T06:24:22.671773",
+    "company": "KOSA건설"
+  },
+  {
+    "name": "기계설계팀",
+    "job_function": "기계설계 엔지니어 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671777",
+    "company": "KOSA보안"
+  },
+  {
+    "name": "생산관리팀",
+    "job_function": "기계장비 생산관리 담당자",
+    "created_at": "2025-06-23T06:24:22.671780",
+    "company": "KOSA물류"
+  },
+  {
+    "name": "설비기술팀",
+    "job_function": "설비유지보수 기술자 모집",
+    "created_at": "2025-06-23T06:24:22.671783",
+    "company": "KOSA마케팅"
+  },
+  {
+    "name": "품질보증팀",
+    "job_function": "품질보증(QA) 담당자 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671786",
+    "company": "KOSA엔터"
+  },
+  {
+    "name": "연구개발팀",
+    "job_function": "기계 R&D 연구원 신입/경력 채용",
+    "created_at": "2025-06-23T06:24:22.671789",
+    "company": "KOSA기계"
+  }
+]
