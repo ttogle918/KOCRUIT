@@ -19,7 +19,7 @@ function ViewPost() {
   useEffect(() => {
     const fetchJobPost = async () => {
       try {
-        const response = await api.get(`/common/jobposts/${jobPostId}`);
+        const response = await api.get(`/company/jobposts/${jobPostId}`);
         console.log('Job Post Data:', response.data);
         setJobPost(response.data);
         setLoading(false);

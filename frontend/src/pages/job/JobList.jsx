@@ -16,7 +16,7 @@ function JobList() {
   const [jobPosts, setJobPosts] = useState([]);
 
   useEffect(() => {
-    api.get('/company/jobposts') // ✅ 백엔드 주소 맞게 수정!
+    api.get('/public/jobposts') // ✅ 백엔드 주소 맞게 수정!
       .then((res) => {
         console.log("공고 목록:", res.data); // ✅ 콘솔에 찍히는지 확인
         setJobPosts(res.data);

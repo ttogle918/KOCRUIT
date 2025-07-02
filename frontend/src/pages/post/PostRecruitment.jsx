@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import "../../styles/datepicker.css";
@@ -27,8 +28,10 @@ const useAutoResize = (value) => {
 
 function PostRecruitment() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: '',
+    department: '',
     qualifications: '',
     conditions: '',
     jobDetails: '',
@@ -78,6 +81,11 @@ function PostRecruitment() {
       try {
         const response = await api.get('/auth/me');
         console.log('Current user info:', response.data);
+        console.log('User company info:', {
+          companyId: response.data.companyId,
+          company_id: response.data.company_id,
+          company: response.data.company
+        });
         if (response.data) {
           setFormData(prev => ({
             ...prev,
@@ -102,21 +110,31 @@ function PostRecruitment() {
       // 날짜 형식 변환
       const formattedData = {
         ...formData,
-        headcount: parseInt(formData.headcount),
+        // company_id는 백엔드에서 자동 설정됨
+        headcount: formData.headcount ? parseInt(formData.headcount) : null,
         startDate: formData.startDate ? formData.startDate.toISOString() : null,
         endDate: formData.endDate ? formData.endDate.toISOString() : null,
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
+        teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
+        weights: weights.filter(weight => weight.item && weight.score),  // 빈 항목 제거
       };
+
+      console.log('Sending data:', formattedData);  // 디버깅용
 
       const response = await api.post('/company/jobposts', formattedData);
       
-      if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
         alert('채용공고가 등록되었습니다.');
-        // 성공 후 리다이렉트 또는 다른 처리
+        // 기업 홈으로 리다이렉트
+        navigate('/corporatehome');
       }
     } catch (error) {
       console.error('Submission failed:', error);
-      alert(error.response?.data?.message || '채용공고 등록에 실패했습니다.');
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error detail:', error.response?.data?.detail);
+      console.error('Error detail expanded:', JSON.stringify(error.response?.data?.detail, null, 2));
+      alert(error.response?.data?.detail?.[0]?.msg || error.response?.data?.message || '채용공고 등록에 실패했습니다.');
     }
   };
 
@@ -149,6 +167,13 @@ function PostRecruitment() {
                   onChange={(e) => handleInputChange(e, 'title')} 
                   className="text-md w-full text-center bg-transparent outline-none text-gray-900 dark:text-gray-300" 
                   placeholder="채용공고 제목" 
+                />
+                <input 
+                  type="text" 
+                  value={formData.department} 
+                  onChange={(e) => handleInputChange(e, 'department')} 
+                  className="text-sm w-full text-center bg-transparent outline-none text-gray-600 dark:text-gray-400" 
+                  placeholder="부서명 (예: 개발팀, 인사팀)" 
                 />
               </div>
 

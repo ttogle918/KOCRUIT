@@ -13,16 +13,10 @@ export default function CorpHome() {
   useEffect(() => {
     const fetchJobPosts = async () => {
       try {
-        const userResponse = await api.get('/auth/me');
-        const companyId = userResponse.data.companyId;
-        
-        if (!companyId) {
-          throw new Error('회사 정보가 없습니다.');
-        }
-
-        const jobPostsResponse = await api.get(`/company/jobposts/${companyId}`);
+        const jobPostsResponse = await api.get('/company/jobposts/');
         setJobPosts(jobPostsResponse.data);
       } catch (err) {
+        console.error('Error fetching job posts:', err);
         setError('채용공고를 불러올 수 없습니다.');
       } finally {
         setLoading(false);

@@ -58,7 +58,8 @@ docker 켜진 상태에서 mysql 터미널로 들어가기
 
 ```docker exec -it mysql bash```
 
-bash-5.1# 
+bash-5.1# 나오면
+
 ```mysql -u myuser -p```
 
 Enter password: 

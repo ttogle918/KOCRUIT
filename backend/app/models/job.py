@@ -9,12 +9,19 @@ class JobPost(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(200), nullable=False)
-    description = Column(Text)
-    requirements = Column(Text)
-    salary_min = Column(Integer)
-    salary_max = Column(Integer)
+    department = Column(String(100))  # 부서 필드 추가
+    qualifications = Column(Text)
+    conditions = Column(Text)
+    jobDetails = Column(Text)
+    procedure = Column(Text)
+    headcount = Column(Integer)
+    startDate = Column(String(50))
+    endDate = Column(String(50))
     location = Column(String(255))
-    job_type = Column(String(50))  # FULL_TIME, PART_TIME, CONTRACT, etc.
+    employmentType = Column(String(50))
+    deadline = Column(String(50))
+    teamMembers = Column(Text)  # JSON string으로 저장
+    weights = Column(Text)      # JSON string으로 저장
     status = Column(String(20), default="ACTIVE")  # ACTIVE, CLOSED, DRAFT
     company_id = Column(Integer, ForeignKey('company.id'))
     created_at = Column(DateTime, default=datetime.utcnow)
