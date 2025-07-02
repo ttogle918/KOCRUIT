@@ -1,187 +1,179 @@
-# 🚀 Docker 실행 가이드
+# KOSA-FINAL-PROJECT-02 Docker 완전 초기화 및 실행 가이드
 
-## 📋 전체 실행 과정
+## 🚀 처음 받는 사람을 위한 완전 가이드
 
-### 1. 기존 컨테이너 정리
+### 📋 사전 준비사항
+- Docker Desktop 설치 및 실행
+- Python 3.x 설치
+- pip 설치
+- mysql-connector-python 패키지 설치: `pip install mysql-connector-python`
+
+---
+
+## 🔄 Docker 완전 초기화 및 실행 순서
+
+### 1. Docker Desktop 실행
 ```bash
-docker stop my-mysql && docker rm my-mysql
+# Mac에서 Docker Desktop 실행
+open -a Docker
+# 또는 Spotlight(⌘+Space)에서 "Docker" 검색 후 실행
 ```
 
-### 2. Docker Compose로 전체 서비스 시작
+### 2. 기존 컨테이너/볼륨 완전 정리
+```bash
+# 프로젝트 루트 디렉토리에서 실행
+docker-compose down -v
+```
+
+### 3. Docker 컨테이너(서비스) 재시작
 ```bash
 docker-compose up -d
 ```
 
-### 3. 데이터베이스 초기화 확인
+### 4. 서비스 상태 확인
 ```bash
-# MySQL 컨테이너가 healthy 상태인지 확인
 docker ps
+```
+**예상 결과:**
+- `mysql` 컨테이너: Up 상태 (healthy)
+- `kocruit_springboot` 컨테이너: Up 상태  
+- `kocruit_react` 컨테이너: Up 상태
 
-# 데이터베이스 생성 확인
-docker exec mysql mysql -u root -proot -e "SHOW DATABASES;"
-
-# 테이블 생성 확인
-docker exec mysql mysql -u root -proot -e "USE kocruit_db; SHOW TABLES;"
+### 5. (필요시) DB 완전 초기화
+```bash
+# DB를 완전히 비우고 싶다면 실행
+docker exec mysql mysql -u root -proot -e "DROP DATABASE IF EXISTS kocruit_db; CREATE DATABASE kocruit_db;"
 ```
 
-### 4. 시드 데이터 삽입
+### 6. 테이블 스키마 생성
 ```bash
-# initdb 디렉토리로 이동
 cd initdb
+docker exec -i mysql mysql -u root -proot kocruit_db < 1_create_tables.sql
+```
 
-# 시드 데이터 실행
+### 7. 시드 데이터 입력
+```bash
 python3 2_seed_data.py
 ```
 
-### 5. 데이터 확인
+### 8. 데이터 확인
 ```bash
-# 데이터 개수 확인
-docker exec mysql mysql -u root -proot -e "USE kocruit_db; SELECT COUNT(*) as company_count FROM company; SELECT COUNT(*) as user_count FROM users;"
+docker exec mysql mysql -u root -proot -e "USE kocruit_db; SELECT 'users' as table_name, COUNT(*) as count FROM users UNION ALL SELECT 'company', COUNT(*) FROM company UNION ALL SELECT 'jobpost', COUNT(*) FROM jobpost UNION ALL SELECT 'application', COUNT(*) FROM application UNION ALL SELECT 'resume', COUNT(*) FROM resume;"
 ```
 
-## 🎯 현재 상태
-- ✅ **MySQL**: 포트 3307에서 실행 중 (13개 회사, 5,012명 사용자 데이터 포함)
-- ✅ **Spring Boot**: 포트 8081에서 실행 중 (JWT 설정 문제 있음)
-- ✅ **React**: 포트 5173에서 실행 중
+---
 
-## 🌐 접속 주소
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8081
-- **MySQL**: localhost:3307
+## 🌐 서비스 접속 정보
 
-## 📝 자주 사용하는 명령어들
+- **프론트엔드 (React)**: http://localhost:5173
+- **백엔드 API (Spring Boot)**: http://localhost:8081  
+- **데이터베이스 (MySQL)**: localhost:3307
+  - 사용자: root
+  - 비밀번호: root
+  - 데이터베이스: kocruit_db
 
-### 전체 시스템 시작
-```bash
-docker-compose up -d
+---
+
+## ⚠️ 주의사항
+
+### 경고 메시지 해석
+시드 데이터 실행 시 다음과 같은 경고가 나타날 수 있습니다:
+```
+⚠️ 매핑 실패 - email: hong3007@example.com, company: KOSA바이오
+⚠️ 사용자 ID를 찾을 수 없음: hong1044@example.com
 ```
 
-### 서비스 상태 확인
+이는 다음 중 하나의 이유입니다:
+1. `company_user.json`에 있는 이메일이 `users.json`에 없음
+2. `applicant_user_list.json`에 있는 이메일이 `users.json`에 없음
+
+**해결 방법:**
+- 경고 메시지는 무시해도 됩니다 (기본 기능에는 영향 없음)
+- 완전한 데이터를 원한다면 `users.json`에 누락된 이메일들을 추가하세요
+
+### 데이터 파일 구조 확인
+- `users.json`: 사용자 정보 (email 필드 필수)
+- `company.json`: 회사 정보
+- `jobpost.json`: 채용공고 정보
+- `application.json`: 지원서 정보
+- `resume.json`: 이력서 정보
+- `company_user.json`: 회사 직원 정보
+- `applicant_user_list.json`: 지원자 목록
+
+---
+
+## 🛠️ 문제 해결
+
+### Docker 데몬 연결 오류
 ```bash
-docker ps
+# Docker Desktop이 실행되지 않은 경우
+open -a Docker
+# 잠시 기다린 후 다시 시도
 ```
+
+### 포트 충돌
+```bash
+# 포트가 이미 사용 중인 경우
+lsof -i :5173  # React 포트 확인
+lsof -i :8081  # Spring Boot 포트 확인  
+lsof -i :3307  # MySQL 포트 확인
+```
+
+### 데이터베이스 연결 오류
+```bash
+# MySQL 컨테이너 상태 확인
+docker logs mysql
+```
+
+---
+
+## 📊 예상 결과
+
+성공적으로 완료되면 다음과 같은 데이터가 생성됩니다:
+- **users**: 약 5,000명
+- **company**: 13개 회사
+- **jobpost**: 65개 채용공고
+- **application**: 120개 지원서
+- **resume**: 약 3,000개 이력서
+
+---
+
+## 🔧 추가 명령어
 
 ### 로그 확인
 ```bash
-# MySQL 로그
-docker logs mysql
-
-# Spring Boot 로그 (에러가 있을 때)
+# Spring Boot 로그
 docker logs kocruit_springboot
 
-# React 로그
+# React 로그  
 docker logs kocruit_react
+
+# MySQL 로그
+docker logs mysql
 ```
 
-### 서비스 중지
+### 컨테이너 재시작
+```bash
+# 특정 서비스만 재시작
+docker-compose restart kocruit_springboot
+docker-compose restart kocruit_react
+docker-compose restart mysql
+```
+
+### 전체 서비스 중지
 ```bash
 docker-compose down
 ```
 
-### 특정 서비스만 재시작
-```bash
-docker-compose restart [service_name]
-# 예: docker-compose restart backend
-```
+---
 
-### 데이터베이스 접속
-```bash
-docker exec -it mysql mysql -u root -proot kocruit_db
-```
+## ✅ 완료 체크리스트
 
-### 컨테이너 내부 접속
-```bash
-# MySQL 컨테이너 접속
-docker exec -it mysql bash
+- [ ] Docker Desktop 실행
+- [ ] 컨테이너 정상 실행 (`docker ps` 확인)
+- [ ] 데이터베이스 스키마 생성
+- [ ] 시드 데이터 입력 완료
+- [ ] 프론트엔드 접속 가능 (http://localhost:5173)
+- [ ] 백엔드 API 접속 가능 (http://localhost:8081)
 
-# Spring Boot 컨테이너 접속
-docker exec -it kocruit_springboot sh
-
-# React 컨테이너 접속
-docker exec -it kocruit_react sh
-```
-
-## 🔧 문제 해결
-
-### 포트 충돌 시
-```bash
-# 사용 중인 포트 확인
-lsof -i :3307
-lsof -i :8081
-lsof -i :5173
-
-# 특정 포트 사용 프로세스 종료
-kill -9 [PID]
-```
-
-### 컨테이너 재빌드
-```bash
-# 특정 서비스만 재빌드
-docker-compose build [service_name]
-
-# 전체 재빌드
-docker-compose build --no-cache
-```
-
-### 볼륨 삭제 (데이터 초기화)
-```bash
-docker-compose down -v
-```
-
-## 📊 데이터베이스 정보
-
-### 연결 정보
-- **Host**: localhost
-- **Port**: 3307
-- **Database**: kocruit_db
-- **Username**: root
-- **Password**: root
-
-### 테이블 목록
-- company
-- users
-- resume
-- spec
-- department
-- jobpost
-- company_user
-- schedule
-- applicant_user
-- application
-- field_name_score
-- jobpost_role
-- weight
-- schedule_interview
-- notification
-- resume_memo
-- interview_evaluation
-- evaluation_detail
-- interview_question
-
-## ⚠️ 주의사항
-
-1. **Spring Boot JWT 설정**: 현재 JWT 시크릿 키 설정 문제가 있습니다.
-2. **데이터 백업**: 중요한 데이터가 있다면 정기적으로 백업하세요.
-3. **포트 충돌**: 3307, 8081, 5173 포트가 사용 중이지 않은지 확인하세요.
-
-## 🚀 빠른 시작
-
-새로운 환경에서 처음 실행할 때:
-
-```bash
-# 1. 프로젝트 디렉토리로 이동
-cd /path/to/KOSA-FINAL-PROJECT-02
-
-# 2. 전체 서비스 시작
-docker-compose up -d
-
-# 3. 상태 확인
-docker ps
-
-# 4. 시드 데이터 삽입 (처음 한 번만)
-cd initdb && python3 2_seed_data.py
-
-# 5. 브라우저에서 접속
-# Frontend: http://localhost:5173
-# Backend: http://localhost:8081
-``` 
+모든 항목이 체크되면 프로젝트가 정상적으로 실행되고 있습니다! 🎉 

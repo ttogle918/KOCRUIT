@@ -1,0 +1,2837 @@
+[
+  {
+    "email": "hong3430@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "총무/인사 담당자 신입 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-17T10:15:07.652986"
+  },
+  {
+    "email": "hong3924@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "총무/인사 담당자 신입 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.652995"
+  },
+  {
+    "email": "hong4015@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "총무/인사 담당자 신입 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.652998"
+  },
+  {
+    "email": "hong3339@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "총무/인사 담당자 신입 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-09T10:15:07.653001"
+  },
+  {
+    "email": "hong4457@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "총무/인사 담당자 신입 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653003"
+  },
+  {
+    "email": "hong4197@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "총무/인사 담당자 신입 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-17T10:15:07.653005"
+  },
+  {
+    "email": "hong4379@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "B2B 영업 담당자 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-23T10:15:07.653017"
+  },
+  {
+    "email": "hong3638@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "B2B 영업 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653019"
+  },
+  {
+    "email": "hong4782@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "B2B 영업 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653021"
+  },
+  {
+    "email": "hong3651@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "B2B 영업 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653023"
+  },
+  {
+    "email": "hong3469@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "B2B 영업 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-17T10:15:07.653024"
+  },
+  {
+    "email": "hong4236@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "B2B 영업 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653026"
+  },
+  {
+    "email": "hong4834@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "B2B 영업 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653027"
+  },
+  {
+    "email": "hong4730@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "구매/자재 담당자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-09T10:15:07.653034"
+  },
+  {
+    "email": "hong3534@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "구매/자재 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653035"
+  },
+  {
+    "email": "hong5029@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "구매/자재 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653037"
+  },
+  {
+    "email": "hong4860@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "구매/자재 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653039"
+  },
+  {
+    "email": "hong4548@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "구매/자재 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653040"
+  },
+  {
+    "email": "hong4301@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "구매/자재 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653042"
+  },
+  {
+    "email": "hong3690@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "구매/자재 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653044"
+  },
+  {
+    "email": "hong4210@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "경영기획 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-04T10:15:07.653049"
+  },
+  {
+    "email": "hong5068@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "경영기획 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653051"
+  },
+  {
+    "email": "hong4860@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "경영기획 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653053"
+  },
+  {
+    "email": "hong4626@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "경영기획 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653054"
+  },
+  {
+    "email": "hong4678@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "경영기획 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653056"
+  },
+  {
+    "email": "hong3066@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "경영기획 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653058"
+  },
+  {
+    "email": "hong3651@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "경영기획 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653059"
+  },
+  {
+    "email": "hong4288@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-15T10:15:07.653065"
+  },
+  {
+    "email": "hong4704@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653067"
+  },
+  {
+    "email": "hong4613@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653069"
+  },
+  {
+    "email": "hong3989@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653070"
+  },
+  {
+    "email": "hong4912@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653072"
+  },
+  {
+    "email": "hong4886@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653073"
+  },
+  {
+    "email": "hong4626@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653075"
+  },
+  {
+    "email": "hong4392@example.com",
+    "company": "KOSA일반회사",
+    "jobpost_title": "고객지원(AS/CS) 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653077"
+  },
+  {
+    "email": "hong4718@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "상품기획(MD) 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-25T10:15:07.653082"
+  },
+  {
+    "email": "hong4380@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "상품기획(MD) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653084"
+  },
+  {
+    "email": "hong5030@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "상품기획(MD) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653086"
+  },
+  {
+    "email": "hong4549@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "상품기획(MD) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653087"
+  },
+  {
+    "email": "hong3171@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "상품기획(MD) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653089"
+  },
+  {
+    "email": "hong5043@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "상품기획(MD) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653090"
+  },
+  {
+    "email": "hong4848@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "상품기획(MD) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653092"
+  },
+  {
+    "email": "hong3106@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-19T10:15:07.653097"
+  },
+  {
+    "email": "hong4510@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653099"
+  },
+  {
+    "email": "hong5017@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653101"
+  },
+  {
+    "email": "hong5056@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653102"
+  },
+  {
+    "email": "hong3899@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653104"
+  },
+  {
+    "email": "hong4042@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-09T10:15:07.653106"
+  },
+  {
+    "email": "hong5082@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653107"
+  },
+  {
+    "email": "hong3873@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "유통관리/물류 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653109"
+  },
+  {
+    "email": "hong3288@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "패키지 디자이너 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-11T10:15:07.653113"
+  },
+  {
+    "email": "hong4367@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "패키지 디자이너 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653115"
+  },
+  {
+    "email": "hong4068@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "패키지 디자이너 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653117"
+  },
+  {
+    "email": "hong3522@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "패키지 디자이너 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653118"
+  },
+  {
+    "email": "hong4276@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "패키지 디자이너 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653120"
+  },
+  {
+    "email": "hong5069@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "마케팅/브랜드매니저 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-19T10:15:07.653124"
+  },
+  {
+    "email": "hong3275@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "마케팅/브랜드매니저 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653126"
+  },
+  {
+    "email": "hong3418@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "마케팅/브랜드매니저 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-17T10:15:07.653128"
+  },
+  {
+    "email": "hong3080@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "마케팅/브랜드매니저 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653129"
+  },
+  {
+    "email": "hong4640@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "마케팅/브랜드매니저 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653131"
+  },
+  {
+    "email": "hong4679@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-09T10:15:07.653136"
+  },
+  {
+    "email": "hong3639@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653138"
+  },
+  {
+    "email": "hong4718@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653140"
+  },
+  {
+    "email": "hong4926@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653142"
+  },
+  {
+    "email": "hong4939@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653143"
+  },
+  {
+    "email": "hong4354@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653145"
+  },
+  {
+    "email": "hong5095@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653147"
+  },
+  {
+    "email": "hong3938@example.com",
+    "company": "KOSA소비재",
+    "jobpost_title": "품질관리(QC) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653148"
+  },
+  {
+    "email": "hong4238@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-03T10:15:07.653155"
+  },
+  {
+    "email": "hong3224@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653158"
+  },
+  {
+    "email": "hong3237@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653159"
+  },
+  {
+    "email": "hong4498@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653161"
+  },
+  {
+    "email": "hong3406@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653163"
+  },
+  {
+    "email": "hong4524@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653164"
+  },
+  {
+    "email": "hong4706@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-21T10:15:07.653166"
+  },
+  {
+    "email": "hong3757@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "회로설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653168"
+  },
+  {
+    "email": "hong4706@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-23T10:15:07.653173"
+  },
+  {
+    "email": "hong4524@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653175"
+  },
+  {
+    "email": "hong4810@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653177"
+  },
+  {
+    "email": "hong3874@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653178"
+  },
+  {
+    "email": "hong4004@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653180"
+  },
+  {
+    "email": "hong4485@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653181"
+  },
+  {
+    "email": "hong4511@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-21T10:15:07.653183"
+  },
+  {
+    "email": "hong3744@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "펌웨어 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-17T10:15:07.653185"
+  },
+  {
+    "email": "hong4875@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "품질관리(QA) 담당자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-11T10:15:07.653189"
+  },
+  {
+    "email": "hong3679@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "품질관리(QA) 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653191"
+  },
+  {
+    "email": "hong4758@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "품질관리(QA) 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653193"
+  },
+  {
+    "email": "hong4420@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "품질관리(QA) 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653194"
+  },
+  {
+    "email": "hong4303@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "품질관리(QA) 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653196"
+  },
+  {
+    "email": "hong3536@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "품질관리(QA) 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653198"
+  },
+  {
+    "email": "hong3107@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "품질관리(QA) 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653199"
+  },
+  {
+    "email": "hong4836@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "신제품 연구개발 엔지니어 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-24T10:15:07.653203"
+  },
+  {
+    "email": "hong3263@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "신제품 연구개발 엔지니어 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653205"
+  },
+  {
+    "email": "hong4771@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "신제품 연구개발 엔지니어 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653207"
+  },
+  {
+    "email": "hong4524@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "신제품 연구개발 엔지니어 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653209"
+  },
+  {
+    "email": "hong4615@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "전자제품 생산기술 담당자 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-16T10:15:07.653213"
+  },
+  {
+    "email": "hong3614@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "전자제품 생산기술 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653214"
+  },
+  {
+    "email": "hong4927@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "전자제품 생산기술 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653216"
+  },
+  {
+    "email": "hong4849@example.com",
+    "company": "KOSA전자",
+    "jobpost_title": "전자제품 생산기술 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653218"
+  },
+  {
+    "email": "hong3329@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공정책 연구원 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-16T10:15:07.653222"
+  },
+  {
+    "email": "hong3355@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공정책 연구원 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653224"
+  },
+  {
+    "email": "hong3888@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공정책 연구원 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653226"
+  },
+  {
+    "email": "hong4278@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공정책 연구원 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-09T10:15:07.653227"
+  },
+  {
+    "email": "hong4941@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공정책 연구원 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653229"
+  },
+  {
+    "email": "hong5045@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-04T10:15:07.653234"
+  },
+  {
+    "email": "hong3537@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653236"
+  },
+  {
+    "email": "hong5097@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653238"
+  },
+  {
+    "email": "hong3862@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653239"
+  },
+  {
+    "email": "hong5058@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-09T10:15:07.653241"
+  },
+  {
+    "email": "hong4850@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653242"
+  },
+  {
+    "email": "hong4408@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653244"
+  },
+  {
+    "email": "hong3498@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공기관 IT사업 PM/PL 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653246"
+  },
+  {
+    "email": "hong4746@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-24T10:15:07.653251"
+  },
+  {
+    "email": "hong4460@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-09T10:15:07.653253"
+  },
+  {
+    "email": "hong3212@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653255"
+  },
+  {
+    "email": "hong4005@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653256"
+  },
+  {
+    "email": "hong3810@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653258"
+  },
+  {
+    "email": "hong5084@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653260"
+  },
+  {
+    "email": "hong4304@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653261"
+  },
+  {
+    "email": "hong3017@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "행정사무 담당자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653263"
+  },
+  {
+    "email": "hong5045@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공 정보보안 담당자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-24T10:15:07.653267"
+  },
+  {
+    "email": "hong4629@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공 정보보안 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653269"
+  },
+  {
+    "email": "hong3134@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공 정보보안 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653270"
+  },
+  {
+    "email": "hong4161@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공 정보보안 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653272"
+  },
+  {
+    "email": "hong3186@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공 정보보안 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653274"
+  },
+  {
+    "email": "hong4668@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공데이터 분석가 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-23T10:15:07.653280"
+  },
+  {
+    "email": "hong3719@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653282"
+  },
+  {
+    "email": "hong4252@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653284"
+  },
+  {
+    "email": "hong3888@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653285"
+  },
+  {
+    "email": "hong3771@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653287"
+  },
+  {
+    "email": "hong4200@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653289"
+  },
+  {
+    "email": "hong5071@example.com",
+    "company": "KOSA공공",
+    "jobpost_title": "공공데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653290"
+  },
+  {
+    "email": "hong4617@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "신재생에너지 엔지니어 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-16T10:15:07.653295"
+  },
+  {
+    "email": "hong3122@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "신재생에너지 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653296"
+  },
+  {
+    "email": "hong3811@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "신재생에너지 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653298"
+  },
+  {
+    "email": "hong3005@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "신재생에너지 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653300"
+  },
+  {
+    "email": "hong4201@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "에너지 사업기획/전략 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-10T10:15:07.653304"
+  },
+  {
+    "email": "hong3330@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "에너지 사업기획/전략 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653306"
+  },
+  {
+    "email": "hong3460@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "에너지 사업기획/전략 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653307"
+  },
+  {
+    "email": "hong4851@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "에너지 사업기획/전략 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653309"
+  },
+  {
+    "email": "hong3018@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "에너지 사업기획/전략 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653310"
+  },
+  {
+    "email": "hong4734@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-20T10:15:07.653316"
+  },
+  {
+    "email": "hong5020@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653317"
+  },
+  {
+    "email": "hong4227@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653319"
+  },
+  {
+    "email": "hong3408@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653321"
+  },
+  {
+    "email": "hong4513@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653323"
+  },
+  {
+    "email": "hong3005@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653324"
+  },
+  {
+    "email": "hong3993@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653326"
+  },
+  {
+    "email": "hong3863@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "전력IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653328"
+  },
+  {
+    "email": "hong4279@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "발전설비 유지보수 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-17T10:15:07.653332"
+  },
+  {
+    "email": "hong3200@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "발전설비 유지보수 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653333"
+  },
+  {
+    "email": "hong3707@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "발전설비 유지보수 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653335"
+  },
+  {
+    "email": "hong4175@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "발전설비 유지보수 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653337"
+  },
+  {
+    "email": "hong5033@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-19T10:15:07.653342"
+  },
+  {
+    "email": "hong4058@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653344"
+  },
+  {
+    "email": "hong4682@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653345"
+  },
+  {
+    "email": "hong4409@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653347"
+  },
+  {
+    "email": "hong3356@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653349"
+  },
+  {
+    "email": "hong4578@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653350"
+  },
+  {
+    "email": "hong3109@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653352"
+  },
+  {
+    "email": "hong4006@example.com",
+    "company": "KOSA에너지",
+    "jobpost_title": "안전관리자(에너지설비) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653354"
+  },
+  {
+    "email": "hong4878@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "PB(프라이빗뱅커) 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-07T10:15:07.653359"
+  },
+  {
+    "email": "hong3110@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "PB(프라이빗뱅커) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653361"
+  },
+  {
+    "email": "hong4722@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "PB(프라이빗뱅커) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653362"
+  },
+  {
+    "email": "hong3786@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "PB(프라이빗뱅커) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653364"
+  },
+  {
+    "email": "hong4904@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "PB(프라이빗뱅커) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653365"
+  },
+  {
+    "email": "hong3526@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "PB(프라이빗뱅커) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653367"
+  },
+  {
+    "email": "hong4215@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "PB(프라이빗뱅커) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653369"
+  },
+  {
+    "email": "hong4033@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-27T10:15:07.653373"
+  },
+  {
+    "email": "hong4644@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653375"
+  },
+  {
+    "email": "hong3214@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653376"
+  },
+  {
+    "email": "hong3331@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융 IT 시스템 개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653378"
+  },
+  {
+    "email": "hong5008@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "기업금융/투자심사 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-09T10:15:07.653384"
+  },
+  {
+    "email": "hong3851@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "기업금융/투자심사 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653386"
+  },
+  {
+    "email": "hong4176@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "기업금융/투자심사 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653387"
+  },
+  {
+    "email": "hong3136@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "기업금융/투자심사 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-21T10:15:07.653389"
+  },
+  {
+    "email": "hong3253@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "기업금융/투자심사 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653391"
+  },
+  {
+    "email": "hong4618@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "기업금융/투자심사 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653392"
+  },
+  {
+    "email": "hong3630@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "기업금융/투자심사 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653394"
+  },
+  {
+    "email": "hong3188@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "리스크 분석/관리자 신입채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-30T10:15:07.653399"
+  },
+  {
+    "email": "hong3032@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "리스크 분석/관리자 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653400"
+  },
+  {
+    "email": "hong3019@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "리스크 분석/관리자 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653402"
+  },
+  {
+    "email": "hong3552@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "리스크 분석/관리자 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653404"
+  },
+  {
+    "email": "hong5073@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "리스크 분석/관리자 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653405"
+  },
+  {
+    "email": "hong3955@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "리스크 분석/관리자 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653407"
+  },
+  {
+    "email": "hong4046@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "리스크 분석/관리자 신입채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653409"
+  },
+  {
+    "email": "hong4553@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융고객상담사 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-13T10:15:07.653413"
+  },
+  {
+    "email": "hong3734@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융고객상담사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653415"
+  },
+  {
+    "email": "hong3305@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융고객상담사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-09T10:15:07.653417"
+  },
+  {
+    "email": "hong4345@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융고객상담사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653418"
+  },
+  {
+    "email": "hong4943@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융고객상담사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653420"
+  },
+  {
+    "email": "hong4501@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융고객상담사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653421"
+  },
+  {
+    "email": "hong3929@example.com",
+    "company": "KOSA금융",
+    "jobpost_title": "금융고객상담사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653423"
+  },
+  {
+    "email": "hong4723@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오의약품 R&D 연구원 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-16T10:15:07.653428"
+  },
+  {
+    "email": "hong3124@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오의약품 R&D 연구원 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653430"
+  },
+  {
+    "email": "hong4021@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오의약품 R&D 연구원 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653432"
+  },
+  {
+    "email": "hong3813@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오의약품 R&D 연구원 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653433"
+  },
+  {
+    "email": "hong3618@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오의약품 R&D 연구원 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653435"
+  },
+  {
+    "email": "hong4970@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오의약품 R&D 연구원 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653436"
+  },
+  {
+    "email": "hong4125@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "품질보증(QA) 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-02T10:15:07.653440"
+  },
+  {
+    "email": "hong3839@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "품질보증(QA) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653442"
+  },
+  {
+    "email": "hong4931@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "품질보증(QA) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653443"
+  },
+  {
+    "email": "hong4645@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "품질보증(QA) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653445"
+  },
+  {
+    "email": "hong4658@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "품질보증(QA) 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653447"
+  },
+  {
+    "email": "hong3631@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오 생산관리 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-08T10:15:07.653451"
+  },
+  {
+    "email": "hong3943@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653453"
+  },
+  {
+    "email": "hong4385@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653454"
+  },
+  {
+    "email": "hong3215@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653456"
+  },
+  {
+    "email": "hong3293@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653458"
+  },
+  {
+    "email": "hong4138@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653459"
+  },
+  {
+    "email": "hong3787@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653461"
+  },
+  {
+    "email": "hong4528@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "임상시험 CRA 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-02T10:15:07.653474"
+  },
+  {
+    "email": "hong3358@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "임상시험 CRA 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653476"
+  },
+  {
+    "email": "hong5126@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "임상시험 CRA 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653477"
+  },
+  {
+    "email": "hong4060@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "임상시험 CRA 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653479"
+  },
+  {
+    "email": "hong5035@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "임상시험 CRA 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653480"
+  },
+  {
+    "email": "hong3254@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "임상시험 CRA 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653482"
+  },
+  {
+    "email": "hong3488@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "임상시험 CRA 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653484"
+  },
+  {
+    "email": "hong4528@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오사업 기획/BD 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-14T10:15:07.653488"
+  },
+  {
+    "email": "hong3644@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오사업 기획/BD 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653490"
+  },
+  {
+    "email": "hong5061@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오사업 기획/BD 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653491"
+  },
+  {
+    "email": "hong4671@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오사업 기획/BD 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653493"
+  },
+  {
+    "email": "hong3670@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오사업 기획/BD 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-21T10:15:07.653495"
+  },
+  {
+    "email": "hong3475@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오사업 기획/BD 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653496"
+  },
+  {
+    "email": "hong3436@example.com",
+    "company": "KOSA바이오",
+    "jobpost_title": "바이오사업 기획/BD 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653498"
+  },
+  {
+    "email": "hong3515@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-20T10:15:07.653503"
+  },
+  {
+    "email": "hong4152@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653504"
+  },
+  {
+    "email": "hong3606@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653506"
+  },
+  {
+    "email": "hong3593@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653508"
+  },
+  {
+    "email": "hong4074@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653509"
+  },
+  {
+    "email": "hong4178@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653511"
+  },
+  {
+    "email": "hong4958@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653513"
+  },
+  {
+    "email": "hong3684@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건축설계 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653514"
+  },
+  {
+    "email": "hong4646@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "토목시공/현장관리 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-11T10:15:07.653518"
+  },
+  {
+    "email": "hong5088@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "토목시공/현장관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653520"
+  },
+  {
+    "email": "hong4633@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "토목시공/현장관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653522"
+  },
+  {
+    "email": "hong4568@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "토목시공/현장관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653523"
+  },
+  {
+    "email": "hong5023@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "토목시공/현장관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653525"
+  },
+  {
+    "email": "hong4178@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설안전관리자 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-08T10:15:07.653530"
+  },
+  {
+    "email": "hong3385@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설안전관리자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653532"
+  },
+  {
+    "email": "hong3359@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설안전관리자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653533"
+  },
+  {
+    "email": "hong3645@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설안전관리자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653535"
+  },
+  {
+    "email": "hong3528@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설안전관리자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653536"
+  },
+  {
+    "email": "hong4113@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설안전관리자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653538"
+  },
+  {
+    "email": "hong4802@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설안전관리자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653539"
+  },
+  {
+    "email": "hong4061@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설견적/원가관리 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-10T10:15:07.653544"
+  },
+  {
+    "email": "hong4568@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설견적/원가관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653546"
+  },
+  {
+    "email": "hong3398@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설견적/원가관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653547"
+  },
+  {
+    "email": "hong4620@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설견적/원가관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653549"
+  },
+  {
+    "email": "hong3281@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설견적/원가관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653551"
+  },
+  {
+    "email": "hong3476@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설견적/원가관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653552"
+  },
+  {
+    "email": "hong4360@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설견적/원가관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653554"
+  },
+  {
+    "email": "hong4386@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설기계/설비 엔지니어 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-19T10:15:07.653559"
+  },
+  {
+    "email": "hong4698@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설기계/설비 엔지니어 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653560"
+  },
+  {
+    "email": "hong3580@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설기계/설비 엔지니어 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653562"
+  },
+  {
+    "email": "hong3125@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설기계/설비 엔지니어 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653563"
+  },
+  {
+    "email": "hong4256@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설기계/설비 엔지니어 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653565"
+  },
+  {
+    "email": "hong3424@example.com",
+    "company": "KOSA건설",
+    "jobpost_title": "건설기계/설비 엔지니어 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-17T10:15:07.653567"
+  },
+  {
+    "email": "hong3399@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "정보보안/네트워크 관제 신입·경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-25T10:15:07.653571"
+  },
+  {
+    "email": "hong4322@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "정보보안/네트워크 관제 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653573"
+  },
+  {
+    "email": "hong4101@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "정보보안/네트워크 관제 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653575"
+  },
+  {
+    "email": "hong3945@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "정보보안/네트워크 관제 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653576"
+  },
+  {
+    "email": "hong3334@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "정보보안/네트워크 관제 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653578"
+  },
+  {
+    "email": "hong3516@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "정보보안/네트워크 관제 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653580"
+  },
+  {
+    "email": "hong4374@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안컨설팅/모의해킹 신입·경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-27T10:15:07.653584"
+  },
+  {
+    "email": "hong3659@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안컨설팅/모의해킹 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653585"
+  },
+  {
+    "email": "hong4088@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안컨설팅/모의해킹 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653587"
+  },
+  {
+    "email": "hong3841@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안컨설팅/모의해킹 신입·경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653588"
+  },
+  {
+    "email": "hong4361@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "IT 인프라 보안 엔지니어 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-25T10:15:07.653592"
+  },
+  {
+    "email": "hong3022@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "IT 인프라 보안 엔지니어 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653594"
+  },
+  {
+    "email": "hong5011@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "IT 인프라 보안 엔지니어 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653596"
+  },
+  {
+    "email": "hong4166@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "IT 인프라 보안 엔지니어 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653597"
+  },
+  {
+    "email": "hong4686@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "IT 인프라 보안 엔지니어 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653599"
+  },
+  {
+    "email": "hong3412@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 솔루션 SW개발자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-09T10:15:07.653605"
+  },
+  {
+    "email": "hong3321@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 솔루션 SW개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653606"
+  },
+  {
+    "email": "hong4413@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 솔루션 SW개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653608"
+  },
+  {
+    "email": "hong4062@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 솔루션 SW개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653610"
+  },
+  {
+    "email": "hong3217@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 솔루션 SW개발자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653611"
+  },
+  {
+    "email": "hong4114@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-22T10:15:07.653617"
+  },
+  {
+    "email": "hong3256@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653618"
+  },
+  {
+    "email": "hong4712@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653620"
+  },
+  {
+    "email": "hong4491@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653621"
+  },
+  {
+    "email": "hong4946@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653623"
+  },
+  {
+    "email": "hong3165@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653625"
+  },
+  {
+    "email": "hong3971@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653626"
+  },
+  {
+    "email": "hong4322@example.com",
+    "company": "KOSA보안",
+    "jobpost_title": "보안 정책·기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-21T10:15:07.653628"
+  },
+  {
+    "email": "hong3959@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-13T10:15:07.653633"
+  },
+  {
+    "email": "hong3283@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653635"
+  },
+  {
+    "email": "hong4687@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653637"
+  },
+  {
+    "email": "hong4817@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653638"
+  },
+  {
+    "email": "hong3322@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653640"
+  },
+  {
+    "email": "hong3335@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653641"
+  },
+  {
+    "email": "hong3049@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653643"
+  },
+  {
+    "email": "hong4102@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "창고관리 및 입출고 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653645"
+  },
+  {
+    "email": "hong3751@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "운송·배송기사 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-02T10:15:07.653649"
+  },
+  {
+    "email": "hong4934@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "운송·배송기사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653651"
+  },
+  {
+    "email": "hong3465@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "운송·배송기사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653652"
+  },
+  {
+    "email": "hong4115@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "운송·배송기사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653654"
+  },
+  {
+    "email": "hong3920@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "운송·배송기사 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653655"
+  },
+  {
+    "email": "hong3127@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "국제물류/수출입 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-04T10:15:07.653661"
+  },
+  {
+    "email": "hong3647@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "국제물류/수출입 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653663"
+  },
+  {
+    "email": "hong4414@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "국제물류/수출입 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-21T10:15:07.653665"
+  },
+  {
+    "email": "hong3361@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "국제물류/수출입 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-28T10:15:07.653666"
+  },
+  {
+    "email": "hong3543@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "국제물류/수출입 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653668"
+  },
+  {
+    "email": "hong3673@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "국제물류/수출입 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653669"
+  },
+  {
+    "email": "hong4739@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "국제물류/수출입 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653671"
+  },
+  {
+    "email": "hong3140@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류운영 기획·분석 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-15T10:15:07.653675"
+  },
+  {
+    "email": "hong3881@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류운영 기획·분석 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653676"
+  },
+  {
+    "email": "hong3413@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류운영 기획·분석 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-17T10:15:07.653678"
+  },
+  {
+    "email": "hong4557@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류운영 기획·분석 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653680"
+  },
+  {
+    "email": "hong3205@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류센터 안전관리자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-29T10:15:07.653684"
+  },
+  {
+    "email": "hong4401@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류센터 안전관리자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653686"
+  },
+  {
+    "email": "hong4284@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류센터 안전관리자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653688"
+  },
+  {
+    "email": "hong4895@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류센터 안전관리자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653689"
+  },
+  {
+    "email": "hong4297@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류센터 안전관리자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653691"
+  },
+  {
+    "email": "hong3452@example.com",
+    "company": "KOSA물류",
+    "jobpost_title": "물류센터 안전관리자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653692"
+  },
+  {
+    "email": "hong3947@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "디지털 마케팅 담당자 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-21T10:15:07.653697"
+  },
+  {
+    "email": "hong4077@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "디지털 마케팅 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653699"
+  },
+  {
+    "email": "hong3609@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "디지털 마케팅 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653700"
+  },
+  {
+    "email": "hong3544@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "디지털 마케팅 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653702"
+  },
+  {
+    "email": "hong3310@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "디지털 마케팅 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653704"
+  },
+  {
+    "email": "hong4103@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "디지털 마케팅 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653705"
+  },
+  {
+    "email": "hong3791@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-11T10:15:07.653710"
+  },
+  {
+    "email": "hong3895@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653712"
+  },
+  {
+    "email": "hong3583@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653713"
+  },
+  {
+    "email": "hong3687@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653715"
+  },
+  {
+    "email": "hong4207@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653716"
+  },
+  {
+    "email": "hong4220@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653718"
+  },
+  {
+    "email": "hong4909@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "콘텐츠 마케터(영상/카드뉴스) 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653720"
+  },
+  {
+    "email": "hong4623@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "브랜드 마케팅/PR 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-07T10:15:07.653724"
+  },
+  {
+    "email": "hong3362@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "브랜드 마케팅/PR 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653725"
+  },
+  {
+    "email": "hong4103@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "브랜드 마케팅/PR 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-03T10:15:07.653727"
+  },
+  {
+    "email": "hong4493@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "브랜드 마케팅/PR 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653729"
+  },
+  {
+    "email": "hong4909@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "브랜드 마케팅/PR 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653730"
+  },
+  {
+    "email": "hong5117@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "마케팅 데이터 분석가 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-04T10:15:07.653734"
+  },
+  {
+    "email": "hong3609@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "마케팅 데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653736"
+  },
+  {
+    "email": "hong4779@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "마케팅 데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653737"
+  },
+  {
+    "email": "hong4298@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "마케팅 데이터 분석가 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653739"
+  },
+  {
+    "email": "hong5013@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-06T10:15:07.653744"
+  },
+  {
+    "email": "hong4415@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653745"
+  },
+  {
+    "email": "hong4844@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653747"
+  },
+  {
+    "email": "hong4285@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653749"
+  },
+  {
+    "email": "hong4181@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-02T10:15:07.653750"
+  },
+  {
+    "email": "hong3427@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653752"
+  },
+  {
+    "email": "hong4389@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653753"
+  },
+  {
+    "email": "hong5078@example.com",
+    "company": "KOSA마케팅",
+    "jobpost_title": "이벤트·프로모션 기획 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653755"
+  },
+  {
+    "email": "hong4962@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "아티스트 매니저 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-16T10:15:07.653759"
+  },
+  {
+    "email": "hong3805@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "아티스트 매니저 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-17T10:15:07.653761"
+  },
+  {
+    "email": "hong4390@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "아티스트 매니저 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653762"
+  },
+  {
+    "email": "hong3428@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "아티스트 매니저 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653764"
+  },
+  {
+    "email": "hong3844@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-16T10:15:07.653769"
+  },
+  {
+    "email": "hong4091@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653770"
+  },
+  {
+    "email": "hong3597@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653772"
+  },
+  {
+    "email": "hong3103@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653773"
+  },
+  {
+    "email": "hong4754@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653775"
+  },
+  {
+    "email": "hong4910@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653777"
+  },
+  {
+    "email": "hong3779@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653778"
+  },
+  {
+    "email": "hong4676@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "콘텐츠 기획/운영 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653780"
+  },
+  {
+    "email": "hong4143@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터 마케팅/프로모션 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-15T10:15:07.653785"
+  },
+  {
+    "email": "hong3129@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터 마케팅/프로모션 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-11T10:15:07.653786"
+  },
+  {
+    "email": "hong3909@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터 마케팅/프로모션 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-07-01T10:15:07.653788"
+  },
+  {
+    "email": "hong3454@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터 마케팅/프로모션 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-18T10:15:07.653790"
+  },
+  {
+    "email": "hong4988@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터 마케팅/프로모션 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-14T10:15:07.653791"
+  },
+  {
+    "email": "hong4364@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터 마케팅/프로모션 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653793"
+  },
+  {
+    "email": "hong3610@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터 마케팅/프로모션 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653794"
+  },
+  {
+    "email": "hong3194@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "A&R 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-28T10:15:07.653799"
+  },
+  {
+    "email": "hong4468@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "A&R 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653801"
+  },
+  {
+    "email": "hong4182@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "A&R 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653802"
+  },
+  {
+    "email": "hong3766@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "A&R 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653804"
+  },
+  {
+    "email": "hong4273@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "A&R 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-30T10:15:07.653805"
+  },
+  {
+    "email": "hong5001@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "A&R 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-12T10:15:07.653807"
+  },
+  {
+    "email": "hong4832@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "A&R 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-15T10:15:07.653808"
+  },
+  {
+    "email": "hong4598@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터테인먼트 PR 담당자 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-07T10:15:07.653812"
+  },
+  {
+    "email": "hong5053@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터테인먼트 PR 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-21T10:15:07.653814"
+  },
+  {
+    "email": "hong4702@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터테인먼트 PR 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-10T10:15:07.653815"
+  },
+  {
+    "email": "hong5092@example.com",
+    "company": "KOSA엔터",
+    "jobpost_title": "엔터테인먼트 PR 담당자 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653817"
+  },
+  {
+    "email": "hong4248@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계설계 엔지니어 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-18T10:15:07.653822"
+  },
+  {
+    "email": "hong4716@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653823"
+  },
+  {
+    "email": "hong3169@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653825"
+  },
+  {
+    "email": "hong3013@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653828"
+  },
+  {
+    "email": "hong4664@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-09T10:15:07.653830"
+  },
+  {
+    "email": "hong4170@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653831"
+  },
+  {
+    "email": "hong3052@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계설계 엔지니어 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653833"
+  },
+  {
+    "email": "hong3871@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계장비 생산관리 담당자",
+    "role": "MANAGER",
+    "invited_at": "2025-06-15T10:15:07.653838"
+  },
+  {
+    "email": "hong3338@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계장비 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-29T10:15:07.653840"
+  },
+  {
+    "email": "hong4521@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계장비 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653841"
+  },
+  {
+    "email": "hong3273@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계장비 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653843"
+  },
+  {
+    "email": "hong3559@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계장비 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-26T10:15:07.653844"
+  },
+  {
+    "email": "hong3169@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계장비 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-23T10:15:07.653846"
+  },
+  {
+    "email": "hong4651@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계장비 생산관리 담당자",
+    "role": "MEMBER",
+    "invited_at": "2025-06-22T10:15:07.653848"
+  },
+  {
+    "email": "hong3065@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "설비유지보수 기술자 모집",
+    "role": "MANAGER",
+    "invited_at": "2025-06-28T10:15:07.653852"
+  },
+  {
+    "email": "hong4326@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "설비유지보수 기술자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-04T10:15:07.653854"
+  },
+  {
+    "email": "hong3910@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "설비유지보수 기술자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-05T10:15:07.653855"
+  },
+  {
+    "email": "hong4079@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "설비유지보수 기술자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-20T10:15:07.653857"
+  },
+  {
+    "email": "hong3975@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "설비유지보수 기술자 모집",
+    "role": "MEMBER",
+    "invited_at": "2025-06-06T10:15:07.653858"
+  },
+  {
+    "email": "hong3780@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "품질보증(QA) 담당자 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-04T10:15:07.653863"
+  },
+  {
+    "email": "hong4729@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "품질보증(QA) 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-25T10:15:07.653864"
+  },
+  {
+    "email": "hong3832@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "품질보증(QA) 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-19T10:15:07.653866"
+  },
+  {
+    "email": "hong4209@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "품질보증(QA) 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-13T10:15:07.653867"
+  },
+  {
+    "email": "hong4001@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "품질보증(QA) 담당자 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-27T10:15:07.653869"
+  },
+  {
+    "email": "hong3598@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계 R&D 연구원 신입/경력 채용",
+    "role": "MANAGER",
+    "invited_at": "2025-06-07T10:15:07.653873"
+  },
+  {
+    "email": "hong3039@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계 R&D 연구원 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-07T10:15:07.653875"
+  },
+  {
+    "email": "hong4196@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계 R&D 연구원 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-16T10:15:07.653876"
+  },
+  {
+    "email": "hong4001@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계 R&D 연구원 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-24T10:15:07.653878"
+  },
+  {
+    "email": "hong4170@example.com",
+    "company": "KOSA기계",
+    "jobpost_title": "기계 R&D 연구원 신입/경력 채용",
+    "role": "MEMBER",
+    "invited_at": "2025-06-08T10:15:07.653880"
+  }
+]

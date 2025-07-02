@@ -9,7 +9,9 @@
     "applied_at": "2025-04-02T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong2@example.com",
@@ -21,7 +23,9 @@
     "applied_at": "2025-04-21T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong3@example.com",
@@ -33,7 +37,9 @@
     "applied_at": "2025-04-06T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong4@example.com",
@@ -45,7 +51,9 @@
     "applied_at": "2025-03-23T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "팀워크 및 조직 적응력이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong5@example.com",
@@ -57,7 +65,9 @@
     "applied_at": "2025-03-23T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong6@example.com",
@@ -69,7 +79,9 @@
     "applied_at": "2025-03-15T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong7@example.com",
@@ -81,7 +93,9 @@
     "applied_at": "2025-04-20T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong8@example.com",
@@ -93,7 +107,9 @@
     "applied_at": "2025-04-01T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong9@example.com",
@@ -105,7 +121,9 @@
     "applied_at": "2025-03-15T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong10@example.com",
@@ -117,7 +135,9 @@
     "applied_at": "2025-04-25T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong11@example.com",
@@ -129,7 +149,9 @@
     "applied_at": "2025-03-21T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong12@example.com",
@@ -141,7 +163,9 @@
     "applied_at": "2025-04-20T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong13@example.com",
@@ -153,7 +177,9 @@
     "applied_at": "2025-03-19T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong14@example.com",
@@ -165,7 +191,9 @@
     "applied_at": "2025-05-07T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong15@example.com",
@@ -177,7 +205,9 @@
     "applied_at": "2025-03-23T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "팀워크 및 조직 적응력이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong16@example.com",
@@ -189,7 +219,9 @@
     "applied_at": "2025-04-05T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong17@example.com",
@@ -201,7 +233,9 @@
     "applied_at": "2025-05-07T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong18@example.com",
@@ -213,7 +247,9 @@
     "applied_at": "2025-04-03T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "팀워크 및 조직 적응력이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong19@example.com",
@@ -225,7 +261,9 @@
     "applied_at": "2025-04-25T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong20@example.com",
@@ -237,7 +275,9 @@
     "applied_at": "2025-03-18T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong21@example.com",
@@ -249,7 +289,9 @@
     "applied_at": "2025-04-10T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong22@example.com",
@@ -261,7 +303,9 @@
     "applied_at": "2025-03-20T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong23@example.com",
@@ -273,7 +317,9 @@
     "applied_at": "2025-04-01T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong24@example.com",
@@ -285,7 +331,9 @@
     "applied_at": "2025-04-08T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong25@example.com",
@@ -297,7 +345,9 @@
     "applied_at": "2025-03-14T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong26@example.com",
@@ -309,7 +359,9 @@
     "applied_at": "2025-04-13T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong27@example.com",
@@ -321,7 +373,9 @@
     "applied_at": "2025-04-18T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong28@example.com",
@@ -333,7 +387,9 @@
     "applied_at": "2025-03-21T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong29@example.com",
@@ -345,7 +401,9 @@
     "applied_at": "2025-04-16T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong30@example.com",
@@ -357,7 +415,9 @@
     "applied_at": "2025-04-11T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong31@example.com",
@@ -369,7 +429,9 @@
     "applied_at": "2025-04-12T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong32@example.com",
@@ -381,7 +443,9 @@
     "applied_at": "2025-05-02T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong33@example.com",
@@ -393,7 +457,9 @@
     "applied_at": "2025-04-23T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong34@example.com",
@@ -405,7 +471,9 @@
     "applied_at": "2025-04-12T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong35@example.com",
@@ -417,7 +485,9 @@
     "applied_at": "2025-04-28T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong36@example.com",
@@ -429,7 +499,9 @@
     "applied_at": "2025-03-18T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong37@example.com",
@@ -441,7 +513,9 @@
     "applied_at": "2025-05-09T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong38@example.com",
@@ -453,7 +527,9 @@
     "applied_at": "2025-05-12T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong39@example.com",
@@ -465,7 +541,9 @@
     "applied_at": "2025-03-22T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong40@example.com",
@@ -477,7 +555,9 @@
     "applied_at": "2025-04-14T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA에너지",
+    "title": "전력IT 시스템 개발자 채용"
   },
   {
     "email": "hong41@example.com",
@@ -489,7 +569,9 @@
     "applied_at": "2025-03-14T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong42@example.com",
@@ -501,7 +583,9 @@
     "applied_at": "2025-03-30T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong43@example.com",
@@ -513,7 +597,9 @@
     "applied_at": "2025-04-14T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong44@example.com",
@@ -525,7 +611,9 @@
     "applied_at": "2025-04-25T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong45@example.com",
@@ -537,7 +625,9 @@
     "applied_at": "2025-04-24T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong46@example.com",
@@ -549,7 +639,9 @@
     "applied_at": "2025-04-17T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong47@example.com",
@@ -561,7 +653,9 @@
     "applied_at": "2025-03-26T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong48@example.com",
@@ -573,7 +667,9 @@
     "applied_at": "2025-05-03T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong49@example.com",
@@ -585,7 +681,9 @@
     "applied_at": "2025-05-10T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "팀워크 및 조직 적응력이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong50@example.com",
@@ -597,7 +695,9 @@
     "applied_at": "2025-03-15T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong51@example.com",
@@ -609,7 +709,9 @@
     "applied_at": "2025-03-18T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong52@example.com",
@@ -621,7 +723,23 @@
     "applied_at": "2025-05-04T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
+  },
+  {
+    "email": "hong1@example.com",
+    "score": 100,
+    "ai_score": 100,
+    "human_score": 100,
+    "final_score": 100,
+    "status": "PASSED",
+    "applied_at": "2025-05-04T07:04:06.000",
+    "application_source": "잡코리아",
+    "pass_reason": "그냥 다재다능한 완변한 후보자임",
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong53@example.com",
@@ -633,7 +751,9 @@
     "applied_at": "2025-04-11T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong54@example.com",
@@ -645,7 +765,9 @@
     "applied_at": "2025-03-14T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong55@example.com",
@@ -657,7 +779,9 @@
     "applied_at": "2025-03-25T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong56@example.com",
@@ -669,7 +793,9 @@
     "applied_at": "2025-03-14T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "면접 평가가 매우 우수함",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong57@example.com",
@@ -681,7 +807,9 @@
     "applied_at": "2025-04-27T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong58@example.com",
@@ -693,7 +821,9 @@
     "applied_at": "2025-04-19T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": "팀워크 및 조직 적응력이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong59@example.com",
@@ -705,7 +835,9 @@
     "applied_at": "2025-04-01T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "기술 역량이 우수하며 직무 적합도가 높음",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong60@example.com",
@@ -717,7 +849,9 @@
     "applied_at": "2025-03-28T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": "직무 경험이 풍부하고 커뮤니케이션이 뛰어남",
-    "fail_reason": null
+    "fail_reason": null,
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong61@example.com",
@@ -729,7 +863,9 @@
     "applied_at": "2025-04-29T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong62@example.com",
@@ -741,7 +877,9 @@
     "applied_at": "2025-03-24T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong63@example.com",
@@ -753,7 +891,9 @@
     "applied_at": "2025-04-14T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong64@example.com",
@@ -765,7 +905,9 @@
     "applied_at": "2025-03-29T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong65@example.com",
@@ -777,7 +919,9 @@
     "applied_at": "2025-03-23T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong66@example.com",
@@ -789,7 +933,9 @@
     "applied_at": "2025-04-24T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong67@example.com",
@@ -801,7 +947,9 @@
     "applied_at": "2025-03-24T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong68@example.com",
@@ -813,7 +961,9 @@
     "applied_at": "2025-04-06T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong69@example.com",
@@ -825,7 +975,9 @@
     "applied_at": "2025-03-31T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong70@example.com",
@@ -837,7 +989,9 @@
     "applied_at": "2025-05-04T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong71@example.com",
@@ -849,7 +1003,9 @@
     "applied_at": "2025-05-07T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong72@example.com",
@@ -861,7 +1017,9 @@
     "applied_at": "2025-04-07T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong73@example.com",
@@ -873,7 +1031,9 @@
     "applied_at": "2025-04-12T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong74@example.com",
@@ -885,7 +1045,9 @@
     "applied_at": "2025-05-10T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong75@example.com",
@@ -897,7 +1059,9 @@
     "applied_at": "2025-03-20T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong76@example.com",
@@ -909,7 +1073,9 @@
     "applied_at": "2025-03-28T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong77@example.com",
@@ -921,7 +1087,9 @@
     "applied_at": "2025-03-27T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong78@example.com",
@@ -933,7 +1101,9 @@
     "applied_at": "2025-04-13T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong79@example.com",
@@ -945,7 +1115,9 @@
     "applied_at": "2025-04-25T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong80@example.com",
@@ -957,7 +1129,9 @@
     "applied_at": "2025-04-03T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA공공",
+    "title": "공공기관 IT사업 PM/PL 모집"
   },
   {
     "email": "hong81@example.com",
@@ -969,7 +1143,9 @@
     "applied_at": "2025-05-02T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong82@example.com",
@@ -981,7 +1157,9 @@
     "applied_at": "2025-03-29T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong83@example.com",
@@ -993,7 +1171,9 @@
     "applied_at": "2025-04-20T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong84@example.com",
@@ -1005,7 +1185,9 @@
     "applied_at": "2025-03-27T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong85@example.com",
@@ -1017,7 +1199,9 @@
     "applied_at": "2025-04-04T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong86@example.com",
@@ -1029,7 +1213,9 @@
     "applied_at": "2025-03-18T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong87@example.com",
@@ -1041,7 +1227,9 @@
     "applied_at": "2025-05-09T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong88@example.com",
@@ -1053,7 +1241,9 @@
     "applied_at": "2025-04-20T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong89@example.com",
@@ -1065,7 +1255,9 @@
     "applied_at": "2025-04-14T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong90@example.com",
@@ -1077,7 +1269,9 @@
     "applied_at": "2025-04-23T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong91@example.com",
@@ -1089,7 +1283,9 @@
     "applied_at": "2025-04-21T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong92@example.com",
@@ -1101,7 +1297,9 @@
     "applied_at": "2025-03-28T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong93@example.com",
@@ -1113,7 +1311,9 @@
     "applied_at": "2025-03-30T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong94@example.com",
@@ -1125,7 +1325,9 @@
     "applied_at": "2025-03-17T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong95@example.com",
@@ -1137,7 +1339,9 @@
     "applied_at": "2025-05-11T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong96@example.com",
@@ -1149,7 +1353,9 @@
     "applied_at": "2025-04-10T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong97@example.com",
@@ -1161,7 +1367,9 @@
     "applied_at": "2025-03-25T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong98@example.com",
@@ -1173,7 +1381,9 @@
     "applied_at": "2025-04-27T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong99@example.com",
@@ -1185,7 +1395,9 @@
     "applied_at": "2025-03-20T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong100@example.com",
@@ -1197,7 +1409,9 @@
     "applied_at": "2025-04-30T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong101@example.com",
@@ -1209,7 +1423,9 @@
     "applied_at": "2025-04-10T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong102@example.com",
@@ -1221,7 +1437,9 @@
     "applied_at": "2025-03-23T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong103@example.com",
@@ -1233,7 +1451,9 @@
     "applied_at": "2025-04-09T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong104@example.com",
@@ -1245,7 +1465,9 @@
     "applied_at": "2025-03-19T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong105@example.com",
@@ -1257,7 +1479,9 @@
     "applied_at": "2025-04-13T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong106@example.com",
@@ -1269,7 +1493,9 @@
     "applied_at": "2025-03-17T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong107@example.com",
@@ -1281,7 +1507,9 @@
     "applied_at": "2025-05-10T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong108@example.com",
@@ -1293,7 +1521,9 @@
     "applied_at": "2025-03-15T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong109@example.com",
@@ -1305,7 +1535,9 @@
     "applied_at": "2025-03-18T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong110@example.com",
@@ -1317,7 +1549,9 @@
     "applied_at": "2025-05-05T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong111@example.com",
@@ -1329,7 +1563,9 @@
     "applied_at": "2025-04-19T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong112@example.com",
@@ -1341,7 +1577,9 @@
     "applied_at": "2025-04-22T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong113@example.com",
@@ -1353,7 +1591,9 @@
     "applied_at": "2025-04-12T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong114@example.com",
@@ -1365,7 +1605,9 @@
     "applied_at": "2025-03-18T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong115@example.com",
@@ -1377,7 +1619,9 @@
     "applied_at": "2025-04-29T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong116@example.com",
@@ -1389,7 +1633,9 @@
     "applied_at": "2025-05-11T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "면접 태도 미흡"
+    "fail_reason": "면접 태도 미흡",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong117@example.com",
@@ -1401,7 +1647,9 @@
     "applied_at": "2025-04-28T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong118@example.com",
@@ -1413,7 +1661,9 @@
     "applied_at": "2025-03-25T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "직무 이해도 부족으로 인한 탈락"
+    "fail_reason": "직무 이해도 부족으로 인한 탈락",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong119@example.com",
@@ -1425,7 +1675,9 @@
     "applied_at": "2025-05-11T07:04:06.000",
     "application_source": "잡코리아",
     "pass_reason": null,
-    "fail_reason": "지원 동기 불명확"
+    "fail_reason": "지원 동기 불명확",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   },
   {
     "email": "hong120@example.com",
@@ -1437,6 +1689,8 @@
     "applied_at": "2025-04-08T07:04:06.000",
     "application_source": "원티드",
     "pass_reason": null,
-    "fail_reason": "경력 및 역량 부족"
+    "fail_reason": "경력 및 역량 부족",
+    "company": "KOSA금융",
+    "title": "금융 IT 시스템 개발자 채용"
   }
 ]

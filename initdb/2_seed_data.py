@@ -18,6 +18,30 @@ conn = mysql.connector.connect(
 )
 cursor = conn.cursor()
 
+# 기존 데이터 삭제 (순서 중요: 외래키 제약조건 때문에)
+cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+cursor.execute("DELETE FROM schedule_interview")
+cursor.execute("DELETE FROM interview_evaluation")
+cursor.execute("DELETE FROM interview_question")
+cursor.execute("DELETE FROM evaluation_detail")
+cursor.execute("DELETE FROM application")
+cursor.execute("DELETE FROM applicant_user")
+cursor.execute("DELETE FROM company_user")
+cursor.execute("DELETE FROM resume_memo")
+cursor.execute("DELETE FROM spec")
+cursor.execute("DELETE FROM resume")
+cursor.execute("DELETE FROM jobpost_role")
+cursor.execute("DELETE FROM jobpost")
+cursor.execute("DELETE FROM department")
+cursor.execute("DELETE FROM field_name_score")
+cursor.execute("DELETE FROM weight")
+cursor.execute("DELETE FROM notification")
+cursor.execute("DELETE FROM schedule")
+cursor.execute("DELETE FROM users")
+cursor.execute("DELETE FROM company")
+cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+conn.commit()
+
 # ID 매핑 딕셔너리
 user_id_map = {}
 resume_id_map = {}
@@ -145,18 +169,23 @@ with open("../data/jobpost.json", "r", encoding="utf-8") as f:
             ))
             jobpost_id_map[(post["title"], company_id)] = cursor.lastrowid
 
-# # === WEIGHT ===
-# with open("../data/weight.json", "r", encoding="utf-8") as f:
-#     for entry in json.load(f):
-#         company_id = company_id_map.get(entry["company"])
-#         if not company_id: continue
-#         for post in entry.get("jobposts", []):
-#             jobpost_id = jobpost_id_map.get((post["title"], company_id))
-#             for w in post.get("weight", []):
-#                 cursor.execute("""
-#                     INSERT INTO weight (target_type, jobpost_id, field_name, weight_value, updated_at)
-#                     VALUES (%s, %s, %s, %s, NOW())
-#                 """, (w["targetType"], jobpost_id, w["fieldName"], float(w["weightValue"])))
+# === WEIGHT ===
+with open("../data/weight.json", "r", encoding="utf-8") as f:
+    for entry in json.load(f):
+        company_id = company_id_map.get(entry["company"])
+        if not company_id: 
+            print(f"⚠️ company_id 매핑 실패 - company: {entry['company']}")
+            continue
+        for post in entry.get("jobposts", []):
+            jobpost_id = jobpost_id_map.get((post["title"], company_id))
+            if not jobpost_id:
+                print(f"⚠️ jobpost_id 매핑 실패 - title: {post['title']}, company: {entry['company']}")
+                continue
+            for w in post.get("weight", []):
+                cursor.execute("""
+                    INSERT INTO weight (target_type, jobpost_id, field_name, weight_value, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                """, (w["targetType"], jobpost_id, w["fieldName"], float(w["weightValue"])))
 
 # === COMPANY_USER ===
 with open("../data/company_user.json", "r", encoding="utf-8") as f:
@@ -204,70 +233,72 @@ with open("../data/applicant_user_list.json", "r", encoding="utf-8") as f:
 
 
 # === APPLICATION ===
-# application.json에 company, title 필드가 없어서 주석 처리
-# with open("../data/application.json", "r", encoding="utf-8") as f:
-#     for app in json.load(f):
-#         email = app["email"]
-#         user_id = user_id_map.get(email)
-#         resume_id = resume_id_map.get(email)
-#         company_id = company_id_map.get(app["company"])
-#         jobpost_id = jobpost_id_map.get((app["title"], company_id))
-#         if None in (user_id, resume_id, jobpost_id):
-#             print(f"❌ 매핑 실패 → {app}")
-#             continue
-#         cursor.execute("""
-#             INSERT INTO application (user_id, resume_id, appliedpost_id, score, ai_score, human_score, final_score, status, application_source, pass_reason, fail_reason)
-#             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-#         """, (
-#             user_id, resume_id, jobpost_id,
-#             app["score"], app["ai_score"], app["human_score"], app["final_score"],
-#             app["status"], app["application_source"], app["pass_reason"], app["fail_reason"]
-#         ))
-#         application_id_map[email] = cursor.lastrowid
+with open("../data/application.json", "r", encoding="utf-8") as f:
+    for app in json.load(f):
+        email = app["email"]
+        user_id = user_id_map.get(email)
+        resume_id = resume_id_map.get(email)
+        company_id = company_id_map.get(app["company"])
+        jobpost_id = jobpost_id_map.get((app["title"], company_id))
+        if None in (user_id, resume_id, jobpost_id):
+            print(f"❌ 매핑 실패 → {app}")
+            continue
+        cursor.execute("""
+            INSERT INTO application (user_id, resume_id, appliedpost_id, score, ai_score, human_score, final_score, status, application_source, pass_reason, fail_reason)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            user_id, resume_id, jobpost_id,
+            app["score"], app["ai_score"], app["human_score"], app["final_score"],
+            app["status"], app["application_source"], app["pass_reason"], app["fail_reason"]
+        ))
+        application_id_map[(email, app["title"])] = cursor.lastrowid
 
 # === FIELD_NAME_SCORE ===
-# application_id_map이 비어있어서 주석 처리
-# with open("../data/field_name_score.json", "r", encoding="utf-8") as f:
-#     for s in json.load(f):
-#         application_id = application_id_map.get(s["email"])
-#         cursor.execute("INSERT INTO field_name_score (application_id, field_name, score) VALUES (%s, %s, %s)", (application_id, s["field_name"], s["score"]))
+with open("../data/field_name_score.json", "r", encoding="utf-8") as f:
+    scores = json.load(f)
+    for s in scores:
+        application_id = application_id_map.get((s["email"], s["jobpost_title"]))
+        if not application_id:
+            print(f"⚠️ application_id 매핑 실패 - email: {s['email']}, jobpost_title: {s['jobpost_title']}")
+            continue
+        cursor.execute("INSERT INTO field_name_score (application_id, field_name, score) VALUES (%s, %s, %s)", (application_id, s["field_name"], s["score"]))
 
-# # === JOBPOST_ROLE ===   (구 job.json 재활용)
-# with open("data/job.json", "r", encoding="utf-8") as f:
-#     for rec in json.load(f):
-#         email        = rec["email"]
-#         company_name = rec["company"]
-#         role         = rec.get("role", "MANAGER")               # 기본값: MANAGER
-#         granted_at   = parse_datetime(rec.get("invited_at")) or datetime.now()
+# === JOBPOST_ROLE ===   (구 job.json 재활용)
+with open("../data/jobpost_role.json", "r", encoding="utf-8") as f:
+    for rec in json.load(f):
+        email        = rec["email"]
+        company_name = rec["company"]
+        role         = rec.get("role", "MANAGER")               # 기본값: MANAGER
+        granted_at   = parse_datetime(rec.get("invited_at")) or datetime.now()
 
-#         # ① company_user_id 확보 (없으면 즉석에서 INSERT)
-#         company_user_id = company_user_id_map.get(email)
-#         if company_user_id is None:
-#             user_id    = user_id_map.get(email)
-#             company_id = company_id_map.get(company_name)
+        # ① company_user_id 확보 (없으면 즉석에서 INSERT)
+        company_user_id = company_user_id_map.get(email)
+        if company_user_id is None:
+            user_id    = user_id_map.get(email)
+            company_id = company_id_map.get(company_name)
 
-#             if user_id and company_id:
-#                 cursor.execute("""
-#                     INSERT INTO company_user (id, company_id, `rank`, joined_at)
-#                     VALUES (%s, %s, %s, %s)
-#                 """, (user_id, company_id, None, None))
-#                 company_user_id = user_id
-#                 company_user_id_map[email] = user_id
-#             else:
-#                 print(f"⚠️ company_user 매핑 실패 → {rec}")
-#                 continue
+            if user_id and company_id:
+                cursor.execute("""
+                    INSERT INTO company_user (id, company_id, `rank`, joined_at)
+                    VALUES (%s, %s, %s, %s)
+                """, (user_id, company_id, None, None))
+                company_user_id = user_id
+                company_user_id_map[email] = user_id
+            else:
+                print(f"⚠️ company_user 매핑 실패 → {rec}")
+                continue
 
-#         # ② jobpost_id 매핑
-#         jobpost_id = jobpost_id_map.get((rec["jobpost_title"], company_id_map.get(company_name)))
-#         if not jobpost_id:
-#             print(f"❌ jobpost_id 매핑 실패 → {rec}")
-#             continue
+        # ② jobpost_id 매핑
+        jobpost_id = jobpost_id_map.get((rec["jobpost_title"], company_id_map.get(company_name)))
+        if not jobpost_id:
+            print(f"❌ jobpost_id 매핑 실패 → {rec}")
+            continue
 
-#         # ③ 권한 부여
-#         cursor.execute("""
-#             INSERT INTO jobpost_role (jobpost_id, company_user_id, role, granted_at)
-#             VALUES (%s, %s, %s, %s)
-#         """, (jobpost_id, company_user_id, role, granted_at))
+        # ③ 권한 부여
+        cursor.execute("""
+            INSERT INTO jobpost_role (jobpost_id, company_user_id, role, granted_at)
+            VALUES (%s, %s, %s, %s)
+        """, (jobpost_id, company_user_id, role, granted_at))
 
 
 
@@ -287,13 +318,13 @@ with open("../data/applicant_user_list.json", "r", encoding="utf-8") as f:
 #         cursor.execute("INSERT INTO notification (message, user_id, type, is_read, created_at) VALUES (%s, %s, %s, %s, NOW())",
 #                        (n["message"], user_id, n["type"], n["is_read"]))
 
-# # === RESUME_MEMO ===
-# with open("data/resume_memo.json", "r", encoding="utf-8") as f:
-#     for m in json.load(f):
-#         user_id = company_user_id_map.get(m["email"])
-#         application_id = application_id_map.get(m["email"])
-#         cursor.execute("INSERT INTO resume_memo (user_id, application_id, content) VALUES (%s, %s, %s)",
-#                        (user_id, application_id, m["content"]))
+# === RESUME_MEMO ===
+with open("../data/resume_memo.json", "r", encoding="utf-8") as f:
+    for m in json.load(f):
+        user_id = company_user_id_map.get(m["email"])
+        application_id = application_id_map.get(m["email"])
+        cursor.execute("INSERT INTO resume_memo (user_id, application_id, content) VALUES (%s, %s, %s)",
+                       (user_id, application_id, m["content"]))
 
 # # === INTERVIEW_EVALUATION ===
 # with open("data/interview_evaluation.json", "r", encoding="utf-8") as f:
