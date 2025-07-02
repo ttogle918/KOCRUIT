@@ -2,7 +2,7 @@
 
 ```
 myproject/
- ├─ backend/        # Spring Boot
+ ├─ backend/        # FastAPI
  ├─ frontend/       # React + Vite
  ├─ agent/          # AI Agent (Python)
  ├─ initdb/         # 초기 DB 데이터(dump.sql 등)
@@ -41,7 +41,7 @@ docker-compose down -v --remove-orphans
 
 ### 4. 서비스 접속
 - **프론트엔드 (React)**: http://localhost:5173
-- **백엔드 API (Spring Boot)**: http://localhost:8081  
+- **백엔드 API (FastAPI)**: http://localhost:8000  
 - **데이터베이스 (MySQL)**: localhost:3307
 
 ---
@@ -80,7 +80,7 @@ docker ps
 ```
 **예상 결과:**
 - `mysql` 컨테이너: Up 상태 (healthy)
-- `kocruit_springboot` 컨테이너: Up 상태  
+- `kocruit_fastapi` 컨테이너: Up 상태  
 - `kocruit_react` 컨테이너: Up 상태
 
 #### 5. (필요시) DB 완전 초기화
@@ -112,7 +112,7 @@ docker exec mysql mysql -u root -proot -e "USE kocruit_db; SELECT 'users' as tab
 ### Docker의 MySQL에 접속하기
 ```bash
 # 직접 MySQL 접속
-docker exec -it mysql8 mysql -umyuser -p1234
+docker exec -it mysql mysql -umyuser -p1234
 
 # 또는 bash를 통한 접속
 docker exec -it mysql bash
@@ -152,8 +152,16 @@ npm install dayjs
 
 backend 디렉토리에 들어온 다음
 ```bash
-./gradlew bootRun  # 또는
-mvn spring-boot:run
+# Python 가상환경 생성 및 활성화
+python3 -m venv venv
+source venv/bin/activate  # macOS/Linux
+# venv\Scripts\activate  # Windows
+
+# 의존성 설치
+pip install -r requirements.txt
+
+# FastAPI 서버 실행
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### Agent 폴더 초기 세팅법
@@ -229,7 +237,7 @@ open -a Docker
 ```bash
 # 포트가 이미 사용 중인 경우
 lsof -i :5173  # React 포트 확인
-lsof -i :8081  # Spring Boot 포트 확인  
+lsof -i :8000  # FastAPI 포트 확인  
 lsof -i :3307  # MySQL 포트 확인
 ```
 
@@ -256,8 +264,8 @@ docker logs mysql
 
 ### 로그 확인
 ```bash
-# Spring Boot 로그
-docker logs kocruit_springboot
+# FastAPI 로그
+docker logs kocruit_fastapi
 
 # React 로그  
 docker logs kocruit_react
@@ -269,7 +277,7 @@ docker logs mysql
 ### 컨테이너 재시작
 ```bash
 # 특정 서비스만 재시작
-docker-compose restart kocruit_springboot
+docker-compose restart kocruit_fastapi
 docker-compose restart kocruit_react
 docker-compose restart mysql
 ```
@@ -288,7 +296,7 @@ docker-compose down
 - [ ] 데이터베이스 스키마 생성
 - [ ] 시드 데이터 입력 완료
 - [ ] 프론트엔드 접속 가능 (http://localhost:5173)
-- [ ] 백엔드 API 접속 가능 (http://localhost:8081)
+- [ ] 백엔드 API 접속 가능 (http://localhost:8000)
 - [ ] Agent 서버 실행 (http://localhost:8001)
 
 모든 항목이 체크되면 프로젝트가 정상적으로 실행되고 있습니다! 🎉
