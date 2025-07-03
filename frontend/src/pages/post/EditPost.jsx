@@ -37,7 +37,7 @@ function EditPost() {
   const [qualifications, setQualifications] = useState('');
   const [conditions, setConditions] = useState('');
   const [jobDetails, setJobDetails] = useState('');
-  const [procedure, setProcedure] = useState('');
+  const [procedures, setProcedures] = useState('');
   const [headcount, setHeadcount] = useState('');
   const [period, setPeriod] = useState({
     start: new Date(),
@@ -59,7 +59,7 @@ function EditPost() {
         setQualifications(jobPost.qualifications);
         setConditions(jobPost.conditions);
         setJobDetails(jobPost.jobDetails);
-        setProcedure(jobPost.procedure);
+        setProcedures(jobPost.procedures);
         setHeadcount(jobPost.headcount);
         setPeriod({
           start: new Date(jobPost.startDate),
@@ -100,7 +100,7 @@ function EditPost() {
   const qualificationsRef = useAutoResize(qualifications);
   const conditionsRef = useAutoResize(conditions);
   const jobDetailsRef = useAutoResize(jobDetails);
-  const procedureRef = useAutoResize(procedure);
+  const proceduresRef = useAutoResize(procedures);
 
   const handleTextareaChange = (e, setter) => {
     setter(e.target.value);
@@ -115,7 +115,7 @@ function EditPost() {
         qualifications,
         conditions,
         jobDetails,
-        procedure,
+        procedures,
         headcount,
         startDate: period.start.toISOString().split('T')[0],
         endDate: period.end.toISOString().split('T')[0],
@@ -198,9 +198,9 @@ function EditPost() {
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
                 <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">전형절차</h4>
                 <textarea 
-                  ref={procedureRef}
-                  value={procedure} 
-                  onChange={(e) => handleTextareaChange(e, setProcedure)} 
+                  ref={proceduresRef}
+                  value={procedures} 
+                  onChange={(e) => handleTextareaChange(e, setProcedures)} 
                   className="w-full min-h-[100px] overflow-hidden resize-none rounded p-4 outline-none border-t border-gray-300 dark:border-gray-600 pt-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" 
                   placeholder="예: 서류 → 면접 → 합격" 
                 />

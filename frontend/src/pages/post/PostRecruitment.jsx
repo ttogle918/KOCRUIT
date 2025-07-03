@@ -36,7 +36,7 @@ function PostRecruitment() {
     qualifications: '',
     conditions: '',
     jobDetails: '',
-    procedure: '',
+    procedures: '',
     headcount: '',
     startDate: null,
     endDate: null,
@@ -62,7 +62,7 @@ function PostRecruitment() {
   const qualificationsRef = useAutoResize(formData.qualifications);
   const conditionsRef = useAutoResize(formData.conditions);
   const jobDetailsRef = useAutoResize(formData.jobDetails);
-  const procedureRef = useAutoResize(formData.procedure);
+  const proceduresRef = useAutoResize(formData.procedures);
 
   const handleTextareaChange = (e, field) => {
     setFormData(prev => ({

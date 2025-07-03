@@ -19,7 +19,7 @@ class JobPost(BaseModel):
     qualifications: Optional[str] = None
     conditions: Optional[str] = None
     jobDetails: Optional[str] = None
-    procedure: Optional[str] = None
+    procedures: Optional[str] = None
     headcount: Optional[int] = None
     startDate: Optional[str] = None
     endDate: Optional[str] = None
@@ -56,7 +56,7 @@ class JobPostDetail(JobPost):
 class JobPostList(BaseModel):
     id: int
     title: str
-    procedure: Optional[str] = None
+    procedures: Optional[str] = None
     headcount: Optional[int] = None
     startDate: Optional[str] = None
     endDate: Optional[str] = None

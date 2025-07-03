@@ -5,10 +5,18 @@ from app.models.application import ApplyStatus, ApplicationViewAction
 
 
 class ApplicationBase(BaseModel):
-    job_post_id: int
+    appliedpost_id: int
     resume_id: int
     cover_letter: Optional[str] = None
     status: ApplyStatus = ApplyStatus.PENDING
+    score: Optional[float] = None
+    ai_score: Optional[float] = None
+    human_score: Optional[float] = None
+    final_score: Optional[float] = None
+    application_source: Optional[str] = None
+    pass_reason: Optional[str] = None
+    fail_reason: Optional[str] = None
+    applied_at: Optional[datetime] = None
 
 
 class ApplicationCreate(ApplicationBase):
@@ -32,10 +40,18 @@ class ApplicationDetail(ApplicationBase):
 
 class ApplicationList(BaseModel):
     id: int
-    job_post_id: int
+    appliedpost_id: int
     user_id: int
     status: ApplyStatus
     created_at: datetime
+    score: Optional[float] = None
+    ai_score: Optional[float] = None
+    human_score: Optional[float] = None
+    final_score: Optional[float] = None
+    application_source: Optional[str] = None
+    pass_reason: Optional[str] = None
+    fail_reason: Optional[str] = None
+    applied_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True

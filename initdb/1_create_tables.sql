@@ -1,29 +1,35 @@
 CREATE TABLE company (
-    id      BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name    VARCHAR(255) NOT NULL UNIQUE,
-    address VARCHAR(255) NOT NULL,
-    bus_num     VARCHAR(255)
+    id      INT AUTO_INCREMENT PRIMARY KEY,
+    name    VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    address VARCHAR(255),
+    phone   VARCHAR(20),
+    website VARCHAR(255),
+    bus_num VARCHAR(50) UNIQUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 
 CREATE TABLE users (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(100) NOT NULL,
     email       VARCHAR(150) NOT NULL UNIQUE,
     password    VARCHAR(255) NOT NULL,
+    address     VARCHAR(255),
+    gender      VARCHAR(10),
     phone       VARCHAR(20),
-    user_type   VARCHAR(255),
+    role        VARCHAR(20) DEFAULT 'USER',
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     birth_date  DATE,
-    gender      VARCHAR(10),
-    address     VARCHAR(255)
+    user_type   VARCHAR(20)
 );
  
 
 CREATE TABLE resume (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id     BIGINT NOT NULL,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT NOT NULL,
     title       VARCHAR(255) NOT NULL,
     content     TEXT,
     file_url    VARCHAR(255),
@@ -36,8 +42,8 @@ CREATE TABLE resume (
 
 
 CREATE TABLE spec (
-    id               BIGINT AUTO_INCREMENT PRIMARY KEY,
-    resume_id        BIGINT NOT NULL,
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    resume_id        INT NOT NULL,
     spec_type        VARCHAR(255) NOT NULL,
     spec_title       VARCHAR(255) NOT NULL,
     spec_description TEXT,
@@ -48,54 +54,64 @@ CREATE TABLE spec (
 
 
 CREATE TABLE department (
-    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name         VARCHAR(255) NOT NULL,
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    name         VARCHAR(100) NOT NULL,
+    description  TEXT,
     job_function VARCHAR(255),
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    company_id   BIGINT NOT NULL,
-
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    company_id   INT,
     FOREIGN KEY (company_id) REFERENCES company(id)
 );
- 
 
 CREATE TABLE jobpost (
-    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
-    company_id     BIGINT,
-    department_id  BIGINT,
-    user_id        BIGINT,
-    title          VARCHAR(255) NOT NULL,
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    company_id     INT,
+    department_id  INT,
+    user_id        INT,
+    title          VARCHAR(200) NOT NULL,
+    department     VARCHAR(100),
     qualifications TEXT,
     conditions     TEXT,
-    job_details    TEXT,
-    `procedure`    TEXT,  -- 예약어는 반드시 백틱 사용
+    job_details     TEXT,
+    procedures     TEXT,
     headcount      INT,
-    start_date     TIMESTAMP,
-    end_date       TIMESTAMP,
+    start_date      VARCHAR(50),
+    end_date        VARCHAR(50),
+    location       VARCHAR(255),
+    employment_type VARCHAR(50),
+    deadline       VARCHAR(50),
+    team_members    TEXT,
+    weights        TEXT,
+    status         VARCHAR(20) DEFAULT 'ACTIVE',
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (company_id)    REFERENCES company(id),
+    FOREIGN KEY (company_id) REFERENCES company(id),
     FOREIGN KEY (department_id) REFERENCES department(id),
-    FOREIGN KEY (user_id)       REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
  
 CREATE TABLE company_user (
-    id            BIGINT PRIMARY KEY,
-    company_id    BIGINT,
-    `rank`        VARCHAR(255),
-    joined_at     DATE,              -- 입사일자
+    id            INT PRIMARY KEY,
+    company_id    INT,
+    bus_num       VARCHAR(50),
+    department_id INT,
+    ranks         VARCHAR(50),
+    joined_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (id) REFERENCES users(id),
-    FOREIGN KEY (company_id) REFERENCES company(id)
+    FOREIGN KEY (company_id) REFERENCES company(id),
+    FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
 
 
 CREATE TABLE schedule (
-    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id             INT AUTO_INCREMENT PRIMARY KEY,
     schedule_type  VARCHAR(255),
-    user_id        BIGINT,
+    user_id        INT,
     title          VARCHAR(255),
     description    TEXT,
     location       VARCHAR(255),
@@ -109,7 +125,8 @@ CREATE TABLE schedule (
 
 
 CREATE TABLE applicant_user (
-    id               BIGINT PRIMARY KEY,               -- users 테이블의 ID (직접 참조)
+    id               INT PRIMARY KEY,
+    resume_file_path VARCHAR(255),
 
     FOREIGN KEY (id) REFERENCES users(id)
 );
@@ -118,10 +135,10 @@ CREATE TABLE applicant_user (
 
 
 CREATE TABLE application (
-    id                 BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id            BIGINT NOT NULL,
-    resume_id          BIGINT,
-    appliedpost_id     BIGINT NOT NULL,
+    id                 INT AUTO_INCREMENT PRIMARY KEY,
+    user_id            INT NOT NULL,
+    resume_id          INT,
+    appliedpost_id     INT NOT NULL,
     score              DECIMAL(10,2),
     ai_score           DECIMAL(5,2),
     human_score        DECIMAL(5,2),
@@ -131,7 +148,6 @@ CREATE TABLE application (
     application_source VARCHAR(255),
     pass_reason        TEXT,
     fail_reason        TEXT,
-
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (resume_id) REFERENCES resume(id),
     FOREIGN KEY (appliedpost_id) REFERENCES jobpost(id),
@@ -141,8 +157,8 @@ CREATE TABLE application (
 
 
 CREATE TABLE field_name_score (
-    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    application_id  BIGINT NOT NULL,
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    application_id  INT NOT NULL,
     field_name      VARCHAR(255) NOT NULL,
     score           DECIMAL(10,2),
 
@@ -153,24 +169,23 @@ CREATE TABLE field_name_score (
 
 
 CREATE TABLE jobpost_role (
-    jobpost_id       BIGINT NOT NULL,          -- 공고 ID
-    company_user_id  BIGINT NOT NULL,          -- 회사 소속 유저 ID
-    role             VARCHAR(30) NOT NULL,     -- 'MANAGER', ‘MEMBER’, ‘EMPLOYEE’ 등
+    jobpost_id       INT NOT NULL,
+    company_user_id  INT NOT NULL,
+    role             VARCHAR(30) NOT NULL,
     granted_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (jobpost_id, company_user_id, role),
     FOREIGN KEY (jobpost_id)      REFERENCES jobpost(id)      ON DELETE CASCADE,
     FOREIGN KEY (company_user_id) REFERENCES company_user(id) ON DELETE CASCADE,
     
-     -- 필요하면 허용할 역할을 제한
     CHECK (role IN ('MANAGER', 'MEMBER'))
 );
 
 
 CREATE TABLE weight (
-    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id            INT AUTO_INCREMENT PRIMARY KEY,
     target_type   VARCHAR(255) NOT NULL,
-    jobpost_id    BIGINT,
+    jobpost_id    INT,
     field_name    VARCHAR(255) NOT NULL,
     weight_value  FLOAT,
     updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -181,9 +196,9 @@ CREATE TABLE weight (
 
 
 CREATE TABLE schedule_interview (
-    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
-    schedule_id    BIGINT,
-    user_id        BIGINT,
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    schedule_id    INT,
+    user_id        INT,
     schedule_date  TIMESTAMP,
     status         VARCHAR(255),
 
@@ -194,9 +209,9 @@ CREATE TABLE schedule_interview (
 
 
 CREATE TABLE notification (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id          INT AUTO_INCREMENT PRIMARY KEY,
     message     TEXT,
-    user_id     BIGINT,
+    user_id     INT,
     type        VARCHAR(255),
     is_read     TINYINT(1) DEFAULT 0 CHECK (is_read IN (0, 1)),
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -207,9 +222,9 @@ CREATE TABLE notification (
 
 
 CREATE TABLE resume_memo (
-    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id         BIGINT,
-    application_id  BIGINT,
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    user_id         INT,
+    application_id  INT,
     content         TEXT,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -219,9 +234,9 @@ CREATE TABLE resume_memo (
 
 
 CREATE TABLE interview_evaluation (
-    id             BIGINT AUTO_INCREMENT PRIMARY KEY, -- 새로 추가된 id 컬럼
-    interview_id   BIGINT NOT NULL,        -- schedule_interview.id
-    evaluator_id   BIGINT,                 -- company_user.id (NULL이면 AI)
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    interview_id   INT NOT NULL,
+    evaluator_id   INT,
     is_ai          TINYINT(1) DEFAULT 0 CHECK (is_ai IN (0, 1)),
     score          DECIMAL(5,2),
     summary        TEXT,
@@ -234,25 +249,22 @@ CREATE TABLE interview_evaluation (
 
 
 
--- 1. 시퀀스 대체: AUTO_INCREMENT 사용
 CREATE TABLE evaluation_detail (
-    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    evaluation_id BIGINT NOT NULL,
-    category      VARCHAR(100),       -- 예: "인성"
-    grade         VARCHAR(10),        -- 예: "상", "중", "하"
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    evaluation_id INT NOT NULL,
+    category      VARCHAR(100),
+    grade         VARCHAR(10),
     score         DECIMAL(5,2),
 
-FOREIGN KEY (evaluation_id) REFERENCES interview_evaluation(interview_id)
-
+    FOREIGN KEY (evaluation_id) REFERENCES interview_evaluation(id)
 );
  
 
 
-
 CREATE TABLE interview_question (
-    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
-    application_id BIGINT NOT NULL,
-    type           VARCHAR(20),         -- 예: 'COMMON', 'PERSONAL'
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    application_id INT NOT NULL,
+    type           VARCHAR(20),
     question_text  VARCHAR(1000),
 
     FOREIGN KEY (application_id) REFERENCES application(id)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Enum, Numeric
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
@@ -22,17 +22,25 @@ class Application(Base):
     __tablename__ = "application"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('applicantuser.id'))
-    job_post_id = Column(Integer, ForeignKey('jobpost.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
     resume_id = Column(Integer, ForeignKey('resume.id'))
+    appliedpost_id = Column(Integer, ForeignKey('jobpost.id'))
+    score = Column(Numeric(10,2))
+    ai_score = Column(Numeric(5,2))
+    human_score = Column(Numeric(5,2))
+    final_score = Column(Numeric(5,2))
     status = Column(Enum(ApplyStatus), default=ApplyStatus.PENDING)
+    applied_at = Column(DateTime, default=datetime.utcnow)
+    application_source = Column(String(255))
+    pass_reason = Column(Text)
+    fail_reason = Column(Text)
     cover_letter = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = relationship("ApplicantUser")
-    job_post = relationship("JobPost", back_populates="applications")
+    user = relationship("User")
+    job_post = relationship("JobPost", back_populates="applications", foreign_keys=[appliedpost_id])
     resume = relationship("Resume")
     status_history = relationship("ApplicationStatusHistory", back_populates="application")
 

@@ -12,6 +12,7 @@ langchain-community==0.3.13
 # LangGraph
 langgraph==0.2.60
 typing-extensions>=4.5.0
+mysql-connector-python
 
 # Utilities
 python-dotenv==1.0.1
