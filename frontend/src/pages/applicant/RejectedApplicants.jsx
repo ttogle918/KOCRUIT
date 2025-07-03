@@ -15,7 +15,7 @@ export default function RejectedApplicants() {
   useEffect(() => {
     const fetchApplicants = async () => {
       try {
-        const res = await api.get(`/company/jobposts/${jobPostId}/applications`);
+        const res = await api.get(`/applications/job/${jobPostId}/applicants`);
         const data = res.data;
         const filtered = data.filter(app => app.status === 'REJECTED');
         setRejectedApplicants(filtered);

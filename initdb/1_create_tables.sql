@@ -138,7 +138,7 @@ CREATE TABLE application (
     id                 INT AUTO_INCREMENT PRIMARY KEY,
     user_id            INT NOT NULL,
     resume_id          INT,
-    appliedpost_id     INT NOT NULL,
+    job_post_id     INT NOT NULL,
     score              DECIMAL(10,2),
     ai_score           DECIMAL(5,2),
     human_score        DECIMAL(5,2),
@@ -150,7 +150,7 @@ CREATE TABLE application (
     fail_reason        TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (resume_id) REFERENCES resume(id),
-    FOREIGN KEY (appliedpost_id) REFERENCES jobpost(id),
+    FOREIGN KEY (job_post_id) REFERENCES jobpost(id),
     CHECK (status IN ('WAITING', 'PASSED', 'REJECTED'))
 );
  

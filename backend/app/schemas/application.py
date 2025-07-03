@@ -5,7 +5,7 @@ from app.models.application import ApplyStatus, ApplicationViewAction
 
 
 class ApplicationBase(BaseModel):
-    appliedpost_id: int
+    job_post_id: int
     resume_id: int
     cover_letter: Optional[str] = None
     status: ApplyStatus = ApplyStatus.PENDING
@@ -40,7 +40,7 @@ class ApplicationDetail(ApplicationBase):
 
 class ApplicationList(BaseModel):
     id: int
-    appliedpost_id: int
+    job_post_id: int
     user_id: int
     status: ApplyStatus
     created_at: datetime

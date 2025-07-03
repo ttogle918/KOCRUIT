@@ -100,7 +100,7 @@
 | id            | PK, INT                       | 지원자 ID                            |
 | user_id       | FK                            | 사용자ID (개인)                      |
 | status        | VARCHAR (자바 ENUM)            | 서류 상태 ('applied', 'passed', 'rejected', 'pending') |
-| appliedPost_id| FK, INT                      | 공고ID                              |
+| job_post_id| FK, INT                      | 공고ID                              |
 | resume_id     | FK, INT                      | 이력서ID                            |
 | applied_at    | DATETIME                     | 이력서 등록날짜                     |
 | score         | DECIMAL                      | 가중치에 따른 점수                  |
