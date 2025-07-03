@@ -40,9 +40,8 @@ export default function ApplicantList() {
       setError(null);
       try {
         const [appRes, postRes, appDetailRes] = await Promise.all([
-        api.get(`/company/jobposts/${jobPostId}/applications`),
-        api.get(`/company/jobposts/detail/${jobPostId}`)
-
+        api.get(`/applications/job/${jobPostId}/applicants`),
+        api.get(`/company/jobposts/${jobPostId}`)
         ]);
         const applicants = appRes.data;
         setApplicants(applicants);
@@ -65,7 +64,7 @@ export default function ApplicantList() {
   const handleDelete = async () => {
     if (window.confirm('이 지원자를 삭제하시겠습니까?')) {
       try {
-        await api.delete(`/company/jobposts/${jobPostId}/applications/${selectedApplicant.id}`);
+        await api.delete(`/applications/${selectedApplicant.id}`);
         alert('지원자가 삭제되었습니다.');
         navigate(-1);
       } catch (err) {
@@ -90,7 +89,7 @@ export default function ApplicantList() {
       const applicant = applicants[index];
       const newBookmarkStatus = bookmarkedList[index] ? 'N' : 'Y';
 
-      await api.patch(`/company/jobposts/${jobPostId}/applications/${applicant.id}/bookmark`, {
+      await api.patch(`/api/v1/applications/${applicant.id}/bookmark`, {
         isBookmarked: newBookmarkStatus
       });
 
@@ -124,7 +123,7 @@ export default function ApplicantList() {
     setResume(null);
     try {
       console.log("지원서 상세 요청 - applicationId:", applicant.id);
-      const res = await api.get(`/company/jobposts/${jobPostId}/applications/${applicant.id}`);
+      const res = await api.get(`/api/v1/applications/${applicant.id}`);
       console.log("지원서 상세 응답:", res.data);
       setResume(res.data); // 혹은 setResume(res.data) 구조에 따라
 
