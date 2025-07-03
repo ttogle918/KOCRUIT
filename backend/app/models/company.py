@@ -13,7 +13,7 @@ class Company(Base):
     address = Column(String(255))
     phone = Column(String(20))
     website = Column(String(255))
-    business_number = Column(String(50), unique=True)
+    bus_num = Column(String(50), unique=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

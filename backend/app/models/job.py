@@ -12,18 +12,20 @@ class JobPost(Base):
     department = Column(String(100))  # 부서 필드 추가
     qualifications = Column(Text)
     conditions = Column(Text)
-    jobDetails = Column(Text)
-    procedure = Column(Text)
+    jobDetails = Column("job_details", Text)
+    procedures = Column(Text)
     headcount = Column(Integer)
-    startDate = Column(String(50))
-    endDate = Column(String(50))
+    startDate = Column("start_date", String(50))
+    endDate = Column("end_date", String(50))
     location = Column(String(255))
-    employmentType = Column(String(50))
+    employmentType = Column("employment_type", String(50))
     deadline = Column(String(50))
-    teamMembers = Column(Text)  # JSON string으로 저장
+    teamMembers = Column("team_members", Text)  # JSON string으로 저장
     weights = Column(Text)      # JSON string으로 저장
     status = Column(String(20), default="ACTIVE")  # ACTIVE, CLOSED, DRAFT
     company_id = Column(Integer, ForeignKey('company.id'))
+    department_id = Column(Integer, ForeignKey('department.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

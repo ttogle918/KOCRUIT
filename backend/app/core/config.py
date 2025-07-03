@@ -16,11 +16,11 @@ class Settings(BaseSettings):
 
     # Database (환경변수 우선, 기본값 fallback)
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
-    DB_PORT: str = os.getenv("DB_PORT", "3306")
-    DB_NAME: str = os.getenv("DB_NAME", "recruit")
-    DB_USER: str = os.getenv("DB_USER", "root")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "password")
-    DATABASE_URL: str = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    DB_PORT: str = os.getenv("DB_PORT", "3307")
+    DB_NAME: str = os.getenv("DB_NAME", "kocruit_db")
+    DB_USER: str = os.getenv("DB_USER", "myuser")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "1234")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4")
     
     # JWT
     SECRET_KEY: str = "your-secret-key-here"
