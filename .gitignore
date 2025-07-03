@@ -54,7 +54,6 @@ recruit/src/main/resources/application.yaml
 # === Docker ===
 docker-compose.override.yml
 *.tar
-initdb/*
 !initdb/.gitkeep
 
 # === Logs ===
