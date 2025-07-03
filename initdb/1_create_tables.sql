@@ -63,7 +63,6 @@ CREATE TABLE department (
     company_id   INT,
     FOREIGN KEY (company_id) REFERENCES company(id)
 );
- 
 
 CREATE TABLE jobpost (
     id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -139,15 +138,20 @@ CREATE TABLE application (
     id                 INT AUTO_INCREMENT PRIMARY KEY,
     user_id            INT NOT NULL,
     resume_id          INT,
-    job_post_id        INT NOT NULL,
-    status             VARCHAR(20) DEFAULT 'PENDING',
-    cover_letter       TEXT,
-    created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (user_id) REFERENCES applicant_user(id),
+    appliedpost_id     INT NOT NULL,
+    score              DECIMAL(10,2),
+    ai_score           DECIMAL(5,2),
+    human_score        DECIMAL(5,2),
+    final_score        DECIMAL(5,2),
+    status             VARCHAR(20),
+    applied_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    application_source VARCHAR(255),
+    pass_reason        TEXT,
+    fail_reason        TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (resume_id) REFERENCES resume(id),
-    FOREIGN KEY (job_post_id) REFERENCES jobpost(id)
+    FOREIGN KEY (appliedpost_id) REFERENCES jobpost(id),
+    CHECK (status IN ('WAITING', 'PASSED', 'REJECTED'))
 );
  
 
