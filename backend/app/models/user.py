@@ -51,7 +51,7 @@ class CompanyUser(User):
     company_id = Column(Integer, ForeignKey('company.id'))
     bus_num = Column(String(50))
     department_id = Column(Integer, ForeignKey('department.id'))
-    rank = Column(String(50))
+    ranks = Column(String(50))
     
     # Relationships
     company = relationship("Company", back_populates="company_users")

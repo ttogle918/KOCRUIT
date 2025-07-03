@@ -13,6 +13,27 @@ from app.models import Base
 async def lifespan(app: FastAPI):
     # Startup
     Base.metadata.create_all(bind=engine)
+    
+    # 시드 데이터 실행
+    try:
+        import subprocess
+        import os
+        
+        # 2_seed_data.py 파일이 있으면 실행
+        seed_script_path = "/docker-entrypoint-initdb.d/2_seed_data.py"
+        if os.path.exists(seed_script_path):
+            print("시드 데이터 스크립트를 실행합니다...")
+            result = subprocess.run(["python3", seed_script_path], 
+                                  capture_output=True, text=True, check=True)
+            print("시드 데이터 스크립트 실행 완료!")
+            if result.stdout:
+                print("출력:", result.stdout)
+        else:
+            print("시드 데이터 스크립트를 찾을 수 없습니다.")
+            
+    except Exception as e:
+        print(f"시드 데이터 실행 중 오류: {e}")
+    
     yield
     # Shutdown
     pass

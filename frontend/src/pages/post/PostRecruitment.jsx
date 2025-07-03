@@ -35,7 +35,7 @@ function PostRecruitment() {
     qualifications: '',
     conditions: '',
     jobDetails: '',
-    procedure: '',
+    procedures: '',
     headcount: '',
     startDate: null,
     endDate: null,
@@ -59,7 +59,7 @@ function PostRecruitment() {
   const qualificationsRef = useAutoResize(formData.qualifications);
   const conditionsRef = useAutoResize(formData.conditions);
   const jobDetailsRef = useAutoResize(formData.jobDetails);
-  const procedureRef = useAutoResize(formData.procedure);
+  const proceduresRef = useAutoResize(formData.procedures);
 
   const handleTextareaChange = (e, field) => {
     setFormData(prev => ({
@@ -214,9 +214,9 @@ function PostRecruitment() {
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
                 <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">전형절차</h4>
                 <textarea 
-                  ref={procedureRef}
-                  value={formData.procedure} 
-                  onChange={(e) => handleTextareaChange(e, 'procedure')} 
+                                  ref={proceduresRef}
+                value={formData.procedures}
+                onChange={(e) => handleTextareaChange(e, 'procedures')} 
                   className="w-full min-h-[100px] overflow-hidden resize-none rounded p-4 outline-none border-t border-gray-300 dark:border-gray-600 pt-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white" 
                   placeholder="예: 서류 → 면접 → 합격" 
                 />

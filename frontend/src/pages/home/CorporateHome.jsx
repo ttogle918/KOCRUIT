@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../../components/SideBar';
+import Sidebar from '../../components/Sidebar';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../../layout/Layout';
 import api from '../../api/api';

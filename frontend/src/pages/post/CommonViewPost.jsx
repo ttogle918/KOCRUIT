@@ -86,7 +86,7 @@ function CommonViewPost() {
 
             <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
               <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">전형절차</h4>
-              <pre className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">{jobPost.procedure}</pre>
+              <pre className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">{jobPost.procedures}</pre>
             </div>
           </div>
         </div>

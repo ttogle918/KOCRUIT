@@ -20,7 +20,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# 앱 코드 복사 (디렉토리 구조: app/, agent/ 등)
+# 앱 코드 복사
 COPY backend/app ./app
 COPY agent ./agent
 
