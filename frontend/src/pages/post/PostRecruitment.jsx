@@ -259,45 +259,38 @@ function PostRecruitment() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="w-24 text-sm text-gray-700 dark:text-white">모집기간:</label>
-                    <DatePicker 
-                      selected={formData.startDate} 
-                      onChange={(date) => handleInputChange({ target: { value: date } }, 'startDate')} 
-                      selectsStart 
-                      startDate={formData.startDate} 
-                      endDate={formData.endDate} 
-                      dateFormat="yyyy/MM/dd HH:mm" 
-                      showTimeSelect
-                      className="w-40 border border-gray-400 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-300 px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors" 
-                      placeholderText="시작일시" 
-                      calendarClassName="dark:bg-gray-800 dark:text-white" 
-                    />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">~</span>
-                    <DatePicker 
-                      selected={formData.endDate} 
-                      onChange={(date) => handleInputChange({ target: { value: date } }, 'endDate')} 
-                      selectsEnd 
-                      startDate={formData.startDate} 
-                      endDate={formData.endDate} 
-                      minDate={formData.startDate} 
-                      dateFormat="yyyy/MM/dd HH:mm" 
-                      showTimeSelect
-                      className="w-40 border border-gray-400 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-300 px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors" 
-                      placeholderText="종료일시" 
-                      calendarClassName="dark:bg-gray-800 dark:text-white" 
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="w-24 text-sm text-gray-700 dark:text-white">지원마감:</label>
-                    <DatePicker 
-                      selected={formData.deadline} 
-                      onChange={(date) => handleInputChange({ target: { value: date } }, 'deadline')} 
-                      dateFormat="yyyy/MM/dd" 
-                      className="w-40 border border-gray-400 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-300 px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors" 
-                      placeholderText="마감일" 
-                      calendarClassName="dark:bg-gray-800 dark:text-white" 
-                    />
+                  <div className="flex flex-col gap-2 overflow-x-hidden">
+                    <label className="text-sm text-gray-700 dark:text-white">모집기간:</label>
+                    <div className="flex flex-col md:flex-row items-center gap-1 w-full">
+                      <DatePicker 
+                        selected={formData.startDate} 
+                        onChange={(date) => handleInputChange({ target: { value: date } }, 'startDate')} 
+                        selectsStart 
+                        startDate={formData.startDate} 
+                        endDate={formData.endDate} 
+                        dateFormat="yyyy/MM/dd HH:mm" 
+                        showTimeSelect
+                        className="w-full md:w-36 min-w-0 border border-gray-400 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-300 px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors" 
+                        placeholderText="시작일시" 
+                        calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 
+                        popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg" 
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300 px-1">~</span>
+                      <DatePicker 
+                        selected={formData.endDate} 
+                        onChange={(date) => handleInputChange({ target: { value: date } }, 'endDate')} 
+                        selectsEnd 
+                        startDate={formData.startDate} 
+                        endDate={formData.endDate} 
+                        minDate={formData.startDate} 
+                        dateFormat="yyyy/MM/dd HH:mm" 
+                        showTimeSelect
+                        className="w-full md:w-36 min-w-0 border border-gray-400 dark:border-gray-600 focus:border-gray-300 dark:focus:border-gray-300 px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors" 
+                        placeholderText="종료일시" 
+                        calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 
+                        popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg" 
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

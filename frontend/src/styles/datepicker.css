@@ -1,45 +1,26 @@
 /* Dark mode styles for react-datepicker */
-.dark .react-datepicker {
-  background-color: #1f2937 !important;
-  border-color: #374151 !important;
+.dark .react-datepicker,
+.dark .react-datepicker__header,
+.dark .react-datepicker__time-container,
+.dark .react-datepicker__time,
+.dark .react-datepicker__time-box {
+  background-color: #1f2937 !important; /* Tailwind gray-800 */
+  color: #fff !important;
+  border-color: #374151 !important; /* Tailwind gray-700 */
 }
-
-.dark .react-datepicker__header {
-  background-color: #111827 !important;
-  border-bottom-color: #374151 !important;
+.dark .react-datepicker__day,
+.dark .react-datepicker__time-list-item {
+  color: #fff !important;
 }
-
-.dark .react-datepicker__current-month,
-.dark .react-datepicker__day-name,
-.dark .react-datepicker__day {
-  color: #e5e7eb !important;
+.dark .react-datepicker__day--selected,
+.dark .react-datepicker__day--keyboard-selected,
+.dark .react-datepicker__time-list-item--selected {
+  background-color: #2563eb !important; /* Tailwind blue-600 */
+  color: #fff !important;
 }
-
-.dark .react-datepicker__day:hover {
-  background-color: #374151 !important;
-  color: #e5e7eb !important;
-}
-
-.dark .react-datepicker__day--selected {
-  background-color: #3b82f6 !important;
-  color: #ffffff !important;
-}
-
-.dark .react-datepicker__day--keyboard-selected {
-  background-color: #2563eb !important;
-  color: #ffffff !important;
-}
-
-.dark .react-datepicker__day--disabled {
-  color: #6b7280 !important;
-}
-
-.dark .react-datepicker__navigation-icon::before {
-  border-color: #e5e7eb !important;
-}
-
-.dark .react-datepicker__navigation:hover *::before {
-  border-color: #9ca3af !important;
+.dark .react-datepicker__day:hover,
+.dark .react-datepicker__time-list-item:hover {
+  background-color: #374151 !important; /* Tailwind gray-700 */
 }
 
 /* Additional styles for better dark mode appearance */
@@ -56,4 +37,20 @@
 .dark .react-datepicker__day--selected:hover {
   background-color: #2563eb !important;
   color: #ffffff !important;
+}
+
+/* 헤더(월/연도, 요일, Time) 배경을 더 밝게 */
+.dark .react-datepicker__header,
+.dark .react-datepicker__time-container .react-datepicker__header {
+  background-color: #374151 !important; /* Tailwind gray-700 */
+  color: #fff !important;
+  border-bottom: 1px solid #4b5563 !important; /* gray-600 */
+}
+
+/* 헤더, 요일, Time 등 텍스트를 모두 하얀색 */
+.dark .react-datepicker__current-month,
+.dark .react-datepicker__day-name,
+.dark .react-datepicker-time__header,
+.dark .react-datepicker__time-name {
+  color: #fff !important;
 } 
