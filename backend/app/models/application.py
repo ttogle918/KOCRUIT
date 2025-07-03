@@ -24,7 +24,7 @@ class Application(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     resume_id = Column(Integer, ForeignKey('resume.id'))
-    appliedpost_id = Column(Integer, ForeignKey('jobpost.id'))
+    job_post_id = Column(Integer, ForeignKey('jobpost.id'))
     score = Column(Numeric(10,2))
     ai_score = Column(Numeric(5,2))
     human_score = Column(Numeric(5,2))
@@ -40,7 +40,7 @@ class Application(Base):
     
     # Relationships
     user = relationship("User")
-    job_post = relationship("JobPost", back_populates="applications", foreign_keys=[appliedpost_id])
+    job_post = relationship("JobPost", back_populates="applications", foreign_keys=[job_post_id])
     resume = relationship("Resume")
     status_history = relationship("ApplicationStatusHistory", back_populates="application")
 

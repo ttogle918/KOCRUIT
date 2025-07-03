@@ -15,8 +15,7 @@ export default function PassedApplicants() {
   useEffect(() => {
     const fetchApplicants = async () => {
       try {
-        { `/company/jobposts/${jobPostId}/applications/passed` };
-        const res = await api.get(`/company/jobposts/${jobPostId}/applications`);
+        const res = await api.get(`/applications/job/${jobPostId}/applicants`);
         const data = res.data;
         const filtered = data.filter(app =>
           app.status === 'PASSED' || (app.status === 'WAITING' && app.isBookmarked === 'Y')
