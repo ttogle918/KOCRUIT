@@ -1,14 +1,14 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from app.models.application import ApplyStatus, ApplicationViewAction
+from app.models.application import Application, ApplyStatus, ApplicationViewAction
 
 
 class ApplicationBase(BaseModel):
     job_post_id: int
     resume_id: int
     cover_letter: Optional[str] = None
-    status: ApplyStatus = ApplyStatus.PENDING
+    status: ApplyStatus = ApplyStatus.WAITING
     score: Optional[float] = None
     ai_score: Optional[float] = None
     human_score: Optional[float] = None

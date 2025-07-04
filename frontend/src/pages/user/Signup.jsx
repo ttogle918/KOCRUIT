@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Layout from '../../layout/Layout';
-import axios from 'axios';
+import api from '../../api/api';
 import CompanySelectModal from '../../components/CompanySelectModal';
 
 function Signup() {
@@ -43,7 +43,7 @@ function Signup() {
     if (form.userType === 'company') {
       // 기업 회원인 경우 이메일 인증 완료 여부 확인
       try {
-        const verificationResponse = await axios.get(`http://localhost:8000/api/v1/auth/check-email-verification?email=${form.email}`);
+        const verificationResponse = await api.get(`/auth/check-email-verification?email=${form.email}`);
         if (!verificationResponse.data.verified) {
           alert('이메일 인증을 먼저 완료해주세요. 이메일의 링크를 클릭해주세요.');
           return;
@@ -98,14 +98,10 @@ function Signup() {
         company_name: isCompanyUser ? companyName : null,
       };
 
-      const res = await fetch('http://localhost:8000/api/v1/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signupData),
-      });
+      const res = await api.post('/auth/signup', signupData);
       
-      if (!res.ok) {
-        const data = await res.json();
+      if (res.status !== 200 && res.status !== 201) {
+        const data = res.data;
         if (data.detail && data.detail.includes("이미 가입된 이메일")) {
           setError('이미 사용 중인 이메일입니다.');
         } else {
@@ -141,8 +137,8 @@ function Signup() {
     if (!form.email) return;
     
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/auth/check-email?email=${form.email}`);
-      const data = await res.json();
+      const res = await api.get(`/auth/check-email?email=${form.email}`);
+      const data = res.data;
       
       if (data.exists) {
         setError('이미 사용 중인 이메일입니다.');
@@ -168,17 +164,13 @@ function Signup() {
         action: 'send_verification'
       };
 
-      const res = await fetch('http://localhost:8000/api/v1/auth/send-verification-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(verificationData),
-      });
+      const res = await api.post('/auth/send-verification-email', verificationData);
       
-      if (res.ok) {
+      if (res.status === 200 || res.status === 201) {
         setEmailSent(true);
         alert('인증 이메일이 전송되었습니다. 이메일을 확인해주세요.');
       } else {
-        const data = await res.json();
+        const data = res.data;
         setError(data.detail || '이메일 전송에 실패했습니다.');
       }
     } catch (err) {
