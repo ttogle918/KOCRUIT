@@ -8,29 +8,31 @@ class JobPost(Base):
     __tablename__ = "jobpost"
     
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), nullable=False)
-    department = Column(String(100))  # 부서 필드 추가
-    qualifications = Column(Text)
-    conditions = Column(Text)
-    jobDetails = Column("job_details", Text)
-    procedures = Column(Text)
-    headcount = Column(Integer)
-    startDate = Column("start_date", String(50))
-    endDate = Column("end_date", String(50))
-    location = Column(String(255))
-    employmentType = Column("employment_type", String(50))
-    deadline = Column(String(50))
-    teamMembers = Column("team_members", Text)  # JSON string으로 저장
-    weights = Column(Text)      # JSON string으로 저장
-    status = Column(String(20), default="ACTIVE")  # ACTIVE, CLOSED, DRAFT
     company_id = Column(Integer, ForeignKey('company.id'))
     department_id = Column(Integer, ForeignKey('department.id'))
     user_id = Column(Integer, ForeignKey('users.id'))
+    title = Column(String(200), nullable=False)
+    department = Column(String(100))
+    qualifications = Column(Text)
+    conditions = Column(Text)
+    job_details = Column(Text)
+    procedures = Column(Text)
+    headcount = Column(Integer)
+    start_date = Column(String(50))
+    end_date = Column(String(50))
+    location = Column(String(255))
+    employment_type = Column(String(50))
+    deadline = Column(String(50))
+    team_members = Column(Text)
+    weights = Column(Text)
+    status = Column(String(20), default="ACTIVE")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     company = relationship("Company", back_populates="job_posts")
+    department = relationship("Department")
+    user = relationship("User")
     applications = relationship("Application", back_populates="job_post")
 
 
@@ -43,7 +45,7 @@ class Job(Base):
     description = Column(Text)
     start_date = Column(DateTime)
     end_date = Column(DateTime)
-    user_id = Column(Integer, ForeignKey('applicantuser.id'))
+    user_id = Column(Integer, ForeignKey('applicant_user.id'))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

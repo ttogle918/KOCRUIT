@@ -1,60 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import api from '../api/api';
+import { useState, useEffect } from 'react';
 
-const TestConnection = () => {
-  const [backendStatus, setBackendStatus] = useState('checking');
-  const [mockStatus, setMockStatus] = useState('available');
-  const [testResults, setTestResults] = useState([]);
+function TestConnection() {
+    const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
 
-  useEffect(() => {
-    testConnections();
-  }, []);
-
-  const testConnections = async () => {
-    const results = [];
-
-    // Test backend connection
-    try {
-      const response = await fetch('http://localhost:8000/api/v1/health', {
-        method: 'GET',
-        timeout: 3000
-      });
-      if (response.ok) {
-        setBackendStatus('connected');
-        results.push('✅ Backend: Connected');
-      } else {
-        setBackendStatus('error');
-        results.push('❌ Backend: Error response');
-      }
-    } catch (error) {
-      setBackendStatus('disconnected');
-      results.push('❌ Backend: Disconnected');
-    }
-
-    // Test mock API
-    try {
-      const mockResponse = await api.get('/auth/me');
-      setMockStatus('working');
-      results.push('✅ Mock API: Working');
-    } catch (error) {
-      setMockStatus('error');
-      results.push('❌ Mock API: Error');
-    }
-
-    setTestResults(results);
-  };
-
-  const testLogin = async () => {
-    try {
-      const response = await api.post('/auth/login', {
-        email: 'admin@test.com',
-        password: 'admin123'
-      });
-      alert('✅ Login test successful!');
-    } catch (error) {
-      alert('❌ Login test failed: ' + error.message);
-    }
-  };
+    const testConnection = async () => {
+        try {
+            const response = await fetch('http://localhost:8000/api/v1/test/hello');
+            const data = await response.json();
+            setMessage(data.message);
+            setError('');
+        } catch (err) {
+            setError('Failed to connect to backend');
+            setMessage('');
+        }
+    };
 
   return (
     <div className="p-6 max-w-2xl mx-auto">

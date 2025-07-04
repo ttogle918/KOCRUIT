@@ -28,9 +28,9 @@ class User(Base):
     email = Column(String(150), nullable=False, unique=True, index=True)
     password = Column(String(255), nullable=False)
     address = Column(String(255))
-    gender = Column(Enum(GenderType))
+    gender = Column(String(10))
     phone = Column(String(20))
-    role = Column(Enum(Role), default=Role.USER)
+    role = Column(String(20), default="USER")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     birth_date = Column(Date)
@@ -45,13 +45,14 @@ class User(Base):
 
 
 class CompanyUser(User):
-    __tablename__ = "companyuser"
+    __tablename__ = "company_user"
     
     id = Column(Integer, ForeignKey('users.id'), primary_key=True)
     company_id = Column(Integer, ForeignKey('company.id'))
     bus_num = Column(String(50))
     department_id = Column(Integer, ForeignKey('department.id'))
     ranks = Column(String(50))
+    joined_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     company = relationship("Company", back_populates="company_users")
@@ -63,7 +64,7 @@ class CompanyUser(User):
 
 
 class ApplicantUser(User):
-    __tablename__ = "applicantuser"
+    __tablename__ = "applicant_user"
     
     id = Column(Integer, ForeignKey('users.id'), primary_key=True)
     resume_file_path = Column(String(255))
