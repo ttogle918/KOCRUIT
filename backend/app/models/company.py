@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
@@ -8,7 +8,7 @@ class Company(Base):
     __tablename__ = "company"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
     address = Column(String(255))
     phone = Column(String(20))
@@ -20,6 +20,7 @@ class Company(Base):
     # Relationships
     company_users = relationship("CompanyUser", back_populates="company")
     job_posts = relationship("JobPost", back_populates="company")
+    departments = relationship("Department", back_populates="company")
 
 
 class Department(Base):
@@ -28,8 +29,11 @@ class Department(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text)
+    job_function = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    company_id = Column(Integer, ForeignKey('company.id'))
     
     # Relationships
-    company_users = relationship("CompanyUser", back_populates="department") 
+    company_users = relationship("CompanyUser", back_populates="department")
+    company = relationship("Company", back_populates="departments") 

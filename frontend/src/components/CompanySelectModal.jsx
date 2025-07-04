@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const API_BASE = "http://localhost:8000/api/v1";
+import api from '../api/api';
 
 function CompanySelectModal({ onSelect, onClose }) {
   const [search, setSearch] = useState('');
@@ -17,11 +16,10 @@ function CompanySelectModal({ onSelect, onClose }) {
       return;
     }
     setLoading(true);
-    fetch(`${API_BASE}/companies?search=${encodeURIComponent(search)}`)
-      .then(res => res.json())
-      .then(data => {
-        setCompanies(data);
-        setNotFound(data.length === 0);
+    api.get(`/companies?search=${encodeURIComponent(search)}`)
+      .then(res => {
+        setCompanies(res.data);
+        setNotFound(res.data.length === 0);
       })
       .catch(() => setCompanies([]))
       .finally(() => setLoading(false));
@@ -33,13 +31,9 @@ function CompanySelectModal({ onSelect, onClose }) {
     if (!nameToRegister) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/companies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: nameToRegister })
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const res = await api.post('/companies', { name: nameToRegister });
+      if (res.status === 200 || res.status === 201) {
+        const data = res.data;
         onSelect(data.id, data.name); // 등록된 회사 id, name으로 선택
       } else {
         alert('회사 등록에 실패했습니다.');

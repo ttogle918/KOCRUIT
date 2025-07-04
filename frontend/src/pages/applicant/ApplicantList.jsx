@@ -89,7 +89,7 @@ export default function ApplicantList() {
       const applicant = applicants[index];
       const newBookmarkStatus = bookmarkedList[index] ? 'N' : 'Y';
 
-      await api.patch(`/api/v1/applications/${applicant.id}/bookmark`, {
+      await api.patch(`/applications/${applicant.id}/bookmark`, {
         isBookmarked: newBookmarkStatus
       });
 
@@ -123,7 +123,7 @@ export default function ApplicantList() {
     setResume(null);
     try {
       console.log("지원서 상세 요청 - applicationId:", applicant.id);
-      const res = await api.get(`/api/v1/applications/${applicant.id}`);
+      const res = await api.get(`/applications/${applicant.id}`);
       console.log("지원서 상세 응답:", res.data);
       setResume(res.data); // 혹은 setResume(res.data) 구조에 따라
 

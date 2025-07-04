@@ -8,28 +8,40 @@ class Resume(Base):
     __tablename__ = "resume"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('applicantuser.id'))
-    title = Column(String(200), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    title = Column(String(255), nullable=False)
     content = Column(Text)
-    file_path = Column(String(255))
+    file_url = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = relationship("ApplicantUser")
-    memos = relationship("ResumeMemo", back_populates="resume")
+    user = relationship("User")
+    specs = relationship("Spec", back_populates="resume")
+
+
+class Spec(Base):
+    __tablename__ = "spec"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    resume_id = Column(Integer, ForeignKey('resume.id'), nullable=False)
+    spec_type = Column(String(255), nullable=False)
+    spec_title = Column(String(255), nullable=False)
+    spec_description = Column(Text)
+    
+    # Relationships
+    resume = relationship("Resume", back_populates="specs")
 
 
 class ResumeMemo(Base):
     __tablename__ = "resume_memo"
     
     id = Column(Integer, primary_key=True, index=True)
-    resume_id = Column(Integer, ForeignKey('resume.id'))
-    writer_id = Column(Integer, ForeignKey('companyuser.id'))
+    user_id = Column(Integer, ForeignKey('company_user.id'))
+    application_id = Column(Integer, ForeignKey('application.id'))
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    resume = relationship("Resume", back_populates="memos")
-    writer = relationship("CompanyUser") 
+    user = relationship("CompanyUser")
+    application = relationship("Application") 

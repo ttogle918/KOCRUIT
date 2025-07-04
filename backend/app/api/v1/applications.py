@@ -6,7 +6,7 @@ from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
     ApplicationList, ApplicantList, ApplicationStatusHistoryCreate
 )
-from app.models.application import Application, ApplicationStatusHistory, ApplyStatus
+from app.models.application import Application, ApplyStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 
@@ -61,13 +61,13 @@ def update_application_status(
         raise HTTPException(status_code=404, detail="Application not found")
     
     if status_update.status:
-        # 상태 변경 히스토리 기록
-        status_history = ApplicationStatusHistory(
-            application_id=application_id,
-            status=str(status_update.status),
-            comment=status_update.cover_letter
-        )
-        db.add(status_history)
+        # 상태 변경 히스토리 기록 (ApplicationStatusHistory 모델이 없으므로 주석처리)
+        # status_history = ApplicationStatusHistory(
+        #     application_id=application_id,
+        #     status=str(status_update.status),
+        #     comment=status_update.cover_letter
+        # )
+        # db.add(status_history)
         
         # 애플리케이션 상태 업데이트
         application.status = str(status_update.status)  # type: ignore
