@@ -3,6 +3,9 @@ from typing import Optional, List
 from datetime import datetime
 from app.models.application import Application, ApplyStatus, ApplicationViewAction
 
+def to_camel(string: str) -> str:
+    parts = string.split('_')
+    return parts[0] + ''.join(word.capitalize() for word in parts[1:])
 
 class ApplicationBase(BaseModel):
     job_post_id: int
@@ -17,6 +20,9 @@ class ApplicationBase(BaseModel):
     pass_reason: Optional[str] = None
     fail_reason: Optional[str] = None
     applied_at: Optional[datetime] = None
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
 
 
 class ApplicationCreate(ApplicationBase):
@@ -26,6 +32,9 @@ class ApplicationCreate(ApplicationBase):
 class ApplicationUpdate(BaseModel):
     status: Optional[ApplyStatus] = None
     cover_letter: Optional[str] = None
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
 
 
 class ApplicationDetail(ApplicationBase):
@@ -35,6 +44,8 @@ class ApplicationDetail(ApplicationBase):
     updated_at: datetime
     
     class Config:
+        alias_generator = to_camel
+        populate_by_name = True
         from_attributes = True
 
 
@@ -54,6 +65,8 @@ class ApplicationList(BaseModel):
     applied_at: Optional[datetime] = None
     
     class Config:
+        alias_generator = to_camel
+        populate_by_name = True
         from_attributes = True
 
 
@@ -63,19 +76,28 @@ class ApplicantList(BaseModel):
     email: str
     application_id: int
     status: ApplyStatus
-    created_at: datetime
+    applied_at: datetime
+    score: Optional[float] = None
     
     class Config:
+        alias_generator = to_camel
+        populate_by_name = True
         from_attributes = True
 
 
 class ApplicationStatusHistoryBase(BaseModel):
     status: ApplyStatus
     comment: Optional[str] = None
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
 
 
 class ApplicationStatusHistoryCreate(ApplicationStatusHistoryBase):
     application_id: int
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
 
 
 class ApplicationStatusHistoryDetail(ApplicationStatusHistoryBase):
@@ -84,12 +106,17 @@ class ApplicationStatusHistoryDetail(ApplicationStatusHistoryBase):
     created_at: datetime
     
     class Config:
+        alias_generator = to_camel
+        populate_by_name = True
         from_attributes = True
 
 
 class ApplicationViewLogBase(BaseModel):
     application_id: int
     action: ApplicationViewAction
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
 
 
 class ApplicationViewLogCreate(ApplicationViewLogBase):
@@ -102,4 +129,6 @@ class ApplicationViewLogDetail(ApplicationViewLogBase):
     created_at: datetime
     
     class Config:
+        alias_generator = to_camel
+        populate_by_name = True
         from_attributes = True 

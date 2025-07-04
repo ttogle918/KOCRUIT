@@ -79,20 +79,28 @@ def update_application_status(
 @router.get("/job/{job_post_id}/applicants", response_model=List[ApplicantList])
 def get_applicants_by_job(
     job_post_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
+    # current_user: User = Depends(get_current_user)  # 임시로 주석처리
 ):
+    print(f"API 호출: job_post_id = {job_post_id}")
     applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+    print(f"데이터베이스에서 찾은 지원서 수: {len(applications)}")
+    
     applicants = []
     for app in applications:
         user = db.query(User).filter(User.id == app.user_id).first()
         if user:
-            applicants.append({
+            applicant_data = {
                 "id": user.id,
                 "name": user.name,
                 "email": user.email,
-                "application_id": app.id,
+                "application_id": app.id, 
                 "status": app.status,
-                "created_at": app.created_at
-            })
-    return applicants 
+                "applied_at": app.applied_at,
+                "score": app.score
+            }
+            applicants.append(applicant_data)
+            print(f"지원자 추가: {user.name} (ID: {user.id})")
+    
+    print(f"최종 반환할 지원자 수: {len(applicants)}")
+    return applicants

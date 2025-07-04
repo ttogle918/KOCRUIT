@@ -29,6 +29,9 @@ export default function ApplicantList() {
   const navigate = useNavigate();
   const { jobPostId } = useParams();
   const [expanded, setExpanded] = useState(null);
+  
+  // jobPostId가 없으면 기본값 사용
+  const effectiveJobPostId = jobPostId || '472';
 
   const toggleExpand = (applicantId) => {
     setExpanded(expanded === applicantId ? null : applicantId);
@@ -40,8 +43,8 @@ export default function ApplicantList() {
       setError(null);
       try {
         const [appRes, postRes, appDetailRes] = await Promise.all([
-        api.get(`/applications/job/${jobPostId}/applicants`),
-        api.get(`/company/jobposts/${jobPostId}`)
+        api.get(`/applications/job/${effectiveJobPostId}/applicants`),
+        api.get(`/company/jobposts/${effectiveJobPostId}`)
         ]);
         const applicants = appRes.data;
         setApplicants(applicants);
@@ -58,8 +61,8 @@ export default function ApplicantList() {
       }
     };
 
-    if (jobPostId) fetchData();
-  }, [jobPostId]);
+    if (effectiveJobPostId) fetchData();
+  }, [effectiveJobPostId]);
 
   const handleDelete = async () => {
     if (window.confirm('이 지원자를 삭제하시겠습니까?')) {
@@ -75,7 +78,7 @@ export default function ApplicantList() {
   };
 
   const handleEdit = () => {
-    navigate(`/editpost/${jobPostId}`);
+    navigate(`/editpost/${effectiveJobPostId}`);
   };
 
   const settingsButton = getDefaultSettingsButton({
@@ -265,13 +268,13 @@ export default function ApplicantList() {
                 <div className="p-4 border-t bg-white dark:bg-gray-800">
                   <div className="flex justify-center gap-4">
                     <button
-                      onClick={() => navigate(`/passedapplicants/${jobPostId}`)}
+                      onClick={() => navigate(`/passedapplicants/${effectiveJobPostId}`)}
                       className="w-40 border border-blue-600 text-blue-600 bg-transparent hover:bg-blue-600 hover:text-white px-3 py-3 rounded-lg font-bold text-base shadow transition"
                     >
                       서류 합격자 명단 ({passedCount}/{headcount})
                     </button>
                     <button
-                      onClick={() => navigate(`/rejectedapplicants/${jobPostId}`)}
+                      onClick={() => navigate(`/rejectedapplicants/${effectiveJobPostId}`)}
                       className="w-40 border border-red-600 text-red-600 bg-transparent hover:bg-red-600 hover:text-white px-1 py-3 rounded-lg font-bold text-base shadow transition"
                     >
                       서류 불합격자 명단 {rejectedCount}

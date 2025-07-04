@@ -119,12 +119,15 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=LoginResponse)
-def refresh(request: RefreshTokenRequest):
+def refresh(request: RefreshTokenRequest, db: Session = Depends(get_db)):
     payload = security.verify_token(request.refresh_token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     email = payload.get("sub")
-    access_token = security.create_access_token({"sub": email, "role": Role.USER})
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    access_token = security.create_access_token({"sub": email, "role": user.role})
     return LoginResponse(access_token=access_token, refresh_token=request.refresh_token)
 
 

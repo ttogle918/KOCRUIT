@@ -12,8 +12,9 @@ class GenderType(str, enum.Enum):
 
 
 class Role(str, enum.Enum):
-    USER = "USER"
-    ADMIN = "ADMIN"
+    INDIVIDUAL = "individual"
+    ADMIN = "admin"
+    COMPANY = "company"
     MEMBER = "MEMBER"  # 기업회원(채용담당자로 초대된)권한
     MANAGER = "MANAGER"  # 기업회원 공고 생성자 권한
     EMPLOYEE = "EMPLOYEE"  # 기업회원 권한
@@ -30,7 +31,7 @@ class User(Base):
     address = Column(String(255))
     gender = Column(String(10))
     phone = Column(String(20))
-    role = Column(String(20), default="USER")
+    role = Column(String(20), default="individual")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     birth_date = Column(Date)
@@ -39,7 +40,7 @@ class User(Base):
     user_type = Column(String(20))
     
     __mapper_args__ = {
-        'polymorphic_identity': 'USER',
+        'polymorphic_identity': 'individual',
         'polymorphic_on': user_type
     }
 
@@ -59,19 +60,14 @@ class CompanyUser(User):
     department = relationship("Department", back_populates="company_users")
     
     __mapper_args__ = {
-        'polymorphic_identity': 'COMPANY',
+        'polymorphic_identity': 'company',
     }
 
 
-class ApplicantUser(User):
-    __tablename__ = "applicant_user"
-    
+class AdminUser(User):
+    __tablename__ = "admin_user"
     id = Column(Integer, ForeignKey('users.id'), primary_key=True)
-    resume_file_path = Column(String(255))
-    
-    # Relationships
-    jobs = relationship("Job", back_populates="user")
-    
+    # 필요시 추가 필드
     __mapper_args__ = {
-        'polymorphic_identity': 'APPLICANT',
+        'polymorphic_identity': 'admin',
     } 

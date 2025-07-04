@@ -1,5 +1,5 @@
 from app.core.database import Base
-from .user import User, CompanyUser, ApplicantUser
+from .user import User, CompanyUser, AdminUser
 from .company import Company, Department
 from .job import Job, JobPost
 from .application import Application, FieldNameScore
@@ -9,7 +9,7 @@ from .schedule import Schedule, ScheduleInterview
 
 __all__ = [
     "Base",
-    "User", "CompanyUser", "ApplicantUser",
+    "User", "CompanyUser", "AdminUser",
     "Company", "Department",
     "Job", "JobPost",
     "Application", "FieldNameScore",

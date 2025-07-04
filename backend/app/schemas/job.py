@@ -44,6 +44,7 @@ class JobPostDetail(JobPost):
     id: int
     company_id: int
     companyName: Optional[str] = None
+    department: Optional[str] = None
     teamMembers: Optional[List[TeamMemberDto]] = None
     weights: Optional[List[WeightDto]] = None
     created_at: datetime
