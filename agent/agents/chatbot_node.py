@@ -5,6 +5,33 @@ from langchain_core.prompts import ChatPromptTemplate
 from .memory_manager import ConversationMemory
 from .rag_system import RAGSystem
 import os
+import redis
+import json
+
+# Redis 연결 (싱글턴)
+_redis_client = None
+def get_redis_client():
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    return _redis_client
+
+# 세션별 대화 기록 저장
+REDIS_SESSION_PREFIX = 'chat_session:'
+REDIS_SESSION_TTL = 60 * 60 * 24  # 24시간
+
+def save_message_to_history(session_id, role, message):
+    client = get_redis_client()
+    key = REDIS_SESSION_PREFIX + session_id
+    entry = json.dumps({'role': role, 'message': message})
+    client.rpush(key, entry)
+    client.expire(key, REDIS_SESSION_TTL)
+
+def get_conversation_history(session_id, limit=10):
+    client = get_redis_client()
+    key = REDIS_SESSION_PREFIX + session_id
+    entries = client.lrange(key, -limit, -1)
+    return [json.loads(e) for e in entries]
 
 class ChatbotNode:
     def __init__(self):
@@ -59,44 +86,30 @@ class ChatbotNode:
                     "context_used": ""
                 }
             
-            # 대화 히스토리 가져오기
-            conversation_history = self.memory.get_recent_messages(session_id, limit=10)
-            
-            # RAG를 통한 관련 컨텍스트 검색
-            context = self.rag_system.get_context_for_query(user_message, k=3)
-            
-            # 페이지별 시스템 프롬프트 생성
-            system_prompt = self._generate_system_prompt(page_context)
-            
-            # 메시지 구성
-            messages = [SystemMessage(content=system_prompt)]
-            
-            # 대화 히스토리 추가
-            messages.extend(conversation_history)
-            
-            # 페이지 컨텍스트 정보 추가
-            if page_context:
-                page_info = self._format_page_context(page_context)
-                context_message = f"현재 페이지 정보:\n{page_info}\n\n"
-                if context:
-                    context_message += f"관련 정보:\n{context}\n\n"
-                context_message += f"사용자 질문: {user_message}"
-                messages.append(HumanMessage(content=context_message))
-            else:
-                # 페이지 컨텍스트가 없는 경우 기존 방식
-                if context:
-                    context_message = f"관련 정보:\n{context}\n\n사용자 질문: {user_message}"
-                    messages.append(HumanMessage(content=context_message))
+            # 1. 이전 대화 기록 불러오기
+            history = get_conversation_history(session_id, limit=10)
+            history_prompt = ''
+            for h in history:
+                if h['role'] == 'user':
+                    history_prompt += f"User: {h['message']}\n"
                 else:
-                    messages.append(HumanMessage(content=user_message))
+                    history_prompt += f"AI: {h['message']}\n"
             
-            # LLM 호출
-            response = self.llm.invoke(messages)
+            # 2. 이번 메시지 저장
+            save_message_to_history(session_id, 'user', user_message)
+            
+            # 3. 프롬프트 생성 (이전 대화 + 현재 메시지 + 페이지 컨텍스트)
+            prompt = f"{history_prompt}User: {user_message}\n"
+            if page_context:
+                prompt += f"[PageContext: {json.dumps(page_context, ensure_ascii=False)}]\n"
+            prompt += "AI: "
+            
+            # 4. LLM 호출
+            response = self.llm.invoke(HumanMessage(prompt))
             ai_response = response.content
             
-            # 대화 히스토리에 메시지 추가
-            self.memory.add_message(session_id, HumanMessage(content=user_message))
-            self.memory.add_message(session_id, AIMessage(content=ai_response))
+            # 5. AI 응답 저장
+            save_message_to_history(session_id, 'ai', ai_response)
             
             # 페이지별 제안사항 생성
             page_suggestions = self._generate_page_suggestions(page_context, user_message)
@@ -107,8 +120,8 @@ class ChatbotNode:
             return {
                 **state,
                 "ai_response": ai_response,
-                "context_used": context if context else "No relevant context found",
-                "conversation_history_length": len(conversation_history) + 2,
+                "context_used": prompt,
+                "conversation_history_length": len(history) + 1,
                 "page_suggestions": page_suggestions,
                 "dom_actions": dom_actions
             }
