@@ -8,10 +8,9 @@ class Notification(Base):
     __tablename__ = "notification"
     
     id = Column(Integer, primary_key=True, index=True)
+    message = Column(Text)
     user_id = Column(Integer, ForeignKey('users.id'))
-    title = Column(String(200), nullable=False)
-    content = Column(Text)
-    type = Column(String(50))  # APPLICATION, INTERVIEW, SYSTEM, etc.
+    type = Column(String(255))
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     
