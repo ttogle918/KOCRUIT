@@ -32,4 +32,5 @@ def get_public_job_post(
     
     if not job_post:
         raise HTTPException(status_code=404, detail="Job post not found")
+    
     return job_post 

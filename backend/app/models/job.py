@@ -31,7 +31,7 @@ class JobPost(Base):
     
     # Relationships
     company = relationship("Company", back_populates="job_posts")
-    department = relationship("Department")
+    department_rel = relationship("Department")
     user = relationship("User")
     applications = relationship("Application", back_populates="job_post")
 
@@ -45,9 +45,9 @@ class Job(Base):
     description = Column(Text)
     start_date = Column(DateTime)
     end_date = Column(DateTime)
-    user_id = Column(Integer, ForeignKey('applicant_user.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = relationship("ApplicantUser", back_populates="jobs") 
+    user = relationship("User") 

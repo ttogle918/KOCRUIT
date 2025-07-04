@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.schemas.company import (
     CompanyCreate, CompanyUpdate, CompanyDetail, CompanyList,
@@ -17,9 +17,17 @@ router = APIRouter()
 def get_companies(
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    companies = db.query(Company).offset(skip).limit(limit).all()
+    query = db.query(Company)
+    
+    # 검색 기능 추가
+    if search:
+        query = query.filter(Company.name.contains(search))
+    
+    # 오름차순 정렬 (회사명 기준)
+    companies = query.order_by(Company.name.asc()).offset(skip).limit(limit).all()
     return companies
 
 
@@ -145,5 +153,10 @@ def delete_department(
 
 # Spring Boot 호환용 엔드포인트
 @router.get("/common/company", response_model=List[CompanyList], include_in_schema=False)
-def get_companies_common(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return get_companies(skip=skip, limit=limit, db=db) 
+def get_companies_common(
+    skip: int = 0, 
+    limit: int = 100, 
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    return get_companies(skip=skip, limit=limit, search=search, db=db) 
