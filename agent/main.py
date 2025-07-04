@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from agents.graph_agent import build_graph
 from agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, create_session_id
 from agents.chatbot_node import ChatbotNode
@@ -8,6 +9,16 @@ import uuid
 load_dotenv()
 
 app = FastAPI()
+
+# CORS 미들웨어 추가
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # 프론트엔드 주소
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 graph_agent = build_graph()
 chatbot_graph = create_chatbot_graph()
 
@@ -35,6 +46,7 @@ async def chat(request: Request):
     data = await request.json()
     user_message = data.get("message", "")
     session_id = data.get("session_id", None)
+    page_context = data.get("page_context", {})  # 페이지 컨텍스트 추가
     
     if not user_message:
         return {"error": "Message is required"}
@@ -43,8 +55,8 @@ async def chat(request: Request):
     if not session_id:
         session_id = create_session_id()
     
-    # 챗봇 상태 초기화
-    chat_state = initialize_chat_state(user_message, session_id)
+    # 챗봇 상태 초기화 (페이지 컨텍스트 포함)
+    chat_state = initialize_chat_state(user_message, session_id, page_context)
     
     # 챗봇 그래프 실행
     try:
@@ -54,6 +66,8 @@ async def chat(request: Request):
             "ai_response": result.get("ai_response", ""),
             "context_used": result.get("context_used", ""),
             "conversation_history_length": result.get("conversation_history_length", 0),
+            "page_suggestions": result.get("page_suggestions", []),  # 페이지별 제안사항
+            "dom_actions": result.get("dom_actions", []),  # DOM 조작 액션
             "error": result.get("error", "")
         }
     except Exception as e:
