@@ -18,29 +18,75 @@ conn = mysql.connector.connect(
 )
 cursor = conn.cursor()
 
-# 기존 데이터 삭제 (순서 중요: 외래키 제약조건 때문에)
+# # 기존 데이터 삭제 (순서 중요: 외래키 제약조건 때문에)
+# cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+# cursor.execute("DELETE FROM schedule_interview")
+# cursor.execute("DELETE FROM interview_evaluation")
+# cursor.execute("DELETE FROM interview_question")
+# cursor.execute("DELETE FROM evaluation_detail")
+# cursor.execute("DELETE FROM application")
+# cursor.execute("DELETE FROM applicant_user")
+# cursor.execute("DELETE FROM company_user")
+# cursor.execute("DELETE FROM resume_memo")
+# cursor.execute("DELETE FROM spec")
+# cursor.execute("DELETE FROM resume")
+# cursor.execute("DELETE FROM jobpost_role")
+# cursor.execute("DELETE FROM jobpost")
+# cursor.execute("DELETE FROM department")
+# cursor.execute("DELETE FROM field_name_score")
+# cursor.execute("DELETE FROM weight")
+# cursor.execute("DELETE FROM notification")
+# cursor.execute("DELETE FROM schedule")
+# cursor.execute("DELETE FROM users")
+# cursor.execute("DELETE FROM company")
+# cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+# conn.commit()
+
+
+#테이블 없을 시 건너뛰고 계속 실행
+tables = [
+    "schedule_interview",
+    "interview_evaluation",
+    "interview_question",
+    "evaluation_detail",
+    "application",
+    "applicant_user",
+    "company_user",
+    "resume_memo",
+    "spec",
+    "resume",
+    "jobpost_role",
+    "jobpost",
+    "department",
+    "field_name_score",
+    "weight",
+    "notification",
+    "schedule",
+    "users",
+    "company"
+]
+
 cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-cursor.execute("DELETE FROM schedule_interview")
-cursor.execute("DELETE FROM interview_evaluation")
-cursor.execute("DELETE FROM interview_question")
-cursor.execute("DELETE FROM evaluation_detail")
-cursor.execute("DELETE FROM application")
-cursor.execute("DELETE FROM applicant_user")
-cursor.execute("DELETE FROM company_user")
-cursor.execute("DELETE FROM resume_memo")
-cursor.execute("DELETE FROM spec")
-cursor.execute("DELETE FROM resume")
-cursor.execute("DELETE FROM jobpost_role")
-cursor.execute("DELETE FROM jobpost")
-cursor.execute("DELETE FROM department")
-cursor.execute("DELETE FROM field_name_score")
-cursor.execute("DELETE FROM weight")
-cursor.execute("DELETE FROM notification")
-cursor.execute("DELETE FROM schedule")
-cursor.execute("DELETE FROM users")
-cursor.execute("DELETE FROM company")
+
+for table in tables:
+    try:
+        cursor.execute(f"DELETE FROM {table}")
+        print(f"✅ Deleted: {table}")
+    except pymysql.err.ProgrammingError as e:
+        print(f"⚠️ Skipped (table not found): {table} → {e}")
+
 cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
 conn.commit()
+
+
+
+
+
+
+
+
+
+
 
 # ID 매핑 딕셔너리
 user_id_map = {}
