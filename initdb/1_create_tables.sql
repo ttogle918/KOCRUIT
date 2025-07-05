@@ -269,3 +269,10 @@ CREATE TABLE interview_question (
 
     FOREIGN KEY (application_id) REFERENCES application(id)
 );
+
+CREATE TABLE email_verification_tokens (
+    token VARCHAR(255) PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    is_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
