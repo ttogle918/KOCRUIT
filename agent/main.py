@@ -5,6 +5,7 @@ from agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, cr
 from agents.chatbot_node import ChatbotNode
 from dotenv import load_dotenv
 import uuid
+import os
 
 load_dotenv()
 
@@ -19,8 +20,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-graph_agent = build_graph()
-chatbot_graph = create_chatbot_graph()
+# OpenAI API 키가 있을 때만 그래프 초기화
+try:
+    if os.getenv("OPENAI_API_KEY"):
+        graph_agent = build_graph()
+        chatbot_graph = create_chatbot_graph()
+    else:
+        graph_agent = None
+        chatbot_graph = None
+        print("Warning: OPENAI_API_KEY not found. Some features will be limited.")
+except Exception as e:
+    print(f"Error initializing agents: {e}")
+    graph_agent = None
+    chatbot_graph = None
 
 @app.post("/run/")
 async def run(request: Request):
@@ -54,6 +66,18 @@ async def chat(request: Request):
     # 세션 ID가 없으면 새로 생성
     if not session_id:
         session_id = create_session_id()
+    
+    # chatbot_graph가 초기화되지 않은 경우 기본 응답
+    if chatbot_graph is None:
+        return {
+            "session_id": session_id,
+            "ai_response": "죄송합니다. 현재 챗봇 서비스가 설정 중입니다. 잠시 후 다시 시도해주세요.",
+            "context_used": "",
+            "conversation_history_length": 0,
+            "page_suggestions": [],
+            "dom_actions": [],
+            "error": "OpenAI API key not configured"
+        }
     
     # 챗봇 상태 초기화 (페이지 컨텍스트 포함)
     chat_state = initialize_chat_state(user_message, session_id, page_context)

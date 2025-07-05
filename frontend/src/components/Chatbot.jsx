@@ -27,7 +27,7 @@ import { useLocation } from 'react-router-dom';
 
 // 챗봇 전용 axios 인스턴스
 const chatbotApi = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: 'http://localhost:8001',
   headers: {
     'Content-Type': 'application/json',
   },
