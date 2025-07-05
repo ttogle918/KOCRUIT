@@ -1,4 +1,5 @@
 import mysql.connector
+import pymysql
 import json
 from datetime import datetime
 
@@ -9,12 +10,20 @@ def parse_datetime(value):
         return None
 
 # DB 연결
-conn = mysql.connector.connect(
-    host="localhost",  # 호스트에서 실행
-    user="root",
-    password="root",  # docker-compose.yml의 MYSQL_ROOT_PASSWORD
-    database="kocruit_db",
-    port=3307  # docker-compose.yml의 포트 매핑
+# conn = mysql.connector.connect(
+#     host="localhost",  # 호스트에서 실행
+#     user="root",
+#     password="root",  # docker-compose.yml의 MYSQL_ROOT_PASSWORD
+#     database="kocruit_db",
+#     port=3307  # docker-compose.yml의 포트 매핑
+# )
+
+
+conn = pymysql.connect(
+    host="kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com",
+    user="admin",
+    password="kocruit1234!",
+    db="kocruit"
 )
 cursor = conn.cursor()
 
@@ -110,6 +119,10 @@ with open("../data/company.json", "r", encoding="utf-8") as f:
         )
         company_id_map[company["name"]] = cursor.lastrowid
 
+print("✅ COMPANY 테이블 삽입 완료")
+conn.commit()
+
+
 # === USERS ===
 with open("../data/users.json", "r", encoding="utf-8") as f:
     for user in json.load(f):
@@ -130,6 +143,9 @@ with open("../data/users.json", "r", encoding="utf-8") as f:
             user.get("created_at"), user.get("updated_at")
         ))
         user_id_map[user["email"]] = cursor.lastrowid   # 그대로 유지
+
+print("✅ USERS 테이블 삽입 완료")
+conn.commit()
 
 
 
@@ -166,7 +182,10 @@ with open("../data/resume.json", "r", encoding="utf-8") as f:
         """, (user_id, "기본 이력서", content, ""))
         resume_id_map[email] = cursor.lastrowid
 
-import json
+
+print("✅ RESUME 테이블 삽입 완료")
+conn.commit()
+
 
 # === SPEC ===
 with open("../data/spec.json", "r", encoding="utf-8") as f:
@@ -195,6 +214,11 @@ for email, resume_id in resume_id_map.items():
         spec_idx += 1
 
 
+print("✅ SPEC 테이블 삽입 완료")
+conn.commit()
+
+
+
 # === DEPARTMENT ===
 with open("../data/department.json", "r", encoding="utf-8") as f:
     departments = json.load(f)
@@ -218,6 +242,12 @@ for dept in departments:
 
     department_id_map[(dept["name"], company_id)] = cursor.lastrowid
 
+print("✅ DEPARTMENT 테이블 삽입 완료")
+conn.commit()
+
+
+
+
 
 # === JOBPOST ===
 with open("../data/jobpost.json", "r", encoding="utf-8") as f:
@@ -237,6 +267,11 @@ with open("../data/jobpost.json", "r", encoding="utf-8") as f:
             ))
             jobpost_id_map[(post["title"], company_id)] = cursor.lastrowid
 
+
+print("✅ JOBPOST 테이블 삽입 완료")
+conn.commit()
+
+
 # === WEIGHT ===
 with open("../data/weight.json", "r", encoding="utf-8") as f:
     for entry in json.load(f):
@@ -254,6 +289,11 @@ with open("../data/weight.json", "r", encoding="utf-8") as f:
                     INSERT INTO weight (target_type, jobpost_id, field_name, weight_value, updated_at)
                     VALUES (%s, %s, %s, %s, NOW())
                 """, (w["targetType"], jobpost_id, w["fieldName"], float(w["weightValue"])))
+
+
+print("✅ WEIGHT 테이블 삽입 완료")
+conn.commit()
+
 
 # === COMPANY_USER ===
 with open("../data/company_user.json", "r", encoding="utf-8") as f:
@@ -274,6 +314,10 @@ with open("../data/company_user.json", "r", encoding="utf-8") as f:
             company_user_id_map[email] = user_id
         else:
             print(f"⚠️ 매핑 실패 - email: {email}, company: {company_name}")
+
+print("✅ COMPANY_USER 테이블 삽입 완료")
+conn.commit()
+
 
 
 # === SCHEDULE ===
@@ -300,6 +344,13 @@ with open("../data/applicant_user_list.json", "r", encoding="utf-8") as f:
             print(f"⚠️ 사용자 ID를 찾을 수 없음: {email}")
 
 
+
+print("✅ APPLICANT_USER 테이블 삽입 완료")
+conn.commit()
+
+
+
+
 # === APPLICATION ===
 with open("../data/application.json", "r", encoding="utf-8") as f:
     for app in json.load(f):
@@ -320,6 +371,12 @@ with open("../data/application.json", "r", encoding="utf-8") as f:
         ))
         application_id_map[(email, app["title"])] = cursor.lastrowid
 
+
+print("✅ APPLICATION 테이블 삽입 완료")
+conn.commit()
+
+
+
 # === FIELD_NAME_SCORE ===
 with open("../data/field_name_score.json", "r", encoding="utf-8") as f:
     scores = json.load(f)
@@ -329,6 +386,12 @@ with open("../data/field_name_score.json", "r", encoding="utf-8") as f:
             print(f"⚠️ application_id 매핑 실패 - email: {s['email']}, jobpost_title: {s['jobpost_title']}")
             continue
         cursor.execute("INSERT INTO field_name_score (application_id, field_name, score) VALUES (%s, %s, %s)", (application_id, s["field_name"], s["score"]))
+
+
+print("✅ FIELD_NAME_SCORE 테이블 삽입 완료")
+conn.commit()
+
+
 
 # === JOBPOST_ROLE ===   (구 job.json 재활용)
 with open("../data/jobpost_role.json", "r", encoding="utf-8") as f:
@@ -368,6 +431,10 @@ with open("../data/jobpost_role.json", "r", encoding="utf-8") as f:
         """, (jobpost_id, company_user_id, role, granted_at))
 
 
+print("✅ JOBPOST_ROLE 테이블 삽입 완료")
+conn.commit()
+
+
 
 # === SCHEDULE_INTERVIEW ===
 # with open("data/schedule_interview.json", "r", encoding="utf-8") as f:
@@ -392,6 +459,11 @@ with open("../data/resume_memo.json", "r", encoding="utf-8") as f:
         application_id = application_id_map.get(m["email"])
         cursor.execute("INSERT INTO resume_memo (user_id, application_id, content) VALUES (%s, %s, %s)",
                        (user_id, application_id, m["content"]))
+
+
+print("✅ RESUME_MEMO 테이블 삽입 완료")
+conn.commit()
+
 
 # === INTERVIEW_EVALUATION ===
 # with open("data/interview_evaluation.json", "r", encoding="utf-8") as f:
