@@ -13,7 +13,21 @@ _redis_client = None
 def get_redis_client():
     global _redis_client
     if _redis_client is None:
-        _redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+        # 환경변수에서 Redis URL 읽기 (Docker 환경용)
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+        if redis_url.startswith("redis://"):
+            # redis:// 형식 파싱
+            from urllib.parse import urlparse
+            parsed = urlparse(redis_url)
+            _redis_client = redis.Redis(
+                host=parsed.hostname or 'localhost',
+                port=parsed.port or 6379,
+                db=0,
+                decode_responses=True
+            )
+        else:
+            # 기존 방식 (host:port)
+            _redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
     return _redis_client
 
 # 세션별 대화 기록 저장
@@ -105,7 +119,7 @@ class ChatbotNode:
             prompt += "AI: "
             
             # 4. LLM 호출
-            response = self.llm.invoke(HumanMessage(prompt))
+            response = self.llm.invoke(prompt)
             ai_response = response.content
             
             # 5. AI 응답 저장
