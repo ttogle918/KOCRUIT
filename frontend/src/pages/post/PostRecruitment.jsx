@@ -87,13 +87,14 @@ function PostRecruitment() {
         console.log('User company info:', {
           companyId: response.data.companyId,
           company_id: response.data.company_id,
-          company: response.data.company
+          company: response.data.company,
+          companyName: response.data.companyName
         });
         if (response.data) {
           setFormData(prev => ({
             ...prev,
             company: {
-              id: response.data.companyId,
+              id: response.data.company_id,
               name: response.data.companyName
             }
           }));
