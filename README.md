@@ -42,6 +42,8 @@ docker-compose down -v --remove-orphans
 ### 4. 서비스 접속
 - **프론트엔드 (React)**: http://localhost:5173
 - **백엔드 API (FastAPI)**: http://localhost:8000  
+- **AI Agent API (FastAPI)**: http://localhost:8001
+- **Redis**: localhost:6379
 - **데이터베이스 (MySQL)**: localhost:3307
 
 ---
@@ -84,25 +86,37 @@ docker ps
 - `kocruit_agent` 컨테이너: Up 상태
 - `kosa-redis` 컨테이너: Up 상태
 
-#### 5. (필요시) DB 완전 초기화
+#### 5. Redis 모니터링 확인
+```bash
+# Redis 상태 확인
+curl http://localhost:8001/monitor/health
+
+# 세션 통계 확인
+curl http://localhost:8001/monitor/sessions
+
+# 스케줄러 상태 확인
+curl http://localhost:8001/monitor/scheduler/status
+```
+
+#### 6. (필요시) DB 완전 초기화
 ```bash
 # AWS RDS를 사용하므로 로컬 DB 초기화는 불필요
 # AWS RDS 콘솔에서 직접 관리하거나, 백엔드 API를 통해 데이터 관리
 ```
 
-#### 6. 테이블 스키마 생성
+#### 7. 테이블 스키마 생성
 ```bash
 # AWS RDS에 직접 연결하여 스키마 생성
 mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p kocruit < initdb/1_create_tables.sql
 ```
 
-#### 7. 시드 데이터 입력
+#### 8. 시드 데이터 입력
 ```bash
 cd initdb
 python3 2_seed_data.py
 ```
 
-#### 8. 데이터 확인
+#### 9. 데이터 확인
 ```bash
 mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p -e "USE kocruit; SELECT 'users' as table_name, COUNT(*) as count FROM users UNION ALL SELECT 'company', COUNT(*) FROM company UNION ALL SELECT 'jobpost', COUNT(*) FROM jobpost UNION ALL SELECT 'application', COUNT(*) FROM application UNION ALL SELECT 'resume', COUNT(*) FROM resume;"
 ```
@@ -123,6 +137,27 @@ mysql> USE kocruit;
 ### 백엔드 에러 코드 보기
 ```bash
 docker-compose logs backend
+```
+
+### Redis 모니터링 및 관리
+```bash
+# Redis 상태 확인
+curl http://localhost:8001/monitor/health
+
+# 세션 통계
+curl http://localhost:8001/monitor/sessions
+
+# 수동 정리
+curl -X POST http://localhost:8001/monitor/cleanup
+
+# 수동 백업
+curl -X POST http://localhost:8001/monitor/backup
+
+# 스케줄러 시작
+curl -X POST http://localhost:8001/monitor/scheduler/start
+
+# 백업 목록 확인
+curl http://localhost:8001/monitor/backups
 ```
 
 ### 프론트엔드 (개별 실행)
@@ -191,6 +226,27 @@ OPENAI_API_KEY=sk-...
 ```bash
 uvicorn main:app --reload --port 8001
 ```
+
+---
+
+## 🔐 개발자 전용 테스트 계정
+
+DB가 준비되지 않은 상태에서 테스트를 위해 개발자 전용 계정을 제공합니다.
+
+**계정 정보:**
+- 이메일: `dev@test.com`
+- 비밀번호: `dev123456`
+- 권한: MANAGER (모든 기능 접근 가능)
+
+**사용 방법:**
+1. 로그인 페이지에서 위 계정 정보 입력
+2. 자동으로 테스트 계정으로 로그인됨
+3. 모든 기업 기능 사용 가능
+
+**주의사항:**
+- 이 계정은 개발/테스트 목적으로만 사용
+- 실제 운영 환경에서는 사용하지 않음
+- 일반 사용자는 실제 DB 계정으로 로그인
 
 ---
 
