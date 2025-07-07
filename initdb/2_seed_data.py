@@ -21,10 +21,11 @@ def parse_datetime(value):
 
 
 conn = pymysql.connect(
-    host="kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com",
-    user="admin",
-    password="kocruit1234!",
-    db="kocruit"
+    host="localhost",
+    user="kocruit_user",
+    password="kocruit_pass",
+    db="kocruit",
+    port=3306
 )
 cursor = conn.cursor()
 print("✅ Database connection successful!")

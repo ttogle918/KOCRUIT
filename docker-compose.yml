@@ -75,6 +75,31 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: kocruit_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: kocruit
+      MYSQL_USER: kocruit_user
+      MYSQL_PASSWORD: kocruit_pass
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   backend:
     build:
       context: .
@@ -83,16 +108,19 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DB_HOST: kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com
+      DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: kocruit
-      DB_USER: admin
-      DB_PASSWORD: kocruit1234!
+      DB_USER: kocruit_user
+      DB_PASSWORD: kocruit_pass
     networks:
       - app-net
     volumes:
       - ./backend:/app
       - ./agent:/app/agent
+    depends_on:
+      mysql:
+        condition: service_healthy
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   agent:
@@ -150,6 +178,7 @@ services:
       retries: 3
 
 volumes:
+  mysql_data:
   redis_data:
 
 networks:

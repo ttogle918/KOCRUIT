@@ -44,7 +44,7 @@ docker-compose down -v --remove-orphans
 - **백엔드 API (FastAPI)**: http://localhost:8000  
 - **AI Agent API (FastAPI)**: http://localhost:8001
 - **Redis**: localhost:6379
-- **데이터베이스 (MySQL)**: localhost:3307
+- **데이터베이스 (MySQL)**: localhost:3306
 
 ---
 
@@ -100,14 +100,17 @@ curl http://localhost:8001/monitor/scheduler/status
 
 #### 6. (필요시) DB 완전 초기화
 ```bash
-# AWS RDS를 사용하므로 로컬 DB 초기화는 불필요
-# AWS RDS 콘솔에서 직접 관리하거나, 백엔드 API를 통해 데이터 관리
+# MySQL 컨테이너와 볼륨 삭제 후 재생성
+docker-compose down mysql
+docker volume rm kosa-final-project-02_mysql_data
+docker-compose up -d mysql
 ```
 
 #### 7. 테이블 스키마 생성
 ```bash
-# AWS RDS에 직접 연결하여 스키마 생성
-mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p kocruit < initdb/1_create_tables.sql
+# MySQL 컨테이너가 시작되면 자동으로 테이블 생성됨
+# 수동으로 확인하려면:
+docker exec -it kocruit_mysql mysql -u root -ppassword kocruit -e "SHOW TABLES;"
 ```
 
 #### 8. 시드 데이터 입력
@@ -118,21 +121,34 @@ python3 2_seed_data.py
 
 #### 9. 데이터 확인
 ```bash
-mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p -e "USE kocruit; SELECT 'users' as table_name, COUNT(*) as count FROM users UNION ALL SELECT 'company', COUNT(*) FROM company UNION ALL SELECT 'jobpost', COUNT(*) FROM jobpost UNION ALL SELECT 'application', COUNT(*) FROM application UNION ALL SELECT 'resume', COUNT(*) FROM resume;"
+docker exec -it kocruit_mysql mysql -u root -ppassword kocruit -e "SELECT 'users' as table_name, COUNT(*) as count FROM users UNION ALL SELECT 'company', COUNT(*) FROM company UNION ALL SELECT 'jobpost', COUNT(*) FROM jobpost UNION ALL SELECT 'application', COUNT(*) FROM application UNION ALL SELECT 'resume', COUNT(*) FROM resume;"
 ```
 
 ---
 
 ## 🛠️ 개별 서비스 실행
 
-### AWS RDS MySQL에 접속하기
+### 로컬 MySQL에 접속하기
 ```bash
-# 직접 MySQL 접속
-mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p
+# MySQL 컨테이너에 직접 접속
+docker exec -it kocruit_mysql mysql -u root -ppassword
 
-# Enter password: kocruit1234! 입력 후
-mysql> USE kocruit;
+# 또는 특정 데이터베이스로 접속
+docker exec -it kocruit_mysql mysql -u root -ppassword kocruit
+
+# 사용자 계정으로 접속 (권장)
+docker exec -it kocruit_mysql mysql -u kocruit_user -pkocruit_pass kocruit
 ```
+
+### DBeaver로 MySQL 연결하기
+**연결 정보:**
+- 호스트: `localhost`
+- 포트: `3306`
+- 데이터베이스: `kocruit`
+- 사용자명: `kocruit_user`
+- 비밀번호: `kocruit_pass`
+
+**상세 가이드:** `DBeaver_Connection_Guide.md` 파일 참조
 
 ### 백엔드 에러 코드 보기
 ```bash
