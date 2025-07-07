@@ -79,47 +79,45 @@ docker-compose up -d
 docker ps
 ```
 **예상 결과:**
-- `mysql` 컨테이너: Up 상태 (healthy)
 - `kocruit_fastapi` 컨테이너: Up 상태  
 - `kocruit_react` 컨테이너: Up 상태
+- `kocruit_agent` 컨테이너: Up 상태
+- `kosa-redis` 컨테이너: Up 상태
 
 #### 5. (필요시) DB 완전 초기화
 ```bash
-# DB를 완전히 비우고 싶다면 실행
-docker exec mysql mysql -u root -proot -e "DROP DATABASE IF EXISTS kocruit_db; CREATE DATABASE kocruit_db;"
+# AWS RDS를 사용하므로 로컬 DB 초기화는 불필요
+# AWS RDS 콘솔에서 직접 관리하거나, 백엔드 API를 통해 데이터 관리
 ```
 
 #### 6. 테이블 스키마 생성
 ```bash
-cd initdb
-docker exec -i mysql mysql -u root -proot kocruit_db < 1_create_tables.sql
+# AWS RDS에 직접 연결하여 스키마 생성
+mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p kocruit < initdb/1_create_tables.sql
 ```
 
 #### 7. 시드 데이터 입력
 ```bash
+cd initdb
 python3 2_seed_data.py
 ```
 
 #### 8. 데이터 확인
 ```bash
-docker exec mysql mysql -u root -proot -e "USE kocruit_db; SELECT 'users' as table_name, COUNT(*) as count FROM users UNION ALL SELECT 'company', COUNT(*) FROM company UNION ALL SELECT 'jobpost', COUNT(*) FROM jobpost UNION ALL SELECT 'application', COUNT(*) FROM application UNION ALL SELECT 'resume', COUNT(*) FROM resume;"
+mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p -e "USE kocruit; SELECT 'users' as table_name, COUNT(*) as count FROM users UNION ALL SELECT 'company', COUNT(*) FROM company UNION ALL SELECT 'jobpost', COUNT(*) FROM jobpost UNION ALL SELECT 'application', COUNT(*) FROM application UNION ALL SELECT 'resume', COUNT(*) FROM resume;"
 ```
 
 ---
 
 ## 🛠️ 개별 서비스 실행
 
-### Docker의 MySQL에 접속하기
+### AWS RDS MySQL에 접속하기
 ```bash
 # 직접 MySQL 접속
-docker exec -it mysql mysql -umyuser -p1234
+mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p
 
-# 또는 bash를 통한 접속
-docker exec -it mysql bash
-# bash-5.1# 나오면
-mysql -u myuser -p
-# Enter password: 입력 후
-mysql> USE kocruit_db;
+# Enter password: kocruit1234! 입력 후
+mysql> USE kocruit;
 ```
 
 ### 백엔드 에러 코드 보기
@@ -270,10 +268,10 @@ lsof -i :3307  # MySQL 포트 확인
 
 ### 데이터베이스 연결 오류
 ```bash
-# MySQL 컨테이너 상태 확인
-docker logs mysql
+# AWS RDS 연결 상태 확인
+mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p -e "SELECT 1;"
 
-# 백엔드가 MySQL보다 먼저 실행되어 연결 오류가 발생하는 경우
+# 백엔드가 RDS에 연결할 수 없는 경우
 # (ERR_CONNECTION_RESET, Connection refused 등)
 docker-compose restart backend
 ```
@@ -301,8 +299,11 @@ docker logs kocruit_fastapi
 # React 로그  
 docker logs kocruit_react
 
-# MySQL 로그
-docker logs mysql
+# Agent 로그
+docker logs kocruit_agent
+
+# Redis 로그
+docker logs kosa-redis
 ```
 
 ### 컨테이너 재시작
@@ -310,7 +311,8 @@ docker logs mysql
 # 특정 서비스만 재시작
 docker-compose restart kocruit_fastapi
 docker-compose restart kocruit_react
-docker-compose restart mysql
+docker-compose restart kocruit_agent
+docker-compose restart kosa-redis
 ```
 
 ### 전체 서비스 중지
@@ -324,11 +326,13 @@ docker-compose down
 
 - [ ] Docker Desktop 실행
 - [ ] 컨테이너 정상 실행 (`docker ps` 확인)
+- [ ] AWS RDS 연결 확인
 - [ ] 데이터베이스 스키마 생성
 - [ ] 시드 데이터 입력 완료
 - [ ] 프론트엔드 접속 가능 (http://localhost:5173)
 - [ ] 백엔드 API 접속 가능 (http://localhost:8000)
 - [ ] Agent 서버 실행 (http://localhost:8001)
+- [ ] Redis 서버 실행 (localhost:6379)
 
 모든 항목이 체크되면 프로젝트가 정상적으로 실행되고 있습니다! 🎉
 
