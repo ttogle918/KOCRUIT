@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 
 // Pages
 import Home from "./pages/home/Home.jsx";
@@ -71,7 +72,18 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const muiTheme = createTheme();
+// Material-UI v5 테마 생성
+const muiTheme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+  },
+});
 
 // App Routes Component
 function AppRoutes() {
@@ -80,8 +92,9 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <ChakraProvider>
-        <MuiThemeProvider theme={muiTheme}>
+      <MuiThemeProvider theme={muiTheme}>
+        <CssBaseline />
+        <ChakraProvider>
           <ThemeProvider>
             <div className="min-h-screen bg-[#eef6ff] dark:bg-black">
               <Routes>
@@ -111,11 +124,11 @@ function AppRoutes() {
                 <Route path="/memberschedule" element={<ProtectedRoute><MemberSchedule /></ProtectedRoute>} />
                 <Route path="/applicantlist/:jobPostId" element={<ProtectedRoute><ApplicantList /></ProtectedRoute>} />
               </Routes>
-              {user && user.role !== 'guest' && <Chatbot />}
+              <Chatbot />
             </div>
           </ThemeProvider>
-        </MuiThemeProvider>
-      </ChakraProvider>
+        </ChakraProvider>
+      </MuiThemeProvider>
     </BrowserRouter>
   );
 }
