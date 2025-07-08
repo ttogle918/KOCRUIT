@@ -260,7 +260,7 @@ def update_application_status(
     return {"message": "Application status updated successfully"}
 
 
-@router.get("/job/{job_post_id}/applicants", response_model=List[ApplicantList])
+@router.get("/job/{job_post_id}/applicants")
 def get_applicants_by_job(
     job_post_id: int,
     db: Session = Depends(get_db)
@@ -275,16 +275,23 @@ def get_applicants_by_job(
         user = db.query(User).filter(User.id == app.user_id).first()
         if user:
             applicant_data = {
-                "id": user.id,
+                "id": app.id,  # application id를 사용
+                "jobPostId": app.job_post_id,
                 "name": user.name,
+                "birthDate": user.birth_date,
                 "email": user.email,
-                "application_id": app.id, 
+                "phone": user.phone,
                 "status": app.status,
-                "applied_at": app.applied_at,
-                "score": app.score
+                "isBookmarked": "N",  # 기본값, 나중에 북마크 기능 구현 시 수정
+                "isViewed": False,  # 기본값
+                "appliedAt": app.applied_at,
+                "applicationSource": app.application_source or "DIRECT",
+                "score": app.score or 0,
+                "passReason": app.pass_reason,
+                "failReason": app.fail_reason
             }
             applicants.append(applicant_data)
-            # print(f"지원자 추가: {user.name} (ID: {user.id})")
+            print(f"지원자 추가: {user.name} (ID: {app.id}), Status: {app.status}, Score: {app.score}")
     
     print(f"최종 반환할 지원자 수: {len(applicants)}")
     return applicants

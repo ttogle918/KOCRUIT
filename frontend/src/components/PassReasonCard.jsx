@@ -23,7 +23,7 @@ function generateQuestions(resume) {
   return questions;
 }
 
-const PassReasonCard = ({ applicant, onBack }) => {
+const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(applicant?.isBookmarked === 'Y');
@@ -46,6 +46,25 @@ const PassReasonCard = ({ applicant, onBack }) => {
     };
     fetchResume();
   }, [applicant]);
+
+
+  useEffect(() => {
+    const fetchAIReason = async () => {
+      if (!applicant?.resumeId) return;
+      try {
+        const res = await api.get(`/ai/pass-reason/${applicant.resumeId}`);
+        setAutoPassReason(res.data.passReason);
+      } catch (e) {
+        console.error("AI 합격 사유 불러오기 실패", e);
+      }
+    };
+    fetchAIReason();
+  }, [applicant]);
+  
+
+
+
+
 
   const calculateAge = (birthDate) => {
     if (!birthDate) return 'N/A';
@@ -77,9 +96,24 @@ const PassReasonCard = ({ applicant, onBack }) => {
     try {
       await api.put(`/applications/${applicant.id}/status`, { status: 'REJECTED' });
       alert('서류 불합격 처리되었습니다.');
+      if (onStatusChange) onStatusChange('REJECTED');
       onBack();
     } catch (error) {
       alert('불합격 처리에 실패했습니다.');
+      setRejecting(false);
+    }
+  };
+
+  const handlePass = async () => {
+    if (!window.confirm('정말로 이 지원자를 서류 합격 처리하시겠습니까?')) return;
+    setRejecting(true);
+    try {
+      await api.put(`/applications/${applicant.id}/status`, { status: 'PASSED' });
+      alert('서류 합격 처리되었습니다.');
+      if (onStatusChange) onStatusChange('PASSED');
+      onBack();
+    } catch (error) {
+      alert('합격 처리에 실패했습니다.');
       setRejecting(false);
     }
   };
@@ -187,31 +221,39 @@ const PassReasonCard = ({ applicant, onBack }) => {
         </div>
       )}
 
-      {/* Pass Reason */}
+      {/* Pass/Reject Reason */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">합격 사유</h3>
-        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
+          {applicant?.status === 'PASSED' ? '합격 사유' : '불합격 사유'}
+        </h3>
+        <div className={applicant?.status === 'PASSED' ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20" + " rounded-lg p-4"}>
           <p className="text-gray-700 dark:text-gray-300">
-            {applicant?.passReason || '서류 심사에서 우수한 성과를 보여 합격 처리되었습니다.'}
+            {applicant?.status === 'PASSED'
+              ? (applicant?.passReason || '서류 심사에서 우수한 성과를 보여 합격 처리되었습니다.')
+              : (applicant?.failReason || '서류 심사 결과 불합격 처리되었습니다.')}
           </p>
         </div>
       </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button className="flex-1 bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
-          상세보기
-        </button>
-        <button className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">
-          면접 일정
-        </button>
-        <button
-          className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
-          onClick={handleReject}
-          disabled={rejecting}
-        >
-          {rejecting ? '처리 중...' : '서류 불합격 처리'}
-        </button>
+        {applicant?.status === 'PASSED' ? (
+          <button
+            className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+            onClick={handleReject}
+            disabled={rejecting}
+          >
+            {rejecting ? '처리 중...' : '서류 불합격 처리'}
+          </button>
+        ) : (
+          <button
+            className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+            onClick={handlePass}
+            disabled={rejecting}
+          >
+            {rejecting ? '처리 중...' : '서류 합격 처리'}
+          </button>
+        )}
       </div>
     </div>
   );
