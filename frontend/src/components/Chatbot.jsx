@@ -209,15 +209,19 @@ const Chatbot = () => {
 
     try {
       const pageContext = getPageContext();
+      console.log('챗봇 요청:', { message: messageToSend, session_id: sessionId });
+      
       const response = await chatbotApi.post('/chat/', {
         message: messageToSend,
         session_id: sessionId,
-        context: pageContext
+        page_context: pageContext
       });
+
+      console.log('챗봇 응답:', response.data);
 
       const botMessage = {
         id: messages.length + 2,
-        text: response.data.response,
+        text: response.data.ai_response || response.data.response || '응답을 받지 못했습니다.',
         sender: 'bot',
         timestamp: new Date(),
       };
