@@ -10,6 +10,7 @@ import ApplicantListLeft from './ApplicantListLeft';
 import ResumeCard from '../../components/ResumeCard';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../api/api';
+import ViewPostSidebar from '../../components/ViewPostSidebar';
 import Button from '@mui/material/Button';
 import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
@@ -36,6 +37,8 @@ export default function ApplicantList() {
   const isAdminOrManager = user && (user.role === ROLES.ADMIN || user.role === ROLES.MANAGER);
   const navigate = useNavigate();
   const { jobPostId } = useParams();
+  const [jobPost, setJobPost] = useState(null);
+  const [jobPostLoading, setJobPostLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -73,6 +76,7 @@ export default function ApplicantList() {
 
     if (effectiveJobPostId) fetchData();
   }, [effectiveJobPostId]);
+
 
   // applicants 데이터 샘플 콘솔 출력
   useEffect(() => {
@@ -283,6 +287,7 @@ export default function ApplicantList() {
   if (loading) {
     return (
       <Layout settingsButton={settingsButton}>
+        <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
           <div className="text-xl">로딩 중...</div>
         </div>
@@ -293,6 +298,7 @@ export default function ApplicantList() {
   if (error) {
     return (
       <Layout settingsButton={settingsButton}>
+        <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
           <div className="text-xl text-red-500">{error}</div>
         </div>
@@ -302,7 +308,8 @@ export default function ApplicantList() {
 
   return (
     <Layout settingsButton={settingsButton}>
-      <div className="h-screen flex flex-col">
+      <ViewPostSidebar jobPost={jobPost} />
+      <div className="h-screen flex flex-col" style={{ marginLeft: 90 }}>
         <div className="bg-white dark:bg-gray-800 shadow px-8 py-4 flex items-center justify-center">
           <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">
             보안SW 개발자 신입/경력사원 모집 (<span className="text-blue-700 dark:text-blue-400">C, C++</span>) - 소프트웨어 개발자
