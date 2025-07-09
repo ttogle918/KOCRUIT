@@ -154,11 +154,13 @@ function ViewPost() {
                 </div>
               )}
 
-              {jobPost.schedules && jobPost.schedules.length > 0 && (
+
+
+              {jobPost.interview_schedules && jobPost.interview_schedules.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
                   <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정</h4>
                   <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4">
-                    {jobPost.schedules.map((schedule, idx) => (
+                    {jobPost.interview_schedules.map((schedule, idx) => (
                       <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">면접 일정 {idx + 1}</span>
@@ -166,29 +168,18 @@ function ViewPost() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <span className="text-xs text-gray-600 dark:text-gray-400">날짜:</span>
-                            <p className="text-sm text-gray-900 dark:text-white">{schedule.date}</p>
+                            <p className="text-sm text-gray-900 dark:text-white">{schedule.interview_date}</p>
                           </div>
                           <div>
                             <span className="text-xs text-gray-600 dark:text-gray-400">시간:</span>
-                            <p className="text-sm text-gray-900 dark:text-white">{schedule.time}</p>
+                            <p className="text-sm text-gray-900 dark:text-white">{schedule.interview_time}</p>
                           </div>
                         </div>
                         <div>
                           <span className="text-xs text-gray-600 dark:text-gray-400">장소:</span>
-                          <p className="text-sm text-gray-900 dark:text-white">{schedule.place}</p>
+                          <p className="text-sm text-gray-900 dark:text-white">{schedule.location}</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {jobPost.weights && (
-                <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
-                  <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">가중치 항목</h4>
-                  <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
-                    {jobPost.weights.map((w, idx) => (
-                      <p key={idx} className="text-gray-900 dark:text-white">• {w.item}: {w.score}점</p>
                     ))}
                   </div>
                 </div>

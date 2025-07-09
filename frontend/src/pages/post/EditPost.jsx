@@ -109,7 +109,19 @@ function EditPost() {
 
         // Set team members, schedules, and weights
         setTeamMembers(jobPost.teamMembers || [{ email: '', role: '' }]);
-        setSchedules(jobPost.schedules || [{ date: null, time: '', place: '' }]);
+        
+        // Convert interview schedules from API format to form format
+        if (jobPost.interview_schedules && jobPost.interview_schedules.length > 0) {
+          const convertedSchedules = jobPost.interview_schedules.map(schedule => ({
+            date: schedule.interview_date ? new Date(schedule.interview_date) : null,
+            time: schedule.interview_time || '',
+            place: schedule.location || ''
+          }));
+          setSchedules(convertedSchedules);
+        } else {
+          setSchedules([{ date: null, time: '', place: '' }]);
+        }
+        
         setWeights(jobPost.weights || [
           { item: '경력', score: '' },
           { item: '학력', score: '' },
@@ -157,6 +169,18 @@ function EditPost() {
         return `${year}-${month}-${day} ${hours}:${minutes}`;
       };
 
+      // 면접 일정 데이터 변환
+      const interviewSchedules = schedules
+        .filter(schedule => schedule.date && schedule.time && schedule.place)
+        .map(schedule => ({
+          interview_date: schedule.date.toISOString().split('T')[0],  // YYYY-MM-DD
+          interview_time: schedule.time,  // HH:MM
+          location: schedule.place,
+          interview_type: "ONSITE",
+          max_participants: 1,
+          notes: null
+        }));
+
       const formattedData = {
         ...formData,
         headcount: formData.headcount ? parseInt(formData.headcount) : null,
@@ -165,7 +189,7 @@ function EditPost() {
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
         weights: weights.filter(weight => weight.item && weight.score),  // 빈 항목 제거
-        schedules: schedules.filter(schedule => schedule.date && schedule.time && schedule.place),  // 빈 항목 제거
+        interview_schedules: interviewSchedules,  // 새로운 면접 일정 필드
       };
 
       console.log('Sending update data:', formattedData);
