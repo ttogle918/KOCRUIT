@@ -146,7 +146,30 @@ def update_company_job_post(
     if not db_job_post:
         raise HTTPException(status_code=404, detail="Job post not found")
     
-    for field, value in job_post.dict(exclude_unset=True).items():
+    job_data = job_post.dict(exclude_unset=True)
+    
+    # JSON 데이터 처리 및 필드명 매핑
+    if job_data.get('teamMembers'):
+        job_data['team_members'] = json.dumps(job_data['teamMembers']) if job_data['teamMembers'] else None
+    else:
+        job_data['team_members'] = None
+    
+    if job_data.get('schedules'):
+        job_data['schedules'] = json.dumps(job_data['schedules']) if job_data['schedules'] else None
+    else:
+        job_data['schedules'] = None
+        
+    if job_data.get('weights'):
+        job_data['weights'] = json.dumps(job_data['weights']) if job_data['weights'] else None
+    else:
+        job_data['weights'] = None
+    
+    # JobPost 모델에 전달할 데이터에서 camelCase 필드 제거
+    job_data.pop('teamMembers', None)
+    job_data.pop('schedules', None)
+    job_data.pop('weights', None)
+    
+    for field, value in job_data.items():
         setattr(db_job_post, field, value)
     
     db.commit()

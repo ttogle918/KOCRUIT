@@ -123,13 +123,23 @@ function PostRecruitment() {
     }
     setShowError(false);
     try {
-      // 날짜 형식 변환
+      // 날짜 형식 변환 - 시간대 정보 제거
+      const formatDate = (date) => {
+        if (!date) return null;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+      };
+
       const formattedData = {
         ...formData,
         // company_id는 백엔드에서 자동 설정됨
         headcount: formData.headcount ? parseInt(formData.headcount) : null,
-        start_date: formData.start_date ? formData.start_date.toISOString() : null,
-        end_date: formData.end_date ? formData.end_date.toISOString() : null,
+        start_date: formatDate(formData.start_date),
+        end_date: formatDate(formData.end_date),
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
         weights: weights.filter(weight => weight.item && weight.score),  // 빈 항목 제거

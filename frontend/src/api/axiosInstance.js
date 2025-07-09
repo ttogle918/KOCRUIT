@@ -24,6 +24,13 @@ instance.interceptors.response.use(
     console.error('API 에러 상세:', error.response?.data || error.message);
     console.error('요청 URL:', error.config?.url);
     console.error('요청 메서드:', error.config?.method);
+    console.error('요청 헤더:', error.config?.headers);
+    console.error('응답 헤더:', error.response?.headers);
+    console.error('CORS 관련 헤더:', {
+      'access-control-allow-origin': error.response?.headers?.['access-control-allow-origin'],
+      'access-control-allow-methods': error.response?.headers?.['access-control-allow-methods'],
+      'access-control-allow-headers': error.response?.headers?.['access-control-allow-headers']
+    });
     
     // 토큰 만료 시 자동 로그아웃
     if (error.response?.status === 401) {
