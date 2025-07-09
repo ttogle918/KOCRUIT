@@ -15,9 +15,10 @@ class Resume(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    user = relationship("User")
+    # Relationships with back_populates
+    user = relationship("User", back_populates="resumes")
     specs = relationship("Spec", back_populates="resume")
+    applications = relationship("Application", back_populates="resume")
 
 
 class Spec(Base):
@@ -42,6 +43,6 @@ class ResumeMemo(Base):
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
-    user = relationship("CompanyUser")
-    application = relationship("Application") 
+    # Relationships with back_populates
+    user = relationship("CompanyUser", back_populates="resume_memos")
+    application = relationship("Application", back_populates="memos") 
