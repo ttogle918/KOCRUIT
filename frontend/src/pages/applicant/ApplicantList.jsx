@@ -14,10 +14,19 @@ import ViewPostSidebar from '../../components/ViewPostSidebar';
 import Button from '@mui/material/Button';
 import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import IconButton from '@mui/material/IconButton';
 import ArrowBackIosNew from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIos from '@mui/icons-material/ArrowForwardIos';
+import { 
+  calculateAge, 
+  getEducationStats, 
+  getGenderStats, 
+  getAgeGroupStats, 
+  getNewApplicantsToday, 
+  getUnviewedApplicants,
+  CHART_COLORS 
+} from '../../utils/applicantStats';
 
 export default function ApplicantList() {
   const [bookmarkedList, setBookmarkedList] = useState([]);
@@ -81,10 +90,12 @@ export default function ApplicantList() {
   // applicants 데이터 샘플 콘솔 출력
   useEffect(() => {
     if (applicants.length > 0) {
-      console.log("applicants 샘플:", applicants.slice(0, 3));
-      applicants.slice(0, 3).forEach(app => {
-        console.log("birthDate:", app.birthDate, "typeof:", typeof app.birthDate);
+      console.log("==== applicants 전체 목록 ====");
+      applicants.forEach((a, idx) => {
+        console.log(`#${idx+1}: id=${a.id}, name=${a.name}, degree=${a.degree}, education=${a.education}, status=${a.status}`);
       });
+      console.log("==== applicants 원본 ====");
+      console.log(applicants);
     }
   }, [applicants]);
 
@@ -189,101 +200,6 @@ export default function ApplicantList() {
 
   // const selectedApplicant = selectedApplicantIndex !== null ? applicants[selectedApplicantIndex] : null;
 
-  const calculateAge = (birthDate) => {
-    if (!birthDate) return 'N/A';
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-
-    return age;
-  };
-
-  // 나이대별 지원자 수 집계 함수 (범주 고정, 모든 범주 항상 표시)
-  const getAgeGroupStats = (applicants) => {
-    const now = new Date();
-    const getAge = (birth) => {
-      if (!birth) return null;
-      const birthDate = new Date(birth);
-      if (isNaN(birthDate.getTime())) {
-        console.log("Invalid birthDate:", birth);
-        return null;
-      }
-      let age = now.getFullYear() - birthDate.getFullYear();
-      const m = now.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) age--;
-      return age;
-    };
-    const AGE_GROUPS = [
-      { label: '20대초반', min: 20, max: 23 },
-      { label: '20대중반', min: 24, max: 26 },
-      { label: '20대후반', min: 27, max: 29 },
-      { label: '30대초반', min: 30, max: 33 },
-      { label: '30대중반', min: 34, max: 36 },
-      { label: '30대후반', min: 37, max: 39 },
-      { label: '40대', min: 40, max: 49 },
-      { label: '50대이상', min: 50, max: 150 },
-    ];
-    // 모든 범주를 0으로 초기화
-    const stats = AGE_GROUPS.map(g => ({ name: g.label, count: 0 }));
-    applicants.forEach(app => {
-      const birth = app.birthDate || app.birthdate || app.birthday;
-      const age = getAge(birth);
-      if (age === null) return;
-      for (let i = 0; i < AGE_GROUPS.length; i++) {
-        const g = AGE_GROUPS[i];
-        if (age >= g.min && age <= g.max) {
-          stats[i].count++;
-          break;
-        }
-      }
-    });
-    return stats;
-  };
-
-  // 성별 통계 집계 함수
-  const getGenderStats = (applicants) => {
-    const male = applicants.filter(a => a.gender === 'M').length;
-    const female = applicants.filter(a => a.gender === 'F').length;
-    return [
-      { name: '남성', value: male },
-      { name: '여성', value: female }
-    ];
-  };
-
-  const GENDER_COLORS = ['#42a5f5', '#f06292'];
-
-  // 학력 통계 집계 함수
-  const getEducationStats = (applicants) => {
-    let high = 0, college = 0, master = 0;
-    applicants.forEach(a => {
-      let level = null;
-      if (a.educations && a.educations.length > 0) {
-        const degrees = a.educations.map(e => (e.degree || '').toLowerCase());
-        if (degrees.some(d => d.includes('석사') || d.includes('박사') || d.includes('phd') || d.includes('master'))) {
-          level = '석사이상';
-        } else if (degrees.some(d => d.includes('학사') || d.includes('대졸') || d.includes('bachelor'))) {
-          level = '대졸';
-        } else if (degrees.some(d => d.includes('고등학교') || d.includes('고졸') || d.includes('high'))) {
-          level = '고졸';
-        }
-      }
-      if (level === '석사이상') master++;
-      else if (level === '대졸') college++;
-      else if (level === '고졸') high++;
-    });
-    return [
-      { name: '고졸', value: high },
-      { name: '대졸', value: college },
-      { name: '석사이상', value: master }
-    ];
-  };
-  const EDU_COLORS = ['#ffd54f', '#4fc3f7', '#ab47bc'];
-
   if (loading) {
     return (
       <Layout settingsButton={settingsButton}>
@@ -370,12 +286,12 @@ export default function ApplicantList() {
                     <div className="text-center space-y-8">
                       <div className="text-4xl font-bold text-blue-600">오늘의 신규 지원자</div>
                       <div className="text-6xl font-bold text-gray-800 dark:text-white">
-                        {waitingApplicants.filter(a => new Date(a.appliedAt).toDateString() === new Date().toDateString()).length}
+                        {getNewApplicantsToday(waitingApplicants)}
                       </div>
                       <div className="text-2xl font-semibold text-gray-600 dark:text-gray-300">대기중인 지원자</div>
                       <div className="text-5xl font-bold text-gray-800 dark:text-white">{waitingApplicants.length}</div>
                       <div className="text-2xl font-semibold text-gray-600 dark:text-gray-300">미열람 지원자</div>
-                      <div className="text-5xl font-bold text-gray-800 dark:text-white">{waitingApplicants.filter(a => !a.isViewed).length}</div>
+                      <div className="text-5xl font-bold text-gray-800 dark:text-white">{getUnviewedApplicants(waitingApplicants)}</div>
                       <div className="flex justify-center w-full">
                         <Button
                           variant="outlined"
@@ -449,7 +365,7 @@ export default function ApplicantList() {
                 <XAxis dataKey="name" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#42a5f5" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" fill={CHART_COLORS.AGE_GROUP} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -466,10 +382,11 @@ export default function ApplicantList() {
                   label
                 >
                   {getGenderStats(applicants).map((entry, idx) => (
-                    <Cell key={`cell-${idx}`} fill={GENDER_COLORS[idx % GENDER_COLORS.length]} />
+                    <Cell key={`cell-${idx}`} fill={CHART_COLORS.GENDER[idx % CHART_COLORS.GENDER.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend layout="vertical" align="right" verticalAlign="middle" />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -486,10 +403,11 @@ export default function ApplicantList() {
                   label
                 >
                   {getEducationStats(applicants).map((entry, idx) => (
-                    <Cell key={`cell-edu-${idx}`} fill={EDU_COLORS[idx % EDU_COLORS.length]} />
+                    <Cell key={`cell-edu-${idx}`} fill={CHART_COLORS.EDUCATION[idx % CHART_COLORS.EDUCATION.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend layout="vertical" align="right" verticalAlign="middle" />
               </PieChart>
             </ResponsiveContainer>
           )}

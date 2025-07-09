@@ -94,6 +94,8 @@ class ApplicantList(BaseModel):
     score: Optional[float] = None
     birthDate: Optional[str] = None
     gender: Optional[str] = None
+    education: Optional[str] = None
+    degree: Optional[str] = None  # 추가: degree 정보
     
     class Config:
         alias_generator = to_camel
