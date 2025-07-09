@@ -134,6 +134,18 @@ function PostRecruitment() {
         return `${year}-${month}-${day} ${hours}:${minutes}`;
       };
 
+      // 면접 일정 데이터 변환
+      const interviewSchedules = schedules
+        .filter(schedule => schedule.date && schedule.time && schedule.place)
+        .map(schedule => ({
+          interview_date: schedule.date.toISOString().split('T')[0],  // YYYY-MM-DD
+          interview_time: schedule.time,  // HH:MM
+          location: schedule.place,
+          interview_type: "ONSITE",
+          max_participants: 1,
+          notes: null
+        }));
+
       const formattedData = {
         ...formData,
         // company_id는 백엔드에서 자동 설정됨
@@ -143,6 +155,7 @@ function PostRecruitment() {
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
         weights: weights.filter(weight => weight.item && weight.score),  // 빈 항목 제거
+        interview_schedules: interviewSchedules,  // 새로운 면접 일정 필드
       };
 
       console.log('Sending data:', formattedData);  // 디버깅용

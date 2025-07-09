@@ -24,7 +24,7 @@ class JobPost(Base):
     employment_type = Column(String(50))
     deadline = Column(String(50))
     team_members = Column(Text)
-    schedules = Column(Text)
+    schedules = Column(Text)  # 기존 필드 유지 (하위 호환성)
     weights = Column(Text)
     status = Column(String(20), default="ACTIVE")
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -35,6 +35,25 @@ class JobPost(Base):
     department_rel = relationship("Department")
     user = relationship("User")
     applications = relationship("Application", back_populates="job_post")
+    interview_schedules = relationship("PostInterview", back_populates="job_post", cascade="all, delete-orphan")
+
+
+class PostInterview(Base):
+    __tablename__ = "post_interview"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=False)
+    interview_date = Column(String(10), nullable=False)  # YYYY-MM-DD
+    interview_time = Column(String(5), nullable=False)   # HH:MM
+    location = Column(String(255), nullable=False)
+    interview_type = Column(String(20), default="ONSITE")  # ONSITE, ONLINE, PHONE
+    max_participants = Column(Integer, default=1)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    job_post = relationship("JobPost", back_populates="interview_schedules")
 
 
 class Job(Base):

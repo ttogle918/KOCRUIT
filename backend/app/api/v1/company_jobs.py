@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 import json
 from app.core.database import get_db
-from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList
-from app.models.job import JobPost
+from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList, PostInterviewCreate, PostInterviewDetail
+from app.models.job import JobPost, PostInterview
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 
@@ -75,6 +75,10 @@ def get_company_job_post(
     else:
         job_post.weights = []
     
+    # 면접 일정 조회
+    interview_schedules = db.query(PostInterview).filter(PostInterview.job_post_id == job_post.id).all()
+    job_post.interview_schedules = interview_schedules
+    
     return job_post
 
 
@@ -92,9 +96,13 @@ def create_company_job_post(
     # company_id 제거 (백엔드에서 설정)
     job_data.pop('company_id', None)
     
+    # 면접 일정 처리
+    interview_schedules = job_data.pop('interview_schedules', [])
+    
     # 디버깅용 로그
     print(f"Current user: {current_user.id}, company_id: {current_user.company_id}")
     print(f"Job data: {job_data}")
+    print(f"Interview schedules: {interview_schedules}")
     
     # JSON 데이터 처리 및 필드명 매핑
     if job_data.get('teamMembers'):
@@ -120,6 +128,34 @@ def create_company_job_post(
     db.add(db_job_post)
     db.commit()
     db.refresh(db_job_post)
+    
+    # 면접 일정 저장
+    if interview_schedules:
+        for schedule_data in interview_schedules:
+            # dict 형태로 전달된 경우 처리
+            if isinstance(schedule_data, dict):
+                interview_schedule = PostInterview(
+                    job_post_id=db_job_post.id,
+                    interview_date=schedule_data.get('interview_date'),
+                    interview_time=schedule_data.get('interview_time'),
+                    location=schedule_data.get('location'),
+                    interview_type=schedule_data.get('interview_type', 'ONSITE'),
+                    max_participants=schedule_data.get('max_participants', 1),
+                    notes=schedule_data.get('notes')
+                )
+            else:
+                # Pydantic 모델로 전달된 경우 처리
+                interview_schedule = PostInterview(
+                    job_post_id=db_job_post.id,
+                    interview_date=schedule_data.interview_date,
+                    interview_time=schedule_data.interview_time,
+                    location=schedule_data.location,
+                    interview_type=schedule_data.interview_type,
+                    max_participants=schedule_data.max_participants,
+                    notes=schedule_data.notes
+                )
+            db.add(interview_schedule)
+        db.commit()
     
     # Add company name to the response
     if db_job_post.company:
@@ -148,6 +184,9 @@ def update_company_job_post(
     
     job_data = job_post.dict(exclude_unset=True)
     
+    # 면접 일정 처리
+    interview_schedules = job_data.pop('interview_schedules', None)
+    
     # JSON 데이터 처리 및 필드명 매핑
     if job_data.get('teamMembers'):
         job_data['team_members'] = json.dumps(job_data['teamMembers']) if job_data['teamMembers'] else None
@@ -174,6 +213,39 @@ def update_company_job_post(
     
     db.commit()
     db.refresh(db_job_post)
+    
+    # 면접 일정 업데이트 (기존 일정 삭제 후 새로 생성)
+    if interview_schedules is not None:
+        # 기존 면접 일정 삭제
+        db.query(PostInterview).filter(PostInterview.job_post_id == job_post_id).delete()
+        
+        # 새로운 면접 일정 추가
+        if interview_schedules:
+            for schedule_data in interview_schedules:
+                # dict 형태로 전달된 경우 처리
+                if isinstance(schedule_data, dict):
+                    interview_schedule = PostInterview(
+                        job_post_id=job_post_id,
+                        interview_date=schedule_data.get('interview_date'),
+                        interview_time=schedule_data.get('interview_time'),
+                        location=schedule_data.get('location'),
+                        interview_type=schedule_data.get('interview_type', 'ONSITE'),
+                        max_participants=schedule_data.get('max_participants', 1),
+                        notes=schedule_data.get('notes')
+                    )
+                else:
+                    # Pydantic 모델로 전달된 경우 처리
+                    interview_schedule = PostInterview(
+                        job_post_id=job_post_id,
+                        interview_date=schedule_data.interview_date,
+                        interview_time=schedule_data.interview_time,
+                        location=schedule_data.location,
+                        interview_type=schedule_data.interview_type,
+                        max_participants=schedule_data.max_participants,
+                        notes=schedule_data.notes
+                    )
+                db.add(interview_schedule)
+        db.commit()
     
     # Add company name to the response
     if db_job_post.company:
