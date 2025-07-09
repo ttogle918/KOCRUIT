@@ -103,8 +103,24 @@ function InterviewProgress() {
     setEvaluation(prev => ({ ...prev, [item]: level }));
   };
 
-  if (loading || jobPostLoading) return <div className="flex h-screen items-center justify-center dark:text-gray-100">로딩 중...</div>;
-  if (error) return <div className="flex h-screen items-center justify-center text-red-500 dark:text-red-400">{error}</div>;
+  if (loading || jobPostLoading) {
+    return (
+      <div className="relative min-h-screen bg-[#f7faff] dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <Navbar />
+        <ViewPostSidebar jobPost={null} />
+        <div className="flex h-screen items-center justify-center dark:text-gray-100">로딩 중...</div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="relative min-h-screen bg-[#f7faff] dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+        <Navbar />
+        <ViewPostSidebar jobPost={null} />
+        <div className="flex h-screen items-center justify-center text-red-500 dark:text-red-400">{error}</div>
+      </div>
+    );
+  }
 
   // 레이아웃: Navbar(상단), ViewPostSidebar(좌측), 나머지 flex
   return (
@@ -166,7 +182,7 @@ function InterviewProgress() {
         </div>
         {/* 우측 면접 질문/메모 */}
         <div className="w-[400px] border-l border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 h-full min-h-0 flex flex-col">
-          <div className="h-full overflow-y-auto">
+          <div className="h-full min-h-0 flex flex-col">
             <InterviewPanel
               questions={questions}
               memo={memo}
