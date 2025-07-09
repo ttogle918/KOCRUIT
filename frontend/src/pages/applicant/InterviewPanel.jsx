@@ -1,5 +1,6 @@
 import React from 'react';
 import Rating from '@mui/material/Rating';
+import Rating from '@mui/material/Rating';
 
 function InterviewPanel({ questions, memo, onMemoChange, evaluation, onEvaluationChange, isAutoSaving = false }) {
   // 예시: 카테고리별 평가 항목(실제 항목 구조에 맞게 수정)
@@ -93,8 +94,8 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
           </tbody>
         </table>
       </div>
-      <div className="flex-1 flex flex-col">
-        <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">면접 메모</h3>
+      <div className="mt-4">
+        <div className="font-semibold mb-1">면접 메모</div>
         <textarea
           className={`w-full min-h-[80px] p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
             isAutoSaving ? 'opacity-75' : ''
@@ -105,11 +106,10 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
           disabled={isAutoSaving}
         />
       </div>
-      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-        + 전반적인 평가 메모도 가능
-      </div>
     </div>
   );
 }
+
+export default InterviewPanel;
 
 export default InterviewPanel;

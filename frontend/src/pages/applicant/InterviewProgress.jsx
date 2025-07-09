@@ -7,9 +7,11 @@ import ResumeCard from '../../components/ResumeCard';
 import InterviewPanel from './InterviewPanel';
 import api from '../../api/api';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
 
 function InterviewProgress() {
   const { jobPostId } = useParams();
+  const { user } = useAuth();
   const [applicants, setApplicants] = useState([]);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
@@ -20,7 +22,7 @@ function InterviewProgress() {
     '팀에서 맡았던 역할은 무엇인가요?'
   ]);
   const [memo, setMemo] = useState('');
-  const [evaluation, setEvaluation] = useState({ 인성: '', 역량: '' });
+  const [evaluation, setEvaluation] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [jobPost, setJobPost] = useState(null);
@@ -98,7 +100,7 @@ function InterviewProgress() {
       setResume(res.data);
       setSelectedApplicant(applicant);
       setMemo('');
-      setEvaluation({ 인성: '', 역량: '' });
+      setEvaluation({});
     } catch (err) {
       setResume(null);
     }
