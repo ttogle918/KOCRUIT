@@ -1,35 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Layout from '../../layout/Layout';
 import api from '../../api/api';
-import ViewPostSidebar from '../../components/ViewPostSidebar';
 
 function CommonViewPost() {
-  const { jobPostId } = useParams();
+  const { id } = useParams();
   const [jobPost, setJobPost] = useState(null);
-  const [jobPostLoading, setJobPostLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchJobPost = async () => {
-      setJobPostLoading(true);
       try {
-        const response = await api.get(`/company/jobposts/${jobPostId}`);
+        const response = await api.get(`/public/jobposts/${id}`);
+        console.log('Job Post Data:', response.data);
         setJobPost(response.data);
+        setLoading(false);
       } catch (err) {
-        setJobPost(null);
-      } finally {
-        setJobPostLoading(false);
+        console.error('Error fetching job post:', err);
+        setError(err.message);
+        setLoading(false);
       }
     };
-    if (jobPostId) fetchJobPost();
-  }, [jobPostId]);
 
-  if (jobPostLoading) {
+    if (id) {
+      fetchJobPost();
+    }
+  }, [id]);
+
+  if (loading) {
     return (
       <Layout title="로딩 중...">
-        <ViewPostSidebar jobPost={jobPost} />
         <div className="flex justify-center items-center h-screen">
           <div className="text-xl">로딩 중...</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout title="오류">
+        <div className="flex justify-center items-center h-screen">
+          <div className="text-xl text-red-500">{error}</div>
         </div>
       </Layout>
     );
@@ -38,7 +51,6 @@ function CommonViewPost() {
   if (!jobPost) {
     return (
       <Layout title="공고 없음">
-        <ViewPostSidebar jobPost={jobPost} />
         <div className="flex justify-center items-center h-screen">
           <div className="text-xl">존재하지 않는 공고입니다.</div>
         </div>
@@ -48,8 +60,7 @@ function CommonViewPost() {
 
   return (
     <Layout title="채용공고 상세보기">
-      <ViewPostSidebar jobPost={jobPost} />
-      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl" style={{ marginLeft: 90 }}>
+      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-center space-y-2">
