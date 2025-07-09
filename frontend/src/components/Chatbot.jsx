@@ -89,35 +89,129 @@ const Chatbot = () => {
 
     // 주요 DOM 요소들 수집
     try {
+      // 페이지의 모든 텍스트 내용 수집
+      const pageTextContent = document.body.innerText || document.body.textContent || '';
+      context.pageTextContent = pageTextContent.substring(0, 2000); // 최대 2000자로 제한
+
+      // 폼 요소들 수집
       const forms = Array.from(document.querySelectorAll('form')).map(form => ({
         id: form.id || null,
         className: form.className || null,
-        action: form.action || null
+        action: form.action || null,
+        method: form.method || null
       }));
 
-      const inputs = Array.from(document.querySelectorAll('input, textarea, select')).map(input => ({
-        id: input.id || null,
-        name: input.name || null,
-        type: input.type || input.tagName.toLowerCase(),
-        placeholder: input.placeholder || null,
-        value: input.value || null,
-        className: input.className || null
-      }));
+      // 입력 필드들 수집 (더 상세한 정보)
+      const inputs = Array.from(document.querySelectorAll('input, textarea, select')).map(input => {
+        const inputInfo = {
+          id: input.id || null,
+          name: input.name || null,
+          type: input.type || input.tagName.toLowerCase(),
+          placeholder: input.placeholder || null,
+          value: input.value || null,
+          className: input.className || null,
+          required: input.required || false,
+          disabled: input.disabled || false
+        };
 
-      const buttons = Array.from(document.querySelectorAll('button')).map(button => ({
+        // 라벨 요소 찾기
+        const label = document.querySelector(`label[for="${input.id}"]`);
+        if (label) {
+          inputInfo.label = label.textContent?.trim() || null;
+        }
+
+        // 부모 요소에서 라벨 찾기
+        if (!inputInfo.label) {
+          const parent = input.parentElement;
+          if (parent) {
+            const parentLabel = parent.querySelector('label');
+            if (parentLabel) {
+              inputInfo.label = parentLabel.textContent?.trim() || null;
+            }
+          }
+        }
+
+        return inputInfo;
+      });
+
+      // 버튼들 수집
+      const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"]')).map(button => ({
         id: button.id || null,
-        text: button.textContent?.trim() || null,
-        className: button.className || null
+        text: button.textContent?.trim() || button.value || null,
+        className: button.className || null,
+        type: button.type || 'button',
+        disabled: button.disabled || false
       }));
+
+      // 제목 요소들 수집
+      const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(heading => ({
+        level: heading.tagName.toLowerCase(),
+        text: heading.textContent?.trim() || null,
+        id: heading.id || null,
+        className: heading.className || null
+      }));
+
+      // 링크들 수집
+      const links = Array.from(document.querySelectorAll('a')).map(link => ({
+        text: link.textContent?.trim() || null,
+        href: link.href || null,
+        className: link.className || null
+      }));
+
+      // 테이블 데이터 수집
+      const tables = Array.from(document.querySelectorAll('table')).map(table => {
+        const rows = Array.from(table.querySelectorAll('tr')).map(row => {
+          const cells = Array.from(row.querySelectorAll('td, th')).map(cell => ({
+            text: cell.textContent?.trim() || null,
+            isHeader: cell.tagName.toLowerCase() === 'th'
+          }));
+          return cells;
+        });
+        return {
+          id: table.id || null,
+          className: table.className || null,
+          rows: rows.slice(0, 10) // 최대 10행만
+        };
+      });
 
       context.domElements = {
+        pageTextContent: context.pageTextContent,
         forms: forms.slice(0, 5), // 최대 5개만
-        inputs: inputs.slice(0, 10), // 최대 10개만
-        buttons: buttons.slice(0, 10) // 최대 10개만
+        inputs: inputs.slice(0, 15), // 최대 15개만
+        buttons: buttons.slice(0, 10), // 최대 10개만
+        headings: headings.slice(0, 10), // 최대 10개만
+        links: links.slice(0, 10), // 최대 10개만
+        tables: tables.slice(0, 3) // 최대 3개만
       };
+
+      // 페이지 구조 분석
+      context.pageStructure = {
+        hasForms: forms.length > 0,
+        hasInputs: inputs.length > 0,
+        hasButtons: buttons.length > 0,
+        hasTables: tables.length > 0,
+        mainHeading: headings.find(h => h.level === 'h1')?.text || null,
+        subHeadings: headings.filter(h => h.level !== 'h1').slice(0, 5).map(h => h.text)
+      };
+
     } catch (error) {
       console.warn('DOM 요소 수집 중 오류:', error);
-      context.domElements = { forms: [], inputs: [], buttons: [] };
+      context.domElements = { 
+        forms: [], 
+        inputs: [], 
+        buttons: [], 
+        headings: [],
+        links: [],
+        tables: []
+      };
+      context.pageStructure = {
+        hasForms: false,
+        hasInputs: false,
+        hasButtons: false,
+        hasTables: false,
+        mainHeading: null,
+        subHeadings: []
+      };
     }
 
     return context;
