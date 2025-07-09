@@ -55,3 +55,24 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// AI Agent API (가중치 추출용)
+const agentApi = axios.create({
+  baseURL: 'http://localhost:8001', // AI Agent 서버 주소
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 30000,
+});
+
+export const extractWeights = async (jobPostingContent) => {
+  try {
+    const response = await agentApi.post('/extract-weights/', {
+      job_posting: jobPostingContent
+    });
+    return response.data;
+  } catch (error) {
+    console.error('가중치 추출 실패:', error);
+    throw error;
+  }
+};
