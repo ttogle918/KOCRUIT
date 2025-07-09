@@ -29,10 +29,10 @@ class JobPost(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
+    # Relationships with back_populates
     company = relationship("Company", back_populates="job_posts")
-    department_rel = relationship("Department")
-    user = relationship("User")
+    department_rel = relationship("Department", back_populates="job_posts")
+    user = relationship("User", back_populates="job_posts")
     applications = relationship("Application", back_populates="job_post")
 
 
@@ -50,4 +50,4 @@ class Job(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = relationship("User") 
+    user = relationship("User", back_populates="jobs") 

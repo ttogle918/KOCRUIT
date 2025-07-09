@@ -39,6 +39,12 @@ class User(Base):
     # Discriminator column for inheritance
     user_type = Column(String(20))
     
+    # Relationships
+    applications = relationship("Application", back_populates="user")
+    resumes = relationship("Resume", back_populates="user")
+    job_posts = relationship("JobPost", back_populates="user")
+    jobs = relationship("Job", back_populates="user")
+    
     __mapper_args__ = {
         'polymorphic_identity': 'individual',
         'polymorphic_on': user_type
@@ -58,6 +64,7 @@ class CompanyUser(User):
     # Relationships
     company = relationship("Company", back_populates="company_users")
     department = relationship("Department", back_populates="company_users")
+    resume_memos = relationship("ResumeMemo", back_populates="user")
     
     __mapper_args__ = {
         'polymorphic_identity': 'company',

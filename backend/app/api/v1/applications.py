@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from app.core.database import get_db
 from app.schemas.application import (
@@ -9,7 +9,7 @@ from app.schemas.application import (
 from app.models.application import Application, ApplyStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
-from app.models.resume import Resume
+from app.models.resume import Resume, Spec
 from app.models.user import User
 from app.models.applicant_user import ApplicantUser
 
@@ -33,24 +33,19 @@ def get_application(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    application = db.query(Application).filter(Application.id == application_id).first()
+    # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
+    application = (
+        db.query(Application)
+        .options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        )
+        .filter(Application.id == application_id)
+        .first()
+    )
+    
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
-    
-    # 이력서 정보도 함께 가져오기
-    from app.models.resume import Resume, Spec
-    
-    resume = None
-    user = None
-    specs = []
-    
-    if application.resume_id is not None:
-        resume = db.query(Resume).filter(Resume.id == application.resume_id).first()
-        if resume:
-            specs = db.query(Spec).filter(Spec.resume_id == application.resume_id).all()
-    
-    if application.user_id is not None:
-        user = db.query(User).filter(User.id == application.user_id).first()
     
     # Spec 데이터 분류 (의미적으로 유사한 것들을 그룹화)
     educations = []
@@ -59,124 +54,125 @@ def get_application(
     skills = []
     experiences = []  # activities + project_experience를 통합
     
-    for spec in specs:
-        spec_type = str(spec.spec_type)
-        spec_title = str(spec.spec_title)
-        spec_description = spec.spec_description or ""
-        
-        if spec_type == "education":
-            if spec_title == "institution":
-                # 새로운 교육 항목 시작
-                education = {
-                    "period": "",
-                    "schoolName": spec_description,
-                    "major": "",
-                    "graduated": False,
-                    "degree": "",
-                    "gpa": "",
-                    "duration": ""
-                }
-                educations.append(education)
-            elif spec_title == "start_date":
-                if educations:
-                    educations[-1]["startDate"] = spec_description
-            elif spec_title == "end_date":
-                if educations:
-                    educations[-1]["endDate"] = spec_description
-            elif spec_title == "degree":
-                if educations:
-                    educations[-1]["degree"] = spec_description
-            elif spec_title == "gpa":
-                if educations:
-                    educations[-1]["gpa"] = spec_description
-            elif spec_title == "duration":
-                if educations:
-                    educations[-1]["duration"] = spec_description
-        
-        elif spec_type == "awards":
-            if spec_title == "title":
-                award = {
-                    "title": spec_description,
-                    "date": "",
-                    "description": "",
-                    "duration": ""
-                }
-                awards.append(award)
-            elif spec_title == "date":
-                if awards:
-                    awards[-1]["date"] = spec_description
-            elif spec_title == "description":
-                if awards:
-                    awards[-1]["description"] = spec_description
-            elif spec_title == "duration":
-                if awards:
-                    awards[-1]["duration"] = spec_description
-        
-        elif spec_type == "certifications":
-            if spec_title == "name":
-                certificate = {
-                    "name": spec_description,
-                    "date": "",
-                    "duration": ""
-                }
-                certificates.append(certificate)
-            elif spec_title == "date":
-                if certificates:
-                    certificates[-1]["date"] = spec_description
-            elif spec_title == "duration":
-                if certificates:
-                    certificates[-1]["duration"] = spec_description
-        
-        elif spec_type == "skills":
-            skills.append(spec_description)
-        
-        elif spec_type == "activities":
-            if spec_title == "organization":
-                experience = {
-                    "type": "activity",
-                    "organization": spec_description,
-                    "role": "",
-                    "period": "",
-                    "description": "",
-                    "duration": ""
-                }
-                experiences.append(experience)
-            elif spec_title == "role":
-                if experiences and experiences[-1]["type"] == "activity":
-                    experiences[-1]["role"] = spec_description
-            elif spec_title == "period":
-                if experiences and experiences[-1]["type"] == "activity":
-                    experiences[-1]["period"] = spec_description
-            elif spec_title == "description":
-                if experiences and experiences[-1]["type"] == "activity":
-                    experiences[-1]["description"] = spec_description
-            elif spec_title == "duration":
-                if experiences and experiences[-1]["type"] == "activity":
-                    experiences[-1]["duration"] = spec_description
-        
-        elif spec_type == "project_experience":
-            if spec_title == "title":
-                experience = {
-                    "type": "project",
-                    "title": spec_description,
-                    "role": "",
-                    "duration": "",
-                    "technologies": "",
-                    "description": ""
-                }
-                experiences.append(experience)
-            elif spec_title == "role":
-                if experiences and experiences[-1]["type"] == "project":
-                    experiences[-1]["role"] = spec_description
-            elif spec_title == "duration":
-                if experiences and experiences[-1]["type"] == "project":
-                    experiences[-1]["duration"] = spec_description
-            elif spec_title == "technologies":
-                if experiences and experiences[-1]["type"] == "project":
-                    experiences[-1]["technologies"] = spec_description
-            elif spec_title == "description":
-                if experiences and experiences[-1]["type"] == "project":
-                    experiences[-1]["description"] = spec_description
+    if application.resume and application.resume.specs:
+        for spec in application.resume.specs:
+            spec_type = str(spec.spec_type)
+            spec_title = str(spec.spec_title)
+            spec_description = spec.spec_description or ""
+            
+            if spec_type == "education":
+                if spec_title == "institution":
+                    # 새로운 교육 항목 시작
+                    education = {
+                        "period": "",
+                        "schoolName": spec_description,
+                        "major": "",
+                        "graduated": False,
+                        "degree": "",
+                        "gpa": "",
+                        "duration": ""
+                    }
+                    educations.append(education)
+                elif spec_title == "start_date":
+                    if educations:
+                        educations[-1]["startDate"] = spec_description
+                elif spec_title == "end_date":
+                    if educations:
+                        educations[-1]["endDate"] = spec_description
+                elif spec_title == "degree":
+                    if educations:
+                        educations[-1]["degree"] = spec_description
+                elif spec_title == "gpa":
+                    if educations:
+                        educations[-1]["gpa"] = spec_description
+                elif spec_title == "duration":
+                    if educations:
+                        educations[-1]["duration"] = spec_description
+            
+            elif spec_type == "awards":
+                if spec_title == "title":
+                    award = {
+                        "title": spec_description,
+                        "date": "",
+                        "description": "",
+                        "duration": ""
+                    }
+                    awards.append(award)
+                elif spec_title == "date":
+                    if awards:
+                        awards[-1]["date"] = spec_description
+                elif spec_title == "description":
+                    if awards:
+                        awards[-1]["description"] = spec_description
+                elif spec_title == "duration":
+                    if awards:
+                        awards[-1]["duration"] = spec_description
+            
+            elif spec_type == "certifications":
+                if spec_title == "name":
+                    certificate = {
+                        "name": spec_description,
+                        "date": "",
+                        "duration": ""
+                    }
+                    certificates.append(certificate)
+                elif spec_title == "date":
+                    if certificates:
+                        certificates[-1]["date"] = spec_description
+                elif spec_title == "duration":
+                    if certificates:
+                        certificates[-1]["duration"] = spec_description
+            
+            elif spec_type == "skills":
+                skills.append(spec_description)
+            
+            elif spec_type == "activities":
+                if spec_title == "organization":
+                    experience = {
+                        "type": "activity",
+                        "organization": spec_description,
+                        "role": "",
+                        "period": "",
+                        "description": "",
+                        "duration": ""
+                    }
+                    experiences.append(experience)
+                elif spec_title == "role":
+                    if experiences and experiences[-1]["type"] == "activity":
+                        experiences[-1]["role"] = spec_description
+                elif spec_title == "period":
+                    if experiences and experiences[-1]["type"] == "activity":
+                        experiences[-1]["period"] = spec_description
+                elif spec_title == "description":
+                    if experiences and experiences[-1]["type"] == "activity":
+                        experiences[-1]["description"] = spec_description
+                elif spec_title == "duration":
+                    if experiences and experiences[-1]["type"] == "activity":
+                        experiences[-1]["duration"] = spec_description
+            
+            elif spec_type == "project_experience":
+                if spec_title == "title":
+                    experience = {
+                        "type": "project",
+                        "title": spec_description,
+                        "role": "",
+                        "duration": "",
+                        "technologies": "",
+                        "description": ""
+                    }
+                    experiences.append(experience)
+                elif spec_title == "role":
+                    if experiences and experiences[-1]["type"] == "project":
+                        experiences[-1]["role"] = spec_description
+                elif spec_title == "duration":
+                    if experiences and experiences[-1]["type"] == "project":
+                        experiences[-1]["duration"] = spec_description
+                elif spec_title == "technologies":
+                    if experiences and experiences[-1]["type"] == "project":
+                        experiences[-1]["technologies"] = spec_description
+                elif spec_title == "description":
+                    if experiences and experiences[-1]["type"] == "project":
+                        experiences[-1]["description"] = spec_description
     
     # 응답 데이터 구성
     response_data = {
@@ -196,24 +192,24 @@ def get_application(
         "created_at": None,
         "updated_at": None,
         # 이력서 정보 추가
-        "applicantName": user.name if user else "",
-        "gender": user.gender if user else "",
-        "birthDate": str(user.birth_date) if user.birth_date else None,
-        "email": user.email if user else "",
-        "address": user.address if user else "",
-        "phone": user.phone if user else "",
+        "applicantName": application.user.name if application.user else "",
+        "gender": application.user.gender if application.user else "",
+        "birthDate": str(application.user.birth_date) if application.user and application.user.birth_date else None,
+        "email": application.user.email if application.user else "",
+        "address": application.user.address if application.user else "",
+        "phone": application.user.phone if application.user else "",
         "educations": educations,  # Spec 테이블에서 가져오기
         "awards": awards,      # Spec 테이블에서 가져오기
         "certificates": certificates, # Spec 테이블에서 가져오기
         "skills": skills,      # Spec 테이블에서 가져오기
         "experiences": experiences, # activities + project_experience 통합
-        "content": resume.content if resume else ""
+        "content": application.resume.content if application.resume else ""
     }
     
     print(f"API 응답 데이터: {response_data}")
-    print(f"User 정보: {user.name if user else 'None'}")
-    print(f"Resume 정보: {resume.content[:50] if resume and resume.content is not None else 'None'}")
-    print(f"Spec 개수: {len(specs)}")
+    print(f"User 정보: {application.user.name if application.user else 'None'}")
+    print(f"Resume 정보: {application.resume.content[:50] if application.resume and application.resume.content is not None else 'None'}")
+    print(f"Spec 개수: {len(application.resume.specs) if application.resume else 0}")
     print(f"Education 개수: {len(educations)}")
     print(f"Awards 개수: {len(awards)}")
     print(f"Certificates 개수: {len(certificates)}")
@@ -266,25 +262,57 @@ def get_applicants_by_job(
     job_post_id: int,
     db: Session = Depends(get_db)
 ):
-    applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+    # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
+    applications = (
+        db.query(Application)
+        .options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        )
+        .filter(Application.job_post_id == job_post_id)
+        .all()
+    )
+    
     applicants = []
     for app in applications:
+        # ApplicantUser 확인
         is_applicant = db.query(ApplicantUser).filter(ApplicantUser.id == app.user_id).first()
         if not is_applicant:
             continue
-        user = db.query(User).filter(User.id == app.user_id).first()
-        if not user:
+            
+        if not app.user:
             continue
+            
+        # 학력 정보 추출: resume.specs에서 추출
+        education = None
+        degree = None  # 추가: degree 정보
+        if app.resume and app.resume.specs:
+            edu_specs = [
+                s for s in app.resume.specs 
+                if s.spec_type == "education" and s.spec_title == "institution"
+            ]
+            if edu_specs:
+                education = edu_specs[0].spec_description  # 최신 학교명만 추출
+            # degree 정보 추출
+            degree_specs = [
+                s for s in app.resume.specs
+                if s.spec_type == "education" and s.spec_title == "degree"
+            ]
+            if degree_specs:
+                degree = degree_specs[0].spec_description
+
         applicant_data = {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
+            "id": app.user.id,
+            "name": app.user.name,
+            "email": app.user.email,
             "application_id": app.id,
             "status": app.status,
             "applied_at": app.applied_at,
             "score": app.score,
-            "birthDate": user.birth_date.isoformat() if user.birth_date else None,
-            "gender": user.gender if user.gender else None
+            "birthDate": app.user.birth_date.isoformat() if app.user.birth_date else None,
+            "gender": app.user.gender if app.user.gender else None,
+            "education": education,
+            "degree": degree  # degree 정보 추가
         }
         applicants.append(applicant_data)
     return applicants

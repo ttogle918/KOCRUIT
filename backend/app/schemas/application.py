@@ -91,6 +91,8 @@ class ApplicantList(BaseModel):
     score: Optional[float] = None
     birthDate: Optional[str] = None
     gender: Optional[str] = None
+    education: Optional[str] = None
+    degree: Optional[str] = None  # 추가: degree 정보
     
     class Config:
         alias_generator = to_camel
@@ -116,29 +118,6 @@ class ApplicationStatusHistoryCreate(ApplicationStatusHistoryBase):
 class ApplicationStatusHistoryDetail(ApplicationStatusHistoryBase):
     id: int
     application_id: int
-    created_at: datetime
-    
-    class Config:
-        alias_generator = to_camel
-        populate_by_name = True
-        from_attributes = True
-
-
-class ApplicationViewLogBase(BaseModel):
-    application_id: int
-    action: ApplicationViewAction
-    class Config:
-        alias_generator = to_camel
-        populate_by_name = True
-
-
-class ApplicationViewLogCreate(ApplicationViewLogBase):
-    pass
-
-
-class ApplicationViewLogDetail(ApplicationViewLogBase):
-    id: int
-    viewer_id: int
     created_at: datetime
     
     class Config:
