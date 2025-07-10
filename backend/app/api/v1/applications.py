@@ -306,7 +306,8 @@ def get_applicants_by_job(
             "birthDate": app.user.birth_date.isoformat() if app.user.birth_date else None,
             "gender": app.user.gender if app.user.gender else None,
             "education": education,
-            "degree": degree  # degree 정보 추가
+            "degree": degree,  # degree 정보 추가
+            "address": app.user.address if app.user.address else None  # address 필드 추가
         }
         applicants.append(applicant_data)
     return applicants
