@@ -4,9 +4,10 @@ from typing import List
 import json
 from app.core.database import get_db
 from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList, PostInterviewCreate, PostInterviewDetail
-from app.models.job import JobPost, PostInterview
+from app.models.job import JobPost, PostInterview, JobPostRole
 from app.models.weight import Weight
-from app.models.user import User
+from app.models.user import User, CompanyUser
+from app.models.company import Department
 from app.api.v1.auth import get_current_user
 
 router = APIRouter()
@@ -75,6 +76,12 @@ def get_company_job_post(
     interview_schedules = db.query(PostInterview).filter(PostInterview.job_post_id == job_post.id).all()
     job_post.interview_schedules = interview_schedules
     
+    # 부서 정보 추가
+    if job_post.department_id:
+        department = db.query(Department).filter(Department.id == job_post.department_id).first()
+        if department:
+            job_post.department = department.name
+    
     return job_post
 
 
@@ -99,6 +106,32 @@ def create_company_job_post(
     print(f"Current user: {current_user.id}, company_id: {current_user.company_id}")
     print(f"Job data: {job_data}")
     print(f"Interview schedules: {interview_schedules}")
+    
+    # 부서 처리 - department 테이블에 생성하고 department_id 사용
+    department_name = job_data.get('department')
+    department_id = None
+    if department_name:
+        # 기존 부서가 있는지 확인
+        existing_department = db.query(Department).filter(
+            Department.name == department_name,
+            Department.company_id == current_user.company_id
+        ).first()
+        
+        if existing_department:
+            department_id = existing_department.id
+        else:
+            # 새 부서 생성
+            new_department = Department(
+                name=department_name,
+                company_id=current_user.company_id
+            )
+            db.add(new_department)
+            db.commit()
+            db.refresh(new_department)
+            department_id = new_department.id
+    
+    # department_id 설정
+    job_data['department_id'] = department_id
     
     # JSON 데이터 처리 및 필드명 매핑
     if job_data.get('teamMembers'):
@@ -158,10 +191,45 @@ def create_company_job_post(
                 db.add(weight_record)
         db.commit()
     
+    # 팀 멤버 역할을 jobpost_role 테이블에 저장
+    team_members_data = job_post.teamMembers
+    if team_members_data:
+        for member in team_members_data:
+            if member.email and member.role:
+                # 이메일로 CompanyUser 찾기
+                company_user = db.query(CompanyUser).filter(
+                    CompanyUser.email == member.email,
+                    CompanyUser.company_id == current_user.company_id
+                ).first()
+                
+                if company_user:
+                    # 역할 매핑 (관리자 -> MANAGER, 멤버 -> MEMBER)
+                    role_mapping = {
+                        '관리자': 'MANAGER',
+                        '멤버': 'MEMBER'
+                    }
+                    mapped_role = role_mapping.get(member.role, 'MEMBER')
+                    
+                    # jobpost_role 생성
+                    jobpost_role = JobPostRole(
+                        jobpost_id=db_job_post.id,
+                        company_user_id=company_user.id,
+                        role=mapped_role
+                    )
+                    db.add(jobpost_role)
+        
+        db.commit()
+    
     # Add company name to the response
     if db_job_post.company:
         db_job_post.companyName = db_job_post.company.name
-    
+
+    # Add department name to the response
+    if db_job_post.department_id:
+        department = db.query(Department).filter(Department.id == db_job_post.department_id).first()
+        if department:
+            db_job_post.department = department.name
+
     return db_job_post
 
 

@@ -80,6 +80,7 @@ class JobPostUpdate(BaseModel):
 class JobPostDetail(BaseModel):
     id: int
     company_id: int
+    department_id: Optional[int] = None
     title: str
     department: Optional[str] = None
     qualifications: Optional[str] = None

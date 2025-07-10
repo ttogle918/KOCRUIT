@@ -58,6 +58,7 @@ class CompanyUser(User):
     company = relationship("Company", back_populates="company_users")
     department = relationship("Department", back_populates="company_users")
     resume_memos = relationship("ResumeMemo", back_populates="user")
+    jobpost_roles = relationship("JobPostRole", back_populates="company_user")
     
     __mapper_args__ = {
         'polymorphic_identity': 'company',

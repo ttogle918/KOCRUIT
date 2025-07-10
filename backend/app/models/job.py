@@ -35,6 +35,20 @@ class JobPost(Base):
     user = relationship("User", back_populates="job_posts")
     applications = relationship("Application", back_populates="job_post")
     interview_schedules = relationship("PostInterview", back_populates="job_post", cascade="all, delete-orphan")
+    jobpost_roles = relationship("JobPostRole", back_populates="jobpost", cascade="all, delete-orphan")
+
+
+class JobPostRole(Base):
+    __tablename__ = "jobpost_role"
+    
+    jobpost_id = Column(Integer, ForeignKey('jobpost.id'), primary_key=True)
+    company_user_id = Column(Integer, ForeignKey('company_user.id'), primary_key=True)
+    role = Column(String(30), nullable=False)  # MANAGER, MEMBER
+    granted_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    jobpost = relationship("JobPost", back_populates="jobpost_roles")
+    company_user = relationship("CompanyUser", back_populates="jobpost_roles")
 
 
 class PostInterview(Base):
