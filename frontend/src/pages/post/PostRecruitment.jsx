@@ -147,12 +147,15 @@ function PostRecruitment() {
       const formattedData = {
         ...formData,
         // company_id는 백엔드에서 자동 설정됨
-        headcount: formData.headcount ? parseInt(formData.headcount) : null,
+        headcount: formData.headcount ? Math.floor(Number(formData.headcount)) : null,
         start_date: formatDate(formData.start_date),
         end_date: formatDate(formData.end_date),
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
-        weights: weights.filter(weight => weight.item && weight.score),  // 빈 항목 제거
+        weights: weights.filter(weight => weight.item && weight.score).map(weight => ({
+          ...weight,
+          score: parseFloat(weight.score)
+        })),  // 빈 항목 제거 및 score를 float로 변환
         interview_schedules: interviewSchedules,  // 새로운 면접 일정 필드
       };
 
@@ -211,7 +214,6 @@ function PostRecruitment() {
       
       if (response.weights && response.weights.length > 0) {
         setWeights(response.weights);
-        alert(`AI가 ${response.weights.length}개의 가중치를 추출했습니다.`);
       } else {
         alert('가중치 추출에 실패했습니다. 다시 시도해주세요.');
       }
@@ -308,6 +310,8 @@ function PostRecruitment() {
                       type="number" 
                       value={formData.headcount} 
                       onChange={(e) => handleInputChange(e, 'headcount')} 
+                      min="1"
+                      step="1"
                       className={`border px-2 py-1 rounded w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${showError && !formData.headcount ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                     />
                   </div>
@@ -504,7 +508,12 @@ function PostRecruitment() {
                       <input 
                         type="number" 
                         value={weight.score} 
-                        onChange={e => setWeights(prev => prev.map((w, i) => i === idx ? { ...w, score: e.target.value } : w))} 
+                        onChange={e => {
+                          const value = parseFloat(e.target.value);
+                          if (value >= 0.0 && value <= 1.0) {
+                            setWeights(prev => prev.map((w, i) => i === idx ? { ...w, score: e.target.value } : w));
+                          }
+                        }} 
                         min="0.0" 
                         max="1.0" 
                         step="0.1"

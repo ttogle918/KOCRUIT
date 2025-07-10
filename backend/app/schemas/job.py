@@ -10,7 +10,7 @@ class TeamMemberDto(BaseModel):
 
 class WeightDto(BaseModel):
     item: str
-    score: int
+    score: float
 
 
 class ScheduleDto(BaseModel):

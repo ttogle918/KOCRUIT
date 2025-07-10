@@ -5,6 +5,7 @@ import json
 from app.core.database import get_db
 from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList, PostInterviewCreate, PostInterviewDetail
 from app.models.job import JobPost, PostInterview
+from app.models.weight import Weight
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 
@@ -115,10 +116,8 @@ def create_company_job_post(
     else:
         job_data['schedules'] = None
         
-    if job_data.get('weights'):
-        job_data['weights'] = json.dumps(job_data['weights']) if job_data['weights'] else None
-    else:
-        job_data['weights'] = None
+    # weights 데이터를 별도로 저장
+    weights_data = job_data.pop('weights', [])
     
     # JobPost 모델에 전달할 데이터에서 camelCase 필드 제거
     job_data.pop('teamMembers', None)
@@ -155,6 +154,19 @@ def create_company_job_post(
                     notes=schedule_data.notes
                 )
             db.add(interview_schedule)
+        db.commit()
+    
+    # 가중치 데이터를 weight 테이블에 저장
+    if weights_data:
+        for weight_item in weights_data:
+            if weight_item.get('item') and weight_item.get('score') is not None:
+                weight_record = Weight(
+                    target_type='resume_feature',
+                    jobpost_id=db_job_post.id,
+                    field_name=weight_item['item'],
+                    weight_value=float(weight_item['score'])
+                )
+                db.add(weight_record)
         db.commit()
     
     # Add company name to the response
