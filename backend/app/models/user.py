@@ -5,12 +5,6 @@ from datetime import datetime
 from app.core.database import Base
 import enum
 
-
-class GenderType(str, enum.Enum):
-    MALE = "MALE"
-    FEMALE = "FEMALE"
-
-
 class Role(str, enum.Enum):
     INDIVIDUAL = "individual"
     ADMIN = "admin"
