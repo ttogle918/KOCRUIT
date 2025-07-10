@@ -6,7 +6,7 @@ import "../../styles/datepicker.css";
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../layout/Layout';
 import TimePicker from '../../components/TimePicker';
-import api from '../../api/api';
+import api, { extractWeights } from '../../api/api';
 
 const useAutoResize = (value) => {
   const textareaRef = useRef(null);
@@ -49,11 +49,8 @@ function PostRecruitment() {
   const [teamMembers, setTeamMembers] = useState([{ email: '', role: '' }]);
   const [schedules, setSchedules] = useState([{ date: null, time: '', place: '' }]);
 
-  const [weights, setWeights] = useState([
-    { item: '경력', score: '' },
-    { item: '학력', score: '' },
-    { item: '자격증', score: '' }
-  ]);
+  const [weights, setWeights] = useState([]);
+  const [isExtractingWeights, setIsExtractingWeights] = useState(false);
 
   const roleOptions = ['관리자', '멤버'];
   const scoreOptions = Array.from({ length: 10 }, (_, i) => (i + 1).toString());
@@ -112,7 +109,8 @@ function PostRecruitment() {
   const isTeamValid = teamMembers.length > 0 && teamMembers.every(m => m.email && m.role);
   const isScheduleValid = schedules.length > 0 && schedules.every(s => s.date && s.time && s.place);
   const isRecruitInfoValid = [formData.title, formData.department, formData.qualifications, formData.conditions, formData.job_details, formData.procedures, formData.headcount, formData.start_date, formData.end_date, formData.location, formData.employment_type].every(v => !isFieldEmpty(v));
-  const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid;
+  const isWeightsValid = weights.length >= 5 && weights.every(w => w.item && w.score !== '');
+  const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid && isWeightsValid;
   const [showError, setShowError] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -149,12 +147,15 @@ function PostRecruitment() {
       const formattedData = {
         ...formData,
         // company_id는 백엔드에서 자동 설정됨
-        headcount: formData.headcount ? parseInt(formData.headcount) : null,
+        headcount: formData.headcount ? Math.floor(Number(formData.headcount)) : null,
         start_date: formatDate(formData.start_date),
         end_date: formatDate(formData.end_date),
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
-        weights: weights.filter(weight => weight.item && weight.score),  // 빈 항목 제거
+        weights: weights.filter(weight => weight.item && weight.score).map(weight => ({
+          ...weight,
+          score: parseFloat(weight.score)
+        })),  // 빈 항목 제거 및 score를 float로 변환
         interview_schedules: interviewSchedules,  // 새로운 면접 일정 필드
       };
 
@@ -188,6 +189,40 @@ function PostRecruitment() {
       };
       return updated;
     });
+  };
+
+  // AI 가중치 추출 함수
+  const handleExtractWeights = async () => {
+    if (!formData.title || !formData.qualifications || !formData.job_details) {
+      alert('가중치 추출을 위해서는 채용공고 제목, 지원자격, 모집분야가 필요합니다.');
+      return;
+    }
+
+    setIsExtractingWeights(true);
+    try {
+      // 채용공고 내용을 조합하여 AI에 전달
+      const jobPostingContent = `
+제목: ${formData.title}
+부서: ${formData.department}
+지원자격: ${formData.qualifications}
+근무조건: ${formData.conditions}
+모집분야 및 자격요건: ${formData.job_details}
+전형절차: ${formData.procedures}
+      `.trim();
+
+      const response = await extractWeights(jobPostingContent);
+      
+      if (response.weights && response.weights.length > 0) {
+        setWeights(response.weights);
+      } else {
+        alert('가중치 추출에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('가중치 추출 오류:', error);
+      alert('가중치 추출 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsExtractingWeights(false);
+    }
   };
 
   return (
@@ -275,6 +310,8 @@ function PostRecruitment() {
                       type="number" 
                       value={formData.headcount} 
                       onChange={(e) => handleInputChange(e, 'headcount')} 
+                      min="1"
+                      step="1"
                       className={`border px-2 py-1 rounded w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${showError && !formData.headcount ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                     />
                   </div>
@@ -363,7 +400,7 @@ function PostRecruitment() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
-                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정</h4>
+                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정 설정</h4>
                 <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4">
                   {schedules.map((sch, idx) => (
                     <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-3">
@@ -436,9 +473,96 @@ function PostRecruitment() {
                   )}
                 </div>
               </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
+                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">가중치 설정</h4>
+                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">이력서 평가 가중치</span>
+                    <button 
+                      type="button" 
+                      onClick={handleExtractWeights}
+                      disabled={isExtractingWeights}
+                      className="text-sm bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isExtractingWeights ? '추출 중...' : 'AI 가중치 추출'}
+                    </button>
+                  </div>
+                  
+                  {weights.length === 0 && (
+                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                      <p className="text-sm mb-2">아직 가중치가 설정되지 않았습니다.</p>
+                      <p className="text-xs">"AI 가중치 추출" 버튼을 클릭하거나 직접 추가해주세요.</p>
+                    </div>
+                  )}
+                  
+                  {weights.map((weight, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <input 
+                        type="text" 
+                        value={weight.item} 
+                        onChange={e => setWeights(prev => prev.map((w, i) => i === idx ? { ...w, item: e.target.value } : w))} 
+                        className={`flex-1 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !weight.item ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
+                        placeholder="가중치 항목 (예: 학력, 경력)" 
+                      />
+                      <input 
+                        type="number" 
+                        value={weight.score} 
+                        onChange={e => {
+                          const value = parseFloat(e.target.value);
+                          if (value >= 0.0 && value <= 1.0) {
+                            setWeights(prev => prev.map((w, i) => i === idx ? { ...w, score: e.target.value } : w));
+                          }
+                        }} 
+                        min="0.0" 
+                        max="1.0" 
+                        step="0.1"
+                        className={`w-20 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && weight.score === '' ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
+                        placeholder="0.0~1.0" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setWeights(prev => prev.filter((_, i) => i !== idx))} 
+                        className="text-red-500 text-xl font-bold hover:text-red-700 dark:hover:text-red-400"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
+                    className="text-sm text-blue-600 hover:underline ml-4 mt-3"
+                  >
+                    + 가중치 추가
+                  </button>
+                  
+                  {showError && !isWeightsValid && (
+                    <div className="text-red-500 text-sm mt-1">
+                      {weights.length < 5 ? '최소 5개 이상의 가중치 항목이 필요합니다.' : '모든 가중치 항목과 점수를 입력하세요.'}
+                    </div>
+                  )}
+                  
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    <strong>가중치 점수 설명:</strong><br/>
+                    • 0.0: 매우 낮은 중요도<br/>
+                    • 0.5: 보통 중요도<br/>
+                    • 1.0: 매우 높은 중요도<br/>
+                    이 점수는 이력서 평가 시 각 항목의 중요도를 결정합니다.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          {showError && !isReady && <div className="text-red-500 text-center mt-2">기입하지 않은 항목이 있습니다. 모든 항목을 입력해 주세요.</div>}
+          {showError && !isReady && (
+            <div className="text-red-500 text-center mt-2">
+              {!isRecruitInfoValid && '기입하지 않은 항목이 있습니다. 모든 항목을 입력해 주세요.'}
+              {isRecruitInfoValid && !isTeamValid && '채용팀 편성을 완료해 주세요.'}
+              {isRecruitInfoValid && isTeamValid && !isScheduleValid && '면접 일정을 설정해 주세요.'}
+              {isRecruitInfoValid && isTeamValid && isScheduleValid && !isWeightsValid && '가중치 설정을 완료해 주세요. (최소 5개 항목, 모든 점수 입력)'}
+            </div>
+          )}
           <div className="flex justify-center mt-10">
             <button type="submit" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6 py-3 rounded text-lg">등록하기</button>
           </div>

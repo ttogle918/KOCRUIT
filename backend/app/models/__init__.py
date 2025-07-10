@@ -6,6 +6,7 @@ from .application import Application, FieldNameScore
 from .resume import Resume, ResumeMemo, Spec
 from .notification import Notification
 from .schedule import Schedule, ScheduleInterview
+from .weight import Weight
 
 __all__ = [
     "Base",
@@ -15,5 +16,6 @@ __all__ = [
     "Application", "FieldNameScore",
     "Resume", "ResumeMemo", "Spec",
     "Notification",
-    "Schedule", "ScheduleInterview"
+    "Schedule", "ScheduleInterview",
+    "Weight"
 ] 
