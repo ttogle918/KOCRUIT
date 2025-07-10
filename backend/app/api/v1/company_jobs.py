@@ -66,11 +66,6 @@ def get_company_job_post(
     else:
         job_post.teamMembers = []
         
-    if job_post.schedules:
-        job_post.schedules = json.loads(job_post.schedules)
-    else:
-        job_post.schedules = []
-        
     if job_post.weights:
         job_post.weights = json.loads(job_post.weights)
     else:
@@ -111,17 +106,11 @@ def create_company_job_post(
     else:
         job_data['team_members'] = None
     
-    if job_data.get('schedules'):
-        job_data['schedules'] = json.dumps(job_data['schedules']) if job_data['schedules'] else None
-    else:
-        job_data['schedules'] = None
-        
     # weights 데이터를 별도로 저장
     weights_data = job_data.pop('weights', [])
     
     # JobPost 모델에 전달할 데이터에서 camelCase 필드 제거
     job_data.pop('teamMembers', None)
-    job_data.pop('schedules', None)
     
     db_job_post = JobPost(**job_data, company_id=current_user.company_id)
     db.add(db_job_post)
@@ -205,11 +194,6 @@ def update_company_job_post(
     else:
         job_data['team_members'] = None
     
-    if job_data.get('schedules'):
-        job_data['schedules'] = json.dumps(job_data['schedules']) if job_data['schedules'] else None
-    else:
-        job_data['schedules'] = None
-        
     if job_data.get('weights'):
         job_data['weights'] = json.dumps(job_data['weights']) if job_data['weights'] else None
     else:
@@ -217,7 +201,6 @@ def update_company_job_post(
     
     # JobPost 모델에 전달할 데이터에서 camelCase 필드 제거
     job_data.pop('teamMembers', None)
-    job_data.pop('schedules', None)
     job_data.pop('weights', None)
     
     for field, value in job_data.items():

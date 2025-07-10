@@ -43,7 +43,6 @@ class User(Base):
     applications = relationship("Application", back_populates="user")
     resumes = relationship("Resume", back_populates="user")
     job_posts = relationship("JobPost", back_populates="user")
-    jobs = relationship("Job", back_populates="user")
     
     __mapper_args__ = {
         'polymorphic_identity': 'individual',

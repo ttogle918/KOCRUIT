@@ -19,7 +19,7 @@ class SignupRequest(BaseModel):
     name: str
     password: str
     address: Optional[str] = None
-    gender: Optional[GenderType] = None
+    gender: Optional[Literal["M", "F"]] = None  # M/F로 변경
     phone: Optional[str] = None
     birth_date: Optional[date] = None
     userType: Literal["applicant", "company"] = Field(..., alias="userType")
@@ -36,7 +36,7 @@ class UserDetail(BaseModel):
     name: str
     email: str
     address: Optional[str] = None
-    gender: Optional[GenderType] = None
+    gender: Optional[str] = None  # GenderType 대신 str로 변경하여 하위 호환성 유지
     phone: Optional[str] = None
     role: Role
     created_at: datetime

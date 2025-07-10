@@ -24,7 +24,6 @@ class JobPost(Base):
     employment_type = Column(String(50))
     deadline = Column(String(50))
     team_members = Column(Text)
-    schedules = Column(Text)  # 기존 필드 유지 (하위 호환성)
     weights = Column(Text)
     status = Column(String(20), default="ACTIVE")
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -53,21 +52,4 @@ class PostInterview(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    job_post = relationship("JobPost", back_populates="interview_schedules")
-
-
-class Job(Base):
-    __tablename__ = "job"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), nullable=False)
-    company = Column(String(100))
-    description = Column(Text)
-    start_date = Column(DateTime)
-    end_date = Column(DateTime)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    user = relationship("User", back_populates="jobs") 
+    job_post = relationship("JobPost", back_populates="interview_schedules") 
