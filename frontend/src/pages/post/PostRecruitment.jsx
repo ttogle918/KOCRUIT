@@ -210,10 +210,33 @@ function PostRecruitment() {
 전형절차: ${formData.procedures}
       `.trim();
 
-      const response = await extractWeights(jobPostingContent);
+      // 기존 가중치 항목들을 추출
+      const existingWeightItems = weights
+        .filter(weight => weight.item && weight.item.trim())
+        .map(weight => weight.item.trim());
+
+      const response = await extractWeights(jobPostingContent, existingWeightItems);
       
       if (response.weights && response.weights.length > 0) {
-        setWeights(response.weights);
+        // 기존 가중치 유지하고 새로운 가중치 추가
+        const validExistingWeights = weights.filter(weight => weight.item && weight.item.trim());
+        
+        if (validExistingWeights.length >= 5) {
+          // 5개 이상이면 기존 것 유지하고 새로운 것 하나만 추가
+          const newWeight = response.weights.find(weight => 
+            !existingWeightItems.includes(weight.item)
+          );
+          if (newWeight) {
+            setWeights([...validExistingWeights, newWeight]);
+          }
+        } else {
+          // 5개 미만이면 기존 것 유지하고 5개가 되도록 새로운 것들 추가
+          const neededCount = 5 - validExistingWeights.length;
+          const newWeights = response.weights
+            .filter(weight => !existingWeightItems.includes(weight.item))
+            .slice(0, neededCount);
+          setWeights([...validExistingWeights, ...newWeights]);
+        }
       } else {
         alert('가중치 추출에 실패했습니다. 다시 시도해주세요.');
       }

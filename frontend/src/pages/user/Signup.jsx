@@ -288,8 +288,8 @@ function Signup() {
           disabled={isLoading}
         >
           <option value="">성별 선택 (선택사항)</option>
-          <option value="MALE">남성</option>
-          <option value="FEMALE">여성</option>
+          <option value="M">남성</option>
+          <option value="F">여성</option>
         </select>
         <input 
           name="phone" 

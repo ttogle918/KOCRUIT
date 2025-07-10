@@ -65,10 +65,11 @@ const agentApi = axios.create({
   timeout: 30000,
 });
 
-export const extractWeights = async (jobPostingContent) => {
+export const extractWeights = async (jobPostingContent, existingWeights = []) => {
   try {
     const response = await agentApi.post('/extract-weights/', {
-      job_posting: jobPostingContent
+      job_posting: jobPostingContent,
+      existing_weights: existingWeights
     });
     return response.data;
   } catch (error) {
