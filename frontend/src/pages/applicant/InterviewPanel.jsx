@@ -1,15 +1,65 @@
 import React from 'react';
+import Rating from '@mui/material/Rating';
+
+function InterviewPanel({ questions, memo, onMemoChange, evaluation, onEvaluationChange, isAutoSaving = false }) {
+  // 예시: 카테고리별 평가 항목(실제 항목 구조에 맞게 수정)
+  const categories = [
+    {
+      name: '인성',
+      items: ['예의', '성실성', '적극성']
+    },
+    {
+      name: '역량',
+      items: ['기술력', '문제해결', '커뮤니케이션']
+    }
+  ];
+
+  // 평가 점수 입력 핸들러
+  const handleScoreChange = (category, item, score) => {
+    onEvaluationChange(prev => ({
+      ...prev,
+      [category]: {
+        ...(prev[category] || {}),
+        [item]: score
+      }
+    }));
+  };
 
 function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = {}, onEvaluationChange }) {
   return (
-    <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-800 rounded-3xl shadow p-6 gap-6 min-w-[320px] max-w-[400px]">
-      <div>
-        <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">면접 질문 리스트</h3>
-        <ul className="space-y-2">
-          {questions.length > 0 ? questions.map((q, idx) => (
-            <li key={idx} className="border-b border-gray-200 dark:border-gray-600 pb-1 text-gray-800 dark:text-gray-200 text-sm">{q}</li>
-          )) : <li className="text-gray-400 dark:text-gray-500 text-sm">* 공통질문 ...</li>}
-        </ul>
+    <div className="flex flex-col gap-4 p-4 h-full">
+      {/* 자동 저장 상태 표시 */}
+      {isAutoSaving && (
+        <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          자동 저장 중...
+        </div>
+      )}
+      
+      <div className="mb-2 font-bold text-lg">면접 질문</div>
+      <ul className="mb-4 list-disc list-inside text-sm text-gray-700 dark:text-gray-200">
+        {questions.map((q, i) => <li key={i}>{q}</li>)}
+      </ul>
+      <div className="mb-2 font-bold text-lg">평가 항목</div>
+      <div className="flex flex-col gap-2">
+        {categories.map(cat => (
+          <div key={cat.name} className="mb-2">
+            <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">{cat.name}</div>
+            {cat.items.map(item => (
+              <div key={item} className="flex items-center gap-2 mb-1">
+                <span className="w-24 text-sm">{item}</span>
+                <Rating
+                  name={`${cat.name}-${item}`}
+                  value={evaluation[cat.name]?.[item] || 0}
+                  onChange={(event, newValue) => handleScoreChange(cat.name, item, newValue)}
+                  max={5}
+                  size="medium"
+                  disabled={isAutoSaving}
+                />
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
       <div>
         <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">평가</h3>
@@ -46,10 +96,13 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
       <div className="flex-1 flex flex-col">
         <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">면접 메모</h3>
         <textarea
-          className="flex-1 border border-gray-300 dark:border-gray-600 rounded p-2 text-sm resize-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          placeholder="면접 중 메모를 입력하세요..."
+          className={`w-full min-h-[80px] p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+            isAutoSaving ? 'opacity-75' : ''
+          }`}
           value={memo}
           onChange={e => onMemoChange(e.target.value)}
+          placeholder="면접 중 느낀 점, 특이사항 등을 기록하세요"
+          disabled={isAutoSaving}
         />
       </div>
       <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
@@ -59,4 +112,4 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
   );
 }
 
-export default InterviewPanel; 
+export default InterviewPanel;
