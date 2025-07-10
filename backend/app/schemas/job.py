@@ -10,13 +10,7 @@ class TeamMemberDto(BaseModel):
 
 class WeightDto(BaseModel):
     item: str
-    score: int
-
-
-class ScheduleDto(BaseModel):
-    date: str
-    time: str
-    place: str
+    score: float
 
 
 class PostInterviewCreate(BaseModel):
@@ -86,6 +80,7 @@ class JobPostUpdate(BaseModel):
 class JobPostDetail(BaseModel):
     id: int
     company_id: int
+    department_id: Optional[int] = None
     title: str
     department: Optional[str] = None
     qualifications: Optional[str] = None
@@ -101,7 +96,6 @@ class JobPostDetail(BaseModel):
     status: Optional[str] = None
     companyName: Optional[str] = None
     teamMembers: Optional[List[TeamMemberDto]] = None
-    schedules: Optional[List[ScheduleDto]] = None  # 하위 호환성 유지
     weights: Optional[List[WeightDto]] = None
     interview_schedules: Optional[List[PostInterviewDetail]] = None
     created_at: datetime
@@ -122,31 +116,5 @@ class JobPostList(BaseModel):
     status: Optional[str] = None
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
-
-
-class JobBase(BaseModel):
-    title: str
-    company: Optional[str] = None
-    description: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
-
-
-class JobCreate(JobBase):
-    pass
-
-
-class JobUpdate(JobBase):
-    pass
-
-
-class JobDetail(JobBase):
-    id: int
-    user_id: int
-    created_at: datetime
-    updated_at: datetime
-    
     class Config:
         from_attributes = True 

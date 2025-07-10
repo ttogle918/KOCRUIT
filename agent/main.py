@@ -5,6 +5,7 @@ from agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, cr
 from agents.chatbot_node import ChatbotNode
 from redis_monitor import RedisMonitor
 from scheduler import RedisScheduler
+from tools.weight_extraction_tool import weight_extraction_tool
 from dotenv import load_dotenv
 import uuid
 import os
@@ -316,3 +317,27 @@ async def manual_backup(request: Request):
     
     result = await scheduler.run_manual_backup(backup_name)
     return result
+
+@app.post("/extract-weights/")
+async def extract_weights(request: Request):
+    """채용공고 내용을 분석하여 가중치를 추출합니다."""
+    data = await request.json()
+    job_posting_content = data.get("job_posting", "")
+    
+    if not job_posting_content:
+        return {"error": "Job posting content is required"}
+    
+    try:
+        state = {"job_posting": job_posting_content}
+        result = weight_extraction_tool(state)
+        weights = result.get("weights", [])
+        
+        return {
+            "weights": weights,
+            "message": f"Successfully extracted {len(weights)} weights"
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to extract weights: {str(e)}",
+            "weights": []
+        }

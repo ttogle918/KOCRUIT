@@ -228,10 +228,52 @@ const Chatbot = () => {
       '/corporatehome': '기업 홈페이지',
       '/applicantlist': '지원자 목록 페이지',
       '/postrecruitment': '채용공고 등록 페이지',
+      '/editpost': '채용공고 수정 페이지',
+      '/viewpost': '채용공고 상세보기 페이지',
       '/email': '이메일 발송 페이지',
       '/managerschedule': '매니저 일정 관리 페이지',
-      '/memberschedule': '멤버 일정 관리 페이지'
+      '/memberschedule': '멤버 일정 관리 페이지',
+      '/passedapplicants': '합격자 목록 페이지',
+      '/rejectedapplicants': '불합격자 목록 페이지',
+      '/interview-progress': '면접 진행 상황 페이지',
+      '/common/company': '파트너사 목록 페이지',
+      '/common/company/:id': '파트너사 상세 페이지',
+      '/common/jobposts/:id': '공개 채용공고 상세 페이지',
+      '/company/jobposts/:id': '기업 채용공고 상세 페이지',
+      '/applicantlist/:jobPostId': '특정 채용공고의 지원자 목록 페이지',
+      '/role-test': '역할 테스트 페이지',
+      '/test-connection': '연결 테스트 페이지'
     };
+    
+    // 동적 라우트 매칭을 위한 처리
+    if (pathname.startsWith('/editpost/')) {
+      return '채용공고 수정 페이지';
+    }
+    if (pathname.startsWith('/viewpost/')) {
+      return '채용공고 상세보기 페이지';
+    }
+    if (pathname.startsWith('/passedapplicants/')) {
+      return '합격자 목록 페이지';
+    }
+    if (pathname.startsWith('/rejectedapplicants/')) {
+      return '불합격자 목록 페이지';
+    }
+    if (pathname.startsWith('/interview-progress/')) {
+      return '면접 진행 상황 페이지';
+    }
+    if (pathname.startsWith('/common/company/') && pathname !== '/common/company') {
+      return '파트너사 상세 페이지';
+    }
+    if (pathname.startsWith('/common/jobposts/')) {
+      return '공개 채용공고 상세 페이지';
+    }
+    if (pathname.startsWith('/company/jobposts/')) {
+      return '기업 채용공고 상세 페이지';
+    }
+    if (pathname.startsWith('/applicantlist/') && pathname !== '/applicantlist') {
+      return '특정 채용공고의 지원자 목록 페이지';
+    }
+    
     return pageMap[pathname] || '알 수 없는 페이지';
   };
 
