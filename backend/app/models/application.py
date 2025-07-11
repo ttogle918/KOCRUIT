@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
 import enum
+from sqlalchemy import Enum as SqlEnum
 
 
 class ApplyStatus(str, enum.Enum):
@@ -16,6 +17,12 @@ class ApplicationViewAction(str, enum.Enum):
     DOWNLOAD = "DOWNLOAD"
 
 
+class ApplicationStatus(str, enum.Enum):
+    DOCUMENT_WAITING = "DOCUMENT_WAITING"
+    DOCUMENT_PASSED = "DOCUMENT_PASSED"
+    DOCUMENT_REJECTED = "DOCUMENT_REJECTED"
+
+
 class Application(Base):
     __tablename__ = "application"
     
@@ -27,16 +34,17 @@ class Application(Base):
     ai_score = Column(Numeric(5, 2))
     human_score = Column(Numeric(5, 2))
     final_score = Column(Numeric(5, 2))
-    status = Column(String(20))
+    status = Column(SqlEnum(ApplyStatus), default=ApplyStatus.WAITING, nullable=False)
+    document_status = Column(SqlEnum(ApplicationStatus), default=ApplicationStatus.DOCUMENT_WAITING, nullable=False)
     applied_at = Column(DateTime, default=datetime.utcnow)
     application_source = Column(String(255))
     pass_reason = Column(Text)
     fail_reason = Column(Text)
     
-    # Relationships
-    user = relationship("User")
+    # Relationships with back_populates
+    user = relationship("User", back_populates="applications")
     job_post = relationship("JobPost", back_populates="applications")
-    resume = relationship("Resume")
+    resume = relationship("Resume", back_populates="applications")
     field_scores = relationship("FieldNameScore", back_populates="application")
     memos = relationship("ResumeMemo", back_populates="application")
 

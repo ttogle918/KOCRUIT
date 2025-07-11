@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/api';
 import PassReasonCard from '../../components/PassReasonCard';
 import InterviewInfoModal from '../../components/InterviewInfoModal';
+import ViewPostSidebar from '../../components/ViewPostSidebar';
 
 export default function PassedApplicants() {
   const [passedApplicants, setPassedApplicants] = useState([]);
@@ -17,6 +18,8 @@ export default function PassedApplicants() {
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const navigate = useNavigate();
   const { jobPostId } = useParams();
+  const [jobPost, setJobPost] = useState(null);
+  const [jobPostLoading, setJobPostLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
@@ -45,6 +48,21 @@ export default function PassedApplicants() {
       }
     };
     if (jobPostId) fetchApplicants();
+  }, [jobPostId]);
+
+  useEffect(() => {
+    const fetchJobPost = async () => {
+      setJobPostLoading(true);
+      try {
+        const res = await api.get(`/company/jobposts/${jobPostId}`);
+        setJobPost(res.data);
+      } catch (err) {
+        setJobPost(null);
+      } finally {
+        setJobPostLoading(false);
+      }
+    };
+    if (jobPostId) fetchJobPost();
   }, [jobPostId]);
 
   const calculateAge = (birthDate) => {
@@ -102,6 +120,7 @@ export default function PassedApplicants() {
   if (loading) {
     return (
       <Layout>
+        <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
           <div className="text-xl">로딩 중...</div>
         </div>
@@ -112,6 +131,7 @@ export default function PassedApplicants() {
   if (error) {
     return (
       <Layout>
+        <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
           <div className="text-xl text-red-500">{error}</div>
         </div>
@@ -121,7 +141,8 @@ export default function PassedApplicants() {
 
   return (
     <Layout>
-      <div className="h-screen flex flex-col px-4 py-24">
+      <ViewPostSidebar jobPost={jobPost} />
+      <div className="h-screen flex flex-col px-4 py-24" style={{ marginLeft: 90 }}>
         {/* Title Box */}
         <div className="bg-white dark:bg-gray-800 shadow px-8 py-4 flex items-center justify-between">
           <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">

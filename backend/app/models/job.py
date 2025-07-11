@@ -29,25 +29,41 @@ class JobPost(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
+    # Relationships with back_populates
     company = relationship("Company", back_populates="job_posts")
-    department_rel = relationship("Department")
-    user = relationship("User")
+    department_rel = relationship("Department", back_populates="job_posts")
+    user = relationship("User", back_populates="job_posts")
     applications = relationship("Application", back_populates="job_post")
+    interview_schedules = relationship("PostInterview", back_populates="job_post", cascade="all, delete-orphan")
+    jobpost_roles = relationship("JobPostRole", back_populates="jobpost", cascade="all, delete-orphan")
 
 
-class Job(Base):
-    __tablename__ = "job"
+class JobPostRole(Base):
+    __tablename__ = "jobpost_role"
+    
+    jobpost_id = Column(Integer, ForeignKey('jobpost.id'), primary_key=True)
+    company_user_id = Column(Integer, ForeignKey('company_user.id'), primary_key=True)
+    role = Column(String(30), nullable=False)  # MANAGER, MEMBER
+    granted_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    jobpost = relationship("JobPost", back_populates="jobpost_roles")
+    company_user = relationship("CompanyUser", back_populates="jobpost_roles")
+
+
+class PostInterview(Base):
+    __tablename__ = "post_interview"
     
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(200), nullable=False)
-    company = Column(String(100))
-    description = Column(Text)
-    start_date = Column(DateTime)
-    end_date = Column(DateTime)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=False)
+    interview_date = Column(String(10), nullable=False)  # YYYY-MM-DD
+    interview_time = Column(String(5), nullable=False)   # HH:MM
+    location = Column(String(255), nullable=False)
+    interview_type = Column(String(20), default="ONSITE")  # ONSITE, ONLINE, PHONE
+    max_participants = Column(Integer, default=1)
+    notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    user = relationship("User") 
+    job_post = relationship("JobPost", back_populates="interview_schedules") 

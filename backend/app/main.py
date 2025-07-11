@@ -7,6 +7,9 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.database import engine
 from app.models import Base
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.core.database import SessionLocal
+from app.models.interview_evaluation import auto_process_applications
 
 
 @asynccontextmanager
@@ -49,14 +52,35 @@ app = FastAPI(
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://kocruit_react:5173",
+        "http://frontend:5173"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # API 라우터 등록
 app.include_router(api_router)
+
+
+def run_auto_process():
+    db = SessionLocal()
+    try:
+        auto_process_applications(db)
+    finally:
+        db.close()
+
+# APScheduler 등록 (예: 10분마다 실행)
+scheduler = BackgroundScheduler()
+scheduler.add_job(run_auto_process, 'interval', minutes=10)
+scheduler.start()
 
 
 if __name__ == "__main__":

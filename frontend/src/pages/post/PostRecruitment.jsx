@@ -6,7 +6,7 @@ import "../../styles/datepicker.css";
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../layout/Layout';
 import TimePicker from '../../components/TimePicker';
-import api from '../../api/api';
+import api, { extractWeights } from '../../api/api';
 
 const useAutoResize = (value) => {
   const textareaRef = useRef(null);
@@ -35,13 +35,13 @@ function PostRecruitment() {
     department: '',
     qualifications: '',
     conditions: '',
-    jobDetails: '',
+    job_details: '',
     procedures: '',
     headcount: '',
-    startDate: null,
-    endDate: null,
+    start_date: null,
+    end_date: null,
     location: '',
-    employmentType: '',
+    employment_type: '',
     deadline: null,
     company: null
   });
@@ -49,11 +49,8 @@ function PostRecruitment() {
   const [teamMembers, setTeamMembers] = useState([{ email: '', role: '' }]);
   const [schedules, setSchedules] = useState([{ date: null, time: '', place: '' }]);
 
-  const [weights, setWeights] = useState([
-    { item: '경력', score: '' },
-    { item: '학력', score: '' },
-    { item: '자격증', score: '' }
-  ]);
+  const [weights, setWeights] = useState([]);
+  const [isExtractingWeights, setIsExtractingWeights] = useState(false);
 
   const roleOptions = ['관리자', '멤버'];
   const scoreOptions = Array.from({ length: 10 }, (_, i) => (i + 1).toString());
@@ -61,7 +58,7 @@ function PostRecruitment() {
 
   const qualificationsRef = useAutoResize(formData.qualifications);
   const conditionsRef = useAutoResize(formData.conditions);
-  const jobDetailsRef = useAutoResize(formData.jobDetails);
+  const jobDetailsRef = useAutoResize(formData.job_details);
   const proceduresRef = useAutoResize(formData.procedures);
 
   const handleTextareaChange = (e, field) => {
@@ -111,8 +108,9 @@ function PostRecruitment() {
   const isFieldEmpty = (value) => value === null || value === undefined || value === '';
   const isTeamValid = teamMembers.length > 0 && teamMembers.every(m => m.email && m.role);
   const isScheduleValid = schedules.length > 0 && schedules.every(s => s.date && s.time && s.place);
-  const isRecruitInfoValid = [formData.title, formData.department, formData.qualifications, formData.conditions, formData.jobDetails, formData.procedures, formData.headcount, formData.startDate, formData.endDate, formData.location, formData.employmentType].every(v => !isFieldEmpty(v));
-  const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid;
+  const isRecruitInfoValid = [formData.title, formData.department, formData.qualifications, formData.conditions, formData.job_details, formData.procedures, formData.headcount, formData.start_date, formData.end_date, formData.location, formData.employment_type].every(v => !isFieldEmpty(v));
+  const isWeightsValid = weights.length >= 5 && weights.every(w => w.item && w.score !== '');
+  const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid && isWeightsValid;
   const [showError, setShowError] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -123,16 +121,42 @@ function PostRecruitment() {
     }
     setShowError(false);
     try {
-      // 날짜 형식 변환
+      // 날짜 형식 변환 - 시간대 정보 제거
+      const formatDate = (date) => {
+        if (!date) return null;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+      };
+
+      // 면접 일정 데이터 변환
+      const interviewSchedules = schedules
+        .filter(schedule => schedule.date && schedule.time && schedule.place)
+        .map(schedule => ({
+          interview_date: schedule.date.toISOString().split('T')[0],  // YYYY-MM-DD
+          interview_time: schedule.time,  // HH:MM
+          location: schedule.place,
+          interview_type: "ONSITE",
+          max_participants: 1,
+          notes: null
+        }));
+
       const formattedData = {
         ...formData,
         // company_id는 백엔드에서 자동 설정됨
-        headcount: formData.headcount ? parseInt(formData.headcount) : null,
-        startDate: formData.startDate ? formData.startDate.toISOString() : null,
-        endDate: formData.endDate ? formData.endDate.toISOString() : null,
+        headcount: formData.headcount ? Math.floor(Number(formData.headcount)) : null,
+        start_date: formatDate(formData.start_date),
+        end_date: formatDate(formData.end_date),
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
-        weights: weights.filter(weight => weight.item && weight.score),  // 빈 항목 제거
+        weights: weights.filter(weight => weight.item && weight.score).map(weight => ({
+          ...weight,
+          score: parseFloat(weight.score)
+        })),  // 빈 항목 제거 및 score를 float로 변환
+        interview_schedules: interviewSchedules,  // 새로운 면접 일정 필드
       };
 
       console.log('Sending data:', formattedData);  // 디버깅용
@@ -167,6 +191,63 @@ function PostRecruitment() {
     });
   };
 
+  // AI 가중치 추출 함수
+  const handleExtractWeights = async () => {
+    if (!formData.title || !formData.qualifications || !formData.job_details) {
+      alert('가중치 추출을 위해서는 채용공고 제목, 지원자격, 모집분야가 필요합니다.');
+      return;
+    }
+
+    setIsExtractingWeights(true);
+    try {
+      // 채용공고 내용을 조합하여 AI에 전달
+      const jobPostingContent = `
+제목: ${formData.title}
+부서: ${formData.department}
+지원자격: ${formData.qualifications}
+근무조건: ${formData.conditions}
+모집분야 및 자격요건: ${formData.job_details}
+전형절차: ${formData.procedures}
+      `.trim();
+
+      // 기존 가중치 항목들을 추출
+      const existingWeightItems = weights
+        .filter(weight => weight.item && weight.item.trim())
+        .map(weight => weight.item.trim());
+
+      const response = await extractWeights(jobPostingContent, existingWeightItems);
+      
+      if (response.weights && response.weights.length > 0) {
+        // 기존 가중치 유지하고 새로운 가중치 추가
+        const validExistingWeights = weights.filter(weight => weight.item && weight.item.trim());
+        
+        if (validExistingWeights.length >= 5) {
+          // 5개 이상이면 기존 것 유지하고 새로운 것 하나만 추가
+          const newWeight = response.weights.find(weight => 
+            !existingWeightItems.includes(weight.item)
+          );
+          if (newWeight) {
+            setWeights([...validExistingWeights, newWeight]);
+          }
+        } else {
+          // 5개 미만이면 기존 것 유지하고 5개가 되도록 새로운 것들 추가
+          const neededCount = 5 - validExistingWeights.length;
+          const newWeights = response.weights
+            .filter(weight => !existingWeightItems.includes(weight.item))
+            .slice(0, neededCount);
+          setWeights([...validExistingWeights, ...newWeights]);
+        }
+      } else {
+        alert('가중치 추출에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (error) {
+      console.error('가중치 추출 오류:', error);
+      alert('가중치 추출 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsExtractingWeights(false);
+    }
+  };
+
   return (
     <Layout title="채용공고 등록">
       <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
@@ -174,14 +255,11 @@ function PostRecruitment() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-center space-y-2">
-                <div className="text-2xl font-semibold w-full text-center bg-transparent outline-none text-gray-900 dark:text-white border-b border-gray-300 dark:border-gray-600 pb-2">
-                  {formData.company?.name}
-                </div>
                 <input 
                   type="text" 
                   value={formData.title} 
                   onChange={(e) => handleInputChange(e, 'title')} 
-                  className={`text-md w-full text-center bg-transparent outline-none text-gray-900 dark:text-gray-300 ${showError && !formData.title ? 'border-b-2 border-red-500' : ''}`} 
+                  className={`text-2xl font-semibold w-full text-center bg-transparent outline-none text-gray-900 dark:text-white border-b border-gray-300 dark:border-gray-600 pb-2 ${showError && !formData.title ? 'border-b-2 border-red-500' : ''}`} 
                   placeholder="채용공고 제목" 
                 />
                 {showError && !formData.title && <div className="text-red-500 text-xs text-left">채용공고 제목을 입력하세요.</div>}
@@ -189,7 +267,7 @@ function PostRecruitment() {
                   type="text" 
                   value={formData.department} 
                   onChange={(e) => handleInputChange(e, 'department')} 
-                  className={`text-sm w-full text-center bg-transparent outline-none text-gray-600 dark:text-gray-400 ${showError && !formData.department ? 'border-b-2 border-red-500' : ''}`} 
+                  className={`text-md w-full text-center bg-transparent outline-none text-gray-900 dark:text-gray-300 ${showError && !formData.department ? 'border-b-2 border-red-500' : ''}`} 
                   placeholder="부서명 (예: 개발팀, 인사팀)" 
                 />
                 {showError && !formData.department && <div className="text-red-500 text-xs text-left">부서명을 입력하세요.</div>}
@@ -224,12 +302,12 @@ function PostRecruitment() {
                 <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">모집분야 및 자격요건</h4>
                 <textarea 
                   ref={jobDetailsRef}
-                  value={formData.jobDetails} 
-                  onChange={(e) => handleTextareaChange(e, 'jobDetails')} 
-                  className={`w-full min-h-[100px] overflow-hidden resize-none p-4 rounded outline-none border-t border-gray-300 dark:border-gray-600 pt-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !formData.jobDetails ? 'border-2 border-red-500' : ''}`} 
+                          value={formData.job_details}
+        onChange={(e) => handleTextareaChange(e, 'job_details')} 
+                  className={`w-full min-h-[100px] overflow-hidden resize-none p-4 rounded outline-none border-t border-gray-300 dark:border-gray-600 pt-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !formData.job_details ? 'border-2 border-red-500' : ''}`} 
                   placeholder="담당업무, 자격요건, 우대사항 등" 
                 />
-                {showError && !formData.jobDetails && <div className="text-red-500 text-xs text-left">모집분야 및 자격요건을 입력하세요.</div>}
+                {showError && !formData.job_details && <div className="text-red-500 text-xs text-left">모집분야 및 자격요건을 입력하세요.</div>}
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
@@ -255,6 +333,8 @@ function PostRecruitment() {
                       type="number" 
                       value={formData.headcount} 
                       onChange={(e) => handleInputChange(e, 'headcount')} 
+                      min="1"
+                      step="1"
                       className={`border px-2 py-1 rounded w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${showError && !formData.headcount ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                     />
                   </div>
@@ -273,9 +353,9 @@ function PostRecruitment() {
                   <div className="flex items-center gap-2">
                     <label className="w-24 text-sm text-gray-700 dark:text-white">고용형태:</label>
                     <select 
-                      value={formData.employmentType} 
-                      onChange={(e) => handleInputChange(e, 'employmentType')} 
-                      className={`border px-2 py-1 rounded w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${showError && !formData.employmentType ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
+                              value={formData.employment_type}
+        onChange={(e) => handleInputChange(e, 'employment_type')} 
+                      className={`border px-2 py-1 rounded w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors ${showError && !formData.employment_type ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
                     >
                       <option value="">선택하세요</option>
                       {employmentTypeOptions.map(type => (
@@ -283,40 +363,40 @@ function PostRecruitment() {
                       ))}
                     </select>
                   </div>
-                  {showError && !formData.employmentType && <div className="text-red-500 text-xs text-left">고용형태를 선택하세요.</div>}
+                  {showError && !formData.employment_type && <div className="text-red-500 text-xs text-left">고용형태를 선택하세요.</div>}
                   <div className="flex flex-col gap-2 overflow-x-hidden">
                     <label className="text-sm text-gray-700 dark:text-white">모집기간:</label>
                     <div className="flex flex-col md:flex-row items-center gap-1 w-full">
                       <DatePicker 
-                        selected={formData.startDate} 
-                        onChange={(date) => handleInputChange({ target: { value: date } }, 'startDate')} 
+                                selected={formData.start_date}
+        onChange={(date) => handleInputChange({ target: { value: date } }, 'start_date')} 
                         selectsStart 
-                        startDate={formData.startDate} 
-                        endDate={formData.endDate} 
+                        startDate={formData.start_date} 
+                        endDate={formData.end_date} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
-                        className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.startDate ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
+                        className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.start_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
                         placeholderText="시작일시" 
                         calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 
                         popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg" 
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300 px-1">~</span>
                       <DatePicker 
-                        selected={formData.endDate} 
-                        onChange={(date) => handleInputChange({ target: { value: date } }, 'endDate')} 
+                        selected={formData.end_date} 
+                        onChange={(date) => handleInputChange({ target: { value: date } }, 'end_date')} 
                         selectsEnd 
-                        startDate={formData.startDate} 
-                        endDate={formData.endDate} 
-                        minDate={formData.startDate} 
+                        startDate={formData.start_date} 
+                        endDate={formData.end_date} 
+                        minDate={formData.start_date} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
-                        className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.endDate ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
+                        className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.end_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
                         placeholderText="종료일시" 
                         calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 
                         popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg" 
                       />
                     </div>
-                    {showError && (!formData.startDate || !formData.endDate) && (
+                    {showError && (!formData.start_date || !formData.end_date) && (
                       <div className="text-red-500 text-xs text-left mt-1">시작일시와 종료일시를 모두 입력하세요.</div>
                     )}
                   </div>
@@ -343,7 +423,7 @@ function PostRecruitment() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
-                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정</h4>
+                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정 설정</h4>
                 <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4">
                   {schedules.map((sch, idx) => (
                     <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-3">
@@ -416,9 +496,96 @@ function PostRecruitment() {
                   )}
                 </div>
               </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
+                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">가중치 설정</h4>
+                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">이력서 평가 가중치</span>
+                    <button 
+                      type="button" 
+                      onClick={handleExtractWeights}
+                      disabled={isExtractingWeights}
+                      className="text-sm bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isExtractingWeights ? '추출 중...' : 'AI 가중치 추출'}
+                    </button>
+                  </div>
+                  
+                  {weights.length === 0 && (
+                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                      <p className="text-sm mb-2">아직 가중치가 설정되지 않았습니다.</p>
+                      <p className="text-xs">"AI 가중치 추출" 버튼을 클릭하거나 직접 추가해주세요.</p>
+                    </div>
+                  )}
+                  
+                  {weights.map((weight, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <input 
+                        type="text" 
+                        value={weight.item} 
+                        onChange={e => setWeights(prev => prev.map((w, i) => i === idx ? { ...w, item: e.target.value } : w))} 
+                        className={`flex-1 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !weight.item ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
+                        placeholder="가중치 항목 (예: 학력, 경력)" 
+                      />
+                      <input 
+                        type="number" 
+                        value={weight.score} 
+                        onChange={e => {
+                          const value = parseFloat(e.target.value);
+                          if (value >= 0.0 && value <= 1.0) {
+                            setWeights(prev => prev.map((w, i) => i === idx ? { ...w, score: e.target.value } : w));
+                          }
+                        }} 
+                        min="0.0" 
+                        max="1.0" 
+                        step="0.1"
+                        className={`w-20 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && weight.score === '' ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
+                        placeholder="0.0~1.0" 
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setWeights(prev => prev.filter((_, i) => i !== idx))} 
+                        className="text-red-500 text-xl font-bold hover:text-red-700 dark:hover:text-red-400"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
+                    className="text-sm text-blue-600 hover:underline ml-4 mt-3"
+                  >
+                    + 가중치 추가
+                  </button>
+                  
+                  {showError && !isWeightsValid && (
+                    <div className="text-red-500 text-sm mt-1">
+                      {weights.length < 5 ? '최소 5개 이상의 가중치 항목이 필요합니다.' : '모든 가중치 항목과 점수를 입력하세요.'}
+                    </div>
+                  )}
+                  
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                    <strong>가중치 점수 설명:</strong><br/>
+                    • 0.0: 매우 낮은 중요도<br/>
+                    • 0.5: 보통 중요도<br/>
+                    • 1.0: 매우 높은 중요도<br/>
+                    이 점수는 이력서 평가 시 각 항목의 중요도를 결정합니다.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          {showError && !isReady && <div className="text-red-500 text-center mt-2">기입하지 않은 항목이 있습니다. 모든 항목을 입력해 주세요.</div>}
+          {showError && !isReady && (
+            <div className="text-red-500 text-center mt-2">
+              {!isRecruitInfoValid && '기입하지 않은 항목이 있습니다. 모든 항목을 입력해 주세요.'}
+              {isRecruitInfoValid && !isTeamValid && '채용팀 편성을 완료해 주세요.'}
+              {isRecruitInfoValid && isTeamValid && !isScheduleValid && '면접 일정을 설정해 주세요.'}
+              {isRecruitInfoValid && isTeamValid && isScheduleValid && !isWeightsValid && '가중치 설정을 완료해 주세요. (최소 5개 항목, 모든 점수 입력)'}
+            </div>
+          )}
           <div className="flex justify-center mt-10">
             <button type="submit" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6 py-3 rounded text-lg">등록하기</button>
           </div>

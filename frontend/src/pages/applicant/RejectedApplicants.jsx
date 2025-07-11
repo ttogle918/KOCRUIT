@@ -3,6 +3,7 @@ import Layout from '../../layout/Layout';
 import { FaRegStar, FaStar, FaCalendarAlt, FaEnvelope } from 'react-icons/fa';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/api';
+import ViewPostSidebar from '../../components/ViewPostSidebar';
 import PassReasonCard from '../../components/PassReasonCard';
 
 export default function RejectedApplicants() {
@@ -16,6 +17,8 @@ export default function RejectedApplicants() {
   const navigate = useNavigate();
   const [splitMode, setSplitMode] = useState(false);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [jobPost, setJobPost] = useState(null);
+  const [jobPostLoading, setJobPostLoading] = useState(true);
 
   useEffect(() => {
     const fetchApplicants = async () => {
@@ -34,8 +37,21 @@ export default function RejectedApplicants() {
       }
     };
 
+    const fetchJobPost = async () => {
+      setJobPostLoading(true);
+      try {
+        const res = await api.get(`/company/jobposts/${jobPostId}`);
+        setJobPost(res.data);
+      } catch (err) {
+        setJobPost(null);
+      } finally {
+        setJobPostLoading(false);
+      }
+    };
+
     if (jobPostId) {
       fetchApplicants();
+      fetchJobPost();
     }
   }, [jobPostId]);
 
@@ -68,6 +84,7 @@ export default function RejectedApplicants() {
   if (loading) {
     return (
       <Layout>
+        <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
           <div className="text-xl">로딩 중...</div>
         </div>
@@ -78,6 +95,7 @@ export default function RejectedApplicants() {
   if (error) {
     return (
       <Layout>
+        <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
           <div className="text-xl text-red-500">{error}</div>
         </div>
@@ -87,7 +105,8 @@ export default function RejectedApplicants() {
 
   return (
     <Layout>
-      <div className="h-screen flex flex-col">
+      <ViewPostSidebar jobPost={jobPost} />
+      <div className="h-screen flex flex-col" style={{ marginLeft: 90 }}>
         {/* Title Box */}
         <div className="bg-white dark:bg-gray-800 shadow px-8 py-4 flex items-center justify-between">
           <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">
@@ -109,8 +128,8 @@ export default function RejectedApplicants() {
               {/* Filter Tabs + Sort Button */}
               <div className="flex justify-between items-center mb-4">
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 rounded bg-blue-500 text-white font-semibold">적합</button>
-                  <button className="px-4 py-2 rounded bg-red-500 text-white font-semibold">부적합</button>
+                  <button className="px-4 py-2 rounded bg-blue-500 text-white font-semibold">합격</button>
+                  <button className="px-4 py-2 rounded bg-red-500 text-white font-semibold">불합격</button>
                   <button className="px-4 py-2 rounded bg-gray-300 text-gray-700 font-semibold">제외</button>
                 </div>
                 <button className="text-sm text-gray-700 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm hover:bg-gray-100">

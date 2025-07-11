@@ -24,6 +24,7 @@ import {
 } from '@chakra-ui/icons';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 // 챗봇 전용 axios 인스턴스
 const chatbotApi = axios.create({
@@ -35,9 +36,11 @@ const chatbotApi = axios.create({
 });
 
 const Chatbot = () => {
+  console.log('Chatbot component rendering');
   // 모든 훅을 최상단에 배치 (순서 중요!)
   const location = useLocation();
   const toast = useToast();
+  const { user } = useAuth();
   
   // useState 훅들
   const [isOpen, setIsOpen] = useState(false);
@@ -86,35 +89,129 @@ const Chatbot = () => {
 
     // 주요 DOM 요소들 수집
     try {
+      // 페이지의 모든 텍스트 내용 수집
+      const pageTextContent = document.body.innerText || document.body.textContent || '';
+      context.pageTextContent = pageTextContent.substring(0, 2000); // 최대 2000자로 제한
+
+      // 폼 요소들 수집
       const forms = Array.from(document.querySelectorAll('form')).map(form => ({
         id: form.id || null,
         className: form.className || null,
-        action: form.action || null
+        action: form.action || null,
+        method: form.method || null
       }));
 
-      const inputs = Array.from(document.querySelectorAll('input, textarea, select')).map(input => ({
-        id: input.id || null,
-        name: input.name || null,
-        type: input.type || input.tagName.toLowerCase(),
-        placeholder: input.placeholder || null,
-        value: input.value || null,
-        className: input.className || null
-      }));
+      // 입력 필드들 수집 (더 상세한 정보)
+      const inputs = Array.from(document.querySelectorAll('input, textarea, select')).map(input => {
+        const inputInfo = {
+          id: input.id || null,
+          name: input.name || null,
+          type: input.type || input.tagName.toLowerCase(),
+          placeholder: input.placeholder || null,
+          value: input.value || null,
+          className: input.className || null,
+          required: input.required || false,
+          disabled: input.disabled || false
+        };
 
-      const buttons = Array.from(document.querySelectorAll('button')).map(button => ({
+        // 라벨 요소 찾기
+        const label = document.querySelector(`label[for="${input.id}"]`);
+        if (label) {
+          inputInfo.label = label.textContent?.trim() || null;
+        }
+
+        // 부모 요소에서 라벨 찾기
+        if (!inputInfo.label) {
+          const parent = input.parentElement;
+          if (parent) {
+            const parentLabel = parent.querySelector('label');
+            if (parentLabel) {
+              inputInfo.label = parentLabel.textContent?.trim() || null;
+            }
+          }
+        }
+
+        return inputInfo;
+      });
+
+      // 버튼들 수집
+      const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"]')).map(button => ({
         id: button.id || null,
-        text: button.textContent?.trim() || null,
-        className: button.className || null
+        text: button.textContent?.trim() || button.value || null,
+        className: button.className || null,
+        type: button.type || 'button',
+        disabled: button.disabled || false
       }));
+
+      // 제목 요소들 수집
+      const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(heading => ({
+        level: heading.tagName.toLowerCase(),
+        text: heading.textContent?.trim() || null,
+        id: heading.id || null,
+        className: heading.className || null
+      }));
+
+      // 링크들 수집
+      const links = Array.from(document.querySelectorAll('a')).map(link => ({
+        text: link.textContent?.trim() || null,
+        href: link.href || null,
+        className: link.className || null
+      }));
+
+      // 테이블 데이터 수집
+      const tables = Array.from(document.querySelectorAll('table')).map(table => {
+        const rows = Array.from(table.querySelectorAll('tr')).map(row => {
+          const cells = Array.from(row.querySelectorAll('td, th')).map(cell => ({
+            text: cell.textContent?.trim() || null,
+            isHeader: cell.tagName.toLowerCase() === 'th'
+          }));
+          return cells;
+        });
+        return {
+          id: table.id || null,
+          className: table.className || null,
+          rows: rows.slice(0, 10) // 최대 10행만
+        };
+      });
 
       context.domElements = {
+        pageTextContent: context.pageTextContent,
         forms: forms.slice(0, 5), // 최대 5개만
-        inputs: inputs.slice(0, 10), // 최대 10개만
-        buttons: buttons.slice(0, 10) // 최대 10개만
+        inputs: inputs.slice(0, 15), // 최대 15개만
+        buttons: buttons.slice(0, 10), // 최대 10개만
+        headings: headings.slice(0, 10), // 최대 10개만
+        links: links.slice(0, 10), // 최대 10개만
+        tables: tables.slice(0, 3) // 최대 3개만
       };
+
+      // 페이지 구조 분석
+      context.pageStructure = {
+        hasForms: forms.length > 0,
+        hasInputs: inputs.length > 0,
+        hasButtons: buttons.length > 0,
+        hasTables: tables.length > 0,
+        mainHeading: headings.find(h => h.level === 'h1')?.text || null,
+        subHeadings: headings.filter(h => h.level !== 'h1').slice(0, 5).map(h => h.text)
+      };
+
     } catch (error) {
       console.warn('DOM 요소 수집 중 오류:', error);
-      context.domElements = { forms: [], inputs: [], buttons: [] };
+      context.domElements = { 
+        forms: [], 
+        inputs: [], 
+        buttons: [], 
+        headings: [],
+        links: [],
+        tables: []
+      };
+      context.pageStructure = {
+        hasForms: false,
+        hasInputs: false,
+        hasButtons: false,
+        hasTables: false,
+        mainHeading: null,
+        subHeadings: []
+      };
     }
 
     return context;
@@ -131,10 +228,52 @@ const Chatbot = () => {
       '/corporatehome': '기업 홈페이지',
       '/applicantlist': '지원자 목록 페이지',
       '/postrecruitment': '채용공고 등록 페이지',
+      '/editpost': '채용공고 수정 페이지',
+      '/viewpost': '채용공고 상세보기 페이지',
       '/email': '이메일 발송 페이지',
       '/managerschedule': '매니저 일정 관리 페이지',
-      '/memberschedule': '멤버 일정 관리 페이지'
+      '/memberschedule': '멤버 일정 관리 페이지',
+      '/passedapplicants': '합격자 목록 페이지',
+      '/rejectedapplicants': '불합격자 목록 페이지',
+      '/interview-progress': '면접 진행 상황 페이지',
+      '/common/company': '파트너사 목록 페이지',
+      '/common/company/:id': '파트너사 상세 페이지',
+      '/common/jobposts/:id': '공개 채용공고 상세 페이지',
+      '/company/jobposts/:id': '기업 채용공고 상세 페이지',
+      '/applicantlist/:jobPostId': '특정 채용공고의 지원자 목록 페이지',
+      '/role-test': '역할 테스트 페이지',
+      '/test-connection': '연결 테스트 페이지'
     };
+    
+    // 동적 라우트 매칭을 위한 처리
+    if (pathname.startsWith('/editpost/')) {
+      return '채용공고 수정 페이지';
+    }
+    if (pathname.startsWith('/viewpost/')) {
+      return '채용공고 상세보기 페이지';
+    }
+    if (pathname.startsWith('/passedapplicants/')) {
+      return '합격자 목록 페이지';
+    }
+    if (pathname.startsWith('/rejectedapplicants/')) {
+      return '불합격자 목록 페이지';
+    }
+    if (pathname.startsWith('/interview-progress/')) {
+      return '면접 진행 상황 페이지';
+    }
+    if (pathname.startsWith('/common/company/') && pathname !== '/common/company') {
+      return '파트너사 상세 페이지';
+    }
+    if (pathname.startsWith('/common/jobposts/')) {
+      return '공개 채용공고 상세 페이지';
+    }
+    if (pathname.startsWith('/company/jobposts/')) {
+      return '기업 채용공고 상세 페이지';
+    }
+    if (pathname.startsWith('/applicantlist/') && pathname !== '/applicantlist') {
+      return '특정 채용공고의 지원자 목록 페이지';
+    }
+    
     return pageMap[pathname] || '알 수 없는 페이지';
   };
 
@@ -205,58 +344,35 @@ const Chatbot = () => {
     setIsTyping(true);
 
     try {
-      // 페이지 컨텍스트 수집
       const pageContext = getPageContext();
+      console.log('챗봇 요청:', { message: messageToSend, session_id: sessionId });
       
-      // 에이전트 API 호출 (페이지 컨텍스트 포함)
       const response = await chatbotApi.post('/chat/', {
-        session_id: sessionId,
         message: messageToSend,
+        session_id: sessionId,
         page_context: pageContext
       });
 
-      if (response.data.ai_response) {
-        const botResponse = {
-          id: messages.length + 2,
-          text: response.data.ai_response,
-          sender: 'bot',
-          timestamp: new Date(),
-          pageSuggestions: response.data.page_suggestions || [],
-          domActions: response.data.dom_actions || []
-        };
-        setMessages(prev => [...prev, botResponse]);
-        
-        // 페이지 제안이나 DOM 액션이 있다면 처리
-        if (response.data.page_suggestions) {
-          console.log('페이지 제안:', response.data.page_suggestions);
-        }
-        if (response.data.dom_actions) {
-          console.log('DOM 액션:', response.data.dom_actions);
-          // 여기서 DOM 액션을 실행할 수 있습니다
-        }
-      } else {
-        throw new Error('응답이 없습니다.');
-      }
-    } catch (error) {
-      console.error('챗봇 API 호출 실패:', error);
-      
-      // 에러 메시지 표시
-      const errorMessage = {
+      console.log('챗봇 응답:', response.data);
+
+      const botMessage = {
         id: messages.length + 2,
-        text: "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        text: response.data.ai_response || response.data.response || '응답을 받지 못했습니다.',
         sender: 'bot',
         timestamp: new Date(),
-        isError: true
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('챗봇 응답 오류:', error);
+      const errorMessage = {
+        id: messages.length + 2,
+        text: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        sender: 'bot',
+        timestamp: new Date(),
+        isError: true,
       };
       setMessages(prev => [...prev, errorMessage]);
-      
-      toast({
-        title: "연결 오류",
-        description: "챗봇 서버에 연결할 수 없습니다.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
     } finally {
       setIsTyping(false);
     }
@@ -271,7 +387,7 @@ const Chatbot = () => {
 
   // 크기 조절 시작
   const handleResizeStart = (e, direction) => {
-    e.stopPropagation();
+    e.preventDefault();
     setIsResizing(true);
     setResizeDirection(direction);
     setResizeStart({
@@ -288,21 +404,18 @@ const Chatbot = () => {
 
     const deltaX = e.clientX - resizeStart.x;
     const deltaY = e.clientY - resizeStart.y;
-    
     let newWidth = resizeStart.width;
     let newHeight = resizeStart.height;
 
-    // 방향에 따라 크기 조절
     if (resizeDirection.includes('right')) {
       newWidth = Math.max(300, Math.min(800, resizeStart.width + deltaX));
-    }
-    if (resizeDirection.includes('left')) {
+    } else if (resizeDirection.includes('left')) {
       newWidth = Math.max(300, Math.min(800, resizeStart.width - deltaX));
     }
+
     if (resizeDirection.includes('bottom')) {
       newHeight = Math.max(400, Math.min(800, resizeStart.height + deltaY));
-    }
-    if (resizeDirection.includes('top')) {
+    } else if (resizeDirection.includes('top')) {
       newHeight = Math.max(400, Math.min(800, resizeStart.height - deltaY));
     }
 
@@ -316,7 +429,13 @@ const Chatbot = () => {
   };
 
   return (
-    <Box position="fixed" bottom={4} right={4} zIndex={1000}>
+    <Box 
+      position="fixed" 
+      bottom={4} 
+      right={4} 
+      zIndex={9999}
+      style={{ isolation: 'isolate' }}
+    >
       {/* 챗봇 토글 버튼 - 채팅창이 열려있을 때는 숨김 */}
       <ScaleFade in={!isOpen}>
         <Button
@@ -327,6 +446,7 @@ const Chatbot = () => {
           boxShadow="lg"
           _hover={{ transform: 'scale(1.1)' }}
           transition="all 0.3s"
+          aria-label="챗봇 열기"
         >
           <ChatIcon />
         </Button>
@@ -350,6 +470,7 @@ const Chatbot = () => {
             display="flex"
             flexDirection="column"
             userSelect="none"
+            style={{ isolation: 'isolate' }}
           >
             {/* 헤더 */}
             <Box
@@ -375,6 +496,7 @@ const Chatbot = () => {
                   variant="ghost"
                   color="white"
                   _hover={{ bg: 'whiteAlpha.200' }}
+                  aria-label="챗봇 닫기"
                 />
               </Flex>
             </Box>
@@ -496,6 +618,7 @@ const Chatbot = () => {
                   size="sm"
                   _hover={{ transform: 'scale(1.1)' }}
                   transition="all 0.2s"
+                  aria-label="메시지 전송"
                 />
               </HStack>
             </Box>
