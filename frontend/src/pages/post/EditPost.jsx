@@ -299,14 +299,29 @@ function EditPost() {
       // data 속성을 사용한 요소 선택
       const itemElement = document.querySelector(`input[data-weight-index="${idx}"][data-weight-type="item"]`);
       const scoreElement = document.querySelector(`input[data-weight-index="${idx}"][data-weight-type="score"]`);
+      const descriptionElement = document.getElementById(`weight-${idx + 1}-description`);
+      const weightsDescriptionElement = document.getElementById('weights-description');
       
       if (itemElement) {
-        itemElement.setAttribute('aria-label', `가중치 항목 ${idx + 1} 입력${weight.item ? `: ${weight.item}` : ''}`);
+        itemElement.setAttribute('aria-label', `가중치 항목 ${idx + 1} 이름${weight.item ? `: ${weight.item}` : ''}`);
       }
       if (scoreElement) {
-        scoreElement.setAttribute('aria-label', `가중치 점수 ${idx + 1} 입력 (0.0에서 1.0 사이)${weight.score ? `: ${weight.score}` : ''}`);
+        scoreElement.setAttribute('aria-label', `가중치 항목 ${idx + 1} 점수${weight.score ? `: ${weight.score}` : ''} (0.0에서 1.0 사이)`);
+      }
+      if (descriptionElement) {
+        descriptionElement.textContent = `${weight.item ? `항목: ${weight.item}` : '항목명 미입력'}, ${weight.score ? `점수: ${weight.score}` : '점수 미입력'}`;
       }
     });
+    
+    // 전체 가중치 섹션 설명 업데이트
+    const weightsDescriptionElement = document.getElementById('weights-description');
+    if (weightsDescriptionElement) {
+      const validWeights = weights.filter(w => w.item && w.score);
+      const weightsText = validWeights.length > 0 
+        ? validWeights.map((w, idx) => `${idx + 1}. ${w.item} (${w.score})`).join(', ')
+        : '설정된 가중치 항목 없음';
+      weightsDescriptionElement.textContent = `현재 설정된 가중치 항목: ${weightsText}`;
+    }
   }, [schedules, weights, formData]);
 
   // 팀 멤버 데이터를 실시간으로 접근성 속성에 반영
@@ -620,11 +635,12 @@ function EditPost() {
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
-                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">가중치 설정</h4>
-                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4">
+              <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white" role="region" aria-labelledby="weights-section-title">
+                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white" id="weights-section-title">가중치 설정</h4>
+                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4" role="group" aria-describedby="weights-description">
                   {weights.map((weight, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
+                    <div key={idx} className="flex items-center gap-2 text-sm" role="group" aria-labelledby={`weight-${idx + 1}-label`}>
+                      <label className="sr-only" id={`weight-${idx + 1}-label`}>가중치 항목 {idx + 1}</label>
                       <input 
                         type="text" 
                         value={weight.item} 
@@ -633,6 +649,8 @@ function EditPost() {
                         placeholder="가중치 항목 (예: 학력, 경력)" 
                         data-weight-index={idx}
                         data-weight-type="item"
+                        aria-label={`가중치 항목 ${idx + 1} 이름${weight.item ? `: ${weight.item}` : ''}`}
+                        aria-describedby={`weight-${idx + 1}-description`}
                       />
                       <input 
                         type="number" 
@@ -650,24 +668,34 @@ function EditPost() {
                         placeholder="0.0~1.0" 
                         data-weight-index={idx}
                         data-weight-type="score"
+                        aria-label={`가중치 항목 ${idx + 1} 점수${weight.score ? `: ${weight.score}` : ''} (0.0에서 1.0 사이)`}
+                        aria-describedby={`weight-${idx + 1}-description`}
                       />
                       <button 
                         type="button" 
                         onClick={() => setWeights(prev => prev.filter((_, i) => i !== idx))} 
                         className="text-red-500 text-xl font-bold hover:text-red-700 dark:hover:text-red-400"
                         data-weight-index={idx}
+                        aria-label={`가중치 항목 ${idx + 1} 삭제`}
                       >
                         ×
                       </button>
+                      <div className="sr-only" id={`weight-${idx + 1}-description`}>
+                        {weight.item ? `항목: ${weight.item}` : '항목명 미입력'}, {weight.score ? `점수: ${weight.score}` : '점수 미입력'}
+                      </div>
                     </div>
                   ))}
                   <button 
                     type="button" 
                     onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
                     className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
+                    aria-label="새로운 가중치 항목 추가"
                   >
                     + 가중치 추가
                   </button>
+                  <div className="sr-only" id="weights-description">
+                    현재 설정된 가중치 항목: {weights.filter(w => w.item && w.score).map((w, idx) => `${idx + 1}. ${w.item} (${w.score})`).join(', ')}
+                  </div>
                   {showError && weights.length === 0 && (
                     <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded" role="alert">
                       최소 하나의 가중치 항목을 추가해 주세요.
