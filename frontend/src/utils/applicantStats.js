@@ -123,17 +123,19 @@ export function getAgeGroupStats(applicants) {
 
 // 지원자별 자격증 수 분포(히스토그램)
 export function getCertificateCountStats(applicants) {
-  // 0개, 1~2개, 3개 이상 구간별 집계
-  let zero = 0, oneTwo = 0, threePlus = 0;
+  // 0개, 1개, 2개, 3개 이상 구간별 집계
+  let zero = 0, one = 0, two = 0, threePlus = 0;
   applicants.forEach(a => {
     const count = Array.isArray(a.certificates) ? a.certificates.length : 0;
     if (count === 0) zero++;
-    else if (count <= 2) oneTwo++;
+    else if (count === 1) one++;
+    else if (count === 2) two++;
     else threePlus++;
   });
   return [
     { name: '0개', count: zero },
-    { name: '1~2개', count: oneTwo },
+    { name: '1개', count: one },
+    { name: '2개', count: two },
     { name: '3개 이상', count: threePlus }
   ];
 }
@@ -165,6 +167,21 @@ export function getNewApplicantsToday(applicants) {
 // 미열람 지원자 통계
 export function getUnviewedApplicants(applicants) {
   return applicants.filter(a => !a.isViewed).length;
+}
+
+// 지원 시기별 지원자 수 추이(일 단위)
+export function getApplicationTrendStats(applicants) {
+  const dateMap = {};
+  applicants.forEach(app => {
+    const dateStr = (app.appliedAt || app.applied_at || '').slice(0, 10); // YYYY-MM-DD
+    if (!dateStr) return;
+    if (!dateMap[dateStr]) dateMap[dateStr] = 0;
+    dateMap[dateStr]++;
+  });
+  // 날짜 오름차순 정렬
+  return Object.entries(dateMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }));
 }
 
 // 차트 색상 상수

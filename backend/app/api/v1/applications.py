@@ -244,9 +244,9 @@ def update_application_status(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
     if status_update.status:
-        application.status = str(status_update.status)
+        application.status = status_update.status.value 
     if status_update.document_status:
-        application.document_status = str(status_update.document_status)
+        application.document_status = status_update.document_status.value
     db.commit()
     return {"message": "Application status updated successfully"}
 
@@ -280,6 +280,7 @@ def get_applicants_by_job(
         # 학력 정보 추출: resume.specs에서 추출
         education = None
         degree = None  # 추가: degree 정보
+        certificates = []  # 자격증 정보 추가
         if app.resume and app.resume.specs:
             edu_specs = [
                 s for s in app.resume.specs 
@@ -294,7 +295,21 @@ def get_applicants_by_job(
             ]
             if degree_specs:
                 degree = degree_specs[0].spec_description
-
+            # 자격증 정보 추출
+            cert_name_specs = [
+                s for s in app.resume.specs
+                if s.spec_type == "certifications" and s.spec_title == "name"
+            ]
+            for cert in cert_name_specs:
+                # date, duration 정보도 spec에서 찾아서 매칭
+                if cert.spec_description:  # null/빈 문자열 제외
+                    cert_date = next((s.spec_description for s in app.resume.specs if s.spec_type == "certifications" and s.spec_title == "date"), "")
+                    cert_duration = next((s.spec_description for s in app.resume.specs if s.spec_type == "certifications" and s.spec_title == "duration"), "")
+                    certificates.append({
+                        "name": cert.spec_description,
+                        "date": cert_date,
+                        "duration": cert_duration
+                    })
         applicant_data = {
             "id": app.user.id,
             "name": app.user.name,
@@ -307,7 +322,9 @@ def get_applicants_by_job(
             "gender": app.user.gender if app.user.gender else None,
             "education": education,
             "degree": degree,  # degree 정보 추가
-            "address": app.user.address if app.user.address else None  # address 필드 추가
+            "resume_id": app.resume_id,  # ← 이 줄 추가!
+            "address": app.user.address if app.user.address else None,  # address 필드 추가
+            "certificates": certificates  # 자격증 배열 추가
         }
         applicants.append(applicant_data)
     return applicants

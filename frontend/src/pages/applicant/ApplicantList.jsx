@@ -14,7 +14,7 @@ import ViewPostSidebar from '../../components/ViewPostSidebar';
 import Button from '@mui/material/Button';
 import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, LineChart, Line } from 'recharts';
 import IconButton from '@mui/material/IconButton';
 import ArrowBackIosNew from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIos from '@mui/icons-material/ArrowForwardIos';
@@ -27,7 +27,8 @@ import {
   getUnviewedApplicants,
   CHART_COLORS,
   getProvinceStats,
-  getCertificateCountStats
+  getCertificateCountStats,
+  getApplicationTrendStats // 추가
 } from '../../utils/applicantStats';
 import ProvinceMapChart from '../../components/ProvinceMapChart';
 
@@ -355,84 +356,121 @@ export default function ApplicantList() {
               <ArrowBackIosNew />
             </IconButton>
             <h2 id="stat-modal-title" className="text-xl font-bold">
-              {slideIndex === 0 ? '연령대별 지원자 수'
-                : slideIndex === 1 ? '성별 지원자 비율'
-                : slideIndex === 2 ? '학력별 지원자 비율'
-                : slideIndex === 3 ? '지역별 지원자 분포'
+              {slideIndex === 0 ? '지원 시기별 지원자 추이'
+                : slideIndex === 1 ? '연령대별 지원자 수'
+                : slideIndex === 2 ? '성별 지원자 비율'
+                : slideIndex === 3 ? '학력별 지원자 비율'
+                : slideIndex === 4 ? '지역별 지원자 분포'
                 : '자격증 보유수별 지원자 수'}
             </h2>
-            <IconButton onClick={() => setSlideIndex(slideIndex + 1)} disabled={slideIndex === 4}>
+            <IconButton onClick={() => setSlideIndex(slideIndex + 1)} disabled={slideIndex === 5}>
               <ArrowForwardIos />
             </IconButton>
           </div>
           {slideIndex === 0 && (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getAgeGroupStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill={CHART_COLORS.AGE_GROUP} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={getApplicationTrendStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
+                전체 지원자 수: {applicants.length}명
+              </div>
+            </>
           )}
           {slideIndex === 1 && (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={getGenderStats(applicants)}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label
-                >
-                  {getGenderStats(applicants).map((entry, idx) => (
-                    <Cell key={`cell-${idx}`} fill={CHART_COLORS.GENDER[idx % CHART_COLORS.GENDER.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend layout="vertical" align="right" verticalAlign="middle" />
-              </PieChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getAgeGroupStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill={CHART_COLORS.AGE_GROUP} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
+                전체 지원자 수: {applicants.length}명
+              </div>
+            </>
           )}
           {slideIndex === 2 && (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={getEducationStats(applicants)}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label
-                >
-                  {getEducationStats(applicants).map((entry, idx) => (
-                    <Cell key={`cell-edu-${idx}`} fill={CHART_COLORS.EDUCATION[idx % CHART_COLORS.EDUCATION.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend layout="vertical" align="right" verticalAlign="middle" />
-              </PieChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={getGenderStats(applicants)}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {getGenderStats(applicants).map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} fill={CHART_COLORS.GENDER[idx % CHART_COLORS.GENDER.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend layout="vertical" align="right" verticalAlign="middle" />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
+                전체 지원자 수: {applicants.length}명
+              </div>
+            </>
           )}
           {slideIndex === 3 && (
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={getEducationStats(applicants)}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {getEducationStats(applicants).map((entry, idx) => (
+                      <Cell key={`cell-edu-${idx}`} fill={CHART_COLORS.EDUCATION[idx % CHART_COLORS.EDUCATION.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend layout="vertical" align="right" verticalAlign="middle" />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
+                전체 지원자 수: {applicants.length}명
+              </div>
+            </>
+          )}
+          {slideIndex === 4 && (
             <div style={{ width: '100%', height: 500 }}>
               <ProvinceMapChart provinceStats={getProvinceStats(applicants)} />
             </div>
           )}
-          {slideIndex === 4 && (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getCertificateCountStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill={CHART_COLORS.CERTIFICATE} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {slideIndex === 5 && (
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getCertificateCountStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill={CHART_COLORS.CERTIFICATE} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
+                전체 지원자 수: {applicants.length}명
+              </div>
+            </>
           )}
           <div className="flex justify-center mt-4">
             <Button onClick={() => setModalOpen(false)} variant="contained">닫기</Button>
