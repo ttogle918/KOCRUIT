@@ -244,9 +244,9 @@ def update_application_status(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
     if status_update.status:
-        application.status = str(status_update.status)
+        application.status = status_update.status.value 
     if status_update.document_status:
-        application.document_status = str(status_update.document_status)
+        application.document_status = status_update.document_status.value
     db.commit()
     return {"message": "Application status updated successfully"}
 
@@ -322,6 +322,7 @@ def get_applicants_by_job(
             "gender": app.user.gender if app.user.gender else None,
             "education": education,
             "degree": degree,  # degree 정보 추가
+            "resume_id": app.resume_id,  # ← 이 줄 추가!
             "address": app.user.address if app.user.address else None,  # address 필드 추가
             "certificates": certificates  # 자격증 배열 추가
         }
