@@ -1,6 +1,5 @@
 import React from 'react';
 import Rating from '@mui/material/Rating';
-import Rating from '@mui/material/Rating';
 
 function InterviewPanel({ questions, memo, onMemoChange, evaluation, onEvaluationChange, isAutoSaving = false }) {
   // 예시: 카테고리별 평가 항목(실제 항목 구조에 맞게 수정)
@@ -109,7 +108,5 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
     </div>
   );
 }
-
-export default InterviewPanel;
-
+}
 export default InterviewPanel;

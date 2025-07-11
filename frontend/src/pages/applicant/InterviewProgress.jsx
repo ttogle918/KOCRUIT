@@ -136,7 +136,7 @@ function InterviewProgress() {
     if (auto) {
       setIsAutoSaving(true);
     } else {
-      setIsSaving(true);
+    setIsSaving(true);
     }
     
     try {
@@ -156,7 +156,7 @@ function InterviewProgress() {
       if (auto) {
         setIsAutoSaving(false);
       } else {
-        setIsSaving(false);
+      setIsSaving(false);
       }
     }
   };

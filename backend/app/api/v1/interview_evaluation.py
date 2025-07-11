@@ -12,19 +12,18 @@ router = APIRouter()
 @router.post("/", response_model=InterviewEvaluationSchema)
 def create_evaluation(evaluation: InterviewEvaluationCreate, db: Session = Depends(get_db)):
     try:
-        # 데이터베이스 모델 생성 시 필요한 필드들 설정
         db_evaluation = InterviewEvaluation(
             interview_id=evaluation.interview_id,
             evaluator_id=evaluation.evaluator_id,
             is_ai=evaluation.is_ai,
             score=Decimal(str(evaluation.score)) if evaluation.score is not None else None,
             summary=evaluation.summary,
-            created_at=datetime.now()  # 현재 시간 설정
+            created_at=datetime.now()
         )
         db.add(db_evaluation)
         db.commit()
         db.refresh(db_evaluation)
-        
+
         # 상세 평가 등록
         for detail in evaluation.details or []:
             if detail.score is not None:
@@ -35,7 +34,7 @@ def create_evaluation(evaluation: InterviewEvaluationCreate, db: Session = Depen
                     score=Decimal(str(detail.score))
                 )
                 db.add(db_detail)
-        db.commit()
+        db.commit()  # for문 밖에서 한 번만 commit
         db.refresh(db_evaluation)
         return db_evaluation
     except Exception as e:

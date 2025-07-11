@@ -1,4 +1,5 @@
-from langgraph.graph import Graph
+from langgraph.graph import Graph, END
+from backend.app.api.v1.company_question_rag import generate_questions
 from tools.job_posting_tool import job_posting_recommend_tool
 
 def router(state):
@@ -22,10 +23,13 @@ def build_graph():
     # 노드 추가
     graph.add_node("router", router)
     graph.add_node("job_posting_tool", job_posting_recommend_tool)
-    
+    graph.add_node("generate_questions", generate_questions())
+
     # 라우터를 entry point로 설정
     graph.set_entry_point("router")
-    
+    graph.add_edge("extract_core_values", "generate_questions")
+    graph.add_edge("generate_questions", END)
+
     # 조건부 엣지 추가
     graph.add_conditional_edges(
         "router",
