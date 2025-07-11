@@ -78,8 +78,15 @@ const ApplicantCard = ({
         </div>
 
         {/* 점수 원 */}
-        <div className={`flex items-center justify-center font-bold text-gray-800 dark:text-white border-2 border-blue-300 rounded-full ${compact ? 'w-10 h-10 text-xs' : 'w-16 h-16 text-sm'}`}>
-          {applicant.score || 0}점
+        <div className={`flex flex-col items-center justify-center ${compact ? 'w-12 h-12' : 'w-20 h-20'}`}>
+          <div className={`font-bold text-gray-800 dark:text-white border-2 border-blue-300 rounded-full flex items-center justify-center ${compact ? 'w-10 h-10 text-xs' : 'w-16 h-16 text-sm'}`}>
+            {applicant.score || 0}점
+          </div>
+          {applicant.ai_score && (
+            <div className={`text-xs text-blue-600 dark:text-blue-400 mt-1 ${compact ? 'text-[10px]' : ''}`}>
+              AI: {applicant.ai_score}점
+            </div>
+          )}
         </div>
       </div>
     </div>

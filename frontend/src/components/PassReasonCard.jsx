@@ -28,6 +28,9 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(applicant?.isBookmarked === 'Y');
   const [rejecting, setRejecting] = useState(false);
+  const [aiScore, setAiScore] = useState(applicant?.ai_score || 0);
+  const [aiPassReason, setAiPassReason] = useState(applicant?.passReason || '');
+  const [aiFailReason, setAiFailReason] = useState(applicant?.failReason || '');
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -47,19 +50,14 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
     fetchResume();
   }, [applicant]);
 
-
+  // AI 평가 결과가 이미 완료된 상태이므로 바로 표시
   useEffect(() => {
-    const fetchAIReason = async () => {
-      if (!applicant?.resumeId) return;
-      try {
-        const res = await api.get(`/ai/pass-reason/${applicant.resumeId}`);
-        setAutoPassReason(res.data.passReason);
-      } catch (e) {
-        console.error("AI 합격 사유 불러오기 실패", e);
-      }
-    };
-    fetchAIReason();
-  }, [applicant]);
+    if (applicant?.ai_score !== undefined) {
+      setAiScore(applicant.ai_score);
+      setAiPassReason(applicant.passReason || '');
+      setAiFailReason(applicant.failReason || '');
+    }
+  }, [applicant?.ai_score, applicant?.passReason, applicant?.failReason]);
   
 
 
@@ -221,6 +219,21 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
         </div>
       )}
 
+      {/* AI Score */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">AI 평가 점수</h3>
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+          <div className="flex items-center gap-4">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              {aiScore}점
+            </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {aiScore >= 70 ? '합격 기준 충족' : '합격 기준 미충족'}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Pass/Reject Reason */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
@@ -229,8 +242,8 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
         <div className={applicant?.status === 'PASSED' ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20" + " rounded-lg p-4"}>
           <p className="text-gray-700 dark:text-gray-300">
             {applicant?.status === 'PASSED'
-              ? (applicant?.passReason || '서류 심사에서 우수한 성과를 보여 합격 처리되었습니다.')
-              : (applicant?.failReason || '서류 심사 결과 불합격 처리되었습니다.')}
+              ? (aiPassReason || applicant?.passReason || '서류 심사에서 우수한 성과를 보여 합격 처리되었습니다.')
+              : (aiFailReason || applicant?.failReason || '서류 심사 결과 불합격 처리되었습니다.')}
           </p>
         </div>
       </div>

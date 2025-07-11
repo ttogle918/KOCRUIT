@@ -9,7 +9,7 @@ from app.core.database import engine
 from app.models import Base
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.core.database import SessionLocal
-from app.models.interview_evaluation import auto_process_applications
+from app.models.interview_evaluation import auto_process_applications, auto_evaluate_all_applications
 
 
 @asynccontextmanager
@@ -71,9 +71,19 @@ app.include_router(api_router)
 
 
 def run_auto_process():
+    print("run_auto_process called") 
+    """자동 처리 함수"""
     db = SessionLocal()
     try:
+        # 기존 자동 처리
         auto_process_applications(db)
+        
+        # AI 평가 배치 프로세스 추가
+        auto_evaluate_all_applications(db)
+        
+        print("자동 처리 완료")
+    except Exception as e:
+        print(f"자동 처리 중 오류: {e}")
     finally:
         db.close()
 
