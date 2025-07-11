@@ -248,6 +248,55 @@ function PostRecruitment() {
     }
   };
 
+  // 실시간 폼 데이터를 챗봇이 읽을 수 있도록 접근성 속성 업데이트
+  useEffect(() => {
+    // 면접 일정 데이터를 실시간으로 접근성 속성에 반영
+    schedules.forEach((schedule, idx) => {
+      const dateElement = document.getElementById(`schedule-${idx + 1}-date`);
+      const timeElement = document.getElementById(`schedule-${idx + 1}-time`);
+      const placeElement = document.getElementById(`schedule-${idx + 1}-place`);
+      
+      if (dateElement) {
+        dateElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 날짜 선택${schedule.date ? `: ${schedule.date.toLocaleDateString()}` : ''}`);
+      }
+      if (timeElement) {
+        timeElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 시간 선택${schedule.time ? `: ${schedule.time}` : ''}`);
+      }
+      if (placeElement) {
+        placeElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 장소 입력${schedule.place ? `: ${schedule.place}` : ''}`);
+      }
+    });
+
+    // 가중치 데이터를 실시간으로 접근성 속성에 반영
+    weights.forEach((weight, idx) => {
+      // data 속성을 사용한 요소 선택
+      const itemElement = document.querySelector(`input[data-weight-index="${idx}"][data-weight-type="item"]`);
+      const scoreElement = document.querySelector(`input[data-weight-index="${idx}"][data-weight-type="score"]`);
+      
+      if (itemElement) {
+        itemElement.setAttribute('aria-label', `가중치 항목 ${idx + 1} 입력${weight.item ? `: ${weight.item}` : ''}`);
+      }
+      if (scoreElement) {
+        scoreElement.setAttribute('aria-label', `가중치 점수 ${idx + 1} 입력 (0.0에서 1.0 사이)${weight.score ? `: ${weight.score}` : ''}`);
+      }
+    });
+  }, [schedules, weights, formData]);
+
+  // 팀 멤버 데이터를 실시간으로 접근성 속성에 반영
+  useEffect(() => {
+    teamMembers.forEach((member, idx) => {
+      const emailElement = document.querySelector(`input[type="email"][data-member-index="${idx}"]`);
+      const roleElement = document.querySelector(`select[data-member-index="${idx}"]`);
+      
+      if (emailElement) {
+        emailElement.setAttribute('aria-label', `팀원 ${idx + 1} 이메일 입력${member.email ? `: ${member.email}` : ''}`);
+      }
+      if (roleElement) {
+        roleElement.setAttribute('aria-label', `팀원 ${idx + 1} 권한 선택${member.role ? `: ${member.role}` : ''}`);
+      }
+    });
+  }, [teamMembers]);
+
   return (
     <Layout title="채용공고 등록">
       <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
@@ -408,13 +457,34 @@ function PostRecruitment() {
                 <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
                   {teamMembers.map((member, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-sm">
-                      <input type="email" value={member.email} onChange={e => setTeamMembers(prev => prev.map((m, i) => i === idx ? { ...m, email: e.target.value } : m))} className={`flex-1 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !member.email ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} placeholder="이메일" />
-                      <select value={member.role} onChange={e => setTeamMembers(prev => prev.map((m, i) => i === idx ? { ...m, role: e.target.value } : m))} className={`w-32 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !member.role ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} >
+                      <input 
+                        type="email" 
+                        value={member.email} 
+                        onChange={e => setTeamMembers(prev => prev.map((m, i) => i === idx ? { ...m, email: e.target.value } : m))} 
+                        className={`flex-1 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !member.email ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
+                        placeholder="이메일" 
+                        data-member-index={idx}
+                        aria-label={`팀원 ${idx + 1} 이메일 입력${member.email ? `: ${member.email}` : ''}`}
+                      />
+                      <select 
+                        value={member.role} 
+                        onChange={e => setTeamMembers(prev => prev.map((m, i) => i === idx ? { ...m, role: e.target.value } : m))} 
+                        className={`w-32 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !member.role ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
+                        data-member-index={idx}
+                        aria-label={`팀원 ${idx + 1} 권한 선택${member.role ? `: ${member.role}` : ''}`}
+                      >
                         <option value="">권한 선택</option>
                         <option value="관리자">관리자</option>
                         <option value="멤버">멤버</option>
                       </select>
-                      <button type="button" onClick={() => setTeamMembers(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 text-xl font-bold">×</button>
+                      <button 
+                        type="button" 
+                        onClick={() => setTeamMembers(prev => prev.filter((_, i) => i !== idx))} 
+                        className="text-red-500 text-xl font-bold"
+                        aria-label={`팀원 ${idx + 1} 삭제`}
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                   <button type="button" onClick={() => setTeamMembers(prev => [...prev, { email: '', role: '' }])} className="text-sm text-blue-600 hover:underline ml-4 mt-3">+ 멤버 추가</button>
@@ -423,16 +493,17 @@ function PostRecruitment() {
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
-                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정 설정</h4>
-                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4">
+                <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white" id="interview-schedule-section">면접 일정 설정</h4>
+                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4" role="region" aria-labelledby="interview-schedule-section">
                   {schedules.map((sch, idx) => (
-                    <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-3">
+                    <div key={idx} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-3" role="group" aria-labelledby={`schedule-${idx + 1}-title`}>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">면접 일정 {idx + 1}</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300" id={`schedule-${idx + 1}-title`}>면접 일정 {idx + 1}</span>
                         <button 
                           type="button" 
                           onClick={() => setSchedules(prev => prev.filter((_, i) => i !== idx))} 
                           className="text-red-500 hover:text-red-700 dark:hover:text-red-400 text-lg font-bold p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                          aria-label={`면접 일정 ${idx + 1} 삭제`}
                         >
                           ×
                         </button>
@@ -440,7 +511,7 @@ function PostRecruitment() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-xs text-gray-600 dark:text-gray-400">날짜</label>
+                          <label className="text-xs text-gray-600 dark:text-gray-400" htmlFor={`schedule-${idx + 1}-date`}>날짜</label>
                           <DatePicker 
                             selected={sch.date} 
                             onChange={date => setSchedules(prev => prev.map((s, i) => i === idx ? { ...s, date } : s))} 
@@ -448,29 +519,35 @@ function PostRecruitment() {
                             className={`w-full border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm ${showError && !sch.date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                             placeholderText="날짜 선택" 
                             calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 
-                            popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg" 
+                            popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg"
+                            id={`schedule-${idx + 1}-date`}
+                            aria-label={`면접 일정 ${idx + 1} 날짜 선택`}
                           />
                         </div>
                         
                         <div className="space-y-1">
-                          <label className="text-xs text-gray-600 dark:text-gray-400">시간</label>
+                          <label className="text-xs text-gray-600 dark:text-gray-400" htmlFor={`schedule-${idx + 1}-time`}>시간</label>
                           <TimePicker 
                             value={sch.time} 
                             onChange={e => setSchedules(prev => prev.map((s, i) => i === idx ? { ...s, time: e.target.value } : s))} 
                             placeholder="시간 선택"
                             error={showError && !sch.time}
+                            id={`schedule-${idx + 1}-time`}
+                            aria-label={`면접 일정 ${idx + 1} 시간 선택`}
                           />
                         </div>
                       </div>
                       
                       <div className="space-y-1">
-                        <label className="text-xs text-gray-600 dark:text-gray-400">장소</label>
+                        <label className="text-xs text-gray-600 dark:text-gray-400" htmlFor={`schedule-${idx + 1}-place`}>장소</label>
                         <input 
                           type="text" 
                           value={sch.place} 
                           onChange={e => setSchedules(prev => prev.map((s, i) => i === idx ? { ...s, place: e.target.value } : s))} 
                           className={`w-full border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm ${showError && !sch.place ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                           placeholder="면접 장소 (예: 회사 3층 회의실)" 
+                          id={`schedule-${idx + 1}-place`}
+                          aria-label={`면접 일정 ${idx + 1} 장소 입력`}
                         />
                       </div>
                     </div>
@@ -480,17 +557,18 @@ function PostRecruitment() {
                     type="button" 
                     onClick={() => setSchedules(prev => [...prev, { date: null, time: '', place: '' }])} 
                     className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
+                    aria-label="새로운 면접 일정 추가"
                   >
                     + 면접 일정 추가
                   </button>
                   
                   {showError && schedules.length === 0 && (
-                    <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                    <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded" role="alert">
                       최소 하나의 면접 일정을 추가해 주세요.
                     </div>
                   )}
                   {showError && schedules.length > 0 && schedules.some(s => !s.date || !s.time || !s.place) && (
-                    <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                    <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded" role="alert">
                       모든 면접 일정의 날짜, 시간, 장소를 입력하세요.
                     </div>
                   )}
@@ -499,26 +577,7 @@ function PostRecruitment() {
 
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
                 <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">가중치 설정</h4>
-                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-gray-700 dark:text-gray-300">이력서 평가 가중치</span>
-                    <button 
-                      type="button" 
-                      onClick={handleExtractWeights}
-                      disabled={isExtractingWeights}
-                      className="text-sm bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isExtractingWeights ? '추출 중...' : 'AI 가중치 추출'}
-                    </button>
-                  </div>
-                  
-                  {weights.length === 0 && (
-                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                      <p className="text-sm mb-2">아직 가중치가 설정되지 않았습니다.</p>
-                      <p className="text-xs">"AI 가중치 추출" 버튼을 클릭하거나 직접 추가해주세요.</p>
-                    </div>
-                  )}
-                  
+                <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-4">
                   {weights.map((weight, idx) => (
                     <div key={idx} className="flex items-center gap-2 text-sm">
                       <input 
@@ -527,6 +586,8 @@ function PostRecruitment() {
                         onChange={e => setWeights(prev => prev.map((w, i) => i === idx ? { ...w, item: e.target.value } : w))} 
                         className={`flex-1 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !weight.item ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                         placeholder="가중치 항목 (예: 학력, 경력)" 
+                        data-weight-index={idx}
+                        data-weight-type="item"
                       />
                       <input 
                         type="number" 
@@ -542,32 +603,48 @@ function PostRecruitment() {
                         step="0.1"
                         className={`w-20 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && weight.score === '' ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                         placeholder="0.0~1.0" 
+                        data-weight-index={idx}
+                        data-weight-type="score"
                       />
                       <button 
                         type="button" 
                         onClick={() => setWeights(prev => prev.filter((_, i) => i !== idx))} 
                         className="text-red-500 text-xl font-bold hover:text-red-700 dark:hover:text-red-400"
+                        data-weight-index={idx}
                       >
                         ×
                       </button>
                     </div>
                   ))}
-                  
                   <button 
                     type="button" 
                     onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
-                    className="text-sm text-blue-600 hover:underline ml-4 mt-3"
+                    className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
                   >
                     + 가중치 추가
                   </button>
-                  
-                  {showError && !isWeightsValid && (
-                    <div className="text-red-500 text-sm mt-1">
-                      {weights.length < 5 ? '최소 5개 이상의 가중치 항목이 필요합니다.' : '모든 가중치 항목과 점수를 입력하세요.'}
+                  {showError && weights.length === 0 && (
+                    <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded" role="alert">
+                      최소 하나의 가중치 항목을 추가해 주세요.
                     </div>
                   )}
-                  
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  {showError && weights.length > 0 && weights.some(w => !w.item || w.score === '') && (
+                    <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded" role="alert">
+                      모든 가중치 항목의 항목명과 점수를 입력하세요.
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-gray-700 dark:text-gray-300">AI 가중치 추출</span>
+                    <button 
+                      type="button" 
+                      onClick={handleExtractWeights}
+                      disabled={isExtractingWeights}
+                      className="text-sm bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-3 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isExtractingWeights ? '추출 중...' : 'AI 가중치 추출'}
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded" role="note">
                     <strong>가중치 점수 설명:</strong><br/>
                     • 0.0: 매우 낮은 중요도<br/>
                     • 0.5: 보통 중요도<br/>
