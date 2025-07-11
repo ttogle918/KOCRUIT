@@ -19,6 +19,23 @@ export default function ResumeCard({ resume }) {
     }
   };
 
+  // degree에서 전공/학위 분리 함수
+  const parseMajorAndDegree = (degreeRaw) => {
+    if (!degreeRaw) return { major: '-', degree: '학사' };
+    const match = degreeRaw.match(/^(.*?)(?:\((.*?)\))?$/);
+    if (match) {
+      const major = match[1] ? match[1].trim() : '-';
+      let degree = '학사';
+      if (match[2]) {
+        if (match[2].includes('박사')) degree = '박사';
+        else if (match[2].includes('석사')) degree = '석사';
+        else degree = match[2];
+      }
+      return { major, degree };
+    }
+    return { major: degreeRaw, degree: '학사' };
+  };
+
   // 안전하게 값 추출
   const {
     applicantName:name = '',
@@ -91,16 +108,27 @@ export default function ResumeCard({ resume }) {
       <section>
         <h3 className="text-lg font-bold mb-2 text-blue-700 dark:text-blue-300">학력사항</h3>
         <table className="w-full text-sm border dark:border-gray-700 mb-2 bg-white dark:bg-gray-800 rounded-xl overflow-hidden">
+          <thead>
+            <tr>
+              <th className="border dark:border-gray-700 px-2 py-1">학교명</th>
+              <th className="border dark:border-gray-700 px-2 py-1">전공</th>
+              <th className="border dark:border-gray-700 px-2 py-1">학위</th>
+              <th className="border dark:border-gray-700 px-2 py-1">학점</th>
+            </tr>
+          </thead>
           <tbody>
-            {(safeArray(educations).length > 0 ? educations : [{ period: '', major: '', graduated: false, duration: '' }]).map((edu, idx) => (
-              <tr key={idx}>
-                <td className="border dark:border-gray-700 px-2 py-1 w-32">{safe(edu.period) || safe(edu.duration)}</td>
-                <td className="border dark:border-gray-700 px-2 py-1">{edu.graduated ? '졸업' : ''}</td>
-                <td className="border dark:border-gray-700 px-2 py-1">{safe(edu.major)}</td>
-                <td className="border dark:border-gray-700 px-2 py-1">{safe(edu.degree)}</td>
-                <td className="border dark:border-gray-700 px-2 py-1">{safe(edu.gpa)}</td>
-              </tr>
-            ))}
+            {(safeArray(educations).length > 0 ? educations : [{ schoolName: '', degree: '', gpa: '' }]).map((edu, idx) => {
+              const { major, degree } = parseMajorAndDegree(edu.degree);
+              const isHighSchool = (edu.schoolName || '').includes('고등학교');
+              return (
+                <tr key={idx}>
+                  <td className="border dark:border-gray-700 px-2 py-1">{edu.schoolName || '-'}</td>
+                  <td className="border dark:border-gray-700 px-2 py-1">{major}</td>
+                  <td className="border dark:border-gray-700 px-2 py-1">{isHighSchool ? '-' : degree}</td>
+                  <td className="border dark:border-gray-700 px-2 py-1">{safe(edu.gpa)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </section>
