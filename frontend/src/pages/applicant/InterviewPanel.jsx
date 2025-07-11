@@ -1,7 +1,7 @@
 import React from 'react';
 import Rating from '@mui/material/Rating';
 
-function InterviewPanel({ questions, memo, onMemoChange, evaluation, onEvaluationChange, isAutoSaving = false }) {
+function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = {}, onEvaluationChange, isAutoSaving = false }) {
   // 예시: 카테고리별 평가 항목(실제 항목 구조에 맞게 수정)
   const categories = [
     {
@@ -25,7 +25,6 @@ function InterviewPanel({ questions, memo, onMemoChange, evaluation, onEvaluatio
     }));
   };
 
-function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = {}, onEvaluationChange }) {
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
       {/* 자동 저장 상태 표시 */}
@@ -108,5 +107,5 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
     </div>
   );
 }
-}
+
 export default InterviewPanel;
