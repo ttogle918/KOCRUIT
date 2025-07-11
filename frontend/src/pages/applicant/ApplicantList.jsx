@@ -25,8 +25,11 @@ import {
   getAgeGroupStats, 
   getNewApplicantsToday, 
   getUnviewedApplicants,
-  CHART_COLORS 
+  CHART_COLORS,
+  getProvinceStats,
+  getCertificateCountStats
 } from '../../utils/applicantStats';
+import ProvinceMapChart from '../../components/ProvinceMapChart';
 
 export default function ApplicantList() {
   const [bookmarkedList, setBookmarkedList] = useState([]);
@@ -339,7 +342,7 @@ export default function ApplicantList() {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 800,
+            width: 900,
             bgcolor: 'background.paper',
             border: '2px solid #1976d2',
             boxShadow: 24,
@@ -352,9 +355,13 @@ export default function ApplicantList() {
               <ArrowBackIosNew />
             </IconButton>
             <h2 id="stat-modal-title" className="text-xl font-bold">
-              {slideIndex === 0 ? '나이대별 지원자 수' : slideIndex === 1 ? '성별 지원자 비율' : '학력분포도'}
+              {slideIndex === 0 ? '연령대별 지원자 수'
+                : slideIndex === 1 ? '성별 지원자 비율'
+                : slideIndex === 2 ? '학력별 지원자 비율'
+                : slideIndex === 3 ? '지역별 지원자 분포'
+                : '자격증 보유수별 지원자 수'}
             </h2>
-            <IconButton onClick={() => setSlideIndex(slideIndex + 1)} disabled={slideIndex === 2}>
+            <IconButton onClick={() => setSlideIndex(slideIndex + 1)} disabled={slideIndex === 4}>
               <ArrowForwardIos />
             </IconButton>
           </div>
@@ -409,6 +416,22 @@ export default function ApplicantList() {
                 <Tooltip />
                 <Legend layout="vertical" align="right" verticalAlign="middle" />
               </PieChart>
+            </ResponsiveContainer>
+          )}
+          {slideIndex === 3 && (
+            <div style={{ width: '100%', height: 500 }}>
+              <ProvinceMapChart provinceStats={getProvinceStats(applicants)} />
+            </div>
+          )}
+          {slideIndex === 4 && (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={getCertificateCountStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="count" fill={CHART_COLORS.CERTIFICATE} radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           )}
           <div className="flex justify-center mt-4">

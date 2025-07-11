@@ -132,9 +132,9 @@ export function getCertificateCountStats(applicants) {
     else threePlus++;
   });
   return [
-    { label: '0개', numApplicants: zero },
-    { label: '1~2개', numApplicants: oneTwo },
-    { label: '3개 이상', numApplicants: threePlus }
+    { name: '0개', count: zero },
+    { name: '1~2개', count: oneTwo },
+    { name: '3개 이상', count: threePlus }
   ];
 }
 
@@ -167,42 +167,63 @@ export function getUnviewedApplicants(applicants) {
   return applicants.filter(a => !a.isViewed).length;
 }
 
-// 지원자 경력 수준 통계
-export function getExperienceLevelStats(applicants) {
-  let entry = 0, junior = 0, senior = 0, expert = 0;
-  
-  applicants.forEach(a => {
-    const experiences = a.experiences || [];
-    const totalYears = experiences.reduce((total, exp) => {
-      if (exp.duration) {
-        const duration = exp.duration.toLowerCase();
-        if (duration.includes('년')) {
-          const years = parseInt(duration.match(/(\d+)/)?.[1] || '0');
-          return total + years;
-        }
-      }
-      return total;
-    }, 0);
-    
-    if (totalYears === 0) entry++;
-    else if (totalYears <= 3) junior++;
-    else if (totalYears <= 7) senior++;
-    else expert++;
-  });
-  
-  return [
-    { name: '신입', value: entry },
-    { name: '주니어(1-3년)', value: junior },
-    { name: '시니어(4-7년)', value: senior },
-    { name: '엑스퍼트(8년+)', value: expert }
-  ];
-}
-
 // 차트 색상 상수
 export const CHART_COLORS = {
   GENDER: ['#42a5f5', '#f06292'],
   EDUCATION: ['#ffd54f', '#4fc3f7', '#ab47bc', '#66bb6a'],
   AGE_GROUP: '#42a5f5',
   STATUS: ['#ff9800', '#4caf50', '#f44336', '#9c27b0'],
-  EXPERIENCE: ['#ff5722', '#2196f3', '#ff9800', '#4caf50']
+  CERTIFICATE: '#ff9800'
 }; 
+
+// 도명 리스트 (GeoJSON의 properties.name과 일치해야 함)
+const PROVINCES = [
+  "서울특별시", "부산광역시", "대구광역시", "인천광역시", "광주광역시", "대전광역시", "울산광역시",
+  "세종특별자치시", "경기도", "강원도", "충청북도", "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주특별자치도"
+];
+
+// 주소에서 도/광역시명 robust 추출 (영문, 약칭, 공백, 괄호, 오타 등 보정)
+export function extractProvince(address = "") {
+  if (!address || typeof address !== "string") return "기타";
+  const raw = address.replace(/\s|\(.*?\)/g, "").toLowerCase();
+  // 한글 도/광역시명, 약칭, 영문, 오타 등 매핑 테이블
+  const PROVINCE_MAP = [
+    { keys: ["서울", "seoul"], name: "서울특별시" },
+    { keys: ["부산", "busan"], name: "부산광역시" },
+    { keys: ["대구", "daegu"], name: "대구광역시" },
+    { keys: ["인천", "incheon"], name: "인천광역시" },
+    { keys: ["광주", "gwangju"], name: "광주광역시" },
+    { keys: ["대전", "daejeon"], name: "대전광역시" },
+    { keys: ["울산", "ulsan"], name: "울산광역시" },
+    { keys: ["세종", "sejong"], name: "세종특별자치시" },
+    { keys: ["경기", "gyeonggi"], name: "경기도" },
+    { keys: ["강원", "gangwon"], name: "강원도" },
+    { keys: ["충북", "충청북", "chungbuk", "chungcheongbuk"], name: "충청북도" },
+    { keys: ["충남", "충청남", "chungnam", "chungcheongnam"], name: "충청남도" },
+    { keys: ["전북", "전라북", "jeonbuk", "jeollabuk"], name: "전라북도" },
+    { keys: ["전남", "전라남", "jeonnam", "jeollanam"], name: "전라남도" },
+    { keys: ["경북", "경상북", "gyeongbuk", "gyeongsangbuk"], name: "경상북도" },
+    { keys: ["경남", "경상남", "gyeongnam", "gyeongsangnam"], name: "경상남도" },
+    { keys: ["제주", "jeju"], name: "제주특별자치도" },
+  ];
+  for (const prov of PROVINCE_MAP) {
+    if (prov.keys.some(k => raw.includes(k))) return prov.name;
+  }
+  return "기타";
+}
+
+// 지원자 리스트에서 도별 인원수 집계
+export function getProvinceStats(applicants) {
+  const counts = {};
+  PROVINCES.forEach(prov => { counts[prov] = 0; });
+  let etcCount = 0;
+  applicants.forEach(app => {
+    const prov = extractProvince(app.address || "");
+    if (counts[prov] !== undefined) counts[prov]++;
+    else etcCount++;
+  });
+  // [{name, value}] 형태로 반환, '기타' 포함
+  const stats = Object.entries(counts).map(([name, value]) => ({ name, value }));
+  stats.push({ name: "기타", value: etcCount });
+  return stats;
+} 
