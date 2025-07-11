@@ -83,7 +83,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DB_HOST: kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com
+      DB_HOST: kocruit-02.c5k2wi2q8g80.us-east-2.rds.amazonaws.com
       DB_PORT: 3306
       DB_NAME: kocruit
       DB_USER: admin
