@@ -80,31 +80,31 @@ function ApplicantListLeft({
   }, [filteredApplicants, onFilteredApplicantsChange]);
 
   const getButtonStyle = (tab) => {
-    const base = 'text-sm px-3 py-1 rounded shadow-sm border font-semibold transition transform duration-150';
+    const base = 'text-xs px-1.5 py-0.5 h-7 min-w-[36px] whitespace-nowrap rounded border font-medium transition';
     const isActive = activeTab === tab;
     switch (tab) {
       case 'ALL':
         return `${base} ${
           isActive
-            ? 'bg-blue-500 text-white border-blue-500 font-bold scale-105'
+            ? 'bg-blue-500 text-white border-blue-500 font-bold'
             : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
         }`;
       case 'SUITABLE':
         return `${base} ${
           isActive
-            ? 'bg-blue-600 text-white border-blue-600 font-bold scale-105'
+            ? 'bg-blue-600 text-white border-blue-600 font-bold'
             : 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200'
         }`;
       case 'UNSUITABLE':
         return `${base} ${
           isActive
-            ? 'bg-red-600 text-white border-red-600 font-bold scale-105'
+            ? 'bg-red-600 text-white border-red-600 font-bold'
             : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'
         }`;
       case 'EXCLUDED':
         return `${base} ${
           isActive
-            ? 'bg-gray-600 text-white border-gray-600 font-bold scale-105'
+            ? 'bg-gray-600 text-white border-gray-600 font-bold'
             : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
         }`;
       default:
@@ -116,24 +116,24 @@ function ApplicantListLeft({
     <div className="flex flex-col w-full h-full p-2 overflow-y-auto">
       {/* 상단 필터/정렬 */}
       <div className="w-full max-w-3xl mx-auto">
-        <div className="flex items-center gap-4 mb-4 relative">
+        <div className="flex items-center gap-2 mb-4 relative">
           {/* 검색창 */}
           <input
             type="text"
             placeholder="이름 검색"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all mr-2 text-xs"
+            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-xs h-7"
             style={{ minWidth: 100 }}
           />
-          <div className="flex-1" />
           {/* 탭 필터 */}
-          <div className="flex gap-1">
+          <div className="flex flex-row gap-0.5 ml-2">
             <button onClick={() => setActiveTab('ALL')} className={getButtonStyle('ALL')}>전체</button>
             <button onClick={() => setActiveTab('SUITABLE')} className={getButtonStyle('SUITABLE')}>합격</button>
             <button onClick={() => setActiveTab('UNSUITABLE')} className={getButtonStyle('UNSUITABLE')}>불합격</button>
             <button onClick={() => setActiveTab('EXCLUDED')} className={getButtonStyle('EXCLUDED')}>제외</button>
           </div>
+          <div className="flex-1" />
           {/* Vertical Ellipsis & Dropdown */}
           <div className="relative ml-2" ref={dropdownRef}>
             <button

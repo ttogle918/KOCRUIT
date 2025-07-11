@@ -42,7 +42,7 @@ const GEOJSON_NAME_MAP = {
   "Jeju-do": "제주특별자치도"
 };
 
-export default function ProvinceMapChart({ provinceStats }) {
+export default function ProvinceMapChart({ provinceStats, onProvinceClick }) {
   const [geoData, setGeoData] = useState(null);
   const [tooltip, setTooltip] = useState(null);
 
@@ -89,19 +89,25 @@ export default function ProvinceMapChart({ provinceStats }) {
                   fill={getColor(value, maxValue)}
                   stroke="#888"
                   style={{
-                    default: { outline: "none" },
-                    hover: { fill: "#ffb300", outline: "none" },
+                    default: { outline: "none", cursor: "pointer" },
+                    hover: { fill: "#ffb300", outline: "none", cursor: "pointer" },
                     pressed: { outline: "none" }
                   }}
                   onMouseEnter={e => {
+                    // e.nativeEvent.offsetX, offsetY는 컨테이너 기준 좌표
                     setTooltip({
-                      x: e.clientX,
-                      y: e.clientY,
+                      x: e.nativeEvent.offsetX,
+                      y: e.nativeEvent.offsetY,
                       name: provName,
                       value: value
                     });
                   }}
                   onMouseLeave={() => setTooltip(null)}
+                  onClick={() => {
+                    if (onProvinceClick && value > 0) {
+                      onProvinceClick(provName);
+                    }
+                  }}
                 />
               );
             })
@@ -139,7 +145,7 @@ export default function ProvinceMapChart({ provinceStats }) {
       {/* 툴팁 */}
       {tooltip && (
         <div style={{
-          position: 'fixed',
+          position: 'absolute',
           left: tooltip.x + 10,
           top: tooltip.y + 10,
           background: 'rgba(255,255,255,0.95)',

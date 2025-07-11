@@ -5,7 +5,9 @@ const TimePicker = ({
   onChange, 
   placeholder = "시간 선택", 
   className = "",
-  error = false 
+  error = false,
+  id,
+  "aria-label": ariaLabel
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedHour, setSelectedHour] = useState('');
@@ -55,7 +57,11 @@ const TimePicker = ({
     
     const timeString = `${hour24.toString().padStart(2, '0')}:${minute}`;
     onChange({ target: { value: timeString } });
-    setIsOpen(false);
+    
+    // 모든 항목이 선택되었을 때만 드롭다운 닫기
+    if (hour && minute && period) {
+      setIsOpen(false);
+    }
   };
 
   const displayValue = value || placeholder;
@@ -76,6 +82,10 @@ const TimePicker = ({
           ${error ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}
           ${className}
         `}
+        id={id}
+        aria-label={ariaLabel || placeholder}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
       >
         <span className={value ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}>
           {displayValue}
@@ -91,7 +101,7 @@ const TimePicker = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg">
+        <div className="absolute z-50 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg" role="listbox" aria-label="시간 선택 옵션">
           <div className="p-3">
             <div className="grid grid-cols-3 gap-2">
               {/* Hours */}
@@ -108,6 +118,9 @@ const TimePicker = ({
                         hover:bg-blue-100 dark:hover:bg-blue-900
                         ${selectedHour === hour ? 'bg-blue-500 text-white' : 'text-gray-900 dark:text-white'}
                       `}
+                      role="option"
+                      aria-selected={selectedHour === hour}
+                      aria-label={`${hour}시 선택`}
                     >
                       {hour}
                     </button>
@@ -129,6 +142,9 @@ const TimePicker = ({
                         hover:bg-blue-100 dark:hover:bg-blue-900
                         ${selectedMinute === minute ? 'bg-blue-500 text-white' : 'text-gray-900 dark:text-white'}
                       `}
+                      role="option"
+                      aria-selected={selectedMinute === minute}
+                      aria-label={`${minute}분 선택`}
                     >
                       {minute}
                     </button>
@@ -150,6 +166,9 @@ const TimePicker = ({
                         hover:bg-blue-100 dark:hover:bg-blue-900
                         ${selectedPeriod === period ? 'bg-blue-500 text-white' : 'text-gray-900 dark:text-white'}
                       `}
+                      role="option"
+                      aria-selected={selectedPeriod === period}
+                      aria-label={`${period} 선택`}
                     >
                       {period}
                     </button>
