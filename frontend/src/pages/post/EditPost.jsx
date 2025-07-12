@@ -219,6 +219,8 @@ function EditPost() {
           );
           if (newWeight) {
             setWeights([...validExistingWeights, newWeight]);
+          } else {
+            alert('AI가 제안할 수 있는 새로운 가중치 항목이 없습니다. 기존 항목들을 수정하거나 직접 추가해주세요.');
           }
         } else {
           // 5개 미만이면 기존 것 유지하고 5개가 되도록 새로운 것들 추가
