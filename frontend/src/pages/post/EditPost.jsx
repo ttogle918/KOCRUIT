@@ -6,6 +6,7 @@ import "../../styles/datepicker.css";
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../layout/Layout';
 import TimePicker from '../../components/TimePicker';
+import CompanyMemberSelectModal from '../../components/CompanyMemberSelectModal';
 import api, { extractWeights } from '../../api/api';
 
 const useAutoResize = (value) => {
@@ -54,6 +55,11 @@ function EditPost() {
   const [schedules, setSchedules] = useState([{ date: null, time: '', place: '' }]);
   const [weights, setWeights] = useState([]);
   const [isExtractingWeights, setIsExtractingWeights] = useState(false);
+  
+  // Company member selection modal state
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [selectedMemberIndex, setSelectedMemberIndex] = useState(null);
+  const [userCompanyId, setUserCompanyId] = useState(null);
 
   const roleOptions = ['관리자', '멤버'];
   const scoreOptions = Array.from({ length: 10 }, (_, i) => (i + 1).toString());
@@ -85,7 +91,7 @@ function EditPost() {
         const response = await api.get(`/company/jobposts/${jobPostId}`);
         const jobPost = response.data;
         
-        console.log('Job Post Data for editing:', jobPost);
+
         
         // Pre-populate form data
         setFormData({
@@ -105,7 +111,7 @@ function EditPost() {
         });
 
         // Set team members, schedules, and weights
-        setTeamMembers(jobPost.teamMembers || [{ email: '', role: '' }]);
+        setTeamMembers(jobPost.teamMembers || [{ email: '', name: '', role: '' }]);
         
         // Convert interview schedules from API format to form format
         if (jobPost.interview_schedules && jobPost.interview_schedules.length > 0) {
@@ -141,6 +147,31 @@ function EditPost() {
       fetchJobPost();
     }
   }, [jobPostId]);
+
+  // Fetch initial user data for company member selection
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        console.log('Current user info:', response.data);
+        console.log('User company info:', {
+          companyId: response.data.companyId,
+          company_id: response.data.company_id,
+          company: response.data.company,
+          companyName: response.data.companyName
+        });
+        if (response.data) {
+          setUserCompanyId(response.data.company_id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
+
+
 
   // 입력 검증 함수
   const isFieldEmpty = (value) => value === null || value === undefined || value === '';
@@ -188,6 +219,8 @@ function EditPost() {
           );
           if (newWeight) {
             setWeights([...validExistingWeights, newWeight]);
+          } else {
+            alert('AI가 제안할 수 있는 새로운 가중치 항목이 없습니다. 기존 항목들을 수정하거나 직접 추가해주세요.');
           }
         } else {
           // 5개 미만이면 기존 것 유지하고 5개가 되도록 새로운 것들 추가
@@ -554,6 +587,11 @@ function EditPost() {
                         placeholder="이메일" 
                         data-member-index={idx}
                         aria-label={`팀원 ${idx + 1} 이메일 입력${member.email ? `: ${member.email}` : ''}`}
+                        onClick={() => {
+                          setSelectedMemberIndex(idx);
+                          setShowMemberModal(true);
+                        }}
+                        readOnly
                       />
                       <select 
                         value={member.role} 
@@ -576,8 +614,20 @@ function EditPost() {
                       </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setTeamMembers(prev => [...prev, { email: '', role: '' }])} className="text-sm text-blue-600 hover:underline ml-4 mt-3">+ 멤버 추가</button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setSelectedMemberIndex(teamMembers.length);
+                      setShowMemberModal(true);
+                    }} 
+                    className="text-sm text-blue-600 hover:underline ml-4 mt-3"
+                  >
+                    + 멤버 추가
+                  </button>
                   {showError && !isTeamValid && <div className="text-red-500 text-sm mt-1">모든 팀원 이메일과 권한을 입력하세요.</div>}
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                    * 같은 회사 소속 멤버만 선택할 수 있습니다.
+                  </div>
                 </div>
               </div>
 
@@ -770,6 +820,32 @@ function EditPost() {
           </div>
         </form>
       </div>
+
+      {showMemberModal && (
+        <CompanyMemberSelectModal
+          companyId={userCompanyId}
+          onSelect={(email, name) => {
+            if (selectedMemberIndex !== null) {
+              setTeamMembers(prev => {
+                // 새로운 멤버 추가인 경우
+                if (selectedMemberIndex === prev.length) {
+                  return [...prev, { email, name, role: '' }];
+                }
+                // 기존 멤버 수정인 경우
+                return prev.map((member, idx) => 
+                  idx === selectedMemberIndex ? { email, name, role: member.role || '' } : member
+                );
+              });
+            }
+            setShowMemberModal(false);
+            setSelectedMemberIndex(null);
+          }}
+          onClose={() => {
+            setShowMemberModal(false);
+            setSelectedMemberIndex(null);
+          }}
+        />
+      )}
     </Layout>
   );
 }
