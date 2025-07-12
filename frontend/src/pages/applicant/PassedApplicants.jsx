@@ -6,6 +6,7 @@ import api from '../../api/api';
 import PassReasonCard from '../../components/PassReasonCard';
 import InterviewInfoModal from '../../components/InterviewInfoModal';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
+import { calculateAge } from '../../utils/resumeUtils';
 
 export default function PassedApplicants() {
   const [passedApplicants, setPassedApplicants] = useState([]);
@@ -65,19 +66,7 @@ export default function PassedApplicants() {
     if (jobPostId) fetchJobPost();
   }, [jobPostId]);
 
-  const calculateAge = (birthDate) => {
-    if (!birthDate) return 'N/A';
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
+
 
   const handleApplicantClick = (applicant) => {
     setSelectedApplicant(applicant);

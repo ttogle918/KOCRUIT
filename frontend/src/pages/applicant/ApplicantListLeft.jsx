@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ApplicantCard from '../../components/ApplicantCard';
+import { getButtonStyle } from '../../utils/styleUtils';
 
 function ApplicantListLeft({
   applicants = [],
@@ -41,7 +42,8 @@ function ApplicantListLeft({
     // const allowedStatuses = ['WAITING', 'SUITABLE', 'UNSUITABLE']  // 만약 모든 지원자(합격/불합격 포함) 다 보고 싶다면 이 필터를 제거!
     filtered = filtered.filter(app => allowedStatuses.includes((app.status || '').toUpperCase()));
 
-    console.log('모든 지원자 status, score:', applicants.map(a => [a.status, a.score]));
+    // 개발 중에만 잠깐 사용
+    // console.log(applicants);
     if (activeTab === 'EXCLUDED') {
       filtered = filtered.filter(app => app.score <= 20);
     } else if (activeTab === 'UNSUITABLE') {
@@ -80,38 +82,7 @@ function ApplicantListLeft({
     // filteredApplicants, onFilteredApplicantsChange만!
   }, [filteredApplicants, onFilteredApplicantsChange]);
 
-  const getButtonStyle = (tab) => {
-    const base = 'text-xs px-1.5 py-0.5 h-7 min-w-[36px] whitespace-nowrap rounded border font-medium transition';
-    const isActive = activeTab === tab;
-    switch (tab) {
-      case 'ALL':
-        return `${base} ${
-          isActive
-            ? 'bg-blue-500 text-white border-blue-500 font-bold'
-            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
-        }`;
-      case 'SUITABLE':
-        return `${base} ${
-          isActive
-            ? 'bg-blue-600 text-white border-blue-600 font-bold'
-            : 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200'
-        }`;
-      case 'UNSUITABLE':
-        return `${base} ${
-          isActive
-            ? 'bg-red-600 text-white border-red-600 font-bold'
-            : 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200'
-        }`;
-      case 'EXCLUDED':
-        return `${base} ${
-          isActive
-            ? 'bg-gray-600 text-white border-gray-600 font-bold'
-            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-        }`;
-      default:
-        return base;
-    }
-  };
+
 
   return (
     <div className="flex flex-col w-full h-full p-2 overflow-y-auto">
@@ -129,10 +100,10 @@ function ApplicantListLeft({
           />
           {/* 탭 필터 */}
           <div className="flex flex-row gap-0.5 ml-2">
-            <button onClick={() => setActiveTab('ALL')} className={getButtonStyle('ALL')}>전체</button>
-            <button onClick={() => setActiveTab('SUITABLE')} className={getButtonStyle('SUITABLE')}>합격</button>
-            <button onClick={() => setActiveTab('UNSUITABLE')} className={getButtonStyle('UNSUITABLE')}>불합격</button>
-            <button onClick={() => setActiveTab('EXCLUDED')} className={getButtonStyle('EXCLUDED')}>제외</button>
+            <button onClick={() => setActiveTab('ALL')} className={getButtonStyle('ALL', activeTab)}>전체</button>
+            <button onClick={() => setActiveTab('SUITABLE')} className={getButtonStyle('SUITABLE', activeTab)}>합격</button>
+            <button onClick={() => setActiveTab('UNSUITABLE')} className={getButtonStyle('UNSUITABLE', activeTab)}>불합격</button>
+            <button onClick={() => setActiveTab('EXCLUDED')} className={getButtonStyle('EXCLUDED', activeTab)}>제외</button>
           </div>
           <div className="flex-1" />
           {/* Vertical Ellipsis & Dropdown */}
@@ -190,8 +161,10 @@ function ApplicantListLeft({
             filteredApplicants.map((applicant, index) => {
               const globalIndex = applicants.findIndex((a) => a.id === applicant.id);
               // 선택 기준: selectedApplicantIndex(인덱스 기반) 우선, 없으면 selectedApplicantId(id 기반)
-              const isSelected = (selectedApplicantIndex !== null && selectedApplicantIndex === globalIndex && splitMode)
-                || (selectedApplicantIndex === null && selectedApplicantId && applicant.id === selectedApplicantId && splitMode);
+              const isSelected = splitMode && (
+                (selectedApplicantIndex !== null && selectedApplicantIndex === globalIndex) ||
+                (selectedApplicantIndex === null && selectedApplicantId && applicant.id === selectedApplicantId)
+              );
               return (
                 <ApplicantCard
                   key={applicant.id}
