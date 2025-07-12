@@ -1,7 +1,16 @@
 import React from 'react';
 
-export default function ResumeCard({ resume }) {
-  if (!resume) return null;
+export default function ResumeCard({ resume, loading }) {
+  if (loading) return (
+    <div className="flex items-center justify-center h-full min-h-[300px] text-blue-500 text-xl font-bold animate-pulse">
+      로딩 중...
+    </div>
+  );
+  if (!resume) return (
+    <div className="flex items-center justify-center h-full min-h-[300px] text-gray-400 text-lg">
+      데이터 없음
+    </div>
+  );
   
   console.log("ResumeCard received data:", resume);
   
@@ -38,7 +47,7 @@ export default function ResumeCard({ resume }) {
 
   // 안전하게 값 추출
   const {
-    applicantName:name = '',
+    applicantName = '',
     gender = '',
     birthDate = '',
     email = '',
@@ -56,7 +65,7 @@ export default function ResumeCard({ resume }) {
   const processedSkills = safeSkills(skills);
   
   console.log("Extracted data:", {
-    name,
+    applicantName,
     gender,
     birthDate,
     email,
@@ -82,7 +91,7 @@ export default function ResumeCard({ resume }) {
           <tbody>
             <tr>
               <td className="font-semibold bg-gray-50 dark:bg-gray-700 w-24 px-2 py-1">이름</td>
-              <td className="border dark:border-gray-700 px-2 py-1">{safe(name)}</td>
+              <td className="border dark:border-gray-700 px-2 py-1">{safe(applicantName)}</td>
               <td className="font-semibold bg-gray-50 dark:bg-gray-700 w-24 px-2 py-1">성별</td>
               <td className="border dark:border-gray-700 px-2 py-1">{safe(gender)}</td>
             </tr>
@@ -117,14 +126,13 @@ export default function ResumeCard({ resume }) {
             </tr>
           </thead>
           <tbody>
-            {(safeArray(educations).length > 0 ? educations : [{ schoolName: '', degree: '', gpa: '' }]).map((edu, idx) => {
-              const { major, degree } = parseMajorAndDegree(edu.degree);
+            {(safeArray(educations).length > 0 ? educations : [{ schoolName: '', degree: '', gpa: '', major: '' }]).map((edu, idx) => {
               const isHighSchool = (edu.schoolName || '').includes('고등학교');
               return (
                 <tr key={idx}>
                   <td className="border dark:border-gray-700 px-2 py-1">{edu.schoolName || '-'}</td>
-                  <td className="border dark:border-gray-700 px-2 py-1">{major}</td>
-                  <td className="border dark:border-gray-700 px-2 py-1">{isHighSchool ? '-' : degree}</td>
+                  <td className="border dark:border-gray-700 px-2 py-1">{isHighSchool ? '-' : (edu.major || '-')}</td>
+                  <td className="border dark:border-gray-700 px-2 py-1">{isHighSchool ? '-' : (edu.degree || '-')}</td>
                   <td className="border dark:border-gray-700 px-2 py-1">{safe(edu.gpa)}</td>
                 </tr>
               );

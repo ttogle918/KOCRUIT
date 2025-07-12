@@ -34,10 +34,91 @@ import {
 } from '../../utils/applicantStats';
 import ProvinceMapChart from '../../components/ProvinceMapChart';
 
+// === [추가] 전공/학위 추출 함수 ===
+function extractMajorAndDegree(degreeRaw) {
+  if (!degreeRaw) return { major: '-', degree: '학사' };
+  const match = degreeRaw.match(/^(.*?)(?:\((.*?)\))?$/);
+  if (match) {
+    const major = match[1] ? match[1].trim() : '-';
+    let degree = '학사';
+    if (match[2]) {
+      if (match[2].includes('박사')) degree = '박사';
+      else if (match[2].includes('석사')) degree = '석사';
+      else degree = match[2];
+    }
+    return { major, degree };
+  }
+  return { major: degreeRaw, degree: '학사' };
+}
+
+// === [최종 보완] 이력서 데이터 매핑 함수 ===
+function mapResumeData(data) {
+  console.log('mapResumeData input:', data); // 입력 데이터 확인
+  // education(문자열) → educations(배열)로 변환, degree에서 major 추출
+  const educations = data.educations && Array.isArray(data.educations)
+    ? data.educations.map(edu => {
+        const { major, degree } = extractMajorAndDegree(edu.degree || '');
+        return {
+          schoolName: edu.schoolName || edu.school || '-',
+          degree: degree,
+          gpa: edu.gpa || '-',
+          major: edu.major || major,
+        };
+      })
+    : data.education
+      ? (() => {
+          const { major, degree } = extractMajorAndDegree(data.degree || '');
+          return [{
+            schoolName: data.education || '-',
+            degree: degree,
+            gpa: data.gpa || '-',
+            major: data.major || major,
+          }];
+        })()
+      : [{
+          schoolName: '-',
+          degree: '학사',
+          gpa: '-',
+          major: '-',
+        }];
+
+  // awards, certificates 등도 내부 구조 보정
+  const awards = Array.isArray(data.awards) ? data.awards.map(award => ({
+    date: award.date || award.awardDate || '',
+    title: award.title || award.name || '',
+    description: award.description || '',
+    duration: award.duration || '',
+  })) : [];
+
+  const certificates = Array.isArray(data.certificates) ? data.certificates.map(cert => ({
+    date: cert.date || cert.certDate || '',
+    name: cert.name || cert.title || '',
+    duration: cert.duration || '',
+  })) : [];
+
+  const result = {
+    applicantName: data.applicantName || data.name || '',
+    gender: data.gender || '',
+    birthDate: data.birthDate || data.birthdate || '',
+    email: data.email || '',
+    address: data.address || '',
+    phone: data.phone || '',
+    educations,
+    awards,
+    certificates,
+    skills: Array.isArray(data.skills) ? data.skills : (typeof data.skills === 'string' ? data.skills.split(',') : []),
+    experiences: Array.isArray(data.experiences) ? data.experiences : [],
+    content: data.content || '',
+  };
+  console.log('mapResumeData output:', result); // 반환 객체 확인
+  return result;
+}
+
 export default function ApplicantList() {
   const [bookmarkedList, setBookmarkedList] = useState([]);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
+  const [selectedApplicantId, setSelectedApplicantId] = useState(null);
   const [splitMode, setSplitMode] = useState(false);
   const [applicants, setApplicants] = useState([]);
   const [filteredApplicants, setFilteredApplicants] = useState([]);
@@ -59,6 +140,10 @@ export default function ApplicantList() {
   const [modalView, setModalView] = useState('chart'); // 'chart' | 'list'
   const [slideIndex, setSlideIndex] = useState(0); // 차트 슬라이드 인덱스
   const [prevSlideIndex, setPrevSlideIndex] = useState(1); // 기본 연령대
+  // selectedApplicantId 관련 코드 제거
+  // selectedApplicantIndex(인덱스 기반) 방식으로 복구
+  // useState, useEffect, handleMiniApplicantClick, ApplicantListLeft prop 등 모두 selectedApplicantIndex로 원복
+  const [resumeLoading, setResumeLoading] = useState(false); // 추가: 이력서 로딩 상태
 
   // jobPostId가 없으면 기본값 사용
   const effectiveJobPostId = jobPostId;
@@ -174,20 +259,22 @@ export default function ApplicantList() {
   const handleApplicantClick = async (applicant, index) => {
     setSelectedApplicantIndex(index);
     setResume(null);
+    setResumeLoading(true); // 로딩 시작
     try {
       console.log("지원서 상세 요청 - applicationId:", applicant.id);
       const res = await api.get(`/applications/${applicant.id}`);
       console.log("지원서 상세 응답:", res.data);
-      setResume(res.data); // 혹은 setResume(res.data) 구조에 따라
-
-      console.log("res.data", res.data);
-
+      const mappedResume = mapResumeData(res.data); // 매핑 함수 적용
+      setResume(mappedResume);
       setSelectedApplicant(applicant);
       setSplitMode(true);
     } catch (err) {
       console.error("지원서 상세 불러오기 실패:", err.response?.data || err.message);
       console.error("에러 상태:", err.response?.status);
       console.error("전체 에러:", err);
+      setResume(null);
+    } finally {
+      setResumeLoading(false); // 로딩 종료
     }
   };
 
@@ -236,9 +323,21 @@ export default function ApplicantList() {
     setPrevSlideIndex(1);
   };
 
-  // 리스트에서 지원자 클릭 시
-  const handleMiniApplicantClick = (applicant, index) => {
-    setSelectedApplicant(applicant);
+  // 리스트에서 지원자 클릭 시 (모달 내)
+  const handleMiniApplicantClick = async (applicant, index) => {
+    setResumeLoading(true); // 로딩 시작
+    setSelectedApplicantId(applicant.id);
+    setSelectedApplicant(null);
+    try {
+      const res = await api.get(`/applications/${applicant.id}`);
+      const mappedResume = mapResumeData(res.data);
+      setSelectedApplicant(mappedResume);
+    } catch (err) {
+      setSelectedApplicant(null);
+      setSelectedApplicantId(null);
+    } finally {
+      setResumeLoading(false); // 로딩 종료
+    }
   };
 
   // 차트로 돌아가기
@@ -255,6 +354,7 @@ export default function ApplicantList() {
     setModalView('chart');
     setFilteredApplicants([]);
     setSelectedApplicant(null);
+    setSelectedApplicantIndex(null); // 모달 닫을 때 선택된 지원자 인덱스도 초기화
     setSlideIndex(0);
   };
 
@@ -361,6 +461,27 @@ export default function ApplicantList() {
     setPrevSlideIndex(0);
   };
 
+  // 모달창이 열릴 때 맨 위 지원자 id로 자동 선택
+  useEffect(() => {
+    if (modalOpen && filteredApplicants.length > 0) {
+      const firstApplicant = filteredApplicants[0];
+      (async () => {
+        setResumeLoading(true); // 로딩 시작
+        try {
+          const res = await api.get(`/applications/${firstApplicant.id}`);
+          const mappedResume = mapResumeData(res.data);
+          setSelectedApplicant(mappedResume);
+          setSelectedApplicantId(firstApplicant.id);
+        } catch (err) {
+          setSelectedApplicant(null);
+          setSelectedApplicantId(null);
+        } finally {
+          setResumeLoading(false); // 로딩 종료
+        }
+      })();
+    }
+  }, [modalOpen, filteredApplicants]);
+
   if (loading) {
     return (
       <Layout settingsButton={settingsButton}>
@@ -402,6 +523,7 @@ export default function ApplicantList() {
               applicants={applicants}
               splitMode={splitMode}
               selectedApplicantIndex={selectedApplicantIndex}
+              selectedApplicantId={null}
               onSelectApplicant={handleApplicantClick}
               handleApplicantClick={handleApplicantClick}
               handleCloseDetailedView={handleCloseDetailedView}
@@ -428,9 +550,8 @@ export default function ApplicantList() {
                 </div>
                 {/*여기를 이력서로*/}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
-                  <ResumeCard resume={resume} onClick={handleApplicantClick}/>
+                  <ResumeCard resume={resume} loading={resumeLoading} onClick={handleApplicantClick}/>
                 </div>
-
                 <div className="p-4 border-t bg-white dark:bg-gray-800">
                   {/* 합격/불합격/건너뛰기 버튼 */}
                   <div className="flex justify-between items-center gap-4">
@@ -660,7 +781,8 @@ export default function ApplicantList() {
                 <ApplicantListLeft
                   applicants={filteredApplicants}
                   splitMode={true}
-                  selectedApplicantIndex={filteredApplicants.findIndex(a => a.id === selectedApplicant?.id)}
+                  selectedApplicantId={selectedApplicantId} // 명시적으로 전달
+                  selectedApplicantIndex={null}
                   onSelectApplicant={handleMiniApplicantClick}
                   handleApplicantClick={handleMiniApplicantClick}
                   handleCloseDetailedView={() => {}}
@@ -672,7 +794,7 @@ export default function ApplicantList() {
               </div>
               <div className="w-3/5 overflow-y-auto">
                 {selectedApplicant ? (
-                  <ResumeCard resume={selectedApplicant} />
+                  <ResumeCard resume={selectedApplicant} loading={resumeLoading} />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">지원자를 선택하세요</div>
                 )}

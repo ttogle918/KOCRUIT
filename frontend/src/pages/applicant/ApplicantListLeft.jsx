@@ -5,6 +5,7 @@ function ApplicantListLeft({
   applicants = [],
   splitMode,
   selectedApplicantIndex,
+  selectedApplicantId, // 추가: id 기반 선택
   onSelectApplicant,
   handleApplicantClick,
   handleCloseDetailedView, 
@@ -188,16 +189,19 @@ function ApplicantListLeft({
           {filteredApplicants.length > 0 ? (
             filteredApplicants.map((applicant, index) => {
               const globalIndex = applicants.findIndex((a) => a.id === applicant.id);
+              // 선택 기준: selectedApplicantIndex(인덱스 기반) 우선, 없으면 selectedApplicantId(id 기반)
+              const isSelected = (selectedApplicantIndex !== null && selectedApplicantIndex === globalIndex && splitMode)
+                || (selectedApplicantIndex === null && selectedApplicantId && applicant.id === selectedApplicantId && splitMode);
               return (
                 <ApplicantCard
                   key={applicant.id}
                   applicant={applicant}
                   index={index + 1}
-                  isSelected={selectedApplicantIndex === globalIndex && splitMode}
+                  isSelected={isSelected}
                   splitMode={splitMode}
                   bookmarked={bookmarkedList[globalIndex]}
                   onClick={() => {
-                    const isCurrentCardSelected = selectedApplicantIndex === globalIndex && splitMode; 
+                    const isCurrentCardSelected = isSelected;
                     if (splitMode && isCurrentCardSelected ) {
                       handleCloseDetailedView();
                     } else if (splitMode && !isCurrentCardSelected ) {
