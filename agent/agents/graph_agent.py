@@ -1,6 +1,6 @@
 from langgraph.graph import Graph, END
 from tools.job_posting_tool import job_posting_recommend_tool
-from agent.agents.interview_question_node import generate_company_questions, generate_common_question_bundle
+from agents.interview_question_node import generate_company_questions, generate_common_question_bundle
 from tools.portfolio_tool import portfolio_tool
 
 def router(state):
