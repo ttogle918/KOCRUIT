@@ -5,6 +5,8 @@ from typing import List
 from app.core.database import get_db
 from app.schemas.interview_question import InterviewQuestion, InterviewQuestionCreate
 from app.models.resume import Resume, Spec
+from app.models.job import JobPost
+from app.models.application import Application
 from pydantic import BaseModel
 
 from app.api.v1.company_question_rag import generate_questions
@@ -19,6 +21,10 @@ class ProjectQuestionRequest(BaseModel):
     company_name: str = ""
     name: str = ""
 
+class JobQuestionRequest(BaseModel):
+    application_id: int
+    company_name: str = ""
+
 class CompanyQuestionResponse(BaseModel):
     questions: list[str]
 
@@ -26,6 +32,11 @@ class ProjectQuestionResponse(BaseModel):
     questions: list[str]
     question_bundle: dict
     portfolio_info: str
+
+class JobQuestionResponse(BaseModel):
+    questions: list[str]
+    question_bundle: dict
+    job_matching_info: str
 
 def combine_resume_and_specs(resume: Resume, specs: List[Spec]) -> str:
     """Resume와 Spec을 조합하여 포괄적인 resume_text 생성"""
@@ -96,6 +107,63 @@ def combine_resume_and_specs(resume: Resume, specs: List[Spec]) -> str:
                 resume_text += f"  {spec.spec_description}\n"
     
     return resume_text.strip()
+
+def parse_job_post_data(job_post: JobPost) -> str:
+    """JobPost 데이터를 파싱하여 직무 정보 텍스트 생성"""
+    
+    job_info = f"""
+공고 제목: {job_post.title}
+부서: {job_post.department or "미지정"}
+
+자격요건:
+{job_post.qualifications or "자격요건 정보 없음"}
+
+직무 내용:
+{job_post.job_details or "직무 내용 정보 없음"}
+
+근무 조건:
+{job_post.conditions or "근무 조건 정보 없음"}
+
+채용 절차:
+{job_post.procedures or "채용 절차 정보 없음"}
+
+근무지: {job_post.location or "미지정"}
+고용형태: {job_post.employment_type or "미지정"}
+모집인원: {job_post.headcount or "미지정"}명
+"""
+    
+    return job_info.strip()
+
+def analyze_job_matching(resume_text: str, job_info: str) -> str:
+    """이력서와 공고 정보를 분석하여 매칭 정보 생성"""
+    
+    # 간단한 키워드 매칭 분석
+    matching_keywords = []
+    
+    # 공공기관 관련 키워드
+    if "공공" in job_info or "기관" in job_info:
+        if "공공" in resume_text or "기관" in resume_text or "정부" in resume_text:
+            matching_keywords.append("공공기관 경험")
+    
+    # PM/PL 관련 키워드
+    if "PM" in job_info or "PL" in job_info or "프로젝트관리" in job_info:
+        if "PM" in resume_text or "PL" in resume_text or "프로젝트" in resume_text or "관리" in resume_text:
+            matching_keywords.append("프로젝트 관리 경험")
+    
+    # IT/SI 관련 키워드
+    if "IT" in job_info or "SI" in job_info or "개발" in job_info:
+        if "IT" in resume_text or "SI" in resume_text or "개발" in resume_text or "프로그래밍" in resume_text:
+            matching_keywords.append("IT/개발 경험")
+    
+    # 정보처리기사 관련
+    if "정보처리기사" in job_info:
+        if "정보처리기사" in resume_text or "기사" in resume_text:
+            matching_keywords.append("정보처리기사 자격증")
+    
+    if matching_keywords:
+        return f"매칭된 키워드: {', '.join(matching_keywords)}"
+    else:
+        return "직접적인 매칭 키워드가 발견되지 않았습니다."
 
 @router.post("/", response_model=InterviewQuestion)
 def create_question(question: InterviewQuestionCreate, db: Session = Depends(get_db)):
@@ -182,6 +250,79 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
             "questions": all_questions,
             "question_bundle": question_bundle,
             "portfolio_info": portfolio_info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/job-questions", response_model=JobQuestionResponse)
+async def generate_job_questions(request: JobQuestionRequest, db: Session = Depends(get_db)):
+    """지원서 기반 직무 맞춤형 면접 질문 생성"""
+    # POST /api/v1/interview-questions/job-questions
+    # Content-Type: application/json
+    # {
+    #   "application_id": 41,
+    #   "company_name": "KOSA공공"
+    # }
+
+    try:
+        # Application 데이터 조회
+        application = db.query(Application).filter(Application.id == request.application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        # JobPost 데이터 조회
+        job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        
+        # Resume 데이터 조회
+        resume = db.query(Resume).filter(Resume.id == application.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Spec 데이터 조회
+        specs = db.query(Spec).filter(Spec.resume_id == application.resume_id).all()
+        
+        # Resume + Spec 통합 텍스트 생성
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # JobPost 정보 파싱
+        job_info = parse_job_post_data(job_post)
+        
+        # 실제 회사명 가져오기
+        actual_company_name = job_post.company.name if job_post.company else request.company_name
+        
+        # 직무 매칭 분석
+        job_matching_info = analyze_job_matching(resume_text, job_info)
+        
+        # LangGraph 기반 직무 질문 생성
+        from agent.agents.interview_question_node import generate_job_question_bundle
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        
+        # 직무 맞춤형 질문 생성
+        question_bundle = generate_job_question_bundle(
+            resume_text=resume_text,
+            job_info=job_info,
+            # company_name=request.company_name,    # 이건, company_name이 공고 제목에서 회사명을 추출한 것(등록된것과다를수있음)
+            # 실제데이터가아니라서 이게 더나은거같기도하고
+            company_name=actual_company_name,
+            job_matching_info=job_matching_info
+        )
+        
+        # 모든 질문을 하나의 리스트로 통합
+        all_questions = []
+        all_questions.extend(question_bundle.get("직무 적합성", []))
+        all_questions.extend(question_bundle.get("기술 스택", []))
+        all_questions.extend(question_bundle.get("업무 이해도", []))
+        all_questions.extend(question_bundle.get("경력 활용", []))
+        all_questions.extend(question_bundle.get("상황 대처", []))
+        
+        return {
+            "questions": all_questions,
+            "question_bundle": question_bundle,
+            "job_matching_info": job_matching_info
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

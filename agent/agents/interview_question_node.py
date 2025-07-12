@@ -106,11 +106,44 @@ news_prompt = PromptTemplate.from_template(
     """
 )
 
+# 직무 기반 질문 생성 프롬프트
+job_prompt = PromptTemplate.from_template(
+    """
+    다음은 공고 정보입니다:
+    ---
+    {job_info}
+    ---
+    
+    지원자의 이력서 정보:
+    ---
+    {resume_text}
+    ---
+    
+    직무 매칭 정보:
+    ---
+    {job_matching_info}
+    ---
+    
+    위 정보를 바탕으로 직무 맞춤형 면접 질문을 생성해 주세요.
+    다음 카테고리별로 질문을 생성해 주세요:
+    
+    1. **직무 적합성** (3개): 지원자의 경험과 공고 요구사항의 매칭도
+    2. **기술 스택** (3개): 공고에서 요구하는 기술에 대한 질문
+    3. **업무 이해도** (2개): 직무 내용에 대한 이해도 확인
+    4. **경력 활용** (2개): 과거 경험을 새 직무에 적용하는 방법
+    5. **상황 대처** (2개): 직무 관련 문제 해결 능력
+    
+    각 질문은 구체적이고 실제 면접에서 사용할 수 있는 수준으로 작성해 주세요.
+    지원자의 경험과 공고 요구사항을 연결하는 질문을 만들어 주세요.
+    """
+)
+
 # LLM 체인 초기화
 generate_resume_summary = LLMChain(llm=llm, prompt=resume_summary_prompt)
 generate_project_questions = LLMChain(llm=llm, prompt=project_prompt)
 generate_values_questions = LLMChain(llm=llm, prompt=values_prompt)
 generate_news_questions = LLMChain(llm=llm, prompt=news_prompt)
+generate_job_questions = LLMChain(llm=llm, prompt=job_prompt)
 
 # 3. 전체 질문 통합 함수
 def generate_common_question_bundle(resume_text: str, company_name: Optional[str] = None, portfolio_info: str = ""):
@@ -239,3 +272,89 @@ def company_info_scraping_tool(company_name):
         "company_info": f"{company_name}는 IT 서비스와 반도체 분야에서 선도적인 기업입니다.",
         "company_news": "2024년 7월, AI 반도체 신제품 출시 및 글로벌 시장 진출 발표"
     }
+
+def generate_job_question_bundle(resume_text: str, job_info: str, company_name: str = "", job_matching_info: str = ""):
+    """직무 기반 면접 질문 생성"""
+    
+    # 직무 맞춤형 질문 생성
+    job_result = generate_job_questions.invoke({
+        "job_info": job_info,
+        "resume_text": resume_text,
+        "job_matching_info": job_matching_info
+    })
+    
+    job_questions_text = job_result.get("text", "")
+    
+    # 질문을 카테고리별로 분류
+    questions_by_category = {
+        "직무 적합성": [],
+        "기술 스택": [],
+        "업무 이해도": [],
+        "경력 활용": [],
+        "상황 대처": []
+    }
+    
+    # 텍스트를 줄별로 분리하여 카테고리별로 분류
+    lines = job_questions_text.split("\n")
+    current_category = None
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # 카테고리 헤더 확인
+        if "직무 적합성" in line:
+            current_category = "직무 적합성"
+        elif "기술 스택" in line:
+            current_category = "기술 스택"
+        elif "업무 이해도" in line:
+            current_category = "업무 이해도"
+        elif "경력 활용" in line:
+            current_category = "경력 활용"
+        elif "상황 대처" in line:
+            current_category = "상황 대처"
+        elif line.startswith(("1.", "2.", "3.", "4.", "5.")) and current_category:
+            # 번호가 있는 질문
+            question = line.split(".", 1)[1].strip() if "." in line else line
+            if question and current_category in questions_by_category:
+                questions_by_category[current_category].append(question)
+        elif current_category and line and not line.startswith(("-", "•", "*")):
+            # 일반 질문
+            if current_category in questions_by_category:
+                questions_by_category[current_category].append(line)
+    
+    # 각 카테고리에 기본 질문 추가 (AI가 생성하지 못한 경우)
+    if not questions_by_category["직무 적합성"]:
+        questions_by_category["직무 적합성"] = [
+            "이 직무에 지원한 구체적인 이유는 무엇인가요?",
+            "본인의 경험이 이 직무에 어떻게 도움이 될 것 같나요?",
+            "이 직무에서 가장 중요한 역량은 무엇이라고 생각하시나요?"
+        ]
+    
+    if not questions_by_category["기술 스택"]:
+        questions_by_category["기술 스택"] = [
+            "공고에서 요구하는 기술 중 가장 자신 있는 것은 무엇인가요?",
+            "새로운 기술을 배우는 데 얼마나 시간이 걸리시나요?",
+            "기술 트렌드를 어떻게 파악하고 계시나요?"
+        ]
+    
+    if not questions_by_category["업무 이해도"]:
+        questions_by_category["업무 이해도"] = [
+            "이 직무에서 가장 어려운 부분은 무엇이라고 생각하시나요?",
+            "업무 성과를 어떻게 측정할 수 있을까요?"
+        ]
+    
+    if not questions_by_category["경력 활용"]:
+        questions_by_category["경력 활용"] = [
+            "과거 경험 중 이 직무에 가장 도움이 될 것 같은 경험은 무엇인가요?",
+            "새로운 환경에서 어떻게 적응하시나요?"
+        ]
+    
+    if not questions_by_category["상황 대처"]:
+        questions_by_category["상황 대처"] = [
+            "업무 중 예상치 못한 문제가 발생했을 때 어떻게 대처하시나요?",
+            "일정이 지연될 것 같을 때 어떻게 해결하시나요?"
+        ]
+    
+    return questions_by_category
