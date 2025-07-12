@@ -33,13 +33,50 @@ llm = ChatOpenAI(model="gpt-4o")
 search_tool = TavilySearchResults()
 summarize_chain = load_summarize_chain(llm, chain_type="stuff")
 
+# 자기소개서 요약 프롬프트
+resume_summary_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 자기소개서 또는 이력서입니다:
+    ---
+    {resume_text}
+    ---
+    
+    위 내용을 바탕으로 지원자의 프로젝트 경험을 요약해 주세요.
+    다음 항목들을 포함해서 작성해 주세요:
+    1. 주요 프로젝트 3-4개
+    2. 각 프로젝트에서의 역할과 기여도
+    3. 사용한 기술 스택
+    4. 프로젝트 규모 (팀 인원, 기간 등)
+    5. 주요 성과나 결과
+    
+    요약은 300자 이내로 간결하게 작성해 주세요.
+    """
+)
+
+# 프로젝트 기반 질문 생성 프롬프트 (개선)
 project_prompt = PromptTemplate.from_template(
     """
-    다음은 지원자의 자기소개서 또는 이력서 요약입니다:
-    {resume_text}
+    다음은 지원자의 프로젝트 경험 요약입니다:
+    ---
+    {resume_summary}
+    ---
+    
+    포트폴리오 정보 (있는 경우):
+    ---
+    {portfolio_info}
+    ---
     
     위 내용을 바탕으로 프로젝트 기반 면접 질문 5개를 생성해 주세요.
-    경험, 역할, 갈등, 성과, 배운 점 등과 관련된 질문을 포함해 주세요.
+    각 질문은 다음 중 하나 이상의 요소를 포함해야 합니다:
+    
+    1. **역할과 기여**: 프로젝트에서 맡은 역할과 구체적인 기여도
+    2. **기술적 도전**: 기술적 어려움과 해결 방법
+    3. **팀워크와 갈등**: 팀 내 협업 과정과 갈등 해결
+    4. **성과와 결과**: 프로젝트 성과와 측정 가능한 결과
+    5. **배운 점**: 프로젝트를 통해 얻은 인사이트나 성장
+    
+    질문은 구체적이고 실제 면접에서 사용할 수 있는 수준으로 작성해 주세요.
+    각 질문은 한 줄로 명확하게 작성해 주세요.
     """
 )
 
@@ -69,17 +106,26 @@ news_prompt = PromptTemplate.from_template(
     """
 )
 
+# LLM 체인 초기화
+generate_resume_summary = LLMChain(llm=llm, prompt=resume_summary_prompt)
 generate_project_questions = LLMChain(llm=llm, prompt=project_prompt)
 generate_values_questions = LLMChain(llm=llm, prompt=values_prompt)
 generate_news_questions = LLMChain(llm=llm, prompt=news_prompt)
 
 # 3. 전체 질문 통합 함수
-def generate_common_question_bundle(resume_text: str, company_name: Optional[str] = None):
+def generate_common_question_bundle(resume_text: str, company_name: Optional[str] = None, portfolio_info: str = ""):
     personality_questions = FIXED_QUESTIONS["personality"]
 
-    # 프로젝트 질문 생성
-    project_qs = generate_project_questions.invoke({"resume_text": resume_text})
-    project_questions = project_qs.get("text", "").strip().split("\n")
+    # 자기소개서 요약
+    resume_summary_result = generate_resume_summary.invoke({"resume_text": resume_text})
+    resume_summary = resume_summary_result.get("text", "")
+
+    # 프로젝트 질문 생성 (포트폴리오 정보 포함)
+    project_result = generate_project_questions.invoke({
+        "resume_summary": resume_summary,
+        "portfolio_info": portfolio_info or "포트폴리오 정보가 없습니다."
+    })
+    project_questions = [q.strip() for q in project_result.get("text", "").split("\n") if q.strip()]
 
     # 회사 관련 질문 (인재상 + 뉴스 기반)
     company_questions = []
@@ -98,7 +144,8 @@ def generate_common_question_bundle(resume_text: str, company_name: Optional[str
         "인성/동기": personality_questions,
         "프로젝트 경험": project_questions,
         "회사 관련": company_questions,
-        "상황 대처": scenario_questions
+        "상황 대처": scenario_questions,
+        "자기소개서 요약": resume_summary
     }
 
 def generate_company_questions(company_name: str):
