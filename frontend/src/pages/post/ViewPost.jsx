@@ -102,7 +102,7 @@ function ViewPost() {
     <>
       <ViewPostSidebar jobPost={jobPost} />
       <Layout title="채용공고 상세보기" settingsButton={settingsButton}>
-        <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl" style={{ marginLeft: 90 }}>
+        <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-center space-y-2">
@@ -150,6 +150,53 @@ function ViewPost() {
                     {jobPost.teamMembers.map((member, idx) => (
                       <p key={idx} className="text-gray-900 dark:text-white">• {member.email} ({member.role})</p>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {jobPost.interview_schedules && jobPost.interview_schedules.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
+                  <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정</h4>
+                  <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
+                    {jobPost.interview_schedules.map((schedule, idx) => {
+                      const scheduleDate = new Date(schedule.scheduled_at);
+                      const formattedDate = scheduleDate.toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      });
+                      const formattedTime = scheduleDate.toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                      });
+                      
+                      return (
+                        <div key={idx} className="border-b border-gray-200 dark:border-gray-600 pb-2 last:border-b-0">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {formattedDate} {formattedTime}
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                📍 {schedule.location}
+                              </p>
+                            </div>
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              schedule.status === 'SCHEDULED' 
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                : schedule.status === 'COMPLETED'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }`}>
+                              {schedule.status === 'SCHEDULED' ? '예정' : 
+                               schedule.status === 'COMPLETED' ? '완료' : 
+                               schedule.status === 'CANCELLED' ? '취소' : schedule.status}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

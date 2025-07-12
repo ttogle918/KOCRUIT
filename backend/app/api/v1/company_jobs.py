@@ -65,8 +65,27 @@ def get_company_job_post(
     if job_post.company:
         job_post.companyName = job_post.company.name
     
-    # team_members는 jobpost_role 테이블에서 조회하므로 빈 배열로 설정
-    job_post.teamMembers = []
+    # 팀 멤버 데이터를 jobpost_role 테이블에서 조회
+    jobpost_roles = db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post.id).all()
+    team_members = []
+    
+    for jobpost_role in jobpost_roles:
+        # CompanyUser 정보 조회
+        company_user = db.query(CompanyUser).filter(CompanyUser.id == jobpost_role.company_user_id).first()
+        if company_user:
+            # 역할 매핑 (MANAGER -> 관리자, MEMBER -> 멤버)
+            role_mapping = {
+                'MANAGER': '관리자',
+                'MEMBER': '멤버'
+            }
+            mapped_role = role_mapping.get(jobpost_role.role, jobpost_role.role)
+            
+            team_members.append({
+                "email": company_user.email,
+                "role": mapped_role
+            })
+    
+    job_post.teamMembers = team_members
     
     # 가중치 데이터를 weight 테이블에서 조회
     weights = db.query(Weight).filter(Weight.jobpost_id == job_post.id).all()
@@ -207,10 +226,10 @@ def create_company_job_post(
     team_members_data = job_post.teamMembers
     if team_members_data:
         for member in team_members_data:
-            if member.email and member.role:
+            if member.get('email') and member.get('role'):
                 # 이메일로 CompanyUser 찾기
                 company_user = db.query(CompanyUser).filter(
-                    CompanyUser.email == member.email,
+                    CompanyUser.email == member['email'],
                     CompanyUser.company_id == current_user.company_id
                 ).first()
                 
@@ -220,7 +239,7 @@ def create_company_job_post(
                         '관리자': 'MANAGER',
                         '멤버': 'MEMBER'
                     }
-                    mapped_role = role_mapping.get(member.role, 'MEMBER')
+                    mapped_role = role_mapping.get(member['role'], 'MEMBER')
                     
                     # jobpost_role 생성
                     jobpost_role = JobPostRole(
@@ -295,8 +314,8 @@ def update_company_job_post(
     job_data['department_id'] = department_id
     
     # team_members는 jobpost_role 테이블에 저장하므로 jobpost 테이블에는 저장하지 않음
+    team_members_data = job_data.pop('teamMembers', None)
     job_data.pop('team_members', None)
-    job_data.pop('teamMembers', None)
     
     # weights 데이터를 별도로 저장 (JSON 필드에는 저장하지 않음)
     weights_data = job_data.pop('weights', None)
@@ -306,6 +325,39 @@ def update_company_job_post(
     
     db.commit()
     db.refresh(db_job_post)
+    
+    # 팀 멤버 역할을 jobpost_role 테이블에 업데이트
+    if team_members_data is not None:
+        # 기존 팀 멤버 역할 삭제
+        db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
+        
+        # 새로운 팀 멤버 역할 추가
+        if team_members_data:
+            for member in team_members_data:
+                if member.get('email') and member.get('role'):
+                    # 이메일로 CompanyUser 찾기
+                    company_user = db.query(CompanyUser).filter(
+                        CompanyUser.email == member['email'],
+                        CompanyUser.company_id == current_user.company_id
+                    ).first()
+                    
+                    if company_user:
+                        # 역할 매핑 (관리자 -> MANAGER, 멤버 -> MEMBER)
+                        role_mapping = {
+                            '관리자': 'MANAGER',
+                            '멤버': 'MEMBER'
+                        }
+                        mapped_role = role_mapping.get(member['role'], 'MEMBER')
+                        
+                        # jobpost_role 생성
+                        jobpost_role = JobPostRole(
+                            jobpost_id=job_post_id,
+                            company_user_id=company_user.id,
+                            role=mapped_role
+                        )
+                        db.add(jobpost_role)
+        
+        db.commit()
     
     # 가중치 데이터를 weight 테이블에 업데이트
     if weights_data is not None:
@@ -375,6 +427,42 @@ def update_company_job_post(
         department = db.query(Department).filter(Department.id == db_job_post.department_id).first()
         if department:
             db_job_post.department = department.name
+    
+    # 팀 멤버 데이터를 jobpost_role 테이블에서 조회
+    jobpost_roles = db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).all()
+    team_members = []
+    
+    for jobpost_role in jobpost_roles:
+        # CompanyUser 정보 조회
+        company_user = db.query(CompanyUser).filter(CompanyUser.id == jobpost_role.company_user_id).first()
+        if company_user:
+            # 역할 매핑 (MANAGER -> 관리자, MEMBER -> 멤버)
+            role_mapping = {
+                'MANAGER': '관리자',
+                'MEMBER': '멤버'
+            }
+            mapped_role = role_mapping.get(jobpost_role.role, jobpost_role.role)
+            
+            team_members.append({
+                "email": company_user.email,
+                "role": mapped_role
+            })
+    
+    db_job_post.teamMembers = team_members
+    
+    # 가중치 데이터를 weight 테이블에서 조회
+    weights = db.query(Weight).filter(Weight.jobpost_id == job_post_id).all()
+    db_job_post.weights = [
+        {"item": weight.field_name, "score": weight.weight_value}
+        for weight in weights
+    ]
+    
+    # 면접 일정 조회 - Schedule 테이블에서 interview 타입으로 조회
+    interview_schedules = db.query(Schedule).filter(
+        Schedule.job_post_id == job_post_id,
+        Schedule.schedule_type == "interview"
+    ).all()
+    db_job_post.interview_schedules = interview_schedules
     
     return db_job_post
 
