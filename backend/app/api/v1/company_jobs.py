@@ -228,35 +228,6 @@ def create_company_job_post(
                     )
                     db.add(jobpost_role)
         
-                db.commit()
-    
-    # 팀 멤버 역할을 jobpost_role 테이블에 저장 (생성 시에는 기존 데이터 삭제 불필요)
-    team_members_data = job_post.teamMembers
-    if team_members_data:
-        for member in team_members_data:
-            if member.email and member.role:
-                # 이메일로 CompanyUser 찾기
-                company_user = db.query(CompanyUser).filter(
-                    CompanyUser.email == member.email,
-                    CompanyUser.company_id == current_user.company_id
-                ).first()
-                
-                if company_user:
-                    # 역할 매핑 (관리자 -> MANAGER, 멤버 -> MEMBER)
-                    role_mapping = {
-                        '관리자': 'MANAGER',
-                        '멤버': 'MEMBER'
-                    }
-                    mapped_role = role_mapping.get(member.role, 'MEMBER')
-                    
-                    # jobpost_role 생성
-                    jobpost_role = JobPostRole(
-                        jobpost_id=db_job_post.id,  # 새로 생성된 job post의 ID 사용
-                        company_user_id=company_user.id,
-                        role=mapped_role
-                    )
-                    db.add(jobpost_role)
-        
         db.commit()
     
     # Add company name to the response
