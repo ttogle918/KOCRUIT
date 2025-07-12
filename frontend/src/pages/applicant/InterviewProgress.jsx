@@ -7,9 +7,11 @@ import ResumeCard from '../../components/ResumeCard';
 import InterviewPanel from './InterviewPanel';
 import api from '../../api/api';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
 
 function InterviewProgress() {
   const { jobPostId } = useParams();
+  const { user } = useAuth();
   const [applicants, setApplicants] = useState([]);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
@@ -20,11 +22,16 @@ function InterviewProgress() {
     '팀에서 맡았던 역할은 무엇인가요?'
   ]);
   const [memo, setMemo] = useState('');
-  const [evaluation, setEvaluation] = useState({ 인성: '', 역량: '' });
+  const [evaluation, setEvaluation] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [jobPost, setJobPost] = useState(null);
   const [jobPostLoading, setJobPostLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [lastSaved, setLastSaved] = useState(null); // 마지막 저장된 평가/메모 상태
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false); // 자동 저장 상태 추가
+  const saveTimer = useRef(null);
 
   // 좌측 width 드래그 조절 및 닫기/열기
   const [leftWidth, setLeftWidth] = useState(240);
@@ -93,7 +100,7 @@ function InterviewProgress() {
       setResume(res.data);
       setSelectedApplicant(applicant);
       setMemo('');
-      setEvaluation({ 인성: '', 역량: '' });
+      setEvaluation({});
     } catch (err) {
       setResume(null);
     }
@@ -102,6 +109,69 @@ function InterviewProgress() {
   const handleEvaluationChange = (item, level) => {
     setEvaluation(prev => ({ ...prev, [item]: level }));
   };
+
+  // 평가 저장 핸들러 (자동 저장용, 중복 방지)
+  const handleSaveEvaluation = async (auto = false) => {
+    if (!selectedApplicant || !user?.id) {
+      if (!auto) setSaveStatus('지원자 또는 평가자 정보가 없습니다.');
+      return;
+    }
+    // details 배열로 변환
+    const details = [];
+    Object.entries(evaluation).forEach(([category, items]) => {
+      Object.entries(items || {}).forEach(([grade, score]) => {
+        if (score) {
+          details.push({ category, grade, score });
+        }
+      });
+    });
+    // 평균점수 계산
+    const allScores = details.map(d => d.score).filter(s => typeof s === 'number');
+    const avgScore = allScores.length > 0 ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(2) : null;
+    // 변경사항이 없으면 저장하지 않음
+    const current = JSON.stringify({ evaluation, memo });
+    if (lastSaved === current && auto) return;
+    
+    // 저장 상태 설정
+    if (auto) {
+      setIsAutoSaving(true);
+    } else {
+    setIsSaving(true);
+    }
+    
+    try {
+      await api.post('/interview-evaluations', {
+        interview_id: selectedApplicant.interview_id || 1, // TODO: 실제 interview_id로 교체
+        evaluator_id: user.id,
+        is_ai: false, // 수동 평가
+        score: avgScore,
+        summary: memo,
+        details
+      });
+      setSaveStatus(auto ? '자동 저장 완료' : '평가가 저장되었습니다!');
+      setLastSaved(current);
+    } catch (err) {
+      setSaveStatus('저장 실패: ' + (err.response?.data?.detail || '오류'));
+    } finally {
+      if (auto) {
+        setIsAutoSaving(false);
+      } else {
+      setIsSaving(false);
+      }
+    }
+  };
+
+  // 자동 저장 useEffect (10초마다)
+  useEffect(() => {
+    if (!selectedApplicant) return;
+    if (saveTimer.current) clearInterval(saveTimer.current);
+    saveTimer.current = setInterval(() => {
+      handleSaveEvaluation(true);
+    }, 10000); // 10초마다
+    return () => {
+      if (saveTimer.current) clearInterval(saveTimer.current);
+    };
+  }, [evaluation, memo, selectedApplicant, user]);
 
   if (loading || jobPostLoading) {
     return (
@@ -188,8 +258,47 @@ function InterviewProgress() {
               memo={memo}
               onMemoChange={setMemo}
               evaluation={evaluation}
-              onEvaluationChange={handleEvaluationChange}
+              onEvaluationChange={setEvaluation}
+              isAutoSaving={isAutoSaving}
             />
+            <div className="mt-4 flex flex-col items-end gap-2 px-4 pb-4">
+              {/* 자동 저장 상태 표시 */}
+              {isAutoSaving && (
+                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  자동 저장 중...
+                </div>
+              )}
+              <button
+                className={`font-bold py-2 px-6 rounded shadow transition-colors ${
+                  !selectedApplicant || !user?.id || isSaving || isAutoSaving
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+                onClick={() => handleSaveEvaluation(false)}
+                disabled={!selectedApplicant || !user?.id || isSaving || isAutoSaving}
+              >
+                {isSaving ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    저장 중...
+                  </div>
+                ) : (
+                  '평가 저장'
+                )}
+              </button>
+              {saveStatus && (
+                <div className={`text-xs ${
+                  saveStatus.includes('실패') 
+                    ? 'text-red-500 dark:text-red-400' 
+                    : saveStatus.includes('자동') 
+                      ? 'text-blue-500 dark:text-blue-400'
+                      : 'text-green-500 dark:text-green-400'
+                }`}>
+                  {saveStatus}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
