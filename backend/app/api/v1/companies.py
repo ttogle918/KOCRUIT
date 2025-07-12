@@ -7,7 +7,7 @@ from app.schemas.company import (
     DepartmentCreate, DepartmentUpdate, DepartmentDetail
 )
 from app.models.company import Company, Department
-from app.models.user import User
+from app.models.user import User, CompanyUser
 from app.api.v1.auth import get_current_user
 
 router = APIRouter()
@@ -160,3 +160,42 @@ def get_companies_common(
     db: Session = Depends(get_db)
 ):
     return get_companies(skip=skip, limit=limit, search=search, db=db) 
+
+
+@router.get("/{company_id}/members", response_model=List[dict])
+def get_company_members(
+    company_id: int,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get company members by company ID with optional search"""
+    # Check if current user belongs to the company
+    if not hasattr(current_user, 'company_id') or current_user.company_id != company_id:
+        raise HTTPException(status_code=403, detail="Access denied to company members")
+    
+    query = db.query(CompanyUser).filter(CompanyUser.company_id == company_id)
+    
+    # Add search functionality
+    if search:
+        query = query.filter(
+            (CompanyUser.name.contains(search)) | 
+            (CompanyUser.email.contains(search))
+        )
+    
+    # Get company users
+    company_users = query.all()
+    
+    # Return simplified member data
+    members = []
+    for user in company_users:
+        members.append({
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "role": user.role,
+            "department": user.department.name if user.department else None,
+            "ranks": user.ranks
+        })
+    
+    return members 

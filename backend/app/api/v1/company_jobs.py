@@ -63,11 +63,8 @@ def get_company_job_post(
     if job_post.company:
         job_post.companyName = job_post.company.name
     
-    # JSON 데이터를 파싱하여 응답에 추가
-    if job_post.team_members:
-        job_post.teamMembers = json.loads(job_post.team_members)
-    else:
-        job_post.teamMembers = []
+    # team_members는 jobpost_role 테이블에서 조회하므로 빈 배열로 설정
+    job_post.teamMembers = []
     
     # 가중치 데이터를 weight 테이블에서 조회
     weights = db.query(Weight).filter(Weight.jobpost_id == job_post.id).all()
@@ -140,17 +137,12 @@ def create_company_job_post(
     # department_id 설정
     job_data['department_id'] = department_id
     
-    # JSON 데이터 처리 및 필드명 매핑
-    if job_data.get('teamMembers'):
-        job_data['team_members'] = json.dumps(job_data['teamMembers']) if job_data['teamMembers'] else None
-    else:
-        job_data['team_members'] = None
+    # team_members는 jobpost_role 테이블에 저장하므로 jobpost 테이블에는 저장하지 않음
+    job_data.pop('team_members', None)
+    job_data.pop('teamMembers', None)
     
     # weights 데이터를 별도로 저장 (JSON 필드에는 저장하지 않음)
     weights_data = job_data.pop('weights', [])
-    
-    # JobPost 모델에 전달할 데이터에서 camelCase 필드 제거
-    job_data.pop('teamMembers', None)
     
     db_job_post = JobPost(**job_data, company_id=current_user.company_id)
     db.add(db_job_post)
@@ -329,17 +321,12 @@ def update_company_job_post(
     # department_id 설정
     job_data['department_id'] = department_id
     
-    # JSON 데이터 처리 및 필드명 매핑
-    if job_data.get('teamMembers'):
-        job_data['team_members'] = json.dumps(job_data['teamMembers']) if job_data['teamMembers'] else None
-    else:
-        job_data['team_members'] = None
+    # team_members는 jobpost_role 테이블에 저장하므로 jobpost 테이블에는 저장하지 않음
+    job_data.pop('team_members', None)
+    job_data.pop('teamMembers', None)
     
     # weights 데이터를 별도로 저장 (JSON 필드에는 저장하지 않음)
     weights_data = job_data.pop('weights', None)
-    
-    # JobPost 모델에 전달할 데이터에서 camelCase 필드 제거
-    job_data.pop('teamMembers', None)
     
     for field, value in job_data.items():
         setattr(db_job_post, field, value)
