@@ -47,7 +47,7 @@ function PostRecruitment() {
     company: null
   });
 
-  const [teamMembers, setTeamMembers] = useState([{ email: '', role: '' }]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [schedules, setSchedules] = useState([{ date: null, time: '', place: '' }]);
 
   const [weights, setWeights] = useState([]);
@@ -102,6 +102,11 @@ function PostRecruitment() {
               name: response.data.companyName
             }
           }));
+          
+          // 현재 사용자를 기본 팀 멤버로 추가
+          if (response.data.email) {
+            setTeamMembers([{ email: response.data.email, role: '관리자' }]);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -530,6 +535,7 @@ function PostRecruitment() {
                           setShowMemberModal(true);
                         }}
                         readOnly
+                        disabled={idx === 0} // 첫 번째 멤버(현재 사용자)는 수정 불가
                       />
                       <select 
                         value={member.role} 
@@ -537,6 +543,7 @@ function PostRecruitment() {
                         className={`w-32 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !member.role ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
                         data-member-index={idx}
                         aria-label={`팀원 ${idx + 1} 권한 선택${member.role ? `: ${member.role}` : ''}`}
+                        disabled={idx === 0} // 첫 번째 멤버(현재 사용자)는 수정 불가
                       >
                         <option value="">권한 선택</option>
                         <option value="관리자">관리자</option>
@@ -544,7 +551,14 @@ function PostRecruitment() {
                       </select>
                       <button 
                         type="button" 
-                        onClick={() => setTeamMembers(prev => prev.filter((_, i) => i !== idx))} 
+                        onClick={() => {
+                          // 첫 번째 멤버(현재 사용자)는 삭제할 수 없도록 제한
+                          if (idx === 0 && teamMembers.length === 1) {
+                            alert('최소 한 명의 팀 멤버가 필요합니다.');
+                            return;
+                          }
+                          setTeamMembers(prev => prev.filter((_, i) => i !== idx));
+                        }} 
                         className="text-red-500 text-xl font-bold"
                         aria-label={`팀원 ${idx + 1} 삭제`}
                       >
@@ -566,6 +580,8 @@ function PostRecruitment() {
                   {showError && !isTeamValid && <div className="text-red-500 text-sm mt-1">모든 팀원 이메일과 권한을 입력하세요.</div>}
                   <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                     * 같은 회사 소속 멤버만 선택할 수 있습니다.
+                    <br />
+                    * 첫 번째 멤버는 공고 등록자로 자동 설정됩니다.
                   </div>
                 </div>
               </div>
