@@ -1,19 +1,6 @@
+import { calculateAge } from './resumeUtils';
+
 // 지원자 통계 집계 유틸리티 함수들
-
-// 나이 계산 함수
-export function calculateAge(birthDate) {
-  if (!birthDate) return 'N/A';
-  const today = new Date();
-  const birth = new Date(birthDate);
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-
-  return age;
-}
 
 // 지원자 학력 통계 집계 함수
 export function getEducationStats(applicants) {

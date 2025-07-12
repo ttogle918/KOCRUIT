@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/api';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import PassReasonCard from '../../components/PassReasonCard';
+import { calculateAge } from '../../utils/resumeUtils';
 
 export default function RejectedApplicants() {
   const [rejectedApplicants, setRejectedApplicants] = useState([]);
@@ -55,19 +56,7 @@ export default function RejectedApplicants() {
     }
   }, [jobPostId]);
 
-  const calculateAge = (birthDate) => {
-    if (!birthDate) return 'N/A';
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    
-    return age;
-  };
+
 
   const totalPages = Math.ceil(rejectedApplicants.length / PAGE_SIZE);
   const pagedApplicants = rejectedApplicants.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);

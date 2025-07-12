@@ -19,7 +19,6 @@ import IconButton from '@mui/material/IconButton';
 import ArrowBackIosNew from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIos from '@mui/icons-material/ArrowForwardIos';
 import { 
-  calculateAge, 
   getEducationStats, 
   getGenderStats, 
   getAgeGroupStats, 
@@ -32,87 +31,11 @@ import {
   AGE_GROUPS,
   extractProvince // 추가
 } from '../../utils/applicantStats';
+import { calculateAge, mapResumeData } from '../../utils/resumeUtils';
 import ProvinceMapChart from '../../components/ProvinceMapChart';
+import CommonResumeList from '../../components/CommonResumeList';
 
-// === [추가] 전공/학위 추출 함수 ===
-function extractMajorAndDegree(degreeRaw) {
-  if (!degreeRaw) return { major: '-', degree: '학사' };
-  const match = degreeRaw.match(/^(.*?)(?:\((.*?)\))?$/);
-  if (match) {
-    const major = match[1] ? match[1].trim() : '-';
-    let degree = '학사';
-    if (match[2]) {
-      if (match[2].includes('박사')) degree = '박사';
-      else if (match[2].includes('석사')) degree = '석사';
-      else degree = match[2];
-    }
-    return { major, degree };
-  }
-  return { major: degreeRaw, degree: '학사' };
-}
 
-// === [최종 보완] 이력서 데이터 매핑 함수 ===
-function mapResumeData(data) {
-  console.log('mapResumeData input:', data); // 입력 데이터 확인
-  // education(문자열) → educations(배열)로 변환, degree에서 major 추출
-  const educations = data.educations && Array.isArray(data.educations)
-    ? data.educations.map(edu => {
-        const { major, degree } = extractMajorAndDegree(edu.degree || '');
-        return {
-          schoolName: edu.schoolName || edu.school || '-',
-          degree: degree,
-          gpa: edu.gpa || '-',
-          major: edu.major || major,
-        };
-      })
-    : data.education
-      ? (() => {
-          const { major, degree } = extractMajorAndDegree(data.degree || '');
-          return [{
-            schoolName: data.education || '-',
-            degree: degree,
-            gpa: data.gpa || '-',
-            major: data.major || major,
-          }];
-        })()
-      : [{
-          schoolName: '-',
-          degree: '학사',
-          gpa: '-',
-          major: '-',
-        }];
-
-  // awards, certificates 등도 내부 구조 보정
-  const awards = Array.isArray(data.awards) ? data.awards.map(award => ({
-    date: award.date || award.awardDate || '',
-    title: award.title || award.name || '',
-    description: award.description || '',
-    duration: award.duration || '',
-  })) : [];
-
-  const certificates = Array.isArray(data.certificates) ? data.certificates.map(cert => ({
-    date: cert.date || cert.certDate || '',
-    name: cert.name || cert.title || '',
-    duration: cert.duration || '',
-  })) : [];
-
-  const result = {
-    applicantName: data.applicantName || data.name || '',
-    gender: data.gender || '',
-    birthDate: data.birthDate || data.birthdate || '',
-    email: data.email || '',
-    address: data.address || '',
-    phone: data.phone || '',
-    educations,
-    awards,
-    certificates,
-    skills: Array.isArray(data.skills) ? data.skills : (typeof data.skills === 'string' ? data.skills.split(',') : []),
-    experiences: Array.isArray(data.experiences) ? data.experiences : [],
-    content: data.content || '',
-  };
-  console.log('mapResumeData output:', result); // 반환 객체 확인
-  return result;
-}
 
 export default function ApplicantList() {
   const [bookmarkedList, setBookmarkedList] = useState([]);
@@ -135,7 +58,7 @@ export default function ApplicantList() {
   const { jobPostId } = useParams();
   const [jobPost, setJobPost] = useState(null);
   const [jobPostLoading, setJobPostLoading] = useState(true);
-  const [expanded, setExpanded] = useState(null);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [modalView, setModalView] = useState('chart'); // 'chart' | 'list'
   const [slideIndex, setSlideIndex] = useState(0); // 차트 슬라이드 인덱스
@@ -148,9 +71,7 @@ export default function ApplicantList() {
   // jobPostId가 없으면 기본값 사용
   const effectiveJobPostId = jobPostId;
 
-  const toggleExpand = (applicantId) => {
-    setExpanded(expanded === applicantId ? null : applicantId);
-  };
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -295,17 +216,7 @@ export default function ApplicantList() {
 
   // const selectedApplicant = selectedApplicantIndex !== null ? applicants[selectedApplicantIndex] : null;
 
-  // 연령대 라벨과 실제 나이 구간 매핑
-  const AGE_RANGE_MAP = {
-    "20대초반": [20, 24],
-    "20대중반": [25, 29],
-    "20대후반": [30, 34],
-    "30대초반": [35, 39],
-    "30대중반": [40, 44],
-    "30대후반": [45, 49],
-    "40대": [50, 59],
-    "50대이상": [60, 100]
-  };
+
 
   // 연령대 막대 클릭 시
   const handleAgeBarClick = (ageLabel) => {
@@ -519,18 +430,17 @@ export default function ApplicantList() {
             className={`transition-[width] duration-500 ease-in-out ${splitMode ? 'w-[40%]' : 'w-[60%]'}`}
             style={{ minWidth: splitMode ? 320 : undefined }}
           >
-            <ApplicantListLeft
-              applicants={applicants}
-              splitMode={splitMode}
-              selectedApplicantIndex={selectedApplicantIndex}
-              selectedApplicantId={null}
-              onSelectApplicant={handleApplicantClick}
-              handleApplicantClick={handleApplicantClick}
-              handleCloseDetailedView={handleCloseDetailedView}
-              bookmarkedList={bookmarkedList}
-              toggleBookmark={toggleBookmark}
-              calculateAge={calculateAge}
-              onFilteredApplicantsChange={setFilteredApplicants}
+            <CommonResumeList
+              jobPostId={effectiveJobPostId}
+              filterConditions={null}
+              onFilteredResults={null}
+              showResumeDetail={false}
+              compact={false}
+              onApplicantSelect={handleApplicantClick}
+              onResumeLoad={(mappedResume) => {
+                setResume(mappedResume);
+                setSplitMode(true);
+              }}
             />
           </div>
 
