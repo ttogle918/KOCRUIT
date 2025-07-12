@@ -6,6 +6,7 @@ import "../../styles/datepicker.css";
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../layout/Layout';
 import TimePicker from '../../components/TimePicker';
+import CompanyMemberSelectModal from '../../components/CompanyMemberSelectModal';
 import api, { extractWeights } from '../../api/api';
 
 const useAutoResize = (value) => {
@@ -51,6 +52,11 @@ function PostRecruitment() {
 
   const [weights, setWeights] = useState([]);
   const [isExtractingWeights, setIsExtractingWeights] = useState(false);
+  
+  // Company member selection modal state
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [selectedMemberIndex, setSelectedMemberIndex] = useState(null);
+  const [userCompanyId, setUserCompanyId] = useState(null);
 
   const roleOptions = ['관리자', '멤버'];
   const scoreOptions = Array.from({ length: 10 }, (_, i) => (i + 1).toString());
@@ -88,6 +94,7 @@ function PostRecruitment() {
           companyName: response.data.companyName
         });
         if (response.data) {
+          setUserCompanyId(response.data.company_id);
           setFormData(prev => ({
             ...prev,
             company: {
@@ -516,6 +523,11 @@ function PostRecruitment() {
                         placeholder="이메일" 
                         data-member-index={idx}
                         aria-label={`팀원 ${idx + 1} 이메일 입력${member.email ? `: ${member.email}` : ''}`}
+                        onClick={() => {
+                          setSelectedMemberIndex(idx);
+                          setShowMemberModal(true);
+                        }}
+                        readOnly
                       />
                       <select 
                         value={member.role} 
@@ -538,8 +550,21 @@ function PostRecruitment() {
                       </button>
                     </div>
                   ))}
-                  <button type="button" onClick={() => setTeamMembers(prev => [...prev, { email: '', role: '' }])} className="text-sm text-blue-600 hover:underline ml-4 mt-3">+ 멤버 추가</button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setSelectedMemberIndex(teamMembers.length);
+                      setTeamMembers(prev => [...prev, { email: '', role: '' }]);
+                      setShowMemberModal(true);
+                    }} 
+                    className="text-sm text-blue-600 hover:underline ml-4 mt-3"
+                  >
+                    + 멤버 추가
+                  </button>
                   {showError && !isTeamValid && <div className="text-red-500 text-sm mt-1">모든 팀원 이메일과 권한을 입력하세요.</div>}
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                    * 같은 회사 소속 멤버만 선택할 수 있습니다.
+                  </div>
                 </div>
               </div>
 
@@ -732,6 +757,25 @@ function PostRecruitment() {
           </div>
         </form>
       </div>
+
+      {showMemberModal && (
+        <CompanyMemberSelectModal
+          companyId={userCompanyId}
+          onSelect={(email, name) => {
+            if (selectedMemberIndex !== null) {
+              setTeamMembers(prev => prev.map((member, idx) => 
+                idx === selectedMemberIndex ? { ...member, email } : member
+              ));
+            }
+            setShowMemberModal(false);
+            setSelectedMemberIndex(null);
+          }}
+          onClose={() => {
+            setShowMemberModal(false);
+            setSelectedMemberIndex(null);
+          }}
+        />
+      )}
     </Layout>
   );
 }
