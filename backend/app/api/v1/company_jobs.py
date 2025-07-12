@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
 import json
 from datetime import datetime
@@ -10,6 +11,7 @@ from app.models.schedule import Schedule
 from app.models.weight import Weight
 from app.models.user import User, CompanyUser
 from app.models.company import Department
+from app.models.application import Application
 from app.api.v1.auth import get_current_user
 
 router = APIRouter()
@@ -435,6 +437,51 @@ def delete_company_job_post(
     if not db_job_post:
         raise HTTPException(status_code=404, detail="Job post not found")
     
-    db.delete(db_job_post)
-    db.commit()
-    return {"message": "Job post deleted successfully"}
+    try:
+        # 각 관련 테이블의 존재 여부를 확인하고 안전하게 삭제
+        # 1. post_interview 테이블 삭제 (구버전 데이터 정리)
+        try:
+            post_interview_count = db.execute(
+                text("DELETE FROM post_interview WHERE job_post_id = :job_post_id"), 
+                {"job_post_id": job_post_id}
+            ).rowcount
+            if post_interview_count > 0:
+                print(f"Deleted {post_interview_count} post_interview records for job post {job_post_id}")
+        except Exception as post_interview_error:
+            print(f"post_interview table not found or no records to delete: {post_interview_error}")
+        
+        # 2. 관련된 지원서(Application) 삭제
+        applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+        if applications:
+            db.query(Application).filter(Application.job_post_id == job_post_id).delete()
+            print(f"Deleted {len(applications)} applications for job post {job_post_id}")
+        
+        # 3. 관련된 면접 일정(Schedule) 삭제
+        schedules = db.query(Schedule).filter(Schedule.job_post_id == job_post_id).all()
+        if schedules:
+            db.query(Schedule).filter(Schedule.job_post_id == job_post_id).delete()
+            print(f"Deleted {len(schedules)} schedules for job post {job_post_id}")
+        
+        # 4. 관련된 가중치(Weight) 삭제
+        weights = db.query(Weight).filter(Weight.jobpost_id == job_post_id).all()
+        if weights:
+            db.query(Weight).filter(Weight.jobpost_id == job_post_id).delete()
+            print(f"Deleted {len(weights)} weights for job post {job_post_id}")
+        
+        # 5. 관련된 채용공고 역할(JobPostRole) 삭제
+        jobpost_roles = db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).all()
+        if jobpost_roles:
+            db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
+            print(f"Deleted {len(jobpost_roles)} job post roles for job post {job_post_id}")
+        
+        # 6. 마지막으로 채용공고 삭제
+        db.delete(db_job_post)
+        
+        db.commit()
+        print(f"Successfully deleted job post {job_post_id}")
+        return {"message": "Job post deleted successfully"}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting job post {job_post_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete job post and related data")

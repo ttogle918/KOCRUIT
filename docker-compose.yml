@@ -36,6 +36,7 @@ services:
       - redis
     volumes:
       - ./agent:/app
+      - ./backend:/app/backend
       - ./.env:/app/.env
     networks:
       - app-net
