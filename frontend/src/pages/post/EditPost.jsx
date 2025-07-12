@@ -510,7 +510,7 @@ function EditPost() {
                     />
                   </div>
                   {showError && !formData.headcount && <div className="text-red-500 text-xs text-left">모집 인원을 입력하세요.</div>}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-sm">
                     <label className="w-24 text-sm text-gray-700 dark:text-white">근무지역:</label>
                     <input 
                       type="text" 
@@ -521,7 +521,7 @@ function EditPost() {
                     />
                   </div>
                   {showError && !formData.location && <div className="text-red-500 text-xs text-left">근무지역을 입력하세요.</div>}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-sm">
                     <label className="w-24 text-sm text-gray-700 dark:text-white">고용형태:</label>
                     <select 
                       value={formData.employment_type}
