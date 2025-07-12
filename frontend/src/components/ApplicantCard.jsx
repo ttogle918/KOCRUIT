@@ -3,21 +3,6 @@ import React from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 
 
-// const calculateAge = (birthDate) => {
-//     if (!birthDate) return 'N/A';
-//     const today = new Date();
-//     const birth = new Date(birthDate);
-//     let age = today.getFullYear() - birth.getFullYear();
-//     const monthDiff = today.getMonth() - birth.getMonth();
-    
-//     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-//       age--;
-//     }
-    
-//     return age;
-//   };
-
-
 const ApplicantCard = ({
   applicant,
   index,
@@ -46,16 +31,16 @@ const ApplicantCard = ({
 
         {/* 즐겨찾기 별 버튼 */}
         <button
-          className={`absolute top-1 right-2 ${compact ? 'text-base' : 'text-xl'}`}
+          className={`absolute top-1 right-2 transition-all duration-200 ease-in-out ${compact ? 'text-base' : 'text-xl'}`}
           onClick={e => {
             e.stopPropagation();
             onBookmarkToggle();
           }}
         >
           {bookmarked ? (
-            <FaStar className="text-yellow-400" />
+            <FaStar className="text-yellow-500 drop-shadow-sm hover:text-yellow-600 transition-colors duration-200" />
           ) : (
-            <FaRegStar className="text-gray-400 hover:text-yellow-400" />
+            <FaRegStar className="text-gray-400 hover:text-yellow-400 transition-colors duration-200" />
           )}
         </button>
 

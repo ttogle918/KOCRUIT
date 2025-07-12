@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaStar, FaRegStar, FaEnvelope, FaPhone, FaCalendarAlt } from 'react-icons/fa';
 import api from '../api/api';
+import { calculateAge } from '../utils/resumeUtils';
 
 function generateQuestions(resume) {
   if (!resume) return [];
@@ -66,17 +67,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
 
 
 
-  const calculateAge = (birthDate) => {
-    if (!birthDate) return 'N/A';
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
+
 
   const handleBookmarkToggle = async () => {
     try {

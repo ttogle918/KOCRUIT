@@ -1,6 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { FaStar, FaRegStar } from 'react-icons/fa';
+import { extractMajorAndDegree } from '../utils/resumeUtils';
 
-export default function ResumeCard({ resume, loading }) {
+export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle }) {
+  const [localBookmarked, setLocalBookmarked] = useState(bookmarked);
+  useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
+
   if (loading) return (
     <div className="flex items-center justify-center h-full min-h-[300px] text-blue-500 text-xl font-bold animate-pulse">
       로딩 중...
@@ -28,22 +33,8 @@ export default function ResumeCard({ resume, loading }) {
     }
   };
 
-  // degree에서 전공/학위 분리 함수
-  const parseMajorAndDegree = (degreeRaw) => {
-    if (!degreeRaw) return { major: '-', degree: '학사' };
-    const match = degreeRaw.match(/^(.*?)(?:\((.*?)\))?$/);
-    if (match) {
-      const major = match[1] ? match[1].trim() : '-';
-      let degree = '학사';
-      if (match[2]) {
-        if (match[2].includes('박사')) degree = '박사';
-        else if (match[2].includes('석사')) degree = '석사';
-        else degree = match[2];
-      }
-      return { major, degree };
-    }
-    return { major: degreeRaw, degree: '학사' };
-  };
+  // degree에서 전공/학위 분리 함수 (공통 유틸리티 사용)
+  const parseMajorAndDegree = extractMajorAndDegree;
 
   // 안전하게 값 추출
   const {
