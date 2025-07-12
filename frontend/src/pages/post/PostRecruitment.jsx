@@ -120,6 +120,27 @@ function PostRecruitment() {
       return;
     }
     setShowError(false);
+    
+    // Debug authentication
+    console.log('Current user:', user);
+    console.log('User token:', localStorage.getItem('token'));
+    console.log('User role:', user?.role);
+    
+    // 디버깅: 토큰 상태 확인
+    const token = localStorage.getItem('token');
+    const userInfo = localStorage.getItem('user');
+    console.log('🔐 Authentication Debug:');
+    console.log('  Token exists:', !!token);
+    console.log('  User info exists:', !!userInfo);
+    console.log('  Current user:', user);
+    
+    if (!token) {
+      alert('로그인이 필요합니다. 다시 로그인해주세요.');
+      navigate('/login');
+      return;
+    }
+    
+    let formattedData; // Declare outside try block
     try {
       // 날짜 형식 변환 - 시간대 정보 제거
       const formatDate = (date) => {
@@ -144,10 +165,12 @@ function PostRecruitment() {
           notes: null
         }));
 
+      console.log('Interview schedules before sending:', interviewSchedules);
+
       const formattedData = {
         ...formData,
         // company_id는 백엔드에서 자동 설정됨
-        headcount: formData.headcount ? Math.floor(Number(formData.headcount)) : null,
+        headcount: formData.headcount ? parseInt(formData.headcount) : null,
         start_date: formatDate(formData.start_date),
         end_date: formatDate(formData.end_date),
         deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
@@ -160,6 +183,9 @@ function PostRecruitment() {
       };
 
       console.log('Sending data:', formattedData);  // 디버깅용
+      console.log('Formatted data keys:', Object.keys(formattedData));
+      console.log('Team members:', formattedData.teamMembers);
+      console.log('Weights:', formattedData.weights);
 
       const response = await api.post('/company/jobposts', formattedData);
       
@@ -174,6 +200,16 @@ function PostRecruitment() {
       console.error('Error response status:', error.response?.status);
       console.error('Error detail:', error.response?.data?.detail);
       console.error('Error detail expanded:', JSON.stringify(error.response?.data?.detail, null, 2));
+      console.error('Full error object:', error);
+      console.error('Request data that failed:', formattedData);
+      
+      // 401 에러 시 로그인 페이지로 리다이렉트
+      if (error.response?.status === 401) {
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        navigate('/login');
+        return;
+      }
+      
       alert(error.response?.data?.detail?.[0]?.msg || error.response?.data?.message || '채용공고 등록에 실패했습니다.');
     }
   };

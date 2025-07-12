@@ -114,6 +114,7 @@ CREATE TABLE schedule (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     schedule_type  VARCHAR(255),
     user_id        INT,
+    job_post_id    INT,
     title          VARCHAR(255),
     description    TEXT,
     location       VARCHAR(255),
@@ -122,7 +123,8 @@ CREATE TABLE schedule (
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     status         VARCHAR(255),
 
-    FOREIGN KEY (user_id) REFERENCES company_user(id)
+    FOREIGN KEY (user_id) REFERENCES company_user(id),
+    FOREIGN KEY (job_post_id) REFERENCES jobpost(id)
 );
 
 

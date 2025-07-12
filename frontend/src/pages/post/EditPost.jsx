@@ -109,11 +109,18 @@ function EditPost() {
         
         // Convert interview schedules from API format to form format
         if (jobPost.interview_schedules && jobPost.interview_schedules.length > 0) {
-          const convertedSchedules = jobPost.interview_schedules.map(schedule => ({
-            date: schedule.interview_date ? new Date(schedule.interview_date) : null,
-            time: schedule.interview_time || '',
-            place: schedule.location || ''
-          }));
+          const convertedSchedules = jobPost.interview_schedules.map(schedule => {
+            // scheduled_at에서 날짜와 시간 추출
+            const scheduledAt = new Date(schedule.scheduled_at);
+            const date = scheduledAt;
+            const time = scheduledAt.toTimeString().slice(0, 5); // HH:MM 형식
+            
+            return {
+              date: date,
+              time: time,
+              place: schedule.location || ''
+            };
+          });
           setSchedules(convertedSchedules);
         } else {
           setSchedules([{ date: null, time: '', place: '' }]);
@@ -209,6 +216,20 @@ function EditPost() {
     }
     setShowError(false);
     
+    // 디버깅: 토큰 상태 확인
+    const token = localStorage.getItem('token');
+    const userInfo = localStorage.getItem('user');
+    console.log('🔐 Authentication Debug:');
+    console.log('  Token exists:', !!token);
+    console.log('  User info exists:', !!userInfo);
+    console.log('  Current user:', user);
+    
+    if (!token) {
+      alert('로그인이 필요합니다. 다시 로그인해주세요.');
+      navigate('/login');
+      return;
+    }
+    
     try {
       // 날짜 형식 변환 - 시간대 정보 제거
       const formatDate = (date) => {
@@ -258,6 +279,14 @@ function EditPost() {
     } catch (error) {
       console.error('Update failed:', error);
       console.error('Error response data:', error.response?.data);
+      
+      // 401 에러 시 로그인 페이지로 리다이렉트
+      if (error.response?.status === 401) {
+        alert('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        navigate('/login');
+        return;
+      }
+      
       alert(error.response?.data?.detail?.[0]?.msg || error.response?.data?.message || '채용공고 수정에 실패했습니다.');
     }
   };

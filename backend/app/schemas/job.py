@@ -13,7 +13,7 @@ class WeightDto(BaseModel):
     score: float
 
 
-class PostInterviewCreate(BaseModel):
+class InterviewScheduleCreate(BaseModel):
     interview_date: str  # YYYY-MM-DD
     interview_time: str  # HH:MM
     location: str
@@ -22,15 +22,13 @@ class PostInterviewCreate(BaseModel):
     notes: Optional[str] = None
 
 
-class PostInterviewDetail(BaseModel):
+class InterviewScheduleDetail(BaseModel):
     id: int
     job_post_id: int
-    interview_date: str
-    interview_time: str
+    title: str
     location: str
-    interview_type: str
-    max_participants: Optional[int]
-    notes: Optional[str]
+    scheduled_at: datetime
+    status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -55,7 +53,7 @@ class JobPostCreate(BaseModel):
     company_id: Optional[int] = None
     teamMembers: Optional[List[TeamMemberDto]] = None
     weights: Optional[List[WeightDto]] = None
-    interview_schedules: Optional[List[PostInterviewCreate]] = None
+    interview_schedules: Optional[List[InterviewScheduleCreate]] = None
 
 
 class JobPostUpdate(BaseModel):
@@ -74,7 +72,7 @@ class JobPostUpdate(BaseModel):
     status: Optional[str] = "ACTIVE"
     teamMembers: Optional[List[TeamMemberDto]] = None
     weights: Optional[List[WeightDto]] = None
-    interview_schedules: Optional[List[PostInterviewCreate]] = None
+    interview_schedules: Optional[List[InterviewScheduleCreate]] = None
 
 
 class JobPostDetail(BaseModel):
@@ -97,7 +95,7 @@ class JobPostDetail(BaseModel):
     companyName: Optional[str] = None
     teamMembers: Optional[List[TeamMemberDto]] = None
     weights: Optional[List[WeightDto]] = None
-    interview_schedules: Optional[List[PostInterviewDetail]] = None
+    interview_schedules: Optional[List[InterviewScheduleDetail]] = None
     created_at: datetime
     updated_at: datetime
 
