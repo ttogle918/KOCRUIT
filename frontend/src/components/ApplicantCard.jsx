@@ -1,9 +1,8 @@
 // src/components/ApplicantCard.jsx
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 
-
-const ApplicantCard = ({
+const ApplicantCard = forwardRef(({
   applicant,
   index,
   isSelected,
@@ -13,18 +12,15 @@ const ApplicantCard = ({
   onBookmarkToggle,
   calculateAge,
   compact = false,
-}) => {
+}, ref) => {
   return (
-    <div
-      className={`transition-all duration-300 ease-in-out ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 m-1' : ''} ${compact ? 'p-1' : ''}`}
-      style={{ borderRadius: '1.5rem', fontSize: compact ? '12px' : '16px' }}
-    >
+    <div ref={ref} className={`${compact ? 'p-1' : ''}`}> {/* 바깥 div는 padding/마진만 */}
       <div
-        className={`relative bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 flex items-center gap-2 cursor-pointer transition-all duration-300 ease-in-out ${compact ? 'p-2' : 'p-4'}`}
-        onClick={() => {
-          onClick && onClick();
-        }}
-        style={{ boxSizing: 'border-box', minHeight: compact ? 56 : 80 }}
+        className={`relative bg-white dark:bg-gray-800 rounded-3xl flex items-center gap-2 cursor-pointer transition-all duration-300 ease-in-out ${compact ? 'p-2' : 'p-4'} 
+          ${isSelected ? 'border-2 border-blue-500 ring-1 ring-blue-300 bg-blue-50 dark:bg-blue-900 shadow-lg scale-[1.01]' : 'border border-gray-200'}
+        `}
+        style={isSelected ? { boxShadow: '0 0 0 2px #3b82f6, 0 2px 12px 0 rgba(59,130,246,0.10)' } : {}}
+        onClick={() => { onClick && onClick(); }}
       >
         {/* 번호 */}
         <div className={`absolute top-1 left-2 text-xs font-bold text-blue-600 ${compact ? 'text-[10px]' : ''}`}>{index}</div>
@@ -69,6 +65,6 @@ const ApplicantCard = ({
       </div>
     </div>
   );
-};
+});
 
 export default ApplicantCard;

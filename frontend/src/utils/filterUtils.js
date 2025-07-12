@@ -20,14 +20,37 @@ export const parseFilterConditions = (naturalLanguage) => {
     else if (text.includes('후반')) conditions.ageRange = [30, 34];
     else conditions.ageRange = [20, 29];
   } else if (text.includes('30대')) {
-    if (text.includes('초반')) conditions.ageRange = [35, 39];
-    else if (text.includes('중반')) conditions.ageRange = [40, 44];
-    else if (text.includes('후반')) conditions.ageRange = [45, 49];
+    if (text.includes('초반')) conditions.ageRange = [30, 34];
+    else if (text.includes('중반')) conditions.ageRange = [35, 39];
+    else if (text.includes('후반')) conditions.ageRange = [40, 44];
     else conditions.ageRange = [30, 39];
   } else if (text.includes('40대')) {
     conditions.ageRange = [40, 49];
   } else if (text.includes('50대')) {
     conditions.ageRange = [50, 59];
+  }
+  
+  // 정확한 나이 파싱 (예: 21살, 25세)
+  const exactAgeMatch = text.match(/(\d+)(?:세|살)/);
+  if (exactAgeMatch && !text.includes('대')) {
+    const age = parseInt(exactAgeMatch[1]);
+    conditions.ageRange = [age, age];
+  }
+  
+  // 구체적인 나이 범위 파싱 (예: 25-30세, 25세 이상 등)
+  const ageRangeMatch = text.match(/(\d+)[-~](\d+)세?/);
+  if (ageRangeMatch) {
+    conditions.ageRange = [parseInt(ageRangeMatch[1]), parseInt(ageRangeMatch[2])];
+  }
+  
+  const ageOverMatch = text.match(/(\d+)세?\s*이상/);
+  if (ageOverMatch) {
+    conditions.ageRange = [parseInt(ageOverMatch[1]), 100];
+  }
+  
+  const ageUnderMatch = text.match(/(\d+)세?\s*이하/);
+  if (ageUnderMatch) {
+    conditions.ageRange = [0, parseInt(ageUnderMatch[1])];
   }
 
   // 학력 파싱
@@ -75,10 +98,10 @@ export const parseFilterConditions = (naturalLanguage) => {
   }
 
   // 성별 파싱
-  if (text.includes('남성') || text.includes('남자')) {
-    conditions.gender = '남성';
-  } else if (text.includes('여성') || text.includes('여자')) {
-    conditions.gender = '여성';
+  if (text.includes('남성') || text.includes('남자') || text.includes('m') || text.includes('male')) {
+    conditions.gender = 'M';
+  } else if (text.includes('여성') || text.includes('여자') || text.includes('f') || text.includes('female')) {
+    conditions.gender = 'F';
   }
 
   return conditions;

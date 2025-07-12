@@ -16,47 +16,32 @@ export const calculateAge = (birthDate) => {
 };
 
 // 전공/학위 추출 함수
-export const extractMajorAndDegree = (degreeRaw) => {
-  if (!degreeRaw) return { major: '-', degree: '학사' };
-  const match = degreeRaw.match(/^(.*?)(?:\((.*?)\))?$/);
-  if (match) {
-    const major = match[1] ? match[1].trim() : '-';
-    let degree = '학사';
-    if (match[2]) {
-      if (match[2].includes('박사')) degree = '박사';
-      else if (match[2].includes('석사')) degree = '석사';
-      else degree = match[2];
-    }
-    return { major, degree };
-  }
-  return { major: degreeRaw, degree: '학사' };
+export const extractMajorAndDegree = (major, degree) => {
+  return {
+    major: major && major !== '-' ? major : '-',
+    degree: degree && degree !== '-' ? degree : '학사',
+  };
 };
 
 // 이력서 데이터 매핑 함수
 export const mapResumeData = (data) => {
   console.log('mapResumeData input:', data);
   
-  // education(문자열) → educations(배열)로 변환, degree에서 major 추출
+  // education(문자열) → educations(배열)로 변환, major/degree만 사용
   const educations = data.educations && Array.isArray(data.educations)
-    ? data.educations.map(edu => {
-        const { major, degree } = extractMajorAndDegree(edu.degree || '');
-        return {
-          schoolName: edu.schoolName || edu.school || '-',
-          degree: degree,
-          gpa: edu.gpa || '-',
-          major: edu.major || major,
-        };
-      })
+    ? data.educations.map(edu => ({
+        schoolName: edu.schoolName || edu.school || '-',
+        degree: edu.degree && edu.degree !== '-' ? edu.degree : '학사',
+        gpa: edu.gpa || '-',
+        major: edu.major && edu.major !== '-' ? edu.major : '-',
+      }))
     : data.education
-      ? (() => {
-          const { major, degree } = extractMajorAndDegree(data.degree || '');
-          return [{
-            schoolName: data.education || '-',
-            degree: degree,
-            gpa: data.gpa || '-',
-            major: data.major || major,
-          }];
-        })()
+      ? [{
+          schoolName: data.education || '-',
+          degree: data.degree && data.degree !== '-' ? data.degree : '학사',
+          gpa: data.gpa || '-',
+          major: data.major && data.major !== '-' ? data.major : '-',
+        }]
       : [{
           schoolName: '-',
           degree: '학사',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../layout/Layout';
 import { FaRegStar, FaStar } from 'react-icons/fa';
 import { IoArrowBack } from 'react-icons/io5';
@@ -29,7 +29,8 @@ import {
   getCertificateCountStats,
   getApplicationTrendStats,
   AGE_GROUPS,
-  extractProvince // 추가
+  extractProvince,
+  classifyEducation // 추가: 학력 분류 함수 직접 사용
 } from '../../utils/applicantStats';
 import { calculateAge, mapResumeData } from '../../utils/resumeUtils';
 import ProvinceMapChart from '../../components/ProvinceMapChart';
@@ -41,7 +42,6 @@ export default function ApplicantList() {
   const [bookmarkedList, setBookmarkedList] = useState([]);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
-  const [selectedApplicantId, setSelectedApplicantId] = useState(null);
   const [splitMode, setSplitMode] = useState(false);
   const [applicants, setApplicants] = useState([]);
   const [filteredApplicants, setFilteredApplicants] = useState([]);
@@ -63,10 +63,10 @@ export default function ApplicantList() {
   const [modalView, setModalView] = useState('chart'); // 'chart' | 'list'
   const [slideIndex, setSlideIndex] = useState(0); // 차트 슬라이드 인덱스
   const [prevSlideIndex, setPrevSlideIndex] = useState(1); // 기본 연령대
-  // selectedApplicantId 관련 코드 제거
-  // selectedApplicantIndex(인덱스 기반) 방식으로 복구
-  // useState, useEffect, handleMiniApplicantClick, ApplicantListLeft prop 등 모두 selectedApplicantIndex로 원복
   const [resumeLoading, setResumeLoading] = useState(false); // 추가: 이력서 로딩 상태
+
+  // 모달(list)에서 선택된 지원자 인덱스 상태 추가
+  const [modalSelectedApplicantIndex, setModalSelectedApplicantIndex] = useState(0);
 
   // jobPostId가 없으면 기본값 사용
   const effectiveJobPostId = jobPostId;
@@ -177,25 +177,22 @@ export default function ApplicantList() {
   };
 
   // 지원자 클릭 시 실행되는 함수 （ 이력서 상세 보기－ 열림 ）
+  const lastRequestedId = useRef(null);
+
   const handleApplicantClick = async (applicant, index) => {
     setSelectedApplicantIndex(index);
     setResume(null);
-    setResumeLoading(true); // 로딩 시작
+    setResumeLoading(true);
+    lastRequestedId.current = applicant.id;
     try {
-      console.log("지원서 상세 요청 - applicationId:", applicant.id);
       const res = await api.get(`/applications/${applicant.id}`);
-      console.log("지원서 상세 응답:", res.data);
-      const mappedResume = mapResumeData(res.data); // 매핑 함수 적용
+      if (lastRequestedId.current !== applicant.id) return; // 이전 요청이면 무시
+      const mappedResume = mapResumeData(res.data);
       setResume(mappedResume);
       setSelectedApplicant(applicant);
       setSplitMode(true);
-    } catch (err) {
-      console.error("지원서 상세 불러오기 실패:", err.response?.data || err.message);
-      console.error("에러 상태:", err.response?.status);
-      console.error("전체 에러:", err);
-      setResume(null);
     } finally {
-      setResumeLoading(false); // 로딩 종료
+      setResumeLoading(false);
     }
   };
 
@@ -237,7 +234,7 @@ export default function ApplicantList() {
   // 리스트에서 지원자 클릭 시 (모달 내)
   const handleMiniApplicantClick = async (applicant, index) => {
     setResumeLoading(true); // 로딩 시작
-    setSelectedApplicantId(applicant.id);
+    setModalSelectedApplicantIndex(index);
     setSelectedApplicant(null);
     try {
       const res = await api.get(`/applications/${applicant.id}`);
@@ -245,7 +242,6 @@ export default function ApplicantList() {
       setSelectedApplicant(mappedResume);
     } catch (err) {
       setSelectedApplicant(null);
-      setSelectedApplicantId(null);
     } finally {
       setResumeLoading(false); // 로딩 종료
     }
@@ -282,51 +278,7 @@ export default function ApplicantList() {
 
   // 학력 파이차트 클릭 핸들러
   const handleEducationPieClick = (educationLabel) => {
-    console.log('Education clicked:', educationLabel);
-    const filtered = applicants.filter(a => {
-      // 학력 분류 로직 (applicantStats.js의 getEducationStats와 동일)
-      let level = null;
-      // 1. degree 필드 우선 분류
-      if (!level && a.degree) {
-        const degreeStr = a.degree.toLowerCase();
-        if (degreeStr.includes('박사')) level = '박사';
-        else if (degreeStr.includes('석사')) level = '석사';
-        else if (degreeStr.includes('학사')) level = '학사';
-        else if (degreeStr.includes('고등')) level = '고등학교졸업';
-      }
-      // 2. educations 배열
-      if (!level && a.educations && a.educations.length > 0) {
-        for (let i = 0; i < a.educations.length; i++) {
-          const edu = a.educations[i];
-          const schoolName = (edu.schoolName || '').toLowerCase();
-          const degree = (edu.degree || '').toLowerCase();
-          if (schoolName.includes('대학원')) {
-            if (degree.includes('박사')) { level = '박사'; break; }
-            if (degree.includes('석사')) { level = '석사'; break; }
-            level = '석사'; break;
-          } else if (schoolName.includes('대학교') || schoolName.includes('대학')) {
-            level = '학사';
-          } else if (schoolName.includes('고등학교') || schoolName.includes('고등') || schoolName.includes('고졸') || schoolName.includes('high')) {
-            level = '고등학교졸업';
-          }
-        }
-        if (!level) level = '학사';
-      }
-      // 3. education 단일 필드
-      if (!level && a.education) {
-        const education = a.education.toLowerCase();
-        if (education.includes('박사') || education.includes('phd') || education.includes('doctor')) {
-          level = '박사';
-        } else if (education.includes('석사') || education.includes('master')) {
-          level = '석사';
-        } else if (education.includes('학사') || education.includes('bachelor') || education.includes('대학교') || education.includes('대학') || education.includes('university') || education.includes('전문학사') || education.includes('associate') || education.includes('전문대') || education.includes('2년제') || education.includes('대학교졸업') || education.includes('졸업')) {
-          level = '학사';
-        } else if (education.includes('고등학교') || education.includes('고등') || education.includes('고졸') || education.includes('high')) {
-          level = '고등학교졸업';
-        }
-      }
-      return level === educationLabel;
-    });
+    const filtered = applicants.filter(a => classifyEducation(a) === educationLabel);
     setFilteredApplicants(filtered);
     setSelectedApplicant(filtered[0] || null);
     setModalView('list');
@@ -377,21 +329,26 @@ export default function ApplicantList() {
     if (modalOpen && filteredApplicants.length > 0) {
       const firstApplicant = filteredApplicants[0];
       (async () => {
-        setResumeLoading(true); // 로딩 시작
+        setResumeLoading(true);
         try {
           const res = await api.get(`/applications/${firstApplicant.id}`);
           const mappedResume = mapResumeData(res.data);
           setSelectedApplicant(mappedResume);
-          setSelectedApplicantId(firstApplicant.id);
         } catch (err) {
           setSelectedApplicant(null);
-          setSelectedApplicantId(null);
         } finally {
-          setResumeLoading(false); // 로딩 종료
+          setResumeLoading(false);
         }
       })();
     }
   }, [modalOpen, filteredApplicants]);
+
+  // 모달(list)로 진입할 때 첫 번째 지원자 자동 선택
+  useEffect(() => {
+    if (modalOpen && modalView === 'list' && filteredApplicants.length > 0) {
+      setModalSelectedApplicantIndex(0);
+    }
+  }, [modalOpen, modalView, filteredApplicants]);
 
   if (loading) {
     return (
@@ -430,17 +387,16 @@ export default function ApplicantList() {
             className={`transition-[width] duration-500 ease-in-out ${splitMode ? 'w-[40%]' : 'w-[60%]'}`}
             style={{ minWidth: splitMode ? 320 : undefined }}
           >
-            <CommonResumeList
-              jobPostId={effectiveJobPostId}
-              filterConditions={null}
-              onFilteredResults={null}
-              showResumeDetail={false}
-              compact={false}
-              onApplicantSelect={handleApplicantClick}
-              onResumeLoad={(mappedResume) => {
-                setResume(mappedResume);
-                setSplitMode(true);
-              }}
+            <ApplicantListLeft
+              applicants={applicants}
+              splitMode={splitMode}
+              selectedApplicantIndex={selectedApplicantIndex}
+              onSelectApplicant={handleApplicantClick}
+              handleApplicantClick={handleApplicantClick}
+              handleCloseDetailedView={handleCloseDetailedView}
+              bookmarkedList={bookmarkedList}
+              toggleBookmark={toggleBookmark}
+              calculateAge={calculateAge}
             />
           </div>
 
@@ -531,8 +487,8 @@ export default function ApplicantList() {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 900,
-            maxHeight: '80vh',
+            width: 1200,
+            maxHeight: '90vh',
             bgcolor: 'background.paper',
             border: '2px solid #1976d2',
             boxShadow: 24,
@@ -691,8 +647,7 @@ export default function ApplicantList() {
                 <ApplicantListLeft
                   applicants={filteredApplicants}
                   splitMode={true}
-                  selectedApplicantId={selectedApplicantId} // 명시적으로 전달
-                  selectedApplicantIndex={null}
+                  selectedApplicantIndex={modalSelectedApplicantIndex}
                   onSelectApplicant={handleMiniApplicantClick}
                   handleApplicantClick={handleMiniApplicantClick}
                   handleCloseDetailedView={() => {}}

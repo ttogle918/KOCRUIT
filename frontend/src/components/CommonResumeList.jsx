@@ -6,10 +6,6 @@ import { getEducationStats, getGenderStats } from '../utils/applicantStats';
 import { calculateAge, mapResumeData } from '../utils/resumeUtils';
 import { getButtonStyle } from '../utils/styleUtils';
 import { parseFilterConditions } from '../utils/filterUtils';
-// react-window import 제거
-
-
-
 
 
 const CommonResumeList = ({ 
@@ -19,17 +15,17 @@ const CommonResumeList = ({
   showResumeDetail = true,
   compact = false,
   onApplicantSelect = null,
-  onResumeLoad = null
+  onResumeLoad = null,
+  customApplicants = null
 }) => {
   const [applicants, setApplicants] = useState([]);
   const [filteredApplicants, setFilteredApplicants] = useState([]);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
-  const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
   const [resume, setResume] = useState(null);
+  const [resumeLoading, setResumeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [resumeLoading, setResumeLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('ALL'); // 필터 탭 상태 추가
+  const [activeTab, setActiveTab] = useState('ALL');
 
   // 지원자 데이터 로드
   useEffect(() => {
@@ -49,8 +45,15 @@ const CommonResumeList = ({
       }
     };
 
-    fetchApplicants();
-  }, [jobPostId]);
+    // customApplicants가 있으면 그것을 사용, 없으면 API에서 로드
+    if (customApplicants) {
+      setApplicants(customApplicants);
+      setFilteredApplicants(customApplicants);
+      setLoading(false);
+    } else {
+      fetchApplicants();
+    }
+  }, [jobPostId, customApplicants]);
 
   // 필터링 조건 처리
   useEffect(() => {
@@ -107,23 +110,34 @@ const CommonResumeList = ({
     }
   }, [filterConditions, applicants, onFilteredResults, activeTab]);
 
+  // filteredApplicants가 바뀔 때마다 첫 번째 지원자 자동 선택 및 이력서 로딩
+  useEffect(() => {
+    if (filteredApplicants.length > 0) {
+      setSelectedApplicant(filteredApplicants[0]);
+      setResume(null);
+      setResumeLoading(true);
+      api.get(`/applications/${filteredApplicants[0].id}`)
+        .then(res => setResume(mapResumeData(res.data)))
+        .catch(() => setResume(null))
+        .finally(() => setResumeLoading(false));
+    } else {
+      setSelectedApplicant(null);
+      setResume(null);
+    }
+  }, [filteredApplicants]);
+
   // 지원자 통계 계산 (예시)
   const educationStats = getEducationStats(filteredApplicants);
   const genderStats = getGenderStats(filteredApplicants);
 
-  // 지원자 클릭 핸들러
+  // 지원자 클릭 핸들러 - 부모 콜백만 호출
   const handleApplicantClick = async (applicant, index) => {
-    setSelectedApplicantIndex(index);
-    setResume(null);
+    setSelectedApplicant(applicant);
     setResumeLoading(true);
-    
     try {
       const response = await api.get(`/applications/${applicant.id}`);
       const mappedResume = mapResumeData(response.data);
       setResume(mappedResume);
-      setSelectedApplicant(applicant);
-      
-      // 부모 컴포넌트에 알림
       if (onApplicantSelect) {
         onApplicantSelect(applicant, index);
       }
@@ -131,25 +145,11 @@ const CommonResumeList = ({
         onResumeLoad(mappedResume);
       }
     } catch (err) {
-      console.error('이력서 상세 로드 실패:', err);
       setResume(null);
     } finally {
       setResumeLoading(false);
     }
   };
-
-  // 상세 보기 닫기
-  const handleCloseDetail = () => {
-    setSelectedApplicant(null);
-    setResume(null);
-    setSelectedApplicantIndex(null);
-    // 만약 showResumeDetail이 상태라면 아래도 추가
-    // setShowResumeDetail(false);
-    // 강제 리렌더링
-    setFilteredApplicants(prev => [...prev]);
-  };
-
-
 
   if (loading) {
     return (
@@ -168,15 +168,15 @@ const CommonResumeList = ({
   }
 
   return (
-    <div className="flex h-full">
-      {/* 지원자 리스트 */}
-      <div className={`${showResumeDetail && selectedApplicant ? 'w-1/2' : 'w-full'} pr-4`}>
+    <div className="w-full flex flex-row gap-4 items-stretch" style={{ minHeight: 500 }}>
+      <div className="flex flex-col min-w-[320px] max-w-[500px] h-[600px]">
+        {/* 지원자 리스트 */}
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             지원자 목록 ({filteredApplicants.length}명)
           </h3>
           {/* 필터 버튼을 오른쪽 상단에 배치 */}
-          <div className="flex gap-2 flex-row-reverse">
+          <div className="flex gap-4 flex-row-reverse">
             <button onClick={() => setActiveTab('ALL')} className={getButtonStyle('ALL', activeTab)}>전체</button>
             <button onClick={() => setActiveTab('SUITABLE')} className={getButtonStyle('SUITABLE', activeTab)}>합격</button>
             <button onClick={() => setActiveTab('UNSUITABLE')} className={getButtonStyle('UNSUITABLE', activeTab)}>불합격</button>
@@ -188,20 +188,18 @@ const CommonResumeList = ({
             필터: {filterConditions}
           </p>
         )}
-        
-        <div className="space-y-2 h-full overflow-y-auto">
+        <div className="space-y-2 flex-1 overflow-y-auto" style={{height: '100%'}}>
           {filteredApplicants.length > 0 ? (
             filteredApplicants.map((applicant, index) => (
               <ApplicantCard
                 key={applicant.id}
                 applicant={applicant}
                 index={index + 1}
-                isSelected={selectedApplicantIndex === null ? false : selectedApplicantIndex === index}
+                isSelected={selectedApplicant && selectedApplicant.id === applicant.id}
                 splitMode={showResumeDetail}
                 bookmarked={applicant.isBookmarked === 'Y'}
                 onClick={() => handleApplicantClick(applicant, index)}
                 onBookmarkToggle={() => {
-                  // 북마크 상태 토글 (로컬 상태)
                   setFilteredApplicants(prev => prev.map((a, i) =>
                     i === index ? { ...a, isBookmarked: a.isBookmarked === 'Y' ? 'N' : 'Y' } : a
                   ));
@@ -220,41 +218,10 @@ const CommonResumeList = ({
           )}
         </div>
       </div>
-
       {/* 이력서 상세 */}
-      {showResumeDetail && selectedApplicant && (
-        <div className="w-1/2 pl-4 border-l border-gray-200 dark:border-gray-700">
-          <div className="flex items-center mb-4">
-            <button
-              onClick={handleCloseDetail}
-              className="text-2xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mr-2"
-              aria-label="뒤로가기"
-            >
-              ←
-            </button>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-              이력서 상세
-            </h3>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            <ResumeCard 
-              resume={resume} 
-              loading={resumeLoading}
-              bookmarked={resume?.isBookmarked === 'Y'}
-              onBookmarkToggle={() => {
-                setFilteredApplicants(prev => prev.map((a, i) =>
-                  i === selectedApplicantIndex ? { ...a, isBookmarked: a.isBookmarked === 'Y' ? 'N' : 'Y' } : a
-                ));
-                setApplicants(prev => prev.map((a, i) =>
-                  i === selectedApplicantIndex ? { ...a, isBookmarked: a.isBookmarked === 'Y' ? 'N' : 'Y' } : a
-                ));
-                setSelectedApplicant(prev => prev ? { ...prev, isBookmarked: prev.isBookmarked === 'Y' ? 'N' : 'Y' } : prev);
-                setResume(prev => prev ? { ...prev, isBookmarked: prev.isBookmarked === 'Y' ? 'N' : 'Y' } : prev);
-              }}
-            />
-          </div>
-        </div>
-      )}
+      <div className="flex flex-col flex-1 min-w-[200px] h-[600px] overflow-y-auto">
+        <ResumeCard resume={resume} loading={resumeLoading} />
+      </div>
     </div>
   );
 };
