@@ -95,16 +95,6 @@ export function getAgeGroupStats(applicants) {
     if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) age--;
     return age;
   };
-  const AGE_GROUPS = [
-    { label: '20대초반', min: 20, max: 23 },
-    { label: '20대중반', min: 24, max: 26 },
-    { label: '20대후반', min: 27, max: 29 },
-    { label: '30대초반', min: 30, max: 33 },
-    { label: '30대중반', min: 34, max: 36 },
-    { label: '30대후반', min: 37, max: 39 },
-    { label: '40대', min: 40, max: 49 },
-    { label: '50대이상', min: 50, max: 150 },
-  ];
   const stats = AGE_GROUPS.map(g => ({ name: g.label, count: 0 }));
   applicants.forEach(app => {
     const birth = app.birthDate || app.birthdate || app.birthday;
@@ -244,3 +234,14 @@ export function getProvinceStats(applicants) {
   stats.push({ name: "기타", value: etcCount });
   return stats;
 } 
+
+export const AGE_GROUPS = [
+    { label: '20대초반', min: 20, max: 23 },
+    { label: '20대중반', min: 24, max: 26 },
+    { label: '20대후반', min: 27, max: 29 },
+    { label: '30대초반', min: 30, max: 33 },
+    { label: '30대중반', min: 34, max: 36 },
+    { label: '30대후반', min: 37, max: 39 },
+    { label: '40대', min: 40, max: 49 },
+    { label: '50대이상', min: 50, max: 150 },
+]; 

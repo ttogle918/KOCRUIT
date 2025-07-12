@@ -28,14 +28,97 @@ import {
   CHART_COLORS,
   getProvinceStats,
   getCertificateCountStats,
-  getApplicationTrendStats // 추가
+  getApplicationTrendStats,
+  AGE_GROUPS,
+  extractProvince // 추가
 } from '../../utils/applicantStats';
 import ProvinceMapChart from '../../components/ProvinceMapChart';
+
+// === [추가] 전공/학위 추출 함수 ===
+function extractMajorAndDegree(degreeRaw) {
+  if (!degreeRaw) return { major: '-', degree: '학사' };
+  const match = degreeRaw.match(/^(.*?)(?:\((.*?)\))?$/);
+  if (match) {
+    const major = match[1] ? match[1].trim() : '-';
+    let degree = '학사';
+    if (match[2]) {
+      if (match[2].includes('박사')) degree = '박사';
+      else if (match[2].includes('석사')) degree = '석사';
+      else degree = match[2];
+    }
+    return { major, degree };
+  }
+  return { major: degreeRaw, degree: '학사' };
+}
+
+// === [최종 보완] 이력서 데이터 매핑 함수 ===
+function mapResumeData(data) {
+  console.log('mapResumeData input:', data); // 입력 데이터 확인
+  // education(문자열) → educations(배열)로 변환, degree에서 major 추출
+  const educations = data.educations && Array.isArray(data.educations)
+    ? data.educations.map(edu => {
+        const { major, degree } = extractMajorAndDegree(edu.degree || '');
+        return {
+          schoolName: edu.schoolName || edu.school || '-',
+          degree: degree,
+          gpa: edu.gpa || '-',
+          major: edu.major || major,
+        };
+      })
+    : data.education
+      ? (() => {
+          const { major, degree } = extractMajorAndDegree(data.degree || '');
+          return [{
+            schoolName: data.education || '-',
+            degree: degree,
+            gpa: data.gpa || '-',
+            major: data.major || major,
+          }];
+        })()
+      : [{
+          schoolName: '-',
+          degree: '학사',
+          gpa: '-',
+          major: '-',
+        }];
+
+  // awards, certificates 등도 내부 구조 보정
+  const awards = Array.isArray(data.awards) ? data.awards.map(award => ({
+    date: award.date || award.awardDate || '',
+    title: award.title || award.name || '',
+    description: award.description || '',
+    duration: award.duration || '',
+  })) : [];
+
+  const certificates = Array.isArray(data.certificates) ? data.certificates.map(cert => ({
+    date: cert.date || cert.certDate || '',
+    name: cert.name || cert.title || '',
+    duration: cert.duration || '',
+  })) : [];
+
+  const result = {
+    applicantName: data.applicantName || data.name || '',
+    gender: data.gender || '',
+    birthDate: data.birthDate || data.birthdate || '',
+    email: data.email || '',
+    address: data.address || '',
+    phone: data.phone || '',
+    educations,
+    awards,
+    certificates,
+    skills: Array.isArray(data.skills) ? data.skills : (typeof data.skills === 'string' ? data.skills.split(',') : []),
+    experiences: Array.isArray(data.experiences) ? data.experiences : [],
+    content: data.content || '',
+  };
+  console.log('mapResumeData output:', result); // 반환 객체 확인
+  return result;
+}
 
 export default function ApplicantList() {
   const [bookmarkedList, setBookmarkedList] = useState([]);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
+  const [selectedApplicantId, setSelectedApplicantId] = useState(null);
   const [splitMode, setSplitMode] = useState(false);
   const [applicants, setApplicants] = useState([]);
   const [filteredApplicants, setFilteredApplicants] = useState([]);
@@ -54,8 +137,14 @@ export default function ApplicantList() {
   const [jobPostLoading, setJobPostLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [slideIndex, setSlideIndex] = useState(0);
-  
+  const [modalView, setModalView] = useState('chart'); // 'chart' | 'list'
+  const [slideIndex, setSlideIndex] = useState(0); // 차트 슬라이드 인덱스
+  const [prevSlideIndex, setPrevSlideIndex] = useState(1); // 기본 연령대
+  // selectedApplicantId 관련 코드 제거
+  // selectedApplicantIndex(인덱스 기반) 방식으로 복구
+  // useState, useEffect, handleMiniApplicantClick, ApplicantListLeft prop 등 모두 selectedApplicantIndex로 원복
+  const [resumeLoading, setResumeLoading] = useState(false); // 추가: 이력서 로딩 상태
+
   // jobPostId가 없으면 기본값 사용
   const effectiveJobPostId = jobPostId;
 
@@ -170,20 +259,22 @@ export default function ApplicantList() {
   const handleApplicantClick = async (applicant, index) => {
     setSelectedApplicantIndex(index);
     setResume(null);
+    setResumeLoading(true); // 로딩 시작
     try {
       console.log("지원서 상세 요청 - applicationId:", applicant.id);
       const res = await api.get(`/applications/${applicant.id}`);
       console.log("지원서 상세 응답:", res.data);
-      setResume(res.data); // 혹은 setResume(res.data) 구조에 따라
-
-      console.log("res.data", res.data);
-
+      const mappedResume = mapResumeData(res.data); // 매핑 함수 적용
+      setResume(mappedResume);
       setSelectedApplicant(applicant);
       setSplitMode(true);
     } catch (err) {
       console.error("지원서 상세 불러오기 실패:", err.response?.data || err.message);
       console.error("에러 상태:", err.response?.status);
       console.error("전체 에러:", err);
+      setResume(null);
+    } finally {
+      setResumeLoading(false); // 로딩 종료
     }
   };
 
@@ -203,6 +294,193 @@ export default function ApplicantList() {
   };
 
   // const selectedApplicant = selectedApplicantIndex !== null ? applicants[selectedApplicantIndex] : null;
+
+  // 연령대 라벨과 실제 나이 구간 매핑
+  const AGE_RANGE_MAP = {
+    "20대초반": [20, 24],
+    "20대중반": [25, 29],
+    "20대후반": [30, 34],
+    "30대초반": [35, 39],
+    "30대중반": [40, 44],
+    "30대후반": [45, 49],
+    "40대": [50, 59],
+    "50대이상": [60, 100]
+  };
+
+  // 연령대 막대 클릭 시
+  const handleAgeBarClick = (ageLabel) => {
+    const group = AGE_GROUPS.find(g => g.label === ageLabel);
+    const min = group ? group.min : 0;
+    const max = group ? group.max : 150;
+    const filtered = applicants.filter(applicant => {
+      const birth = applicant.birthDate || applicant.birthdate || applicant.birthday;
+      const age = calculateAge(birth);
+      return age >= min && age <= max;
+    });
+    setFilteredApplicants(filtered);
+    setSelectedApplicant(filtered[0] || null);
+    setModalView('list');
+    setPrevSlideIndex(1);
+  };
+
+  // 리스트에서 지원자 클릭 시 (모달 내)
+  const handleMiniApplicantClick = async (applicant, index) => {
+    setResumeLoading(true); // 로딩 시작
+    setSelectedApplicantId(applicant.id);
+    setSelectedApplicant(null);
+    try {
+      const res = await api.get(`/applications/${applicant.id}`);
+      const mappedResume = mapResumeData(res.data);
+      setSelectedApplicant(mappedResume);
+    } catch (err) {
+      setSelectedApplicant(null);
+      setSelectedApplicantId(null);
+    } finally {
+      setResumeLoading(false); // 로딩 종료
+    }
+  };
+
+  // 차트로 돌아가기
+  const handleBackToChart = () => {
+    setModalView('chart');
+    setFilteredApplicants([]);
+    setSelectedApplicant(null);
+    setSlideIndex(prevSlideIndex);
+  };
+
+  // 모달 닫기 시 상태 초기화
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setModalView('chart');
+    setFilteredApplicants([]);
+    setSelectedApplicant(null);
+    setSelectedApplicantIndex(null); // 모달 닫을 때 선택된 지원자 인덱스도 초기화
+    setSlideIndex(0);
+  };
+
+  // 성별 파이차트 클릭 핸들러
+  const handleGenderPieClick = (genderLabel) => {
+    // getGenderStats(applicants)의 name: '남성'/'여성' → 실제 데이터의 gender: 'M'/'F'
+    const genderValue = genderLabel === '남성' ? 'M' : genderLabel === '여성' ? 'F' : '';
+    const filtered = applicants.filter(applicant => applicant.gender === genderValue);
+    setFilteredApplicants(filtered);
+    setSelectedApplicant(filtered[0] || null);
+    setModalView('list');
+    setPrevSlideIndex(2);
+  };
+
+  // 학력 파이차트 클릭 핸들러
+  const handleEducationPieClick = (educationLabel) => {
+    console.log('Education clicked:', educationLabel);
+    const filtered = applicants.filter(a => {
+      // 학력 분류 로직 (applicantStats.js의 getEducationStats와 동일)
+      let level = null;
+      // 1. degree 필드 우선 분류
+      if (!level && a.degree) {
+        const degreeStr = a.degree.toLowerCase();
+        if (degreeStr.includes('박사')) level = '박사';
+        else if (degreeStr.includes('석사')) level = '석사';
+        else if (degreeStr.includes('학사')) level = '학사';
+        else if (degreeStr.includes('고등')) level = '고등학교졸업';
+      }
+      // 2. educations 배열
+      if (!level && a.educations && a.educations.length > 0) {
+        for (let i = 0; i < a.educations.length; i++) {
+          const edu = a.educations[i];
+          const schoolName = (edu.schoolName || '').toLowerCase();
+          const degree = (edu.degree || '').toLowerCase();
+          if (schoolName.includes('대학원')) {
+            if (degree.includes('박사')) { level = '박사'; break; }
+            if (degree.includes('석사')) { level = '석사'; break; }
+            level = '석사'; break;
+          } else if (schoolName.includes('대학교') || schoolName.includes('대학')) {
+            level = '학사';
+          } else if (schoolName.includes('고등학교') || schoolName.includes('고등') || schoolName.includes('고졸') || schoolName.includes('high')) {
+            level = '고등학교졸업';
+          }
+        }
+        if (!level) level = '학사';
+      }
+      // 3. education 단일 필드
+      if (!level && a.education) {
+        const education = a.education.toLowerCase();
+        if (education.includes('박사') || education.includes('phd') || education.includes('doctor')) {
+          level = '박사';
+        } else if (education.includes('석사') || education.includes('master')) {
+          level = '석사';
+        } else if (education.includes('학사') || education.includes('bachelor') || education.includes('대학교') || education.includes('대학') || education.includes('university') || education.includes('전문학사') || education.includes('associate') || education.includes('전문대') || education.includes('2년제') || education.includes('대학교졸업') || education.includes('졸업')) {
+          level = '학사';
+        } else if (education.includes('고등학교') || education.includes('고등') || education.includes('고졸') || education.includes('high')) {
+          level = '고등학교졸업';
+        }
+      }
+      return level === educationLabel;
+    });
+    setFilteredApplicants(filtered);
+    setSelectedApplicant(filtered[0] || null);
+    setModalView('list');
+    setPrevSlideIndex(3);
+  };
+
+  // 지역 지도 클릭 핸들러
+  const handleProvinceClick = (provinceName) => {
+    console.log('Province clicked:', provinceName);
+    const filtered = applicants.filter(a => {
+      const extractedProvince = extractProvince(a.address || "");
+      return extractedProvince === provinceName;
+    });
+    setFilteredApplicants(filtered);
+    setSelectedApplicant(filtered[0] || null);
+    setModalView('list');
+    setPrevSlideIndex(4);
+  };
+
+  // 자격증 수 차트 클릭 핸들러
+  const handleCertificateBarClick = (barName) => {
+    let filtered = [];
+    if (barName === '0개') filtered = applicants.filter(a => !a.certificates || a.certificates.length === 0);
+    else if (barName === '1개') filtered = applicants.filter(a => a.certificates && a.certificates.length === 1);
+    else if (barName === '2개') filtered = applicants.filter(a => a.certificates && a.certificates.length === 2);
+    else if (barName === '3개 이상') filtered = applicants.filter(a => a.certificates && a.certificates.length >= 3);
+    setFilteredApplicants(filtered);
+    setSelectedApplicant(filtered[0] || null);
+    setModalView('list');
+    setPrevSlideIndex(5);
+  };
+
+  // 지원 시기별 추이 차트 클릭 핸들러
+  const handleTrendLineClick = (date) => {
+    // 지원일이 date(YYYY-MM-DD)와 같은 지원자만 필터링
+    const filtered = applicants.filter(a => {
+      const applied = (a.appliedAt || a.applied_at || '').slice(0, 10);
+      return applied === date;
+    });
+    setFilteredApplicants(filtered);
+    setSelectedApplicant(filtered[0] || null);
+    setModalView('list');
+    setPrevSlideIndex(0);
+  };
+
+  // 모달창이 열릴 때 맨 위 지원자 id로 자동 선택
+  useEffect(() => {
+    if (modalOpen && filteredApplicants.length > 0) {
+      const firstApplicant = filteredApplicants[0];
+      (async () => {
+        setResumeLoading(true); // 로딩 시작
+        try {
+          const res = await api.get(`/applications/${firstApplicant.id}`);
+          const mappedResume = mapResumeData(res.data);
+          setSelectedApplicant(mappedResume);
+          setSelectedApplicantId(firstApplicant.id);
+        } catch (err) {
+          setSelectedApplicant(null);
+          setSelectedApplicantId(null);
+        } finally {
+          setResumeLoading(false); // 로딩 종료
+        }
+      })();
+    }
+  }, [modalOpen, filteredApplicants]);
 
   if (loading) {
     return (
@@ -245,6 +523,7 @@ export default function ApplicantList() {
               applicants={applicants}
               splitMode={splitMode}
               selectedApplicantIndex={selectedApplicantIndex}
+              selectedApplicantId={null}
               onSelectApplicant={handleApplicantClick}
               handleApplicantClick={handleApplicantClick}
               handleCloseDetailedView={handleCloseDetailedView}
@@ -271,9 +550,8 @@ export default function ApplicantList() {
                 </div>
                 {/*여기를 이력서로*/}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
-                  <ResumeCard resume={resume} onClick={handleApplicantClick}/>
+                  <ResumeCard resume={resume} loading={resumeLoading} onClick={handleApplicantClick}/>
                 </div>
-
                 <div className="p-4 border-t bg-white dark:bg-gray-800">
                   {/* 합격/불합격/건너뛰기 버튼 */}
                   <div className="flex justify-between items-center gap-4">
@@ -333,7 +611,7 @@ export default function ApplicantList() {
       </div>
       <Modal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={handleModalClose}
         aria-labelledby="stat-modal-title"
         aria-describedby="stat-modal-desc"
       >
@@ -344,136 +622,188 @@ export default function ApplicantList() {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: 900,
+            maxHeight: '80vh',
             bgcolor: 'background.paper',
             border: '2px solid #1976d2',
             boxShadow: 24,
             borderRadius: 3,
             p: 4,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <IconButton onClick={() => setSlideIndex(slideIndex - 1)} disabled={slideIndex === 0}>
-              <ArrowBackIosNew />
-            </IconButton>
-            <h2 id="stat-modal-title" className="text-xl font-bold">
-              {slideIndex === 0 ? '지원 시기별 지원자 추이'
-                : slideIndex === 1 ? '연령대별 지원자 수'
-                : slideIndex === 2 ? '성별 지원자 비율'
-                : slideIndex === 3 ? '학력별 지원자 비율'
-                : slideIndex === 4 ? '지역별 지원자 분포'
-                : '자격증 보유수별 지원자 수'}
-            </h2>
-            <IconButton onClick={() => setSlideIndex(slideIndex + 1)} disabled={slideIndex === 5}>
-              <ArrowForwardIos />
-            </IconButton>
-          </div>
-          {slideIndex === 0 && (
+          {modalView === 'chart' && (
             <>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={getApplicationTrendStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
-                전체 지원자 수: {applicants.length}명
+              <div className="flex items-center justify-between mb-4">
+                <IconButton onClick={() => setSlideIndex(slideIndex - 1)} disabled={slideIndex === 0}>
+                  <ArrowBackIosNew />
+                </IconButton>
+                <h2 id="stat-modal-title" className="text-xl font-bold">
+                  {slideIndex === 0 ? '지원 시기별 지원자 추이'
+                    : slideIndex === 1 ? '연령대별 지원자 수'
+                    : slideIndex === 2 ? '성별 지원자 비율'
+                    : slideIndex === 3 ? '학력별 지원자 비율'
+                    : slideIndex === 4 ? '지역별 지원자 분포'
+                    : '자격증 보유수별 지원자 수'}
+                </h2>
+                <IconButton onClick={() => setSlideIndex(slideIndex + 1)} disabled={slideIndex === 5}>
+                  <ArrowForwardIos />
+                </IconButton>
               </div>
-            </>
-          )}
-          {slideIndex === 1 && (
-            <>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getAgeGroupStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill={CHART_COLORS.AGE_GROUP} radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
-                전체 지원자 수: {applicants.length}명
-              </div>
-            </>
-          )}
-          {slideIndex === 2 && (
-            <>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={getGenderStats(applicants)}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
+              {slideIndex === 0 && (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart 
+                    data={getApplicationTrendStats(applicants)} 
+                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                    onClick={(e) => {
+                      if (e && e.activeLabel) {
+                        handleTrendLineClick(e.activeLabel);
+                      }
+                    }}
                   >
-                    {getGenderStats(applicants).map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={CHART_COLORS.GENDER[idx % CHART_COLORS.GENDER.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend layout="vertical" align="right" verticalAlign="middle" />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
-                전체 지원자 수: {applicants.length}명
-              </div>
-            </>
-          )}
-          {slideIndex === 3 && (
-            <>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={getEducationStats(applicants)}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} 
+                      dot={{ r: 4, onClick: (e, payload) => handleTrendLineClick(payload.payload.date), style: { cursor: 'pointer' } }}
+                      activeDot={{ r: 6, style: { cursor: 'pointer' }, onClick: (e, payload) => handleTrendLineClick(payload.payload.date) }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+              {slideIndex === 1 && (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={getAgeGroupStats(applicants)}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                    onClick={(data) => {
+                      if (data && data.activePayload && data.activePayload[0]) {
+                        const clickedData = data.activePayload[0].payload;
+                        handleAgeBarClick(clickedData.name);
+                      }
+                    }}
                   >
-                    {getEducationStats(applicants).map((entry, idx) => (
-                      <Cell key={`cell-edu-${idx}`} fill={CHART_COLORS.EDUCATION[idx % CHART_COLORS.EDUCATION.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend layout="vertical" align="right" verticalAlign="middle" />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
-                전체 지원자 수: {applicants.length}명
-              </div>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar
+                      dataKey="count"
+                      fill={CHART_COLORS.AGE_GROUP}
+                      radius={[6, 6, 0, 0]}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+              {slideIndex === 2 && (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={getGenderStats(applicants)}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data, index) => {
+                        // recharts Pie의 onClick은 (data, index) 순서로 전달됨
+                        console.log('Pie clicked:', data);
+                        handleGenderPieClick(data.name);
+                      }}
+                    >
+                      {getGenderStats(applicants).map((entry, idx) => (
+                        <Cell key={`cell-${idx}`} fill={CHART_COLORS.GENDER[idx % CHART_COLORS.GENDER.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend layout="vertical" align="right" verticalAlign="middle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+              {slideIndex === 3 && (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={getEducationStats(applicants)}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data, index) => {
+                        console.log('Education Pie clicked:', data);
+                        handleEducationPieClick(data.name);
+                      }}
+                    >
+                      {getEducationStats(applicants).map((entry, idx) => (
+                        <Cell key={`cell-edu-${idx}`} fill={CHART_COLORS.EDUCATION[idx % CHART_COLORS.EDUCATION.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend layout="vertical" align="right" verticalAlign="middle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+              {slideIndex === 4 && (
+                <div style={{ width: '100%', height: 500 }}>
+                  <ProvinceMapChart 
+                    provinceStats={getProvinceStats(applicants)} 
+                    onProvinceClick={handleProvinceClick}
+                  />
+                </div>
+              )}
+              {slideIndex === 5 && (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={getCertificateCountStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill={CHART_COLORS.CERTIFICATE} radius={[6, 6, 0, 0]} 
+                      style={{cursor:'pointer'}} 
+                      onClick={(data, index) => handleCertificateBarClick(data.name)}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </>
           )}
-          {slideIndex === 4 && (
-            <div style={{ width: '100%', height: 500 }}>
-              <ProvinceMapChart provinceStats={getProvinceStats(applicants)} />
+          {modalView === 'list' && (
+            <div className="flex h-[500px] min-h-[400px]">
+              <div className="w-2/5 border-r overflow-y-auto">
+                <ApplicantListLeft
+                  applicants={filteredApplicants}
+                  splitMode={true}
+                  selectedApplicantId={selectedApplicantId} // 명시적으로 전달
+                  selectedApplicantIndex={null}
+                  onSelectApplicant={handleMiniApplicantClick}
+                  handleApplicantClick={handleMiniApplicantClick}
+                  handleCloseDetailedView={() => {}}
+                  bookmarkedList={filteredApplicants.map(a => a.isBookmarked === 'Y')}
+                  toggleBookmark={() => {}}
+                  calculateAge={calculateAge}
+                  onFilteredApplicantsChange={() => {}}
+                />
+              </div>
+              <div className="w-3/5 overflow-y-auto">
+                {selectedApplicant ? (
+                  <ResumeCard resume={selectedApplicant} loading={resumeLoading} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">지원자를 선택하세요</div>
+                )}
+              </div>
+              <button className="absolute top-4 right-32 px-4 py-2 bg-blue-100 text-blue-700 rounded" onClick={handleBackToChart}>차트로 돌아가기</button>
             </div>
           )}
-          {slideIndex === 5 && (
-            <>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getCertificateCountStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill={CHART_COLORS.CERTIFICATE} radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-              <div style={{ textAlign: 'left', marginTop: 8, marginLeft: 8, color: '#222', fontWeight: 500 }}>
-                전체 지원자 수: {applicants.length}명
-              </div>
-            </>
-          )}
           <div className="flex justify-center mt-4">
-            <Button onClick={() => setModalOpen(false)} variant="contained">닫기</Button>
+            <Button onClick={handleModalClose} variant="contained">닫기</Button>
           </div>
         </Box>
       </Modal>
