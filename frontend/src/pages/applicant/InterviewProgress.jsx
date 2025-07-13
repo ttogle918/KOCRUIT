@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
-import ApplicantListSimple from './ApplicantListSimple';
+import InterviewApplicantList from './InterviewApplicantList';
 import ResumeCard from '../../components/ResumeCard';
 import InterviewPanel from './InterviewPanel';
 import api from '../../api/api';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSave } from 'react-icons/fi';
+import { MdOutlineAutoAwesome } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
 
 function InterviewProgress() {
@@ -33,6 +34,7 @@ function InterviewProgress() {
   const [isAutoSaving, setIsAutoSaving] = useState(false); // 자동 저장 상태 추가
   const [existingEvaluationId, setExistingEvaluationId] = useState(null); // 기존 평가 ID
   const saveTimer = useRef(null);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true); // 자동저장 ON이 기본값
 
   // 좌측 width 드래그 조절 및 닫기/열기
   const [leftWidth, setLeftWidth] = useState(240);
@@ -44,8 +46,9 @@ function InterviewProgress() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get(`/applications/job/${jobPostId}/applicants`);
+        const res = await api.get(`/applications/job/${jobPostId}/applicants-with-interview`);
         setApplicants(res.data);
+        console.log('applicants:', applicants);
       } catch (err) {
         setError('지원자 목록을 불러오지 못했습니다.');
       } finally {
@@ -93,16 +96,18 @@ function InterviewProgress() {
     };
   }, [isLeftOpen]);
 
-  const handleApplicantClick = async (applicant, index) => {
+  const handleApplicantClick = async (applicant) => {
+    // 기존: const id = applicant.id;
+    const id = applicant.applicant_id || applicant.id; // 우선 applicant_id 사용
     setSelectedApplicantIndex(index);
     setResume(null);
     try {
-      const res = await api.get(`/applications/${applicant.id}`);
+      const res = await api.get(`/applications/${id}`);
       setResume(res.data);
       setSelectedApplicant(applicant);
       setMemo('');
       setEvaluation({});
-      setExistingEvaluationId(null); // 기존 평가 ID 초기화
+      setExistingEvaluationId(null);
     } catch (err) {
       setResume(null);
     }
@@ -164,49 +169,49 @@ function InterviewProgress() {
       setIsSaving(true);
     }
     
+    // 실제 interview_id 찾기
+    let interviewId = 1; // 기본값
     try {
-      // 실제 interview_id 찾기
-      let interviewId = 1; // 기본값
-      
-      try {
-        // schedule_interview 테이블에서 해당 지원자의 면접 ID 조회
-        const scheduleResponse = await api.get(`/interview-schedules/applicant/${selectedApplicant.id}`);
-        if (scheduleResponse.data && scheduleResponse.data.length > 0) {
-          interviewId = scheduleResponse.data[0].id;
-        }
-      } catch (scheduleError) {
-        console.warn('면접 일정 조회 실패, 기본값 사용:', scheduleError);
-        // 면접 일정이 없으면 기본값 1 사용
+      // schedule_interview 테이블에서 해당 지원자의 면접 ID 조회
+      const scheduleResponse = await api.get(`/interview-evaluations/interview-schedules/applicant/${selectedApplicant.id}`);
+      if (scheduleResponse.data && scheduleResponse.data.length > 0) {
+        interviewId = scheduleResponse.data[0].id;
       }
-      
-      // 기존 평가가 있는지 확인
-      if (!existingEvaluationId) {
-        try {
-          const existingResponse = await api.get(`/interview-evaluations/interview/${interviewId}/evaluator/${user.id}`);
-          if (existingResponse.data && existingResponse.data.id) {
-            setExistingEvaluationId(existingResponse.data.id);
-          }
-        } catch (existingError) {
-          // 기존 평가가 없으면 새로 생성
-          console.log('기존 평가 없음, 새로 생성');
-        }
+    } catch (scheduleError) {
+      console.warn('면접 일정 조회 실패, 기본값 사용:', scheduleError);
+      // 면접 일정이 없으면 기본값 1 사용
+    }
+
+    // 항상 최신 평가ID를 GET해서 분기
+    let evaluationId = null;
+    try {
+      const existingResponse = await api.get(`/interview-evaluations/interview/${interviewId}/evaluator/${user.id}`);
+      if (existingResponse.data && existingResponse.data.id) {
+        evaluationId = existingResponse.data.id;
+        setExistingEvaluationId(evaluationId);
+      } else {
+        setExistingEvaluationId(null);
       }
-      
-      const evaluationData = {
-        interview_id: interviewId,
-        evaluator_id: user.id,
-        is_ai: false, // 수동 평가
-        total_score: avgScore,  // score -> total_score로 변경
-        summary: memo,
-        status: 'SUBMITTED', // 평가 완료 상태
-        details,  // 기존 호환성
-        evaluation_items: evaluationItems  // 새로운 구조
-      };
-      
+    } catch (e) {
+      setExistingEvaluationId(null);
+    }
+    
+    const evaluationData = {
+      interview_id: interviewId,
+      evaluator_id: user.id,
+      is_ai: false, // 수동 평가
+      total_score: avgScore,  // score -> total_score로 변경
+      summary: memo,
+      status: 'SUBMITTED', // 평가 완료 상태
+      details,  // 기존 호환성
+      evaluation_items: evaluationItems  // 새로운 구조
+    };
+    
+    try {
       let response;
-      if (existingEvaluationId) {
+      if (evaluationId) {
         // 기존 평가 업데이트
-        response = await api.put(`/interview-evaluations/${existingEvaluationId}`, evaluationData);
+        response = await api.put(`/interview-evaluations/${evaluationId}`, evaluationData);
         setSaveStatus(auto ? '자동 저장 완료' : '평가가 업데이트되었습니다!');
       } else {
         // 새 평가 생성
@@ -230,9 +235,12 @@ function InterviewProgress() {
     }
   };
 
+  // 자동저장 토글 핸들러
+  const handleToggleAutoSave = () => setAutoSaveEnabled((prev) => !prev);
+
   // 자동 저장 useEffect (10초마다)
   useEffect(() => {
-    if (!selectedApplicant) return;
+    if (!selectedApplicant || !autoSaveEnabled) return;
     if (saveTimer.current) clearInterval(saveTimer.current);
     saveTimer.current = setInterval(() => {
       handleSaveEvaluation(true);
@@ -240,7 +248,7 @@ function InterviewProgress() {
     return () => {
       if (saveTimer.current) clearInterval(saveTimer.current);
     };
-  }, [evaluation, memo, selectedApplicant, user]);
+  }, [evaluation, memo, selectedApplicant, user, autoSaveEnabled]);
 
   if (loading || jobPostLoading) {
     return (
@@ -287,7 +295,7 @@ function InterviewProgress() {
         {/* 지원자 목록 */}
         <div className="flex-1 min-h-0 flex flex-col overflow-y-auto pr-1">
           {isLeftOpen ? (
-            <ApplicantListSimple
+            <InterviewApplicantList
               applicants={applicants}
               splitMode={true}
               selectedApplicantIndex={selectedApplicantIndex}
@@ -322,6 +330,41 @@ function InterviewProgress() {
         {/* 우측 면접 질문/메모 */}
         <div className="w-[400px] border-l border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 h-full min-h-0 flex flex-col">
           <div className="h-full min-h-0 flex flex-col">
+            {/* 자동저장 토글 버튼 및 상태 메시지 (상단) */}
+            <div className="flex items-center justify-end gap-4 px-4 pt-4 min-h-[40px]">
+              {/* 자동저장 상태 메시지 */}
+              {isAutoSaving && (
+                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  자동 저장 중...
+                </div>
+              )}
+              {/* 자동저장 토글 스위치 */}
+              <button
+                onClick={handleToggleAutoSave}
+                className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400
+                  ${autoSaveEnabled
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}
+                `}
+                aria-pressed={autoSaveEnabled}
+                title={autoSaveEnabled ? '자동저장 ON' : '자동저장 OFF'}
+              >
+                {autoSaveEnabled ? (
+                  <MdOutlineAutoAwesome size={20} className="text-blue-500" />
+                ) : (
+                  <FiSave size={18} className="text-gray-500" />
+                )}
+                <span className="ml-1 select-none">자동저장</span>
+                <span
+                  className={`ml-2 w-8 h-4 flex items-center bg-gray-300 rounded-full p-1 transition-colors duration-200 ${autoSaveEnabled ? 'bg-blue-400' : 'bg-gray-300'}`}
+                >
+                  <span
+                    className={`block w-3 h-3 rounded-full bg-white shadow transform transition-transform duration-200 ${autoSaveEnabled ? 'translate-x-4' : ''}`}
+                  />
+                </span>
+              </button>
+            </div>
             <InterviewPanel
               questions={questions}
               memo={memo}
@@ -335,13 +378,7 @@ function InterviewProgress() {
               applicantName={selectedApplicant?.name}
             />
             <div className="mt-4 flex flex-col items-end gap-2 px-4 pb-4">
-              {/* 자동 저장 상태 표시 */}
-              {isAutoSaving && (
-                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  자동 저장 중...
-                </div>
-              )}
+              {/* 하단 자동저장 상태 메시지 제거, 저장 버튼만 남김 */}
               <button
                 className={`font-bold py-2 px-6 rounded shadow transition-colors ${
                   !selectedApplicant || !user?.id || isSaving || isAutoSaving
@@ -360,6 +397,7 @@ function InterviewProgress() {
                   '평가 저장'
                 )}
               </button>
+              {/* 저장 결과 메시지는 그대로 유지 */}
               {saveStatus && (
                 <div className={`text-xs ${
                   saveStatus.includes('실패') 

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Rating from '@mui/material/Rating';
 import api from '../../api/api';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Typography from '@mui/material/Typography';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ApplicantCard from '../../components/ApplicantCard';
 
 function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = {}, onEvaluationChange, isAutoSaving = false, resumeId, applicationId, companyName, applicantName }) {
   // 면접관 지원 도구 상태

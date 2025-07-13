@@ -558,6 +558,8 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
         )
         
         return criteria_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/company-questions", response_model=CompanyQuestionResponse)
 async def generate_company_questions(request: CompanyQuestionRequest):

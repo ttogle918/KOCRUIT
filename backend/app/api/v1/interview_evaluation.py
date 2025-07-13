@@ -6,6 +6,7 @@ from app.models.interview_evaluation import InterviewEvaluation, EvaluationDetai
 from app.schemas.interview_evaluation import InterviewEvaluation as InterviewEvaluationSchema, InterviewEvaluationCreate
 from datetime import datetime
 from decimal import Decimal
+from app.models.application import Application
 
 router = APIRouter()
 
@@ -120,3 +121,16 @@ def update_evaluation(evaluation_id: int, evaluation: InterviewEvaluationCreate,
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"평가 업데이트 중 오류가 발생했습니다: {str(e)}") 
+
+@router.get("/interview-schedules/applicant/{applicant_id}")
+def get_interview_schedules_by_applicant(applicant_id: int, db: Session = Depends(get_db)):
+    # Application 테이블에서 applicant_id로 schedule_interview_id 찾기
+    applications = db.query(Application).filter(Application.applicant_id == applicant_id).all()
+    if not applications:
+        return []
+    # 지원자가 여러 면접에 배정된 경우 모두 반환
+    result = []
+    for app in applications:
+        if hasattr(app, 'schedule_interview_id') and app.schedule_interview_id:
+            result.append({"id": app.schedule_interview_id})
+    return result 
