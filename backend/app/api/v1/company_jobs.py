@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 import json
+from datetime import datetime
 from app.core.database import get_db
-from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList, PostInterviewCreate, PostInterviewDetail
-from app.models.job import JobPost, PostInterview, JobPostRole
+from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList, InterviewScheduleCreate, InterviewScheduleDetail
+from app.models.job import JobPost, JobPostRole
+from app.models.schedule import Schedule
 from app.models.weight import Weight
 from app.models.user import User, CompanyUser
 from app.models.company import Department
@@ -74,8 +76,11 @@ def get_company_job_post(
         for weight in weights
     ]
     
-    # 면접 일정 조회
-    interview_schedules = db.query(PostInterview).filter(PostInterview.job_post_id == job_post.id).all()
+    # 면접 일정 조회 - Schedule 테이블에서 interview 타입으로 조회
+    interview_schedules = db.query(Schedule).filter(
+        Schedule.job_post_id == job_post.id,
+        Schedule.schedule_type == "interview"
+    ).all()
     job_post.interview_schedules = interview_schedules
     
     # 부서 정보 추가
@@ -152,31 +157,42 @@ def create_company_job_post(
     db.commit()
     db.refresh(db_job_post)
     
-    # 면접 일정 저장
+    # 면접 일정 저장 - Schedule 테이블에 저장
     if interview_schedules:
         for schedule_data in interview_schedules:
-            # dict 형태로 전달된 경우 처리
+            # 날짜와 시간을 합쳐서 scheduled_at으로 저장
             if isinstance(schedule_data, dict):
-                interview_schedule = PostInterview(
-                    job_post_id=db_job_post.id,
-                    interview_date=schedule_data.get('interview_date'),
-                    interview_time=schedule_data.get('interview_time'),
-                    location=schedule_data.get('location'),
-                    interview_type=schedule_data.get('interview_type', 'ONSITE'),
-                    max_participants=schedule_data.get('max_participants', 1),
-                    notes=schedule_data.get('notes')
-                )
+                interview_date = schedule_data.get('interview_date')
+                interview_time = schedule_data.get('interview_time')
+                location = schedule_data.get('location')
             else:
-                # Pydantic 모델로 전달된 경우 처리
-                interview_schedule = PostInterview(
-                    job_post_id=db_job_post.id,
-                    interview_date=schedule_data.interview_date,
-                    interview_time=schedule_data.interview_time,
-                    location=schedule_data.location,
-                    interview_type=schedule_data.interview_type,
-                    max_participants=schedule_data.max_participants,
-                    notes=schedule_data.notes
-                )
+                interview_date = schedule_data.interview_date
+                interview_time = schedule_data.interview_time
+                location = schedule_data.location
+            
+            # 날짜와 시간을 합쳐서 datetime 객체 생성
+            if interview_date and interview_time:
+                try:
+                    # YYYY-MM-DD HH:MM 형식으로 합치기
+                    datetime_str = f"{interview_date} {interview_time}:00"
+                    scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    # 기본값으로 현재 시간 사용
+                    scheduled_at = datetime.utcnow()
+            else:
+                scheduled_at = datetime.utcnow()
+            
+            # Schedule 테이블에 저장
+            interview_schedule = Schedule(
+                schedule_type="interview",
+                user_id=current_user.id,  # 공고를 올린 사용자
+                job_post_id=db_job_post.id,
+                title=db_job_post.title,  # 공고 제목
+                description="",  # 비워둠
+                location=location,
+                scheduled_at=scheduled_at,
+                status=""  # 비워둠
+            )
             db.add(interview_schedule)
         db.commit()
     
@@ -222,13 +238,9 @@ def create_company_job_post(
         
                 db.commit()
     
-    # 팀 멤버 역할을 jobpost_role 테이블에 업데이트
+    # 팀 멤버 역할을 jobpost_role 테이블에 저장 (생성 시에는 기존 데이터 삭제 불필요)
     team_members_data = job_post.teamMembers
-    if team_members_data is not None:
-        # 기존 jobpost_role 삭제
-        db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
-        
-        # 새로운 jobpost_role 생성
+    if team_members_data:
         for member in team_members_data:
             if member.email and member.role:
                 # 이메일로 CompanyUser 찾기
@@ -247,7 +259,7 @@ def create_company_job_post(
                     
                     # jobpost_role 생성
                     jobpost_role = JobPostRole(
-                        jobpost_id=job_post_id,
+                        jobpost_id=db_job_post.id,  # 새로 생성된 job post의 ID 사용
                         company_user_id=company_user.id,
                         role=mapped_role
                     )
@@ -355,33 +367,42 @@ def update_company_job_post(
     # 면접 일정 업데이트 (기존 일정 삭제 후 새로 생성)
     if interview_schedules is not None:
         # 기존 면접 일정 삭제
-        db.query(PostInterview).filter(PostInterview.job_post_id == job_post_id).delete()
+        db.query(Schedule).filter(Schedule.job_post_id == job_post_id, Schedule.schedule_type == "interview").delete()
         
         # 새로운 면접 일정 추가
         if interview_schedules:
             for schedule_data in interview_schedules:
                 # dict 형태로 전달된 경우 처리
                 if isinstance(schedule_data, dict):
-                    interview_schedule = PostInterview(
-                        job_post_id=job_post_id,
-                        interview_date=schedule_data.get('interview_date'),
-                        interview_time=schedule_data.get('interview_time'),
-                        location=schedule_data.get('location'),
-                        interview_type=schedule_data.get('interview_type', 'ONSITE'),
-                        max_participants=schedule_data.get('max_participants', 1),
-                        notes=schedule_data.get('notes')
-                    )
+                    interview_date = schedule_data.get('interview_date')
+                    interview_time = schedule_data.get('interview_time')
+                    location = schedule_data.get('location')
                 else:
-                    # Pydantic 모델로 전달된 경우 처리
-                    interview_schedule = PostInterview(
-                        job_post_id=job_post_id,
-                        interview_date=schedule_data.interview_date,
-                        interview_time=schedule_data.interview_time,
-                        location=schedule_data.location,
-                        interview_type=schedule_data.interview_type,
-                        max_participants=schedule_data.max_participants,
-                        notes=schedule_data.notes
-                    )
+                    interview_date = schedule_data.interview_date
+                    interview_time = schedule_data.interview_time
+                    location = schedule_data.location
+                
+                # 날짜와 시간을 합쳐서 datetime 객체 생성
+                if interview_date and interview_time:
+                    try:
+                        datetime_str = f"{interview_date} {interview_time}:00"
+                        scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                    except ValueError:
+                        scheduled_at = datetime.utcnow()
+                else:
+                    scheduled_at = datetime.utcnow()
+                
+                # Schedule 테이블에 저장
+                interview_schedule = Schedule(
+                    schedule_type="interview",
+                    user_id=current_user.id,
+                    job_post_id=job_post_id,
+                    title=db_job_post.title,
+                    description="",
+                    location=location,
+                    scheduled_at=scheduled_at,
+                    status=""
+                )
                 db.add(interview_schedule)
         db.commit()
     

@@ -243,3 +243,53 @@ def bulk_update_application_status(
             app.document_status = str(bulk_update.document_status)
     db.commit()
     return {"message": f"{len(applications)} applications updated successfully"} 
+
+@router.get("/applicant/{applicant_id}", response_model=List[dict])
+def get_interviews_by_applicant(applicant_id: int, db: Session = Depends(get_db)):
+    """지원자 ID로 면접 일정 조회"""
+    try:
+        # 지원자 정보 확인
+        applicant = db.query(User).filter(User.id == applicant_id).first()
+        if not applicant:
+            raise HTTPException(status_code=404, detail="지원자를 찾을 수 없습니다.")
+        
+        # 해당 지원자의 면접 일정 조회
+        # schedule_interview.user_id는 면접 대상자(지원자)의 ID
+        interviews = db.query(ScheduleInterview).filter(
+            ScheduleInterview.user_id == applicant_id
+        ).all()
+        
+        # 응답 데이터 구성
+        interview_data = []
+        for interview in interviews:
+            interview_data.append({
+                "id": interview.id,
+                "schedule_id": interview.schedule_id,
+                "user_id": interview.user_id,
+                "schedule_date": interview.schedule_date.isoformat() if interview.schedule_date else None,
+                "status": interview.status.value if interview.status else None
+            })
+        
+        return interview_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"면접 일정 조회 중 오류가 발생했습니다: {str(e)}")
+
+@router.get("/", response_model=List[dict])
+def get_all_interviews(db: Session = Depends(get_db)):
+    """모든 면접 일정 조회"""
+    try:
+        interviews = db.query(ScheduleInterview).all()
+        
+        interview_data = []
+        for interview in interviews:
+            interview_data.append({
+                "id": interview.id,
+                "schedule_id": interview.schedule_id,
+                "user_id": interview.user_id,
+                "schedule_date": interview.schedule_date,
+                "status": interview.status
+            })
+        
+        return interview_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"면접 일정 조회 중 오류가 발생했습니다: {str(e)}") 

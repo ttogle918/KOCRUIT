@@ -16,6 +16,7 @@ class Schedule(Base):
     id = Column(Integer, primary_key=True, index=True)
     schedule_type = Column(String(255))
     user_id = Column(Integer, ForeignKey('company_user.id'))
+    job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=True)  # For interview schedules
     title = Column(String(255))
     description = Column(Text)
     location = Column(String(255))
@@ -26,6 +27,7 @@ class Schedule(Base):
     
     # Relationships
     user = relationship("CompanyUser")
+    job_post = relationship("JobPost", back_populates="interview_schedules")
     interviews = relationship("ScheduleInterview", back_populates="schedule")
 
 

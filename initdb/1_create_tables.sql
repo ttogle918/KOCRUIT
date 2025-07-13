@@ -114,6 +114,7 @@ CREATE TABLE schedule (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     schedule_type  VARCHAR(255),
     user_id        INT,
+    job_post_id    INT,
     title          VARCHAR(255),
     description    TEXT,
     location       VARCHAR(255),
@@ -122,7 +123,8 @@ CREATE TABLE schedule (
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     status         VARCHAR(255),
 
-    FOREIGN KEY (user_id) REFERENCES company_user(id)
+    FOREIGN KEY (user_id) REFERENCES company_user(id),
+    FOREIGN KEY (job_post_id) REFERENCES jobpost(id)
 );
 
 
@@ -240,17 +242,29 @@ CREATE TABLE interview_evaluation (
     interview_id   INT NOT NULL,
     evaluator_id   INT,
     is_ai          TINYINT(1) DEFAULT 0 CHECK (is_ai IN (0, 1)),
-    score          DECIMAL(5,2),
+    total_score    DECIMAL(5,2),
     summary        TEXT,
+    status         ENUM('PENDING', 'SUBMITTED', 'CONFIRMED', 'REJECTED') DEFAULT 'PENDING',
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (interview_id) REFERENCES schedule_interview(id),
     FOREIGN KEY (evaluator_id) REFERENCES company_user(id)
 );
- 
 
+CREATE TABLE interview_evaluation_item (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    evaluation_id     INT NOT NULL,
+    evaluate_type     VARCHAR(50) NOT NULL,  -- '기술력', '의사소통', '인성' 등
+    evaluate_score    DECIMAL(5,2) NOT NULL,
+    grade             VARCHAR(10),           -- 'A', 'B', 'C' 등
+    comment           TEXT,                  -- 개별 항목에 대한 코멘트
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (evaluation_id) REFERENCES interview_evaluation(id) ON DELETE CASCADE
+);
 
-
+-- 기존 evaluation_detail 테이블은 호환성을 위해 유지 (나중에 제거 가능)
 CREATE TABLE evaluation_detail (
     id            INT AUTO_INCREMENT PRIMARY KEY,
     evaluation_id INT NOT NULL,

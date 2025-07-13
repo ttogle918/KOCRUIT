@@ -31,6 +31,7 @@ function InterviewProgress() {
   const [lastSaved, setLastSaved] = useState(null); // 마지막 저장된 평가/메모 상태
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false); // 자동 저장 상태 추가
+  const [existingEvaluationId, setExistingEvaluationId] = useState(null); // 기존 평가 ID
   const saveTimer = useRef(null);
 
   // 좌측 width 드래그 조절 및 닫기/열기
@@ -101,6 +102,7 @@ function InterviewProgress() {
       setSelectedApplicant(applicant);
       setMemo('');
       setEvaluation({});
+      setExistingEvaluationId(null); // 기존 평가 ID 초기화
     } catch (err) {
       setResume(null);
     }
@@ -116,7 +118,28 @@ function InterviewProgress() {
       if (!auto) setSaveStatus('지원자 또는 평가자 정보가 없습니다.');
       return;
     }
-    // details 배열로 변환
+    
+    // 새로운 평가 항목 배열로 변환
+    const evaluationItems = [];
+    Object.entries(evaluation).forEach(([category, items]) => {
+      Object.entries(items || {}).forEach(([item, score]) => {
+        if (score && typeof score === 'number') {
+          // 점수에 따른 등급 계산
+          let grade = 'C';
+          if (score >= 4) grade = 'A';
+          else if (score >= 3) grade = 'B';
+          
+          evaluationItems.push({
+            evaluate_type: `${category}_${item}`,
+            evaluate_score: score,
+            grade: grade,
+            comment: `${category}의 ${item} 평가`
+          });
+        }
+      });
+    });
+    
+    // 기존 details 배열 (호환성)
     const details = [];
     Object.entries(evaluation).forEach(([category, items]) => {
       Object.entries(items || {}).forEach(([grade, score]) => {
@@ -125,9 +148,11 @@ function InterviewProgress() {
         }
       });
     });
+    
     // 평균점수 계산
-    const allScores = details.map(d => d.score).filter(s => typeof s === 'number');
+    const allScores = evaluationItems.map(d => d.evaluate_score).filter(s => typeof s === 'number');
     const avgScore = allScores.length > 0 ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(2) : null;
+    
     // 변경사항이 없으면 저장하지 않음
     const current = JSON.stringify({ evaluation, memo });
     if (lastSaved === current && auto) return;
@@ -136,27 +161,71 @@ function InterviewProgress() {
     if (auto) {
       setIsAutoSaving(true);
     } else {
-    setIsSaving(true);
+      setIsSaving(true);
     }
     
     try {
-      await api.post('/interview-evaluations', {
-        interview_id: selectedApplicant.interview_id || 1, // TODO: 실제 interview_id로 교체
+      // 실제 interview_id 찾기
+      let interviewId = 1; // 기본값
+      
+      try {
+        // schedule_interview 테이블에서 해당 지원자의 면접 ID 조회
+        const scheduleResponse = await api.get(`/interview-schedules/applicant/${selectedApplicant.id}`);
+        if (scheduleResponse.data && scheduleResponse.data.length > 0) {
+          interviewId = scheduleResponse.data[0].id;
+        }
+      } catch (scheduleError) {
+        console.warn('면접 일정 조회 실패, 기본값 사용:', scheduleError);
+        // 면접 일정이 없으면 기본값 1 사용
+      }
+      
+      // 기존 평가가 있는지 확인
+      if (!existingEvaluationId) {
+        try {
+          const existingResponse = await api.get(`/interview-evaluations/interview/${interviewId}/evaluator/${user.id}`);
+          if (existingResponse.data && existingResponse.data.id) {
+            setExistingEvaluationId(existingResponse.data.id);
+          }
+        } catch (existingError) {
+          // 기존 평가가 없으면 새로 생성
+          console.log('기존 평가 없음, 새로 생성');
+        }
+      }
+      
+      const evaluationData = {
+        interview_id: interviewId,
         evaluator_id: user.id,
         is_ai: false, // 수동 평가
-        score: avgScore,
+        total_score: avgScore,  // score -> total_score로 변경
         summary: memo,
-        details
-      });
-      setSaveStatus(auto ? '자동 저장 완료' : '평가가 저장되었습니다!');
+        status: 'SUBMITTED', // 평가 완료 상태
+        details,  // 기존 호환성
+        evaluation_items: evaluationItems  // 새로운 구조
+      };
+      
+      let response;
+      if (existingEvaluationId) {
+        // 기존 평가 업데이트
+        response = await api.put(`/interview-evaluations/${existingEvaluationId}`, evaluationData);
+        setSaveStatus(auto ? '자동 저장 완료' : '평가가 업데이트되었습니다!');
+      } else {
+        // 새 평가 생성
+        response = await api.post('/interview-evaluations', evaluationData);
+        if (response.data && response.data.id) {
+          setExistingEvaluationId(response.data.id);
+        }
+        setSaveStatus(auto ? '자동 저장 완료' : '평가가 저장되었습니다!');
+      }
+      
       setLastSaved(current);
     } catch (err) {
+      console.error('평가 저장 오류:', err);
       setSaveStatus('저장 실패: ' + (err.response?.data?.detail || '오류'));
     } finally {
       if (auto) {
         setIsAutoSaving(false);
       } else {
-      setIsSaving(false);
+        setIsSaving(false);
       }
     }
   };
@@ -260,6 +329,10 @@ function InterviewProgress() {
               evaluation={evaluation}
               onEvaluationChange={setEvaluation}
               isAutoSaving={isAutoSaving}
+              resumeId={resume?.id}
+              applicationId={selectedApplicant?.id}
+              companyName={jobPost?.company?.name}
+              applicantName={selectedApplicant?.name}
             />
             <div className="mt-4 flex flex-col items-end gap-2 px-4 pb-4">
               {/* 자동 저장 상태 표시 */}

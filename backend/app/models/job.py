@@ -34,7 +34,7 @@ class JobPost(Base):
     department_rel = relationship("Department", back_populates="job_posts")
     user = relationship("User", back_populates="job_posts")
     applications = relationship("Application", back_populates="job_post")
-    interview_schedules = relationship("PostInterview", back_populates="job_post", cascade="all, delete-orphan")
+    interview_schedules = relationship("Schedule", back_populates="job_post", cascade="all, delete-orphan")
     jobpost_roles = relationship("JobPostRole", back_populates="jobpost", cascade="all, delete-orphan")
 
 
@@ -48,22 +48,4 @@ class JobPostRole(Base):
     
     # Relationships
     jobpost = relationship("JobPost", back_populates="jobpost_roles")
-    company_user = relationship("CompanyUser", back_populates="jobpost_roles")
-
-
-class PostInterview(Base):
-    __tablename__ = "post_interview"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=False)
-    interview_date = Column(String(10), nullable=False)  # YYYY-MM-DD
-    interview_time = Column(String(5), nullable=False)   # HH:MM
-    location = Column(String(255), nullable=False)
-    interview_type = Column(String(20), default="ONSITE")  # ONSITE, ONLINE, PHONE
-    max_participants = Column(Integer, default=1)
-    notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    job_post = relationship("JobPost", back_populates="interview_schedules") 
+    company_user = relationship("CompanyUser", back_populates="jobpost_roles") 
