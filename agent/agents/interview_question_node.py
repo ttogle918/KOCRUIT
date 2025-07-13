@@ -780,3 +780,4 @@ def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_na
                 "poor": "3-4점: 기준 미달로 추가 개발 필요"
             }
         }
+    return questions_by_category

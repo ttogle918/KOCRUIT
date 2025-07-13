@@ -259,155 +259,6 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
 def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
     return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
 
-# @router.post("/company-questions", response_model=CompanyQuestionResponse)
-# async def generate_company_questions(request: CompanyQuestionRequest):
-#     """회사명 기반 면접 질문 생성 (인재상 + 뉴스 기반) - 통합 API로 대체됨"""
-#     # POST /api/v1/interview-questions/company-questions
-#     # Content-Type: application/json
-#     # {    "company_name": "삼성전자"     }
-#     # TODO: 산업 트렌드/경쟁사 비교
-#     # TODO: 기술 혁신/신사업
-#     # TODO: 회사 기본 정보 이해
-# 
-#     try:
-#         # LangGraph 기반 통합 질문 생성
-#         result = generate_questions(request.company_name)
-#         questions = result.get("text", [])
-#         
-#         if isinstance(questions, str):
-#             questions = questions.strip().split("\n")
-#         
-#         return {"questions": questions}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-# @router.post("/project-questions", response_model=ProjectQuestionResponse)
-# async def generate_project_questions(request: ProjectQuestionRequest, db: Session = Depends(get_db)):
-#     """자기소개서/이력서 기반 프로젝트 면접 질문 생성 - 통합 API로 대체됨"""
-#     # POST /api/v1/interview-questions/project-questions
-#     # Content-Type: application/json
-#     # {
-#     #   "resume_id": 1,
-#     #   "company_name": "네이버",
-#     #   "name": "홍길동"
-#     # }
-# 
-#     try:
-#         # Resume와 Spec 데이터 조회
-#         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
-#         if not resume:
-#             raise HTTPException(status_code=404, detail="Resume not found")
-#         
-#         specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
-#         
-#         # Resume + Spec 통합 텍스트 생성
-#         resume_text = combine_resume_and_specs(resume, specs)
-#         
-#         # LangGraph 기반 프로젝트 질문 생성
-#         from agent.agents.interview_question_node import generate_common_question_bundle
-#         import sys
-#         import os
-#         sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-#         from agent.tools.portfolio_tool import portfolio_tool
-#         
-#         # 포트폴리오 링크 수집 및 분석
-#         portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
-#         portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
-#         
-#         # 통합 질문 생성
-#         question_bundle = generate_common_question_bundle(
-#             resume_text=resume_text,
-#             company_name=request.company_name,
-#             portfolio_info=portfolio_info
-#         )
-#         
-#         # 모든 질문을 하나의 리스트로 통합
-#         all_questions = []
-#         all_questions.extend(question_bundle.get("인성/동기", []))
-#         all_questions.extend(question_bundle.get("프로젝트 경험", []))
-#         all_questions.extend(question_bundle.get("회사 관련", []))
-#         all_questions.extend(question_bundle.get("상황 대처", []))
-#         
-#         return {
-#             "questions": all_questions,
-#             "question_bundle": question_bundle,
-#             "portfolio_info": portfolio_info
-#         }
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
-
-# @router.post("/job-questions", response_model=JobQuestionResponse)
-# async def generate_job_questions(request: JobQuestionRequest, db: Session = Depends(get_db)):
-#     """지원서 기반 직무 맞춤형 면접 질문 생성 - 통합 API로 대체됨"""
-#     # POST /api/v1/interview-questions/job-questions
-#     # Content-Type: application/json
-#     # {
-#     #   "application_id": 41,
-#     #   "company_name": "KOSA공공"
-#     # }
-# 
-#     try:
-#         # Application 데이터 조회
-#         application = db.query(Application).filter(Application.id == request.application_id).first()
-#         if not application:
-#             raise HTTPException(status_code=404, detail="Application not found")
-#         
-#         # JobPost 데이터 조회
-#         job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
-#         if not job_post:
-#             raise HTTPException(status_code=404, detail="Job post not found")
-#         
-#         # Resume 데이터 조회
-#         resume = db.query(Resume).filter(Resume.id == application.resume_id).first()
-#         if not resume:
-#             raise HTTPException(status_code=404, detail="Resume not found")
-#         
-#         # Spec 데이터 조회
-#         specs = db.query(Spec).filter(Spec.resume_id == application.resume_id).all()
-#         
-#         # Resume + Spec 통합 텍스트 생성
-#         resume_text = combine_resume_and_specs(resume, specs)
-#         
-#         # JobPost 정보 파싱
-#         job_info = parse_job_post_data(job_post)
-#         
-#         # 실제 회사명 가져오기
-#         actual_company_name = job_post.company.name if job_post.company else request.company_name
-#         
-#         # 직무 매칭 분석
-#         job_matching_info = analyze_job_matching(resume_text, job_info)
-#         
-#         # LangGraph 기반 직무 질문 생성
-#         from agent.agents.interview_question_node import generate_job_question_bundle
-#         import sys
-#         import os
-#         sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-#         
-#         # 직무 맞춤형 질문 생성
-#         question_bundle = generate_job_question_bundle(
-#             resume_text=resume_text,
-#             job_info=job_info,
-#             # company_name=request.company_name,    # 이건, company_name이 공고 제목에서 회사명을 추출한 것(등록된것과다를수있음)
-#             # 실제데이터가아니라서 이게 더나은거같기도하고
-#             company_name=actual_company_name,
-#             job_matching_info=job_matching_info
-#         )
-#         
-#         # 모든 질문을 하나의 리스트로 통합
-#         all_questions = []
-#         all_questions.extend(question_bundle.get("직무 적합성", []))
-#         all_questions.extend(question_bundle.get("기술 스택", []))
-#         all_questions.extend(question_bundle.get("업무 이해도", []))
-#         all_questions.extend(question_bundle.get("경력 활용", []))
-#         all_questions.extend(question_bundle.get("상황 대처", []))
-#         
-#         return {
-#             "questions": all_questions,
-#             "question_bundle": question_bundle,
-#             "job_matching_info": job_matching_info
-#         }
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
 async def generate_integrated_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
@@ -707,5 +558,153 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
         )
         
         return criteria_result
+
+@router.post("/company-questions", response_model=CompanyQuestionResponse)
+async def generate_company_questions(request: CompanyQuestionRequest):
+    """회사명 기반 면접 질문 생성 (인재상 + 뉴스 기반)"""
+    # POST /api/v1/interview-questions/company-questions
+    # Content-Type: application/json
+    # {    "company_name": "삼성전자"     }
+    # TODO: 산업 트렌드/경쟁사 비교
+    # TODO: 기술 혁신/신사업
+    # TODO: 회사 기본 정보 이해
+
+    try:
+        # LangGraph 기반 통합 질문 생성
+        result = generate_questions(request.company_name)
+        questions = result.get("text", [])
+        
+        if isinstance(questions, str):
+            questions = questions.strip().split("\n")
+        
+        return {"questions": questions}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/project-questions", response_model=ProjectQuestionResponse)
+async def generate_project_questions(request: ProjectQuestionRequest, db: Session = Depends(get_db)):
+    """자기소개서/이력서 기반 프로젝트 면접 질문 생성"""
+    # POST /api/v1/interview-questions/project-questions
+    # Content-Type: application/json
+    # {
+    #   "resume_id": 1,
+    #   "company_name": "네이버",
+    #   "name": "홍길동"
+    # }
+
+    try:
+        # Resume와 Spec 데이터 조회
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        
+        # Resume + Spec 통합 텍스트 생성
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # LangGraph 기반 프로젝트 질문 생성
+        from agent.agents.interview_question_node import generate_common_question_bundle
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.tools.portfolio_tool import portfolio_tool
+        
+        # 포트폴리오 링크 수집 및 분석
+        portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
+        portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
+        
+        # 통합 질문 생성
+        question_bundle = generate_common_question_bundle(
+            resume_text=resume_text,
+            company_name=request.company_name,
+            portfolio_info=portfolio_info
+        )
+        
+        # 모든 질문을 하나의 리스트로 통합
+        all_questions = []
+        all_questions.extend(question_bundle.get("인성/동기", []))
+        all_questions.extend(question_bundle.get("프로젝트 경험", []))
+        all_questions.extend(question_bundle.get("회사 관련", []))
+        all_questions.extend(question_bundle.get("상황 대처", []))
+        
+        return {
+            "questions": all_questions,
+            "question_bundle": question_bundle,
+            "portfolio_info": portfolio_info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/job-questions", response_model=JobQuestionResponse)
+async def generate_job_questions(request: JobQuestionRequest, db: Session = Depends(get_db)):
+    """지원서 기반 직무 맞춤형 면접 질문 생성"""
+    # POST /api/v1/interview-questions/job-questions
+    # Content-Type: application/json
+    # {
+    #   "application_id": 41,
+    #   "company_name": "KOSA공공"
+    # }
+
+    try:
+        # Application 데이터 조회
+        application = db.query(Application).filter(Application.id == request.application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        # JobPost 데이터 조회
+        job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        
+        # Resume 데이터 조회
+        resume = db.query(Resume).filter(Resume.id == application.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Spec 데이터 조회
+        specs = db.query(Spec).filter(Spec.resume_id == application.resume_id).all()
+        
+        # Resume + Spec 통합 텍스트 생성
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # JobPost 정보 파싱
+        job_info = parse_job_post_data(job_post)
+        
+        # 실제 회사명 가져오기
+        actual_company_name = job_post.company.name if job_post.company else request.company_name
+        
+        # 직무 매칭 분석
+        job_matching_info = analyze_job_matching(resume_text, job_info)
+        
+        # LangGraph 기반 직무 질문 생성
+        from agent.agents.interview_question_node import generate_job_question_bundle
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        
+        # 직무 맞춤형 질문 생성
+        question_bundle = generate_job_question_bundle(
+            resume_text=resume_text,
+            job_info=job_info,
+            # company_name=request.company_name,    # 이건, company_name이 공고 제목에서 회사명을 추출한 것(등록된것과다를수있음)
+            # 실제데이터가아니라서 이게 더나은거같기도하고
+            company_name=actual_company_name,
+            job_matching_info=job_matching_info
+        )
+        
+        # 모든 질문을 하나의 리스트로 통합
+        all_questions = []
+        all_questions.extend(question_bundle.get("직무 적합성", []))
+        all_questions.extend(question_bundle.get("기술 스택", []))
+        all_questions.extend(question_bundle.get("업무 이해도", []))
+        all_questions.extend(question_bundle.get("경력 활용", []))
+        all_questions.extend(question_bundle.get("상황 대처", []))
+        
+        return {
+            "questions": all_questions,
+            "question_bundle": question_bundle,
+            "job_matching_info": job_matching_info
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -138,6 +138,7 @@ def build_job_posting_graph():
     graph.set_entry_point("job_posting_tool")
     graph.set_finish_point("job_posting_tool")
     return graph.compile()
+
 def build_company_question_graph():
     """회사 질문 생성 전용 그래프"""
     graph = Graph()
@@ -155,4 +156,3 @@ def build_project_question_graph():
     graph.add_edge("portfolio_analyzer", "project_question_generator")
     graph.set_finish_point("project_question_generator")
     return graph.compile()
-

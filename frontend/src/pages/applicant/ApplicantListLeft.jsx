@@ -6,7 +6,6 @@ function ApplicantListLeft({
   applicants = [],
   splitMode,
   selectedApplicantIndex,
-  selectedApplicantId, // 추가: id 기반 선택
   onSelectApplicant,
   handleApplicantClick,
   handleCloseDetailedView, 
@@ -22,6 +21,8 @@ function ApplicantListLeft({
   const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  // 선택된 카드 ref
+  const selectedCardRef = useRef(null);
 
   // 드롭다운 외부 클릭 감지
   useEffect(() => {
@@ -37,13 +38,8 @@ function ApplicantListLeft({
   // filteredApplicants는 useMemo로 계산
   const filteredApplicants = useMemo(() => {
     let filtered = Array.isArray(applicants) ? [...applicants] : [];
-    // 여러 상태 포함 필터 예시
     const allowedStatuses = ['WAITING', 'SUITABLE', 'UNSUITABLE', 'REJECTED', 'PASSED'];
-    // const allowedStatuses = ['WAITING', 'SUITABLE', 'UNSUITABLE']  // 만약 모든 지원자(합격/불합격 포함) 다 보고 싶다면 이 필터를 제거!
     filtered = filtered.filter(app => allowedStatuses.includes((app.status || '').toUpperCase()));
-
-    // 개발 중에만 잠깐 사용
-    // console.log(applicants);
     if (activeTab === 'EXCLUDED') {
       filtered = filtered.filter(app => app.score <= 20);
     } else if (activeTab === 'UNSUITABLE') {
@@ -74,15 +70,19 @@ function ApplicantListLeft({
     showBookmarkedOnly, bookmarkedList,
   ]);
 
+  // 자동 스크롤: 선택된 카드가 바뀔 때 해당 카드로 스크롤
+  useEffect(() => {
+    if (selectedCardRef.current) {
+      selectedCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selectedApplicantIndex, filteredApplicants]);
+
   // 부모에게 변경 알림이 필요할 때만
   useEffect(() => {
     if (onFilteredApplicantsChange) {
       onFilteredApplicantsChange(filteredApplicants);
     }
-    // filteredApplicants, onFilteredApplicantsChange만!
   }, [filteredApplicants, onFilteredApplicantsChange]);
-
-
 
   return (
     <div className="flex flex-col w-full h-full p-2 overflow-y-auto">
@@ -160,27 +160,23 @@ function ApplicantListLeft({
           {filteredApplicants.length > 0 ? (
             filteredApplicants.map((applicant, index) => {
               const globalIndex = applicants.findIndex((a) => a.id === applicant.id);
-              // 선택 기준: selectedApplicantIndex(인덱스 기반) 우선, 없으면 selectedApplicantId(id 기반)
-              const isSelected = splitMode && (
-                (selectedApplicantIndex !== null && selectedApplicantIndex === globalIndex) ||
-                (selectedApplicantIndex === null && selectedApplicantId && applicant.id === selectedApplicantId)
-              );
+              // isSelected: splitMode가 true일 때만 selectedApplicantIndex로 파란 테두리, false면 선택 없음
+              const isSelected = splitMode && selectedApplicantIndex === globalIndex;
               return (
                 <ApplicantCard
                   key={applicant.id}
+                  ref={isSelected ? selectedCardRef : null}
                   applicant={applicant}
                   index={index + 1}
                   isSelected={isSelected}
                   splitMode={splitMode}
                   bookmarked={bookmarkedList[globalIndex]}
                   onClick={() => {
-                    const isCurrentCardSelected = isSelected;
-                    if (splitMode && isCurrentCardSelected ) {
+                    if (splitMode && isSelected) {
                       handleCloseDetailedView();
-                    } else if (splitMode && !isCurrentCardSelected ) {
+                    } else if (splitMode && !isSelected) {
                       onSelectApplicant(applicant, globalIndex);
-                    }
-                    else {
+                    } else {
                       handleApplicantClick(applicant, globalIndex);
                     }
                   }}
