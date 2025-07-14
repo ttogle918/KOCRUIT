@@ -29,8 +29,8 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   const [isBookmarked, setIsBookmarked] = useState(applicant?.isBookmarked === 'Y');
   const [rejecting, setRejecting] = useState(false);
   const [aiScore, setAiScore] = useState(applicant?.ai_score || 0);
-  const [aiPassReason, setAiPassReason] = useState(applicant?.passReason || '');
-  const [aiFailReason, setAiFailReason] = useState(applicant?.failReason || '');
+  const [aiPassReason, setAiPassReason] = useState(applicant?.pass_reason || '');
+  const [aiFailReason, setAiFailReason] = useState(applicant?.fail_reason || '');
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -54,10 +54,10 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   useEffect(() => {
     if (applicant?.ai_score !== undefined) {
       setAiScore(applicant.ai_score);
-      setAiPassReason(applicant.passReason || '');
-      setAiFailReason(applicant.failReason || '');
+      setAiPassReason(applicant.pass_reason || '');
+      setAiFailReason(applicant.fail_reason || '');
     }
-  }, [applicant?.ai_score, applicant?.passReason, applicant?.failReason]);
+  }, [applicant?.ai_score, applicant?.pass_reason, applicant?.fail_reason]);
   
 
 
@@ -239,11 +239,11 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
           {applicant?.status === 'PASSED' ? '합격 사유' : '불합격 사유'}
         </h3>
-        <div className={applicant?.status === 'PASSED' ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20" + " rounded-lg p-4"}>
+        <div className={`rounded-lg p-4 ${applicant?.status === 'PASSED' ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"}`}>
           <p className="text-gray-700 dark:text-gray-300">
             {applicant?.status === 'PASSED'
-              ? (aiPassReason || applicant?.passReason || '서류 심사에서 우수한 성과를 보여 합격 처리되었습니다.')
-              : (aiFailReason || applicant?.failReason || '서류 심사 결과 불합격 처리되었습니다.')}
+              ? (aiPassReason || '서류 심사에서 우수한 성과를 보여 합격 처리되었습니다.')
+              : (aiFailReason || '서류 심사 결과 불합격 처리되었습니다.')}
           </p>
         </div>
       </div>

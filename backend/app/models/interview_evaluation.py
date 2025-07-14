@@ -48,13 +48,13 @@ def auto_process_applications(db: Session):
         waiting_apps = db.query(Application).filter(
             Application.job_post_id == jobpost.id,
             Application.status == ApplyStatus.WAITING
-        ).order_by(Application.score.desc().nullslast()).all()
+        ).order_by(Application.score.desc()).all()
         # 상위 N명만 PASSED, 나머지는 REJECTED
         for idx, app in enumerate(waiting_apps):
             if idx < limit:
-                app.status = str(ApplyStatus.PASSED)
+                app.status = ApplyStatus.PASSED
             else:
-                app.status = str(ApplyStatus.REJECTED)
+                app.status = ApplyStatus.REJECTED
     db.commit()
     return True
 
@@ -140,10 +140,10 @@ def auto_evaluate_all_applications(db: Session):
             job_posting = f"""
             [채용공고]
             제목: {job_post.title}
-            회사: {job_post.company_name}
-            직무: {job_post.position}
-            요구사항: {job_post.requirements or ''}
-            우대사항: {job_post.preferred_qualifications or ''}
+            회사: {job_post.company.name if job_post.company else 'N/A'}
+            직무: {job_post.department or 'N/A'}
+            요구사항: {job_post.qualifications or ''}
+            우대사항: {job_post.conditions or ''}
             """
             
             # Weight 데이터 구성
@@ -154,7 +154,7 @@ def auto_evaluate_all_applications(db: Session):
             weight_dict = {w.field_name: w.weight_value for w in weights}
 
             # AI Agent API 호출
-            agent_url = "http://localhost:8001/evaluate-application/"
+            agent_url = "http://kocruit_agent:8001/evaluate-application/"
             payload = {
                 "job_posting": job_posting,
                 "spec_data": spec_data,
@@ -174,8 +174,10 @@ def auto_evaluate_all_applications(db: Session):
             
             # AI가 제안한 상태로 업데이트
             ai_suggested_status = result.get("status", "REJECTED")
-            if ai_suggested_status in ["PASSED", "REJECTED"]:
-                application.status = ai_suggested_status
+            if ai_suggested_status == "PASSED":
+                application.status = ApplyStatus.PASSED
+            elif ai_suggested_status == "REJECTED":
+                application.status = ApplyStatus.REJECTED
             
             print(f"AI 평가 완료: application_id={application.id}, score={application.ai_score}, status={application.status}")
             

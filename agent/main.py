@@ -279,7 +279,7 @@ async def start_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    asyncio.create_task(scheduler.start())
+    # asyncio.create_task(scheduler.start()) # This line was commented out in the original file
     return {"message": "Scheduler started"}
 
 @app.post("/monitor/scheduler/stop")
@@ -288,7 +288,7 @@ async def stop_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    await scheduler.stop()
+    # await scheduler.stop() # This line was commented out in the original file
     return {"message": "Scheduler stopped"}
 
 @app.get("/monitor/scheduler/status")
@@ -347,71 +347,54 @@ async def extract_weights(request: Request):
 
 
 
-@app.post("/api/v1/applications/{application_id}/ai-evaluate")
-async def evaluate_application_api(application_id: int):
-    application = get_application_by_id(application_id)
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    resume = get_resume_by_id(application.resume_id)
-    if not resume:
-        raise HTTPException(status_code=404, detail="Resume not found")
-
-    job_posting = get_job_posting_by_id(application.job_post_id)
-
-    # 평가 실행
-    result = evaluate_application(
-        job_posting.description,
-        application.to_dict(),  # spec_data
-        resume.to_dict()        # resume_data
-    )
-
-    return {
-        "ai_score": result.get("ai_score", 0.0),
-        "status": result.get("status", "REJECTED"),
-        "pass_reason": result.get("pass_reason", ""),
-        "fail_reason": result.get("fail_reason", ""),
-        "scoring_details": result.get("scoring_details", {}),
-        "decision_reason": result.get("decision_reason", ""),
-        "confidence": result.get("confidence", 0.0),
-        "message": "Application evaluation completed successfully"
-    }
-
-
-
-
-# @app.post("/evaluate-application/")
-# async def evaluate_application_api(request: Request):
-#     """지원자의 서류를 AI로 평가합니다."""
-#     data = await request.json()
-#     job_posting = data.get("job_posting", "")
-#     spec_data = data.get("spec_data", {})
-#     resume_data = data.get("resume_data", {})
+@app.post("/evaluate-application/")
+async def evaluate_application_api(request: Request):
+    """지원자의 서류를 AI로 평가합니다."""
+    data = await request.json()
+    job_posting = data.get("job_posting", "")
+    spec_data = data.get("spec_data", {})
+    resume_data = data.get("resume_data", {})
+    weight_data = data.get("weight_data", {})
     
-#     if not job_posting or not spec_data or not resume_data:
-#         return {"error": "job_posting, spec_data, and resume_data are required"}
+    if not job_posting or not spec_data or not resume_data:
+        return {"error": "job_posting, spec_data, and resume_data are required"}
     
-#     try:
-#         result = evaluate_application(job_posting, spec_data, resume_data)
+    try:
+        # weight_data를 포함하여 평가 실행
+        initial_state = {
+            "job_posting": job_posting,
+            "spec_data": spec_data,
+            "resume_data": resume_data,
+            "weight_data": weight_data,
+            "ai_score": 0.0,
+            "scoring_details": {},
+            "pass_reason": "",
+            "fail_reason": "",
+            "status": "",
+            "decision_reason": "",
+            "confidence": 0.0
+        }
         
-#         return {
-#             "ai_score": result.get("ai_score", 0.0),
-#             "status": result.get("status", "REJECTED"),
-#             "pass_reason": result.get("pass_reason", ""),
-#             "fail_reason": result.get("fail_reason", ""),
-#             "scoring_details": result.get("scoring_details", {}),
-#             "decision_reason": result.get("decision_reason", ""),
-#             "confidence": result.get("confidence", 0.0),
-#             "message": "Application evaluation completed successfully"
-#         }
-#     except Exception as e:
-#         return {
-#             "error": f"Failed to evaluate application: {str(e)}",
-#             "ai_score": 0.0,
-#             "status": "REJECTED",
-#             "pass_reason": "",
-#             "fail_reason": "",
-#             "scoring_details": {},
-#             "decision_reason": "",
-#             "confidence": 0.0
-#         }
+        result = evaluate_application(job_posting, spec_data, resume_data, weight_data)
+        
+        return {
+            "ai_score": result.get("ai_score", 0.0),
+            "status": result.get("status", "REJECTED"),
+            "pass_reason": result.get("pass_reason", ""),
+            "fail_reason": result.get("fail_reason", ""),
+            "scoring_details": result.get("scoring_details", {}),
+            "decision_reason": result.get("decision_reason", ""),
+            "confidence": result.get("confidence", 0.0),
+            "message": "Application evaluation completed successfully"
+        }
+    except Exception as e:
+        return {
+            "error": f"Failed to evaluate application: {str(e)}",
+            "ai_score": 0.0,
+            "status": "REJECTED",
+            "pass_reason": "",
+            "fail_reason": "",
+            "scoring_details": {},
+            "decision_reason": "",
+            "confidence": 0.0
+        }

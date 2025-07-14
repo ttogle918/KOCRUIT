@@ -44,7 +44,7 @@ def build_application_evaluation_graph():
     # 그래프 컴파일
     return workflow.compile()
 
-def evaluate_application(job_posting: str, spec_data: dict, resume_data: dict):
+def evaluate_application(job_posting: str, spec_data: dict, resume_data: dict, weight_data: dict = None):
     """
     지원자의 서류를 평가합니다.
     
@@ -52,6 +52,7 @@ def evaluate_application(job_posting: str, spec_data: dict, resume_data: dict):
         job_posting (str): 채용공고 내용
         spec_data (dict): 지원자 스펙 데이터
         resume_data (dict): 이력서 데이터
+        weight_data (dict): 가중치 데이터 (선택사항)
     
     Returns:
         dict: 평가 결과
@@ -61,6 +62,7 @@ def evaluate_application(job_posting: str, spec_data: dict, resume_data: dict):
         "job_posting": job_posting,
         "spec_data": spec_data,
         "resume_data": resume_data,
+        "weight_data": weight_data or {},
         "ai_score": 0.0,
         "scoring_details": {},
         "pass_reason": "",

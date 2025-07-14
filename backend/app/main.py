@@ -14,8 +14,11 @@ from app.models.interview_evaluation import auto_process_applications, auto_eval
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("=== FastAPI 서버 시작 ===")
+    
     # Startup
     Base.metadata.create_all(bind=engine)
+    print("데이터베이스 테이블 생성 완료")
     
     # 시드 데이터 실행
     try:
@@ -36,6 +39,19 @@ async def lifespan(app: FastAPI):
             
     except Exception as e:
         print(f"시드 데이터 실행 중 오류: {e}")
+    
+    # 서버 시작 시 즉시 AI 평가 실행
+    print("=== AI 평가 실행 시작 ===")
+    try:
+        print("서버 시작 시 AI 평가를 실행합니다...")
+        run_auto_process()
+        print("AI 평가 실행 완료!")
+    except Exception as e:
+        print(f"AI 평가 실행 중 오류: {e}")
+        import traceback
+        print(f"상세 오류: {traceback.format_exc()}")
+    
+    print("=== FastAPI 서버 시작 완료 ===")
     
     yield
     # Shutdown

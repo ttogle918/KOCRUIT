@@ -226,7 +226,7 @@ export default function PassedApplicants() {
                     </div>
                     {/* 점수 원 */}
                     <div className="w-16 h-16 border-2 border-blue-300 rounded-full flex items-center justify-center text-sm font-bold text-gray-800 dark:text-white">
-                      {applicant.score || 0}점
+                      {applicant.ai_score || 0}점
                     </div>
                   </div>
                 ))}
