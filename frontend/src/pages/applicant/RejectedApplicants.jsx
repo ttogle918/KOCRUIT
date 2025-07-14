@@ -116,11 +116,11 @@ export default function RejectedApplicants() {
             <div className={`${splitMode ? 'w-1/2 min-h-[600px]' : 'w-full'} h-auto`}>
               {/* Filter Tabs + Sort Button */}
               <div className="flex justify-between items-center mb-4">
-                <div className="flex gap-2">
+                {/* <div className="flex gap-2">
                   <button className="px-4 py-2 rounded bg-blue-500 text-white font-semibold">합격</button>
                   <button className="px-4 py-2 rounded bg-red-500 text-white font-semibold">불합격</button>
                   <button className="px-4 py-2 rounded bg-gray-300 text-gray-700 font-semibold">제외</button>
-                </div>
+                </div> */}
                 <button className="text-sm text-gray-700 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm hover:bg-gray-100">
                   점수 정렬
                 </button>
@@ -163,7 +163,7 @@ export default function RejectedApplicants() {
                     </div>
                     {/* 점수 원 */}
                     <div className="w-16 h-16 border-2 border-blue-300 rounded-full flex items-center justify-center text-sm font-bold text-gray-800 dark:text-white">
-                      {applicant.score || 0}점
+                      {applicant.ai_score || 0}점
                     </div>
                   </div>
                 ))}

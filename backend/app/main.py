@@ -54,15 +54,20 @@ def safe_create_tables():
             
     except Exception as e:
         print(f"❌ Safe table creation failed: {e}")
+from app.models.interview_evaluation import auto_process_applications, auto_evaluate_all_applications
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("=== FastAPI 서버 시작 ===")
+    
     # Startup
     print("🚀 Starting application...")
     
     # 안전한 테이블 생성
     safe_create_tables()
+    Base.metadata.create_all(bind=engine)
+    print("데이터베이스 테이블 생성 완료")
     
     # 시드 데이터 실행
     try:
@@ -83,6 +88,19 @@ async def lifespan(app: FastAPI):
             
     except Exception as e:
         print(f"시드 데이터 실행 중 오류: {e}")
+    
+    # 서버 시작 시 즉시 AI 평가 실행
+    print("=== AI 평가 실행 시작 ===")
+    try:
+        print("서버 시작 시 AI 평가를 실행합니다...")
+        run_auto_process()
+        print("AI 평가 실행 완료!")
+    except Exception as e:
+        print(f"AI 평가 실행 중 오류: {e}")
+        import traceback
+        print(f"상세 오류: {traceback.format_exc()}")
+    
+    print("=== FastAPI 서버 시작 완료 ===")
     
     yield
     # Shutdown
@@ -118,9 +136,19 @@ app.include_router(api_router)
 
 
 def run_auto_process():
+    print("run_auto_process called") 
+    """자동 처리 함수"""
     db = SessionLocal()
     try:
+        # 기존 자동 처리
         auto_process_applications(db)
+        
+        # AI 평가 배치 프로세스 추가
+        auto_evaluate_all_applications(db)
+        
+        print("자동 처리 완료")
+    except Exception as e:
+        print(f"자동 처리 중 오류: {e}")
     finally:
         db.close()
 
