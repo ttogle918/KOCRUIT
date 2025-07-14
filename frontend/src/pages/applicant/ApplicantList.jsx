@@ -214,6 +214,31 @@ export default function ApplicantList() {
     setSelectedApplicantIndex(null);
   };
 
+  // AI 일괄 재평가 핸들러
+  const handleBatchReEvaluate = async () => {
+    if (!effectiveJobPostId) return;
+    if (!window.confirm('정말로 모든 지원자에 대해 AI 평가를 다시 실행하시겠습니까?\n\n이 작업은 시간이 오래 걸릴 수 있습니다 (최대 5분).')) return;
+    try {
+      setLoading(true);
+      console.log('AI 일괄 재평가 시작...');
+      await api.post(`/applications/job/${effectiveJobPostId}/batch-ai-re-evaluate`);
+      console.log('AI 일괄 재평가 완료');
+      alert('AI 일괄 재평가가 완료되었습니다!');
+      // 재평가 후 지원자 목록 새로고침
+      const appRes = await api.get(`/applications/job/${effectiveJobPostId}/applicants`);
+      setApplicants(appRes.data);
+    } catch (err) {
+      console.error('AI 일괄 재평가 오류:', err);
+      if (err.code === 'ECONNABORTED') {
+        alert('AI 일괄 재평가가 시간 초과되었습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        alert('AI 일괄 재평가 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // const selectedApplicant = selectedApplicantIndex !== null ? applicants[selectedApplicantIndex] : null;
 
 
@@ -379,7 +404,8 @@ export default function ApplicantList() {
     <Layout settingsButton={settingsButton}>
       <ViewPostSidebar jobPost={jobPost} />
       <div className="h-screen flex flex-col" style={{ marginLeft: 90 }}>
-        <div className="bg-white dark:bg-gray-800 shadow px-8 py-4 flex items-center justify-center">
+        {/* 상단 바 */}
+        <div className="bg-white dark:bg-gray-800 shadow px-8 py-4 flex items-center justify-between">
           <div className="text-lg font-semibold text-gray-700 dark:text-gray-300">
             보안SW 개발자 신입/경력사원 모집 (<span className="text-blue-700 dark:text-blue-400">C, C++</span>) - 소프트웨어 개발자
           </div>
@@ -400,6 +426,9 @@ export default function ApplicantList() {
               bookmarkedList={bookmarkedList}
               toggleBookmark={toggleBookmark}
               calculateAge={calculateAge}
+              onFilteredApplicantsChange={setFilteredApplicants}
+              onBatchReEvaluate={handleBatchReEvaluate}
+              loading={loading}
             />
           </div>
 
