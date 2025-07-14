@@ -47,7 +47,7 @@ function PostRecruitment() {
     company: null
   });
 
-  const [teamMembers, setTeamMembers] = useState([{ email: '', role: '' }]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [schedules, setSchedules] = useState([{ date: null, time: '', place: '' }]);
 
   const [weights, setWeights] = useState([]);
@@ -102,6 +102,11 @@ function PostRecruitment() {
               name: response.data.companyName
             }
           }));
+          
+          // 현재 사용자를 기본 팀 멤버로 추가
+          if (response.data.email) {
+            setTeamMembers([{ email: response.data.email, role: '관리자' }]);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -119,6 +124,7 @@ function PostRecruitment() {
   const isWeightsValid = weights.length >= 5 && weights.every(w => w.item && w.score !== '');
   const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid && isWeightsValid;
   const [showError, setShowError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -127,6 +133,7 @@ function PostRecruitment() {
       return;
     }
     setShowError(false);
+    setSubmitting(true); // 로딩 시작
     
     // Debug authentication
     console.log('Current user:', user);
@@ -144,6 +151,7 @@ function PostRecruitment() {
     if (!token) {
       alert('로그인이 필요합니다. 다시 로그인해주세요.');
       navigate('/login');
+      setSubmitting(false); // 로딩 종료
       return;
     }
     
@@ -218,6 +226,8 @@ function PostRecruitment() {
       }
       
       alert(error.response?.data?.detail?.[0]?.msg || error.response?.data?.message || '채용공고 등록에 실패했습니다.');
+    } finally {
+      setSubmitting(false); // 로딩 종료
     }
   };
 
@@ -530,6 +540,7 @@ function PostRecruitment() {
                           setShowMemberModal(true);
                         }}
                         readOnly
+                        disabled={idx === 0} // 첫 번째 멤버(현재 사용자)는 수정 불가
                       />
                       <select 
                         value={member.role} 
@@ -537,6 +548,7 @@ function PostRecruitment() {
                         className={`w-32 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${showError && !member.role ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
                         data-member-index={idx}
                         aria-label={`팀원 ${idx + 1} 권한 선택${member.role ? `: ${member.role}` : ''}`}
+                        disabled={idx === 0} // 첫 번째 멤버(현재 사용자)는 수정 불가
                       >
                         <option value="">권한 선택</option>
                         <option value="관리자">관리자</option>
@@ -544,7 +556,14 @@ function PostRecruitment() {
                       </select>
                       <button 
                         type="button" 
-                        onClick={() => setTeamMembers(prev => prev.filter((_, i) => i !== idx))} 
+                        onClick={() => {
+                          // 첫 번째 멤버(현재 사용자)는 삭제할 수 없도록 제한
+                          if (idx === 0 && teamMembers.length === 1) {
+                            alert('최소 한 명의 팀 멤버가 필요합니다.');
+                            return;
+                          }
+                          setTeamMembers(prev => prev.filter((_, i) => i !== idx));
+                        }} 
                         className="text-red-500 text-xl font-bold"
                         aria-label={`팀원 ${idx + 1} 삭제`}
                       >
@@ -566,6 +585,8 @@ function PostRecruitment() {
                   {showError && !isTeamValid && <div className="text-red-500 text-sm mt-1">모든 팀원 이메일과 권한을 입력하세요.</div>}
                   <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                     * 같은 회사 소속 멤버만 선택할 수 있습니다.
+                    <br />
+                    * 첫 번째 멤버는 공고 등록자로 자동 설정됩니다.
                   </div>
                 </div>
               </div>
@@ -755,9 +776,16 @@ function PostRecruitment() {
             </div>
           )}
           <div className="flex justify-center mt-10">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6 py-3 rounded text-lg">등록하기</button>
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6 py-3 rounded text-lg" disabled={submitting}>
+              {submitting ? '등록 중...' : '등록하기'}
+            </button>
           </div>
         </form>
+        {submitting && (
+          <div className="flex justify-center items-center mt-4">
+            <span className="text-blue-600 text-lg">등록 중입니다. 잠시만 기다려주세요...</span>
+          </div>
+        )}
       </div>
 
       {showMemberModal && (

@@ -8,6 +8,7 @@ from .notification import Notification
 from .schedule import Schedule, ScheduleInterview
 from .weight import Weight
 from .interview_evaluation import InterviewEvaluation, EvaluationDetail, InterviewEvaluationItem
+from .interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember, AssignmentType, AssignmentStatus, RequestStatus, PanelRole
 
 __all__ = [
     "Base",
@@ -19,5 +20,7 @@ __all__ = [
     "Notification",
     "Schedule", "ScheduleInterview",
     "Weight",
-    "InterviewEvaluation", "EvaluationDetail", "InterviewEvaluationItem"
+    "InterviewEvaluation", "EvaluationDetail", "InterviewEvaluationItem",
+    "InterviewPanelAssignment", "InterviewPanelRequest", "InterviewPanelMember",
+    "AssignmentType", "AssignmentStatus", "RequestStatus", "PanelRole"
 ] 

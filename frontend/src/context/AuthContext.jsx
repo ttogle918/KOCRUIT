@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ROLES } from '../constants/roles';
 import api from '../api/api';
+import { devLogin } from '../api/api';
 
 const AuthContext = createContext(null);
 
@@ -83,6 +84,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const fastLogin = async (email) => {
+    setError(null);
+    
+    try {
+      const response = await devLogin(email);
+      const { access_token } = response;
+      
+      localStorage.setItem('token', access_token);
+      
+      const userResponse = await api.get('/auth/me');
+      const userData = userResponse.data;
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      return true;
+    } catch (err) {
+      setError(err.response?.data?.detail || '빠른 로그인 실패');
+      return false;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -110,6 +132,7 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     error,
     login,
+    fastLogin,
     logout,
     hasRole,
     hasAnyRole,

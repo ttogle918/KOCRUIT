@@ -11,6 +11,7 @@ from typing import Optional
 from fastapi.security import OAuth2PasswordBearer
 from app.utils.send_email import send_verification_email
 from app.models.EmailVerificationToken import EmailVerificationToken
+from pydantic import BaseModel, EmailStr
 
 
 router = APIRouter()
@@ -34,6 +35,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+class DevLoginRequest(BaseModel):
+    email: EmailStr
 
 
 @router.post("/signup", response_model=str)
@@ -136,6 +141,16 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
     # Add company name if user is a company user
     if hasattr(current_user, 'company') and current_user.company:
         current_user.companyName = current_user.company.name
+    
+    # Ensure role is properly converted to enum
+    try:
+        # If role is a string, try to convert it to Role enum
+        if isinstance(current_user.role, str):
+            current_user.role = Role(current_user.role)
+    except ValueError:
+        # If the role string doesn't match any enum value, default to USER
+        current_user.role = Role.USER
+    
     return current_user
 
 
@@ -217,3 +232,24 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     record.is_verified = True
     db.commit()
     return {"msg": "이메일 인증이 완료되었습니다."}
+
+
+@router.post("/dev-login", response_model=LoginResponse)
+def dev_login(request: DevLoginRequest, db: Session = Depends(get_db)):
+    """
+    개발/테스트용: 이메일만 입력받아 해당 유저로 바로 로그인(JWT 발급)
+    운영 배포 전에는 반드시 제거/비활성화!
+    """
+    email = request.email
+    if not email:
+        raise HTTPException(status_code=400, detail="이메일이 필요합니다.")
+    # CompanyUser 우선 조회
+    user = db.query(CompanyUser).filter(CompanyUser.email == email).first()
+    if not user:
+        user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="해당 이메일의 사용자가 존재하지 않습니다.")
+    role_value = user.role.value if hasattr(user.role, 'value') else user.role
+    access_token = security.create_access_token({"sub": user.email, "role": role_value})
+    refresh_token = security.create_refresh_token({"sub": user.email})
+    return LoginResponse(access_token=access_token, refresh_token=refresh_token)

@@ -47,3 +47,7 @@ class UserDetail(BaseModel):
     
     class Config:
         from_attributes = True 
+
+
+class DevLoginRequest(BaseModel):
+    email: EmailStr 

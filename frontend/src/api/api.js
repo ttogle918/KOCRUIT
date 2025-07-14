@@ -77,3 +77,14 @@ export const extractWeights = async (jobPostingContent, existingWeights = []) =>
     throw error;
   }
 };
+
+// 개발자 전용 빠른 로그인 API
+export const devLogin = async (email) => {
+  try {
+    const response = await api.post('/auth/dev-login', { email });
+    return response.data;
+  } catch (error) {
+    console.error('빠른 로그인 실패:', error);
+    throw error;
+  }
+};
