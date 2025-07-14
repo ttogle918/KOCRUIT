@@ -44,9 +44,11 @@ class UserDetail(BaseModel):
     birth_date: Optional[date] = None
     company_id: Optional[int] = None  # 회사 ID 추가
     companyName: Optional[str] = None  # 회사명 추가
+    department_id: Optional[int] = None  # 부서 ID 추가
+    department_name: Optional[str] = None  # 부서명 추가
     
     class Config:
-        from_attributes = True 
+        from_attributes = True
 
 
 class DevLoginRequest(BaseModel):

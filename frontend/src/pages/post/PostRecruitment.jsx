@@ -578,7 +578,8 @@ function PostRecruitment() {
                       setTeamMembers(prev => [...prev, { email: '', role: '' }]);
                       setShowMemberModal(true);
                     }} 
-                    className="text-sm text-blue-600 hover:underline ml-4 mt-3"
+                    className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
+                    aria-label="새로운 팀 멤버 추가"
                   >
                     + 멤버 추가
                   </button>
@@ -724,14 +725,6 @@ function PostRecruitment() {
                       </div>
                     </div>
                   ))}
-                  <button 
-                    type="button" 
-                    onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
-                    className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
-                    aria-label="새로운 가중치 항목 추가"
-                  >
-                    + 가중치 추가
-                  </button>
                   <div className="sr-only" id="weights-description">
                     현재 설정된 가중치 항목: {weights.filter(w => w.item && w.score).map((w, idx) => `${idx + 1}. ${w.item} (${w.score})`).join(', ')}
                   </div>
@@ -745,7 +738,7 @@ function PostRecruitment() {
                       모든 가중치 항목의 항목명과 점수를 입력하세요.
                     </div>
                   )}
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-gray-700 dark:text-gray-300">AI 가중치 추출</span>
                     <button 
                       type="button" 
@@ -756,6 +749,14 @@ function PostRecruitment() {
                       {isExtractingWeights ? '추출 중...' : 'AI 가중치 추출'}
                     </button>
                   </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
+                    className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
+                    aria-label="새로운 가중치 항목 추가"
+                  >
+                    + 가중치 추가
+                  </button>
                   <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded" role="note">
                     <strong>가중치 점수 설명:</strong><br/>
                     • 0.0: 매우 낮은 중요도<br/>
@@ -791,6 +792,7 @@ function PostRecruitment() {
       {showMemberModal && (
         <CompanyMemberSelectModal
           companyId={userCompanyId}
+          selectedMembers={teamMembers.filter(member => member.email && member.email.trim() !== '')}
           onSelect={(email, name) => {
             if (selectedMemberIndex !== null) {
               setTeamMembers(prev => prev.map((member, idx) => 
