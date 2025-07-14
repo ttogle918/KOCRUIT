@@ -1,7 +1,7 @@
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, Annotated
+from typing import TypedDict, Annotated, Optional
 from tools.resume_scoring_tool import resume_scoring_tool
 from tools.pass_reason_tool import pass_reason_tool
 from tools.fail_reason_tool import fail_reason_tool
@@ -12,6 +12,7 @@ class ApplicationState(TypedDict):
     job_posting: str
     spec_data: dict
     resume_data: dict
+    weight_data: Optional[dict]  # weight_data 필드를 Optional로 정의
     ai_score: float
     scoring_details: dict
     pass_reason: str
@@ -62,7 +63,7 @@ def evaluate_application(job_posting: str, spec_data: dict, resume_data: dict, w
         "job_posting": job_posting,
         "spec_data": spec_data,
         "resume_data": resume_data,
-        "weight_data": weight_data or {},
+        "weight_data": weight_data if weight_data is not None else {},
         "ai_score": 0.0,
         "scoring_details": {},
         "pass_reason": "",

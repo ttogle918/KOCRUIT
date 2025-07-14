@@ -217,22 +217,22 @@ export default function ApplicantList() {
   // AI 일괄 재평가 핸들러
   const handleBatchReEvaluate = async () => {
     if (!effectiveJobPostId) return;
-    if (!window.confirm('정말로 모든 지원자에 대해 AI 평가를 다시 실행하시겠습니까?\n\n이 작업은 시간이 오래 걸릴 수 있습니다 (최대 5분).')) return;
+    if (!window.confirm('정말로 모든 지원자의 AI 점수를 초기화하고 재평가를 실행하시겠습니까?\n\n• 기존 AI 점수, 합격/불합격 사유가 모두 초기화됩니다\n• 지원자 상태가 대기 상태로 변경됩니다\n• 새로운 AI 평가가 즉시 실행됩니다\n\n이 작업은 시간이 오래 걸릴 수 있습니다 (최대 5분).')) return;
     try {
       setLoading(true);
-      console.log('AI 일괄 재평가 시작...');
-      await api.post(`/applications/job/${effectiveJobPostId}/batch-ai-re-evaluate`);
-      console.log('AI 일괄 재평가 완료');
-      alert('AI 일괄 재평가가 완료되었습니다!');
+      console.log('AI 점수 초기화 및 재평가 시작...');
+      await api.post(`/applications/job/${effectiveJobPostId}/reset-ai-scores`);
+      console.log('AI 점수 초기화 및 재평가 완료');
+      alert('AI 점수 초기화 및 재평가가 완료되었습니다!');
       // 재평가 후 지원자 목록 새로고침
       const appRes = await api.get(`/applications/job/${effectiveJobPostId}/applicants`);
       setApplicants(appRes.data);
     } catch (err) {
-      console.error('AI 일괄 재평가 오류:', err);
+      console.error('AI 점수 초기화 및 재평가 오류:', err);
       if (err.code === 'ECONNABORTED') {
-        alert('AI 일괄 재평가가 시간 초과되었습니다. 잠시 후 다시 시도해주세요.');
+        alert('AI 점수 초기화 및 재평가가 시간 초과되었습니다. 잠시 후 다시 시도해주세요.');
       } else {
-        alert('AI 일괄 재평가 중 오류가 발생했습니다.');
+        alert('AI 점수 초기화 및 재평가 중 오류가 발생했습니다.');
       }
     } finally {
       setLoading(false);

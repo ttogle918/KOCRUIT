@@ -3,27 +3,6 @@ import { FaArrowLeft, FaStar, FaRegStar, FaEnvelope, FaPhone, FaCalendarAlt } fr
 import api from '../api/api';
 import { calculateAge } from '../utils/resumeUtils';
 
-function generateQuestions(resume) {
-  if (!resume) return [];
-  const questions = [];
-  if (resume.skills && resume.skills.length > 0) {
-    questions.push(`보유 기술(${Array.isArray(resume.skills) ? resume.skills.join(', ') : resume.skills}) 중 가장 자신 있는 기술과 그 이유를 말씀해 주세요.`);
-  }
-  if (resume.experience && resume.experience.length > 0) {
-    questions.push('경력 사항 중 가장 기억에 남는 프로젝트/업무 경험을 구체적으로 설명해 주세요.');
-  }
-  if (resume.certifications && resume.certifications.length > 0) {
-    questions.push('보유 자격증이 실제 업무에 어떻게 도움이 되었는지 예시를 들어 설명해 주세요.');
-  }
-  if (resume.content && resume.content.length > 0) {
-    questions.push('자기소개서에서 강조한 강점이 실제로 발휘된 사례를 말씀해 주세요.');
-  }
-  if (questions.length === 0) {
-    questions.push('이력서 기반 맞춤 질문이 없습니다.');
-  }
-  return questions;
-}
-
 const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +11,11 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   const [aiScore, setAiScore] = useState(applicant?.ai_score || 0);
   const [aiPassReason, setAiPassReason] = useState(applicant?.pass_reason || '');
   const [aiFailReason, setAiFailReason] = useState(applicant?.fail_reason || '');
+
+  // AI 질문 상태
+  const [questionLoading, setQuestionLoading] = useState(false);
+  const [questionError, setQuestionError] = useState(null);
+  const [aiQuestions, setAiQuestions] = useState([]);
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -59,13 +43,56 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
       setAiFailReason(applicant.fail_reason || '');
     }
   }, [applicant?.ai_score, applicant?.pass_reason, applicant?.fail_reason]);
-  
 
-
-
-
-
-
+  // AI 기반 이력서 질문 생성
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      if (!applicant?.application_id && !applicant?.applicationId) return;
+      setQuestionLoading(true);
+      setQuestionError(null);
+      setAiQuestions([]);
+      try {
+        const response = await api.post('/interview-questions/job-questions', {
+          application_id: applicant.application_id || applicant.applicationId,
+          company_name: applicant.companyName || applicant.company_name || '회사'
+        });
+        
+        // API 응답 구조 디버깅을 위한 콘솔 로그
+        console.log('=== AI 질문 API 응답 디버깅 ===');
+        console.log('전체 응답:', response);
+        console.log('response.data:', response.data);
+        console.log('response.data.question_categories:', response.data?.question_categories);
+        console.log('response.data.questions:', response.data?.questions);
+        console.log('response.data 타입:', typeof response.data);
+        console.log('response.data가 객체인가?', typeof response.data === 'object' && !Array.isArray(response.data));
+        console.log('response.data 키들:', Object.keys(response.data || {}));
+        console.log('================================');
+        
+        // question_bundle 필드를 우선적으로 사용 (실제 질문이 있는 필드)
+        let q = response.data?.question_bundle || response.data?.question_categories || response.data?.questions || {};
+        
+        console.log('question_bundle 내용:', response.data?.question_bundle);
+        
+        // 배열이면 객체로 변환
+        if (Array.isArray(q)) {
+          console.log('응답이 배열입니다. 객체로 변환합니다.');
+          q = { "AI 질문": q };
+        }
+        
+        console.log('최종 파싱된 질문 데이터:', q);
+        console.log('질문 데이터 타입:', typeof q);
+        console.log('질문 데이터 키 개수:', Object.keys(q).length);
+        
+        setAiQuestions(q);
+      } catch (err) {
+        console.error('AI 질문 fetch 에러:', err);
+        setQuestionError('AI 질문 생성 중 오류가 발생했습니다.');
+      } finally {
+        setQuestionLoading(false);
+      }
+    };
+    fetchQuestions();
+  }, [applicant?.application_id, applicant?.applicationId, applicant?.companyName, applicant?.company_name]);
 
   const handleBookmarkToggle = async () => {
     try {
@@ -116,8 +143,6 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
       </div>
     );
   }
-
-  const questions = generateQuestions(resume);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 h-full overflow-y-auto">
@@ -175,16 +200,6 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
         </div>
       </div>
 
-      {/* 이력서 기반 개인별 질문 */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">이력서 기반 개인별 질문</h3>
-        <ul className="list-disc pl-6 space-y-2">
-          {questions.map((q, idx) => (
-            <li key={idx} className="text-gray-700 dark:text-gray-300">{q}</li>
-          ))}
-        </ul>
-      </div>
-
       {/* Resume Details */}
       {resume && (
         <div className="mb-6">
@@ -238,6 +253,33 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
           </p>
         </div>
       </div>
+
+      {/* 이력서 기반 개인별 질문 - 합격자만 표시 */}
+      {applicant?.status === 'PASSED' && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">이력서 기반 개인별 질문</h3>
+          {questionLoading ? (
+            <div className="text-blue-500">AI 질문 생성 중...</div>
+          ) : questionError ? (
+            <div className="text-red-500">{questionError}</div>
+          ) : aiQuestions && Object.keys(aiQuestions).length > 0 ? (
+            <div className="space-y-2">
+              {Object.entries(aiQuestions).map(([category, questions]) => (
+                <div key={category}>
+                  <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">{category}</div>
+                  <ul className="list-disc pl-6">
+                    {Array.isArray(questions) && questions.map((q, idx) => (
+                      <li key={idx} className="text-gray-700 dark:text-gray-300">{q}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-gray-500">AI 질문이 없습니다.</div>
+          )}
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-3">

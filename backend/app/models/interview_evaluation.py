@@ -107,11 +107,12 @@ def auto_evaluate_all_applications(db: Session):
             # Spec 데이터 구성
             spec_data = {
                 "education": {},
-                "experience": {},
+                "certifications": [],
+                "awards": [],
                 "skills": {},
-                "portfolio": {}
+                "activities": [],
+                "projects": []
             }
-            
             if resume.specs:
                 for spec in resume.specs:
                     if spec.spec_type == "education":
@@ -123,22 +124,70 @@ def auto_evaluate_all_applications(db: Session):
                             spec_data["education"]["degree"] = spec.spec_description
                         elif spec.spec_title == "gpa":
                             spec_data["education"]["gpa"] = float(spec.spec_description) if spec.spec_description and spec.spec_description.replace('.', '').isdigit() else 0.0
-                    elif spec.spec_type == "activity":
-                        if spec.spec_title == "organization":
-                            spec_data["experience"]["companies"] = [spec.spec_description]
-                        elif spec.spec_title == "role":
-                            spec_data["experience"]["position"] = spec.spec_description
-                        elif spec.spec_title == "duration":
-                            spec_data["experience"]["duration"] = spec.spec_description
-                    elif spec.spec_type == "project_experience":
-                        if spec.spec_title == "title":
-                            spec_data["experience"]["projects"] = [spec.spec_description]
-                    elif spec.spec_type == "skills":
-                        if spec.spec_title == "name":
-                            spec_data["skills"]["programming_languages"] = [spec.spec_description]
+                        elif spec.spec_title == "start_date":
+                            spec_data["education"]["start_date"] = spec.spec_description
+                        elif spec.spec_title == "end_date":
+                            spec_data["education"]["end_date"] = spec.spec_description
                     elif spec.spec_type == "certifications":
                         if spec.spec_title == "name":
-                            spec_data["skills"]["certifications"] = [spec.spec_description]
+                            spec_data["certifications"].append(spec.spec_description)
+                        elif spec.spec_title == "date":
+                            if spec_data["certifications"]:
+                                spec_data["certifications"][-1] = f"{spec_data['certifications'][-1]} ({spec.spec_description})"
+                    elif spec.spec_type == "awards":
+                        if spec.spec_title == "title":
+                            spec_data["awards"].append(spec.spec_description)
+                        elif spec.spec_title == "date":
+                            if spec_data["awards"]:
+                                spec_data["awards"][-1] = f"{spec_data['awards'][-1]} ({spec.spec_description})"
+                        elif spec.spec_title == "description":
+                            if spec_data["awards"]:
+                                spec_data["awards"][-1] = f"{spec_data['awards'][-1]} - {spec.spec_description}"
+                    elif spec.spec_type == "skills":
+                        if spec.spec_title == "name" or spec.spec_title == "내용":
+                            if "programming_languages" not in spec_data["skills"]:
+                                spec_data["skills"]["programming_languages"] = []
+                            spec_data["skills"]["programming_languages"].append(spec.spec_description)
+                    elif spec.spec_type == "activities":
+                        if spec.spec_title == "organization":
+                            activity = {"organization": spec.spec_description}
+                            spec_data["activities"].append(activity)
+                        elif spec.spec_title == "role":
+                            if spec_data["activities"]:
+                                spec_data["activities"][-1]["role"] = spec.spec_description
+                        elif spec.spec_title == "period":
+                            if spec_data["activities"]:
+                                spec_data["activities"][-1]["period"] = spec.spec_description
+                        elif spec.spec_title == "description":
+                            if spec_data["activities"]:
+                                spec_data["activities"][-1]["description"] = spec.spec_description
+                    elif spec.spec_type == "project_experience":
+                        if spec.spec_title == "title":
+                            project = {"title": spec.spec_description}
+                            spec_data["projects"].append(project)
+                        elif spec.spec_title == "role":
+                            if spec_data["projects"]:
+                                spec_data["projects"][-1]["role"] = spec.spec_description
+                        elif spec.spec_title == "duration":
+                            if spec_data["projects"]:
+                                spec_data["projects"][-1]["duration"] = spec.spec_description
+                        elif spec.spec_title == "technologies":
+                            if spec_data["projects"]:
+                                spec_data["projects"][-1]["technologies"] = spec.spec_description
+                        elif spec.spec_title == "description":
+                            if spec_data["projects"]:
+                                spec_data["projects"][-1]["description"] = spec.spec_description
+            # 모든 spec 타입이 항상 포함되도록 보장
+            for key, default in [
+                ("education", {}),
+                ("certifications", []),
+                ("awards", []),
+                ("skills", {}),
+                ("activities", []),
+                ("projects", [])
+            ]:
+                if key not in spec_data:
+                    spec_data[key] = default
             
             # 이력서 데이터 구성
             resume_data = {
@@ -168,6 +217,11 @@ def auto_evaluate_all_applications(db: Session):
                 Weight.jobpost_id == job_post.id
             ).all()
             weight_dict = {w.field_name: w.weight_value for w in weights}
+            
+            # Weight 데이터 로깅 추가
+            print(f"Weight 데이터 - job_post_id={job_post.id}:")
+            print(f"  조회된 weight 개수: {len(weights)}")
+            print(f"  weight_dict: {weight_dict}")
 
             # AI Agent API 호출
             agent_url = "http://kocruit_agent:8001/evaluate-application/"
@@ -178,10 +232,25 @@ def auto_evaluate_all_applications(db: Session):
                 "weight_data": weight_dict
             }
             
+            # Payload 로깅 추가
+            print(f"AI Agent 요청 payload - application_id={application.id}:")
+            print(f"  job_posting 길이: {len(job_posting)}")
+            print(f"  spec_data 키: {list(spec_data.keys())}")
+            print(f"  resume_data 키: {list(resume_data.keys())}")
+            print(f"  weight_data 키: {list(weight_dict.keys())}")
+            
             response = requests.post(agent_url, json=payload, timeout=30)
             response.raise_for_status()
             
             result = response.json()
+            
+            # AI Agent 응답 로깅 추가
+            print(f"AI Agent 응답 - application_id={application.id}:")
+            print(f"  ai_score: {result.get('ai_score', 0.0)}")
+            print(f"  status: {result.get('status', 'REJECTED')}")
+            print(f"  pass_reason: {result.get('pass_reason', '')[:100]}...")
+            print(f"  fail_reason: {result.get('fail_reason', '')[:100]}...")
+            print(f"  전체 응답: {result}")
             
             # 데이터베이스 업데이트
             application.ai_score = result.get("ai_score", 0.0)

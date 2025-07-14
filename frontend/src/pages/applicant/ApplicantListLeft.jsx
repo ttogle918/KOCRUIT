@@ -100,14 +100,14 @@ function ApplicantListLeft({
             className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-xs h-7"
             style={{ minWidth: 100 }}
           />
-          {/* AI 일괄 재평가 버튼 */}
+          {/* AI 점수 초기화 및 재평가 버튼 */}
           {onBatchReEvaluate && (
             <button
               className="px-3 py-1 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors text-xs font-semibold"
               onClick={onBatchReEvaluate}
               disabled={loading}
             >
-              {loading ? '재평가 중...' : 'AI 재평가'}
+              {loading ? '초기화 중...' : 'AI 점수 초기화'}
             </button>
           )}
           <div className="flex-1" />

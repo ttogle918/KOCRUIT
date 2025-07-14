@@ -16,6 +16,12 @@ function ViewPost() {
   const [jobPost, setJobPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // 면접 일정 페이징 상태
+  const [displayedSchedules, setDisplayedSchedules] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreSchedules, setHasMoreSchedules] = useState(false);
+  const schedulesPerPage = 5;
 
   useEffect(() => {
     const fetchJobPost = async () => {
@@ -35,6 +41,27 @@ function ViewPost() {
       fetchJobPost();
     }
   }, [jobPostId]);
+
+  // 면접 일정 페이징 처리
+  useEffect(() => {
+    if (jobPost?.interview_schedules) {
+      // 날짜순으로 정렬 (가까운 날짜부터)
+      const sortedSchedules = [...jobPost.interview_schedules].sort((a, b) => {
+        return new Date(a.scheduled_at) - new Date(b.scheduled_at);
+      });
+      
+      // 현재 페이지까지의 일정만 표시
+      const endIndex = currentPage * schedulesPerPage;
+      const schedulesToShow = sortedSchedules.slice(0, endIndex);
+      
+      setDisplayedSchedules(schedulesToShow);
+      setHasMoreSchedules(endIndex < sortedSchedules.length);
+    }
+  }, [jobPost, currentPage]);
+
+  const loadMoreSchedules = () => {
+    setCurrentPage(prev => prev + 1);
+  };
 
   const handleDelete = async () => {
     if (window.confirm('이 공고를 삭제하시겠습니까?')) {
@@ -157,46 +184,68 @@ function ViewPost() {
               {jobPost.interview_schedules && jobPost.interview_schedules.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
                   <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">면접 일정</h4>
-                  <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
-                    {jobPost.interview_schedules.map((schedule, idx) => {
-                      const scheduleDate = new Date(schedule.scheduled_at);
-                      const formattedDate = scheduleDate.toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      });
-                      const formattedTime = scheduleDate.toLocaleTimeString('ko-KR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                      });
-                      
-                      return (
-                        <div key={idx} className="border-b border-gray-200 dark:border-gray-600 pb-2 last:border-b-0">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-900 dark:text-white">
-                                {formattedDate} {formattedTime}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                📍 {schedule.location}
-                              </p>
+                  <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3">
+                    {/* 스크롤 가능한 일정 목록 */}
+                    <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+                      {displayedSchedules.map((schedule, idx) => {
+                        const scheduleDate = new Date(schedule.scheduled_at);
+                        const formattedDate = scheduleDate.toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        });
+                        const formattedTime = scheduleDate.toLocaleTimeString('ko-KR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false
+                        });
+                        
+                        return (
+                          <div key={idx} className="border-b border-gray-200 dark:border-gray-600 pb-2 last:border-b-0">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900 dark:text-white">
+                                  {formattedDate} {formattedTime}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                  📍 {schedule.location}
+                                </p>
+                              </div>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                schedule.status === 'SCHEDULED' 
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                  : schedule.status === 'COMPLETED'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                              }`}>
+                                {schedule.status === 'SCHEDULED' ? '예정' : 
+                                 schedule.status === 'COMPLETED' ? '완료' : 
+                                 schedule.status === 'CANCELLED' ? '취소' : schedule.status}
+                              </span>
                             </div>
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              schedule.status === 'SCHEDULED' 
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                                : schedule.status === 'COMPLETED'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            }`}>
-                              {schedule.status === 'SCHEDULED' ? '예정' : 
-                               schedule.status === 'COMPLETED' ? '완료' : 
-                               schedule.status === 'CANCELLED' ? '취소' : schedule.status}
-                            </span>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                    
+                    {/* 더보기 버튼 */}
+                    {hasMoreSchedules && (
+                      <div className="mt-4 text-center">
+                        <button
+                          onClick={loadMoreSchedules}
+                          className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-4 py-2 rounded text-sm transition-colors"
+                        >
+                          더보기 ({displayedSchedules.length}/{jobPost.interview_schedules.length})
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* 전체 일정 표시 완료 메시지 */}
+                    {!hasMoreSchedules && jobPost.interview_schedules.length > 0 && (
+                      <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        전체 {jobPost.interview_schedules.length}개 일정을 모두 표시했습니다.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
