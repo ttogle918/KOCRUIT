@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import api_key
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from app.core.database import get_db
 from app.schemas.interview_question import InterviewQuestion, InterviewQuestionCreate
 from app.models.resume import Resume, Spec
@@ -455,7 +454,7 @@ async def generate_interview_checklist(request: InterviewChecklistRequest, db: S
         checklist_result = generate_interview_checklist(
             resume_text=resume_text,
             job_info=job_info,
-            company_name=request.company_name
+            company_name=request.company_name or "회사"
         )
         
         return checklist_result
@@ -488,7 +487,7 @@ async def analyze_strengths_weaknesses(request: StrengthsWeaknessesRequest, db: 
         analysis_result = analyze_candidate_strengths_weaknesses(
             resume_text=resume_text,
             job_info=job_info,
-            company_name=request.company_name
+            company_name=request.company_name or "회사"
         )
         
         return analysis_result
@@ -684,29 +683,191 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.tools.portfolio_tool import portfolio_tool
         
-        # 직무 맞춤형 질문 생성
+        # 포트폴리오 링크 수집 및 분석
+        applicant_name = getattr(request, 'name', '') or ''
+        portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, applicant_name)
+        portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
+        
+        # 통합 질문 생성
+        payload = {
+            'resume_text': resume_text,
+            'job_info': job_info,
+            'company_name': actual_company_name,
+            'job_matching_info': job_matching_info
+        }
+        print("[job-questions] payload:", payload)
         question_bundle = generate_job_question_bundle(
             resume_text=resume_text,
             job_info=job_info,
-            # company_name=request.company_name,    # 이건, company_name이 공고 제목에서 회사명을 추출한 것(등록된것과다를수있음)
-            # 실제데이터가아니라서 이게 더나은거같기도하고
             company_name=actual_company_name,
             job_matching_info=job_matching_info
         )
+        print("[job-questions] result:", question_bundle)
         
         # 모든 질문을 하나의 리스트로 통합
         all_questions = []
-        all_questions.extend(question_bundle.get("직무 적합성", []))
-        all_questions.extend(question_bundle.get("기술 스택", []))
-        all_questions.extend(question_bundle.get("업무 이해도", []))
-        all_questions.extend(question_bundle.get("경력 활용", []))
-        all_questions.extend(question_bundle.get("상황 대처", []))
+        all_questions.extend(question_bundle.get("기술 역량", []))
+        all_questions.extend(question_bundle.get("직무 경험", []))
+        all_questions.extend(question_bundle.get("프로젝트", []))
+        all_questions.extend(question_bundle.get("문제 해결", []))
+        all_questions.extend(question_bundle.get("팀워크", []))
+        all_questions.extend(question_bundle.get("성장 의지", []))
         
         return {
+            "application_id": request.application_id,
+            "company_name": actual_company_name,
             "questions": all_questions,
             "question_bundle": question_bundle,
             "job_matching_info": job_matching_info
         }
+    except Exception as e:
+        import traceback
+        print("=== [job-questions] Exception ===")
+        print(e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/passed-applicants-questions", response_model=Dict[str, Any])
+async def generate_passed_applicants_questions(
+    request: dict,
+    db: Session = Depends(get_db)
+):
+    job_post_id = request.get("job_post_id")
+    company_name = request.get("company_name", "회사")
+    """서류 합격자들에 대한 개인별 면접 질문 일괄 생성"""
+    # POST /api/v1/interview-questions/passed-applicants-questions
+    # Content-Type: application/json
+    # {
+    #   "job_post_id": 17,
+    #   "company_name": "KOSA공공"
+    # }
+
+    try:
+        # 서류 합격자 조회 - applications.py의 함수를 직접 호출
+        from app.api.v1.applications import get_passed_applicants
+        passed_applicants_response = get_passed_applicants(job_post_id, db)
+        passed_applicants = passed_applicants_response.get("passed_applicants", [])
+        
+        if not passed_applicants:
+            return {
+                "message": "서류 합격자가 없습니다.",
+                "total_applicants": 0,
+                "personal_questions": {}
+            }
+        
+        # JobPost 데이터 조회
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        
+        # 채용공고 정보 파싱
+        job_posting = parse_job_post_data(job_post)
+        
+        # 실제 회사명 가져오기
+        actual_company_name = job_post.company.name if job_post.company else company_name
+        
+        # 각 합격자에 대한 개인별 질문 생성
+        applicants_data = []
+        
+        for applicant in passed_applicants:
+            # Resume 데이터 조회
+            resume = db.query(Resume).filter(Resume.id == applicant["resume_id"]).first()
+            if not resume:
+                continue
+            
+            # Spec 데이터 조회
+            specs = db.query(Spec).filter(Spec.resume_id == applicant["resume_id"]).all()
+            
+            # Resume + Spec 통합 텍스트 생성
+            resume_text = combine_resume_and_specs(resume, specs)
+            
+            # 이력서 데이터 구성
+            resume_data = {
+                "personal_info": {
+                    "name": applicant["name"],
+                    "email": applicant["email"],
+                    "phone": applicant.get("phone", ""),
+                    "address": applicant.get("address", "")
+                },
+                "education": {
+                    "university": applicant.get("education", ""),
+                    "major": applicant.get("major", ""),
+                    "degree": applicant.get("degree_type", ""),
+                    "gpa": ""
+                },
+                "experience": {
+                    "companies": [],
+                    "position": "",
+                    "duration": ""
+                },
+                "skills": {
+                    "programming_languages": [],
+                    "frameworks": [],
+                    "databases": [],
+                    "tools": []
+                },
+                "projects": [],
+                "activities": [],
+                "certificates": applicant.get("certificates", [])
+            }
+            
+            # Spec 데이터에서 추가 정보 추출
+            for spec in specs:
+                if spec.spec_type == "experience" and spec.spec_title == "company":
+                    resume_data["experience"]["companies"].append(spec.spec_description or "")
+                elif spec.spec_type == "experience" and spec.spec_title == "position":
+                    resume_data["experience"]["position"] = spec.spec_description or ""
+                elif spec.spec_type == "experience" and spec.spec_title == "duration":
+                    resume_data["experience"]["duration"] = spec.spec_description or ""
+                elif spec.spec_type == "skills" and spec.spec_title == "name":
+                    if "Java" in (spec.spec_description or ""):
+                        resume_data["skills"]["programming_languages"].append("Java")
+                    if "Python" in (spec.spec_description or ""):
+                        resume_data["skills"]["programming_languages"].append("Python")
+                    if "Spring" in (spec.spec_description or ""):
+                        resume_data["skills"]["frameworks"].append("Spring")
+                    if "React" in (spec.spec_description or ""):
+                        resume_data["skills"]["frameworks"].append("React")
+                elif spec.spec_type == "projects" and spec.spec_title == "name":
+                    resume_data["projects"].append({
+                        "name": spec.spec_description or "",
+                        "description": ""
+                    })
+                elif spec.spec_type == "activities" and spec.spec_title == "name":
+                    resume_data["activities"].append({
+                        "name": spec.spec_description or "",
+                        "description": ""
+                    })
+            
+            applicants_data.append({
+                "name": applicant["name"],
+                "resume_data": resume_data,
+                "resume_text": resume_text
+            })
+        
+        # AI Agent를 통한 개인별 질문 생성
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.tools.personal_question_tool import generate_batch_personal_questions
+        
+        # 일괄 질문 생성
+        batch_questions = generate_batch_personal_questions(
+            applicants_data=applicants_data,
+            job_posting=job_posting,
+            company_name=actual_company_name
+        )
+        
+        return {
+            "message": "서류 합격자 개인별 질문 생성 완료",
+            "job_post_id": job_post_id,
+            "company_name": actual_company_name,
+            "total_applicants": len(passed_applicants),
+            "personal_questions": batch_questions.get("personal_questions", {})
+        }
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

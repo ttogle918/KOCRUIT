@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import Table, MetaData, select
 from typing import List
+import json
+import re
 from app.core.database import get_db
 from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
@@ -10,16 +13,8 @@ from app.models.application import Application, ApplyStatus, ApplicationStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
-from app.models.user import User
 from app.models.applicant_user import ApplicantUser
-import re
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.models.application import Application
-from app.models.user import User
 from app.models.schedule import ScheduleInterview
-from sqlalchemy import Table, MetaData, select
 from app.models.job import JobPost
 from app.models.weight import Weight
 
@@ -316,13 +311,18 @@ def ai_evaluate_application(
     # Spec 데이터 구성
     spec_data = {
         "education": {},
-        "experience": {},
+        "certifications": [],
+        "awards": [],
         "skills": {},
-        "portfolio": {}
+        "activities": [],
+        "projects": []
     }
     
     if resume.specs:
+        print(f"[AI-EVALUATION] 총 {len(resume.specs)}개의 spec 데이터 발견")
         for spec in resume.specs:
+            print(f"[AI-EVALUATION] Spec: type={spec.spec_type}, title={spec.spec_title}, description={spec.spec_description}")
+            
             if spec.spec_type == "education":
                 if spec.spec_title == "institution":
                     spec_data["education"]["university"] = spec.spec_description
@@ -332,23 +332,82 @@ def ai_evaluate_application(
                     spec_data["education"]["degree"] = spec.spec_description
                 elif spec.spec_title == "gpa":
                     spec_data["education"]["gpa"] = float(spec.spec_description) if spec.spec_description and spec.spec_description.replace('.', '').isdigit() else 0.0
-            elif spec.spec_type == "activity":
-                if spec.spec_title == "organization":
-                    spec_data["experience"]["companies"] = [spec.spec_description]
-                elif spec.spec_title == "role":
-                    spec_data["experience"]["position"] = spec.spec_description
-                elif spec.spec_title == "duration":
-                    spec_data["experience"]["duration"] = spec.spec_description
-            elif spec.spec_type == "project_experience":
-                if spec.spec_title == "title":
-                    spec_data["experience"]["projects"] = [spec.spec_description]
-            elif spec.spec_type == "skills":
-                if spec.spec_title == "name":
-                    spec_data["skills"]["programming_languages"] = [spec.spec_description]
+                elif spec.spec_title == "start_date":
+                    spec_data["education"]["start_date"] = spec.spec_description
+                elif spec.spec_title == "end_date":
+                    spec_data["education"]["end_date"] = spec.spec_description
+            
             elif spec.spec_type == "certifications":
                 if spec.spec_title == "name":
-                    spec_data["skills"]["certifications"] = [spec.spec_description]
+                    spec_data["certifications"].append(spec.spec_description)
+                    print(f"[AI-EVALUATION] 자격증 추가: {spec.spec_description}")
+                elif spec.spec_title == "date":
+                    if spec_data["certifications"]:
+                        # 마지막 자격증에 날짜 정보 추가
+                        spec_data["certifications"][-1] = f"{spec_data['certifications'][-1]} ({spec.spec_description})"
+            
+            elif spec.spec_type == "awards":
+                if spec.spec_title == "title":
+                    spec_data["awards"].append(spec.spec_description)
+                elif spec.spec_title == "date":
+                    if spec_data["awards"]:
+                        spec_data["awards"][-1] = f"{spec_data['awards'][-1]} ({spec.spec_description})"
+                elif spec.spec_title == "description":
+                    if spec_data["awards"]:
+                        spec_data["awards"][-1] = f"{spec_data['awards'][-1]} - {spec.spec_description}"
+            
+            elif spec.spec_type == "skills":
+                if spec.spec_title == "name" or spec.spec_title == "내용":
+                    if "programming_languages" not in spec_data["skills"]:
+                        spec_data["skills"]["programming_languages"] = []
+                    spec_data["skills"]["programming_languages"].append(spec.spec_description)
+            
+            elif spec.spec_type == "activities":
+                if spec.spec_title == "organization":
+                    activity = {"organization": spec.spec_description}
+                    spec_data["activities"].append(activity)
+                elif spec.spec_title == "role":
+                    if spec_data["activities"]:
+                        spec_data["activities"][-1]["role"] = spec.spec_description
+                elif spec.spec_title == "period":
+                    if spec_data["activities"]:
+                        spec_data["activities"][-1]["period"] = spec.spec_description
+                elif spec.spec_title == "description":
+                    if spec_data["activities"]:
+                        spec_data["activities"][-1]["description"] = spec.spec_description
+            
+            elif spec.spec_type == "project_experience":
+                if spec.spec_title == "title":
+                    project = {"title": spec.spec_description}
+                    spec_data["projects"].append(project)
+                elif spec.spec_title == "role":
+                    if spec_data["projects"]:
+                        spec_data["projects"][-1]["role"] = spec.spec_description
+                elif spec.spec_title == "duration":
+                    if spec_data["projects"]:
+                        spec_data["projects"][-1]["duration"] = spec.spec_description
+                elif spec.spec_title == "technologies":
+                    if spec_data["projects"]:
+                        spec_data["projects"][-1]["technologies"] = spec.spec_description
+                elif spec.spec_title == "description":
+                    if spec_data["projects"]:
+                        spec_data["projects"][-1]["description"] = spec.spec_description
+    else:
+        print(f"[AI-EVALUATION] Spec 데이터가 없습니다.")
     
+    # 모든 spec 타입이 항상 포함되도록 보장
+    for key, default in [
+        ("education", {}),
+        ("certifications", []),
+        ("awards", []),
+        ("skills", {}),
+        ("activities", []),
+        ("projects", []),
+        ("portfolio", {})
+    ]:
+        if key not in spec_data:
+            spec_data[key] = default
+
     # Weight 데이터 구성
     weights = db.query(Weight).filter(
         Weight.target_type == "resume_feature",
@@ -387,6 +446,11 @@ def ai_evaluate_application(
             "resume_data": resume_data,
             "weight_data": weight_dict
         }
+        
+        # 디버깅을 위한 로그 출력
+        print(f"[AI-EVALUATION] Application ID: {application_id}")
+        print(f"[AI-EVALUATION] Spec Data: {json.dumps(spec_data, ensure_ascii=False, indent=2)}")
+        print(f"[AI-EVALUATION] Weight Data: {json.dumps(weight_dict, ensure_ascii=False, indent=2)}")
         
         response = requests.post(agent_url, json=payload, timeout=30)
         response.raise_for_status()
@@ -439,130 +503,49 @@ def batch_ai_evaluate_applications(
         raise HTTPException(status_code=500, detail=f"AI 평가 배치 프로세스 중 오류 발생: {str(e)}")
 
 
-@router.post("/job/{job_post_id}/batch-ai-re-evaluate")
-def batch_ai_re_evaluate_applications(
+@router.post("/job/{job_post_id}/reset-ai-scores")
+def reset_ai_scores_for_job(
     job_post_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """특정 채용공고의 모든 지원자에 대해 AI 평가를 재실행합니다."""
-    import requests
-    from app.models.application import Application
-    from app.models.job import JobPost
-    from app.models.resume import Resume
-    from app.models.weight import Weight
-
-    applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
-    total_count = len(applications)
-    reeval_count = 0
-    failed_count = 0
+    """특정 채용공고의 모든 지원자의 AI 점수를 초기화합니다.
+    초기화 후 자동 평가 시스템이 실행되어 새로운 AI 평가가 진행됩니다."""
     
-    print(f"AI 일괄 재평가 시작: job_post_id={job_post_id}, 총 {total_count}명 지원자")
+    # 해당 채용공고의 모든 지원자 조회
+    applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+    
+    if not applications:
+        raise HTTPException(status_code=404, detail="해당 채용공고에 지원자가 없습니다.")
+    
+    reset_count = 0
     for application in applications:
-        # 채용공고 정보 가져오기
-        job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
-        if not job_post:
-            continue
-        # 이력서 정보 가져오기
-        resume = db.query(Resume).filter(Resume.id == application.resume_id).first()
-        if not resume:
-            continue
-        # Spec 데이터 구성 (기존과 동일)
-        spec_data = {
-            "education": {},
-            "experience": {},
-            "skills": {},
-            "portfolio": {}
-        }
-        if resume.specs:
-            for spec in resume.specs:
-                if spec.spec_type == "education":
-                    if spec.spec_title == "institution":
-                        spec_data["education"]["university"] = spec.spec_description
-                    elif spec.spec_title == "major":
-                        spec_data["education"]["major"] = spec.spec_description
-                    elif spec.spec_title == "degree":
-                        spec_data["education"]["degree"] = spec.spec_description
-                    elif spec.spec_title == "gpa":
-                        spec_data["education"]["gpa"] = float(spec.spec_description) if spec.spec_description and spec.spec_description.replace('.', '').isdigit() else 0.0
-                elif spec.spec_type == "activity":
-                    if spec.spec_title == "organization":
-                        spec_data["experience"]["companies"] = [spec.spec_description]
-                    elif spec.spec_title == "role":
-                        spec_data["experience"]["position"] = spec.spec_description
-                    elif spec.spec_title == "duration":
-                        spec_data["experience"]["duration"] = spec.spec_description
-                elif spec.spec_type == "project_experience":
-                    if spec.spec_title == "title":
-                        spec_data["experience"]["projects"] = [spec.spec_description]
-                elif spec.spec_type == "skills":
-                    if spec.spec_title == "name":
-                        spec_data["skills"]["programming_languages"] = [spec.spec_description]
-                elif spec.spec_type == "certifications":
-                    if spec.spec_title == "name":
-                        spec_data["skills"]["certifications"] = [spec.spec_description]
-        # Weight 데이터 구성
-        weights = db.query(Weight).filter(
-            Weight.target_type == "resume_feature",
-            Weight.jobpost_id == job_post.id
-        ).all()
-        weight_dict = {w.field_name: w.weight_value for w in weights}
-        # 이력서 데이터 구성
-        resume_data = {
-            "personal_info": {
-                "name": application.user.name if application.user else "",
-                "email": application.user.email if application.user else "",
-                "phone": application.user.phone if application.user else ""
-            },
-            "summary": resume.content[:200] if resume.content else "",
-            "work_experience": [],
-            "projects": []
-        }
-        # 채용공고 내용 구성
-        job_posting = f"""
-        [채용공고]
-        제목: {job_post.title}
-        회사: {job_post.company.name if job_post.company else 'N/A'}
-        직무: {job_post.department or 'N/A'}
-        요구사항: {job_post.qualifications or ''}
-        우대사항: {job_post.conditions or ''}
-        """
-        # AI Agent API 호출
-        agent_url = "http://kocruit_agent:8001/evaluate-application/"
-        payload = {
-            "job_posting": job_posting,
-            "spec_data": spec_data,
-            "resume_data": resume_data,
-            "weight_data": weight_dict
-        }
-        try:
-            print(f"AI 재평가 진행 중: {reeval_count + 1}/{total_count} - application_id={application.id}")
-            response = requests.post(agent_url, json=payload, timeout=120)  # 2분으로 증가
-            response.raise_for_status()
-            result = response.json()
-            # 데이터베이스 업데이트
-            application.ai_score = result.get("ai_score", 0.0)
-            application.pass_reason = result.get("pass_reason", "")
-            application.fail_reason = result.get("fail_reason", "")
-            ai_suggested_status = result.get("status", "REJECTED")
-            if ai_suggested_status == "PASSED":
-                application.status = "PASSED"
-            elif ai_suggested_status == "REJECTED":
-                application.status = "REJECTED"
-            reeval_count += 1
-            print(f"AI 재평가 성공: application_id={application.id}, score={application.ai_score}")
-        except Exception as e:
-            failed_count += 1
-            print(f"AI 재평가 실패: application_id={application.id}, error={str(e)}")
-            continue
+        # AI 점수 및 관련 필드 초기화
+        application.ai_score = None
+        application.pass_reason = None
+        application.fail_reason = None
+        application.status = ApplyStatus.WAITING  # 상태도 대기로 초기화
+        reset_count += 1
+    
     db.commit()
-    print(f"AI 일괄 재평가 완료: 성공 {reeval_count}명, 실패 {failed_count}명")
-    return {
-        "message": f"AI 일괄 재평가 완료: 성공 {reeval_count}명, 실패 {failed_count}명",
-        "success_count": reeval_count,
-        "failed_count": failed_count,
-        "total_count": total_count
-    }
+    
+    # 자동 평가 시스템 실행 (기존 함수 활용)
+    from app.models.interview_evaluation import auto_evaluate_all_applications
+    try:
+        auto_evaluate_all_applications(db)
+        return {
+            "message": f"AI 점수 초기화 완료: {reset_count}명의 지원자",
+            "reset_count": reset_count,
+            "note": "자동 평가 시스템이 실행되어 새로운 AI 평가가 진행됩니다."
+        }
+    except Exception as e:
+        # 초기화는 성공했지만 자동 평가 실패
+        return {
+            "message": f"AI 점수 초기화 완료: {reset_count}명의 지원자",
+            "reset_count": reset_count,
+            "warning": f"자동 평가 실행 중 오류 발생: {str(e)}",
+            "note": "10분 후 자동으로 재평가가 실행됩니다."
+        }
 
 
 @router.get("/job/{job_post_id}/applicants")
@@ -703,3 +686,119 @@ def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db
             "schedule_date": schedule_date,
         })
     return result
+
+
+@router.get("/job/{job_post_id}/passed-applicants")
+def get_passed_applicants(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """서류 합격자만 조회하는 API"""
+    # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
+    applications = (
+        db.query(Application)
+        .options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        )
+        .filter(
+            Application.job_post_id == job_post_id,
+            Application.status == ApplyStatus.PASSED
+        )
+        .all()
+    )
+    
+    applicants = []
+    for app in applications:
+        # ApplicantUser 확인
+        is_applicant = db.query(ApplicantUser).filter(ApplicantUser.id == app.user_id).first()
+        if not is_applicant:
+            continue
+        if not app.user:
+            continue
+            
+        # 학력 정보 추출: resume.specs에서 추출
+        education = None
+        degree = None
+        major = None
+        certificates = []
+        if app.resume and app.resume.specs:
+            edu_specs = [
+                s for s in app.resume.specs 
+                if s.spec_type == "education" and s.spec_title == "institution"
+            ]
+            if edu_specs:
+                education = edu_specs[0].spec_description
+            
+            # degree 정보 추출 및 major/degree 분리
+            degree_specs = [
+                s for s in app.resume.specs
+                if s.spec_type == "education" and s.spec_title == "degree"
+            ]
+            if degree_specs:
+                degree_raw = degree_specs[0].spec_description or ""
+                school_name = education or ""
+                if "고등학교" in school_name:
+                    major = ""
+                    degree = ""
+                elif "대학교" in school_name or "대학" in school_name:
+                    if degree_raw:
+                        m = re.match(r"(.+?)\((.+?)\)", degree_raw)
+                        if m:
+                            major = m.group(1).strip() if m.group(1) else degree_raw.strip()
+                            degree = m.group(2).strip() if m.group(2) else ""
+                        else:
+                            major = degree_raw.strip()
+                            degree = ""
+                    else:
+                        major = ""
+                        degree = ""
+                else:
+                    major = ""
+                    degree = ""
+            else:
+                major = ""
+                degree = ""
+                
+            # 자격증 정보 추출
+            cert_name_specs = [
+                s for s in app.resume.specs
+                if s.spec_type == "certifications" and s.spec_title == "name"
+            ]
+            for cert in cert_name_specs:
+                if cert.spec_description:
+                    cert_date = next((s.spec_description for s in app.resume.specs if s.spec_type == "certifications" and s.spec_title == "date"), "")
+                    cert_duration = next((s.spec_description for s in app.resume.specs if s.spec_type == "certifications" and s.spec_title == "duration"), "")
+                    certificates.append({
+                        "name": cert.spec_description,
+                        "date": cert_date,
+                        "duration": cert_duration
+                    })
+        
+        applicant_data = {
+            "id": app.user.id,
+            "name": app.user.name,
+            "email": app.user.email,
+            "application_id": app.id,
+            "status": app.status,
+            "applied_at": app.applied_at,
+            "score": app.score,
+            "ai_score": app.ai_score,
+            "pass_reason": app.pass_reason,
+            "fail_reason": app.fail_reason,
+            "birthDate": app.user.birth_date.isoformat() if app.user.birth_date else None,
+            "gender": app.user.gender if app.user.gender else None,
+            "education": education,
+            "degree": degree_specs[0].spec_description if degree_specs else None,
+            "major": major,
+            "degree_type": degree,
+            "resume_id": app.resume_id,
+            "address": app.user.address if app.user.address else None,
+            "certificates": certificates
+        }
+        applicants.append(applicant_data)
+    
+    return {
+        "total_count": len(applicants),
+        "passed_applicants": applicants
+    }
