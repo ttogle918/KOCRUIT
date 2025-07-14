@@ -17,8 +17,6 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
     </div>
   );
   
-  console.log("ResumeCard received data:", resume);
-  
   const safeArray = v => Array.isArray(v) ? v : [];
   
   // skills 데이터 안전하게 처리
@@ -32,9 +30,6 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
       return [];
     }
   };
-
-  // degree에서 전공/학위 분리 함수 (공통 유틸리티 사용)
-  const parseMajorAndDegree = extractMajorAndDegree;
 
   // 안전하게 값 추출
   const {
@@ -55,26 +50,13 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
   // skills 안전하게 처리
   const processedSkills = safeSkills(skills);
   
-  console.log("Extracted data:", {
-    applicantName,
-    gender,
-    birthDate,
-    email,
-    address,
-    phone,
-    educations,
-    awards,
-    certificates,
-    skills,
-    experiences,
-    content
-  });
-
   // 표에서 빈칸을 위한 함수
   const safe = v => v || '';
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md p-8 space-y-8 w-full">
+    <div
+      className="bg-white dark:bg-gray-900 rounded-2xl shadow-md p-8 space-y-8 w-full overflow-y-auto min-h-[300px] min-w-[500px] max-h-[70vh]"
+    >
       {/* 개인정보 */}
       <section>
         <h3 className="text-lg font-bold mb-4 text-blue-700 dark:text-blue-300">개인정보</h3>

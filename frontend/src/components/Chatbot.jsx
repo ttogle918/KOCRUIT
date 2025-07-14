@@ -15,7 +15,14 @@ import {
   SlideFade,
   ScaleFade,
   Icon,
-  useToast
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure
 } from '@chakra-ui/react';
 import {
   ChatIcon,
@@ -25,6 +32,54 @@ import {
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { parseFilterConditions } from '../utils/filterUtils';
+import { calculateAge } from '../utils/resumeUtils';
+import CommonResumeList from './CommonResumeList';
+import api from '../api/api';
+
+// === 학력 레벨 판별 함수 (applicantStats.js 로직 참고) ===
+function getEducationLevel(applicant) {
+  // 1. degree 필드
+  if (applicant.degree) {
+    const degreeStr = applicant.degree.toLowerCase();
+    if (degreeStr.includes('박사')) return '박사';
+    if (degreeStr.includes('석사')) return '석사';
+    if (degreeStr.includes('학사')) return '학사';
+    if (degreeStr.includes('고등')) return '고등학교졸업';
+  }
+  // 2. educations 배열
+  if (applicant.educations && applicant.educations.length > 0) {
+    for (let i = 0; i < applicant.educations.length; i++) {
+      const edu = applicant.educations[i];
+      const schoolName = (edu.schoolName || '').toLowerCase();
+      const degree = (edu.degree || '').toLowerCase();
+      if (schoolName.includes('대학원')) {
+        if (degree.includes('박사')) return '박사';
+        if (degree.includes('석사')) return '석사';
+        return '석사';
+      } else if (schoolName.includes('대학교') || schoolName.includes('대학')) {
+        return '학사';
+      } else if (schoolName.includes('고등학교') || schoolName.includes('고등') || schoolName.includes('고졸') || schoolName.includes('high')) {
+        return '고등학교졸업';
+      }
+    }
+    return '학사';
+  }
+  // 3. education 필드
+  if (applicant.education) {
+    const education = applicant.education.toLowerCase();
+    if (education.includes('박사') || education.includes('phd') || education.includes('doctor')) {
+      return '박사';
+    } else if (education.includes('석사') || education.includes('master')) {
+      return '석사';
+    } else if (education.includes('학사') || education.includes('bachelor') || education.includes('대학교') || education.includes('대학') || education.includes('university') || education.includes('전문학사') || education.includes('associate') || education.includes('전문대') || education.includes('2년제') || education.includes('대학교졸업') || education.includes('졸업')) {
+      return '학사';
+    } else if (education.includes('고등학교') || education.includes('고등') || education.includes('고졸') || education.includes('high')) {
+      return '고등학교졸업';
+    }
+  }
+  return null;
+}
 
 // 챗봇 전용 axios 인스턴스
 const chatbotApi = axios.create({
@@ -41,9 +96,13 @@ const Chatbot = () => {
   const location = useLocation();
   const toast = useToast();
   const { user } = useAuth();
+  const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure();
   
   // useState 훅들
   const [isOpen, setIsOpen] = useState(false);
+  const [filteredResults, setFilteredResults] = useState(null);
+  const [allApplicants, setAllApplicants] = useState([]);
+  const [currentJobPostId, setCurrentJobPostId] = useState(null);
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -77,6 +136,122 @@ const Chatbot = () => {
     "면접 일정 관리",
     "주요 기능 안내"
   ];
+
+  // 지원자 데이터 로드
+  useEffect(() => {
+    const loadApplicants = async () => {
+      try {
+        // URL에서 jobPostId 추출
+        const pathParts = location.pathname.split('/');
+        const jobPostId = pathParts[pathParts.length - 1];
+        
+        if (jobPostId && jobPostId !== 'applicantlist') {
+          setCurrentJobPostId(jobPostId);
+          const response = await api.get(`/applications/job/${jobPostId}/applicants`);
+          setAllApplicants(response.data);
+        }
+      } catch (error) {
+        console.error('지원자 데이터 로드 실패:', error);
+      }
+    };
+
+    if (location.pathname.includes('applicantlist')) {
+      loadApplicants();
+    }
+  }, [location.pathname]);
+
+  // 자연어 필터링 처리
+  const processNaturalLanguageFilter = (message) => {
+    const conditions = parseFilterConditions(message);
+    let filtered = [...allApplicants];
+    
+    // 연령 필터링
+    if (conditions.ageRange) {
+      filtered = filtered.filter(applicant => {
+        const age = calculateAge(applicant.birthDate || applicant.birthdate || applicant.birthday);
+        return age >= conditions.ageRange[0] && age <= conditions.ageRange[1];
+      });
+    }
+    
+    // 성별 필터링
+    if (conditions.gender) {
+      filtered = filtered.filter(applicant => applicant.gender === conditions.gender);
+    }
+    
+    // 지역 필터링
+    if (conditions.location) {
+      filtered = filtered.filter(applicant => {
+        const address = applicant.address || '';
+        return address.includes(conditions.location);
+      });
+    }
+    
+    // 학력 필터링
+    if (conditions.education) {
+      filtered = filtered.filter(applicant => {
+        const level = getEducationLevel(applicant);
+        return level === conditions.education;
+      });
+    }
+    
+    // 기술스택 필터링
+    if (conditions.skills.length > 0) {
+      filtered = filtered.filter(applicant => {
+        const skills = applicant.skills || [];
+        const skillText = Array.isArray(skills) ? skills.join(' ').toLowerCase() : skills.toLowerCase();
+        return conditions.skills.some(skill => skillText.includes(skill));
+      });
+    }
+    
+    return filtered;
+  };
+
+  // 필터링 결과 요약 생성
+  const generateFilterSummary = (filteredApplicants, originalMessage) => {
+    if (filteredApplicants.length === 0) {
+      return {
+        summary: `조건에 맞는 지원자가 없습니다.`,
+        applicants: []
+      };
+    }
+    
+    const conditions = parseFilterConditions(originalMessage);
+    let summary = '';
+    
+    // 조건별 요약 생성
+    const conditionsList = [];
+    if (conditions.ageRange) {
+      conditionsList.push(`${conditions.ageRange[0]}~${conditions.ageRange[1]}세`);
+    }
+    if (conditions.gender) {
+      const genderText = conditions.gender === 'M' ? '남성' : '여성';
+      conditionsList.push(genderText);
+    }
+    if (conditions.location) {
+      conditionsList.push(`${conditions.location} 거주`);
+    }
+    if (conditions.education) {
+      conditionsList.push(`${conditions.education} 학력`);
+    }
+    if (conditions.skills.length > 0) {
+      conditionsList.push(`${conditions.skills.join(', ')} 기술`);
+    }
+    
+    const conditionText = conditionsList.join(' ');
+    summary = `${conditionText} 지원자 ${filteredApplicants.length}명이 있습니다.`;
+    
+    // 상위 3명의 간단한 정보
+    const topApplicants = filteredApplicants.slice(0, 3).map(applicant => ({
+      name: applicant.name,
+      skills: applicant.skills ? (Array.isArray(applicant.skills) ? applicant.skills.slice(0, 2) : [applicant.skills]) : []
+    }));
+    
+    return {
+      summary,
+      applicants: topApplicants,
+      totalCount: filteredApplicants.length
+    };
+  };
 
   // 페이지 컨텍스트 수집
   const getPageContext = () => {
@@ -344,6 +519,62 @@ const Chatbot = () => {
     setIsTyping(true);
 
     try {
+      // 지원자 목록 페이지에서 자연어 필터링 처리
+      if (location.pathname.includes('applicantlist') && allApplicants.length > 0) {
+        const filteredApplicants = processNaturalLanguageFilter(messageToSend);
+        const filterSummary = generateFilterSummary(filteredApplicants, messageToSend);
+        
+        if (filteredApplicants.length > 0) {
+          setFilteredResults({
+            applicants: filteredApplicants,
+            summary: filterSummary
+          });
+          
+          // 필터링 결과 메시지 생성
+          let botResponse = `🧠 **필터링 결과**\n\n${filterSummary.summary}\n\n`;
+          
+          // 상위 지원자 정보 추가
+          filterSummary.applicants.forEach((applicant, index) => {
+            const skillsText = applicant.skills.length > 0 ? ` (${applicant.skills.join(', ')})` : '';
+            botResponse += `👤 ${applicant.name}${skillsText}\n`;
+          });
+          
+          if (filteredApplicants.length > 3) {
+            botResponse += `\n... 외 ${filteredApplicants.length - 3}명\n`;
+          }
+          
+          botResponse += `\n👉 **[결과 전체 보기]** 버튼을 클릭하시면 상세 목록을 확인할 수 있습니다.`;
+          
+          const botMessage = {
+            id: messages.length + 2,
+            text: botResponse,
+            sender: 'bot',
+            timestamp: new Date(),
+            hasFilterResults: true,
+            filterData: {
+              applicants: filteredApplicants,
+              summary: filterSummary
+            }
+          };
+          
+          setMessages(prev => [...prev, botMessage]);
+          setIsTyping(false);
+          return;
+        } else {
+          // 조건에 맞는 지원자가 없는 경우
+          const botMessage = {
+            id: messages.length + 2,
+            text: `조건에 맞는 지원자가 없습니다. 다른 조건으로 검색해보세요.`,
+            sender: 'bot',
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, botMessage]);
+          setIsTyping(false);
+          return;
+        }
+      }
+
+      // 일반 챗봇 응답 처리
       const pageContext = getPageContext();
       console.log('챗봇 요청:', { message: messageToSend, session_id: sessionId });
       
@@ -530,6 +761,23 @@ const Chatbot = () => {
                     <Text fontSize="xs" opacity={0.7} mt={1}>
                       {message.timestamp.toLocaleTimeString()}
                     </Text>
+                    
+                    {/* 필터링 결과가 있는 경우 "결과 전체 보기" 버튼 추가 */}
+                    {message.hasFilterResults && message.filterData && (
+                      <Button
+                        size="sm"
+                        colorScheme="blue"
+                        variant="outline"
+                        mt={2}
+                        onClick={() => {
+                          setFilteredResults(message.filterData);
+                          onModalOpen();
+                        }}
+                        _hover={{ bg: 'blue.50' }}
+                      >
+                        결과 전체 보기
+                      </Button>
+                    )}
                   </Box>
                 </Box>
               ))}
@@ -697,6 +945,31 @@ const Chatbot = () => {
           }
         }
       `}</style>
+      
+      {/* 필터링 결과 모달 */}
+      <Modal isOpen={isModalOpen} onClose={onModalClose} size="6xl">
+        <ModalOverlay />
+        <ModalContent maxW="90vw" maxH="90vh">
+          <ModalHeader>
+            필터링 결과 - {filteredResults?.summary?.summary || '지원자 목록'}
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {filteredResults && (
+              <CommonResumeList
+                jobPostId={currentJobPostId}
+                filterConditions={null}
+                onFilteredResults={null}
+                showResumeDetail={false}
+                compact={false}
+                onApplicantSelect={null}
+                onResumeLoad={null}
+                customApplicants={filteredResults.applicants}
+              />
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

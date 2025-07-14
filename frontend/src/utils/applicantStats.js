@@ -2,51 +2,53 @@ import { calculateAge } from './resumeUtils';
 
 // 지원자 통계 집계 유틸리티 함수들
 
+// 학력 분류만 따로 함수로 분리
+export function classifyEducation(a) {
+  let level = null;
+  if (!level && a.degree) {
+    const degreeStr = a.degree.toLowerCase();
+    if (degreeStr.includes('박사')) level = '박사';
+    else if (degreeStr.includes('석사')) level = '석사';
+    else if (degreeStr.includes('학사')) level = '학사';
+    else if (degreeStr.includes('고등')) level = '고등학교졸업';
+  }
+  if (!level && a.educations && a.educations.length > 0) {
+    for (let i = 0; i < a.educations.length; i++) {
+      const edu = a.educations[i];
+      const schoolName = (edu.schoolName || '').toLowerCase();
+      const degree = (edu.degree || '').toLowerCase();
+      if (schoolName.includes('대학원')) {
+        if (degree.includes('박사')) { level = '박사'; break; }
+        if (degree.includes('석사')) { level = '석사'; break; }
+        level = '석사'; break;
+      } else if (schoolName.includes('대학교') || schoolName.includes('대학')) {
+        level = '학사';
+      } else if (schoolName.includes('고등학교') || schoolName.includes('고등') || schoolName.includes('고졸') || schoolName.includes('high')) {
+        level = '고등학교졸업';
+      }
+    }
+    if (!level) level = '학사';
+  }
+  if (!level && a.education) {
+    const education = a.education.toLowerCase();
+    if (education.includes('박사') || education.includes('phd') || education.includes('doctor')) {
+      level = '박사';
+    } else if (education.includes('석사') || education.includes('master')) {
+      level = '석사';
+    } else if (education.includes('학사') || education.includes('bachelor') || education.includes('대학교') || education.includes('대학') || education.includes('university') || education.includes('전문학사') || education.includes('associate') || education.includes('전문대') || education.includes('2년제') || education.includes('대학교졸업') || education.includes('졸업')) {
+      level = '학사';
+    } else if (education.includes('고등학교') || education.includes('고등') || education.includes('고졸') || education.includes('high')) {
+      level = '고등학교졸업';
+    }
+  }
+  return level;
+}
+
 // 지원자 학력 통계 집계 함수
 export function getEducationStats(applicants) {
   let high = 0, bachelor = 0, master = 0, doctor = 0;
   applicants.forEach((a) => {
-    let level = null;
-    // 1. degree 필드 우선 분류
-    if (!level && a.degree) {
-      const degreeStr = a.degree.toLowerCase();
-      if (degreeStr.includes('박사')) level = '박사';
-      else if (degreeStr.includes('석사')) level = '석사';
-      else if (degreeStr.includes('학사')) level = '학사';
-      else if (degreeStr.includes('고등')) level = '고등학교졸업';
-    }
-    // 2. educations 배열
-    if (!level && a.educations && a.educations.length > 0) {
-      for (let i = 0; i < a.educations.length; i++) {
-        const edu = a.educations[i];
-        const schoolName = (edu.schoolName || '').toLowerCase();
-        const degree = (edu.degree || '').toLowerCase();
-        if (schoolName.includes('대학원')) {
-          if (degree.includes('박사')) { level = '박사'; break; }
-          if (degree.includes('석사')) { level = '석사'; break; }
-          level = '석사'; break;
-        } else if (schoolName.includes('대학교') || schoolName.includes('대학')) {
-          level = '학사';
-        } else if (schoolName.includes('고등학교') || schoolName.includes('고등') || schoolName.includes('고졸') || schoolName.includes('high')) {
-          level = '고등학교졸업';
-        }
-      }
-      if (!level) level = '학사';
-    }
-    // 3. education 단일 필드
-    if (!level && a.education) {
-      const education = a.education.toLowerCase();
-      if (education.includes('박사') || education.includes('phd') || education.includes('doctor')) {
-        level = '박사';
-      } else if (education.includes('석사') || education.includes('master')) {
-        level = '석사';
-      } else if (education.includes('학사') || education.includes('bachelor') || education.includes('대학교') || education.includes('대학') || education.includes('university') || education.includes('전문학사') || education.includes('associate') || education.includes('전문대') || education.includes('2년제') || education.includes('대학교졸업') || education.includes('졸업')) {
-        level = '학사';
-      } else if (education.includes('고등학교') || education.includes('고등') || education.includes('고졸') || education.includes('high')) {
-        level = '고등학교졸업';
-      }
-    }
-    // 한 번만 카운트
+    const level = classifyEducation(a);
     if (level === '박사') doctor++;
     else if (level === '석사') master++;
     else if (level === '학사') bachelor++;

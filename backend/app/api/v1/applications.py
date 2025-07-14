@@ -12,6 +12,7 @@ from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
 from app.models.user import User
 from app.models.applicant_user import ApplicantUser
+import re
 
 router = APIRouter()
 
@@ -62,7 +63,6 @@ def get_application(
             
             if spec_type == "education":
                 if spec_title == "institution":
-                    # 새로운 교육 항목 시작
                     education = {
                         "period": "",
                         "schoolName": spec_description,
@@ -82,6 +82,28 @@ def get_application(
                 elif spec_title == "degree":
                     if educations:
                         educations[-1]["degree"] = spec_description
+                        # major/degree 파싱 추가
+                        degree_raw = spec_description or ""
+                        school_name = educations[-1]["schoolName"] or ""
+                        import re
+                        if "고등학교" in school_name:
+                            educations[-1]["major"] = ""
+                            educations[-1]["degree"] = ""
+                        elif "대학교" in school_name or "대학" in school_name:
+                            if degree_raw:
+                                m = re.match(r"(.+?)\((.+?)\)", degree_raw)
+                                if m:
+                                    educations[-1]["major"] = m.group(1).strip() if m.group(1) else degree_raw.strip()
+                                    educations[-1]["degree"] = m.group(2).strip() if m.group(2) else ""
+                                else:
+                                    educations[-1]["major"] = degree_raw.strip()
+                                    educations[-1]["degree"] = ""
+                            else:
+                                educations[-1]["major"] = ""
+                                educations[-1]["degree"] = ""
+                        else:
+                            educations[-1]["major"] = ""
+                            educations[-1]["degree"] = ""
                 elif spec_title == "gpa":
                     if educations:
                         educations[-1]["gpa"] = spec_description
@@ -273,13 +295,12 @@ def get_applicants_by_job(
         is_applicant = db.query(ApplicantUser).filter(ApplicantUser.id == app.user_id).first()
         if not is_applicant:
             continue
-            
         if not app.user:
             continue
-            
         # 학력 정보 추출: resume.specs에서 추출
         education = None
         degree = None  # 추가: degree 정보
+        major = None   # 추가: major 정보
         certificates = []  # 자격증 정보 추가
         if app.resume and app.resume.specs:
             edu_specs = [
@@ -288,13 +309,42 @@ def get_applicants_by_job(
             ]
             if edu_specs:
                 education = edu_specs[0].spec_description  # 최신 학교명만 추출
-            # degree 정보 추출
+            # degree 정보 추출 및 major/degree 분리
             degree_specs = [
                 s for s in app.resume.specs
                 if s.spec_type == "education" and s.spec_title == "degree"
             ]
+            major = None
+            degree = None
             if degree_specs:
-                degree = degree_specs[0].spec_description
+                degree_raw = degree_specs[0].spec_description or ""
+                school_name = education or ""
+                import re
+                print("degree_raw:", degree_raw)
+                print("school_name:", school_name)
+                if "고등학교" in school_name:
+                    major = ""
+                    degree = ""
+                elif "대학교" in school_name or "대학" in school_name:
+                    if degree_raw:
+                        m = re.match(r"(.+?)\((.+?)\)", degree_raw)
+                        print("정규식 매칭 결과:", m)
+                        if m:
+                            major = m.group(1).strip() if m.group(1) else degree_raw.strip()
+                            degree = m.group(2).strip() if m.group(2) else ""
+                        else:
+                            major = degree_raw.strip()
+                            degree = ""
+                    else:
+                        major = ""
+                        degree = ""
+                else:
+                    major = ""
+                    degree = ""
+            else:
+                major = ""
+                degree = ""
+            print(f"최종 major: {major}, degree: {degree}")
             # 자격증 정보 추출
             cert_name_specs = [
                 s for s in app.resume.specs
@@ -321,7 +371,9 @@ def get_applicants_by_job(
             "birthDate": app.user.birth_date.isoformat() if app.user.birth_date else None,
             "gender": app.user.gender if app.user.gender else None,
             "education": education,
-            "degree": degree,  # degree 정보 추가
+            "degree": degree_specs[0].spec_description if degree_specs else None,  # 기존 전체 degree
+            "major": major,   # 전공
+            "degree_type": degree,  # 학위(석사/박사 등)
             "resume_id": app.resume_id,  # ← 이 줄 추가!
             "address": app.user.address if app.user.address else None,  # address 필드 추가
             "certificates": certificates  # 자격증 배열 추가
