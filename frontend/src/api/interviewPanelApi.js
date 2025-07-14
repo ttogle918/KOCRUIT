@@ -81,6 +81,17 @@ export const interviewPanelApi = {
       console.error('면접 배정 취소 실패:', error);
       throw error;
     }
+  },
+
+  // Get user's response history (accepted/rejected requests)
+  getMyResponseHistory: async () => {
+    try {
+      const response = await axiosInstance.get(`${INTERVIEW_PANEL_API}/my-response-history/`);
+      return response.data;
+    } catch (error) {
+      console.error('응답 기록 조회 실패:', error);
+      throw error;
+    }
   }
 };
 

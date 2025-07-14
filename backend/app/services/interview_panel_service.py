@@ -360,28 +360,74 @@ class InterviewPanelService:
     @staticmethod
     def get_panel_members(db: Session, job_post_id: int) -> List[dict]:
         """Get all panel members for a job post"""
+        from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelMember
+        
         assignments = db.query(InterviewPanelAssignment).filter(
             InterviewPanelAssignment.job_post_id == job_post_id
         ).all()
         
         members = []
         for assignment in assignments:
-            panel_members = db.query(InterviewPanelMember).filter(
+            assignment_members = db.query(InterviewPanelMember).filter(
                 InterviewPanelMember.assignment_id == assignment.id
             ).all()
             
-            for member in panel_members:
+            for member in assignment_members:
                 company_user = db.query(CompanyUser).filter(CompanyUser.id == member.company_user_id).first()
                 if company_user:
                     members.append({
-                        "id": member.id,
+                        "member_id": member.id,
                         "user_id": company_user.id,
-                        "name": company_user.name,
-                        "email": company_user.email,
-                        "ranks": company_user.ranks,
+                        "user_name": company_user.name,
+                        "user_email": company_user.email,
+                        "user_ranks": company_user.ranks,
                         "role": member.role.value,
                         "assignment_type": assignment.assignment_type.value,
                         "assigned_at": member.assigned_at
                     })
         
-        return members 
+        return members
+
+    @staticmethod
+    def get_user_response_history(db: Session, user_id: int) -> List[dict]:
+        """Get user's response history for interview panel requests"""
+        from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest
+        from app.models.job import JobPost
+        from app.models.schedule import Schedule
+        
+        # Get all requests that the user has responded to (not pending)
+        requests = db.query(InterviewPanelRequest).filter(
+            and_(
+                InterviewPanelRequest.company_user_id == user_id,
+                InterviewPanelRequest.status != RequestStatus.PENDING
+            )
+        ).all()
+        
+        history = []
+        for request in requests:
+            # Get assignment info
+            assignment = db.query(InterviewPanelAssignment).filter(
+                InterviewPanelAssignment.id == request.assignment_id
+            ).first()
+            
+            if assignment:
+                # Get job post info
+                job_post = db.query(JobPost).filter(JobPost.id == assignment.job_post_id).first()
+                
+                # Get schedule info
+                schedule = db.query(Schedule).filter(Schedule.id == assignment.schedule_id).first()
+                
+                history.append({
+                    "request_id": request.id,
+                    "job_post_title": job_post.title if job_post else "Unknown",
+                    "schedule_date": schedule.scheduled_at if schedule else None,
+                    "assignment_type": assignment.assignment_type.value,
+                    "status": request.status.value,
+                    "created_at": request.created_at,
+                    "responded_at": request.response_at
+                })
+        
+        # Sort by responded_at (most recent first)
+        history.sort(key=lambda x: x["responded_at"], reverse=True)
+        
+        return history 

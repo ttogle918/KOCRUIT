@@ -67,6 +67,21 @@ def get_my_pending_requests(
         raise HTTPException(status_code=500, detail=f"Failed to get pending requests: {str(e)}")
 
 
+@router.get("/my-response-history/", response_model=List[dict])
+def get_my_response_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get user's response history for interview panel requests (accepted/rejected)
+    """
+    try:
+        history = InterviewPanelService.get_user_response_history(db, current_user.id)
+        return history
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get response history: {str(e)}")
+
+
 @router.get("/panel-members/{job_post_id}/", response_model=List[dict])
 def get_panel_members(
     job_post_id: int,
