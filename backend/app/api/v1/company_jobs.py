@@ -207,7 +207,47 @@ def create_company_job_post(
                 status=""  # 비워둠
             )
             db.add(interview_schedule)
+            db.flush()  # Get the ID for interview panel assignment
+        
         db.commit()
+        
+        # 면접관 자동 배정
+        try:
+            from app.services.interview_panel_service import InterviewPanelService
+            from app.schemas.interview_panel import InterviewerSelectionCriteria
+            
+            # 면접 일정이 있는 경우에만 면접관 배정
+            if interview_schedules:
+                for schedule_data in interview_schedules:
+                    # 해당 schedule 찾기
+                    if isinstance(schedule_data, dict):
+                        interview_date = schedule_data.get('interview_date')
+                        interview_time = schedule_data.get('interview_time')
+                    else:
+                        interview_date = schedule_data.interview_date
+                        interview_time = schedule_data.interview_time
+                    
+                    if interview_date and interview_time:
+                        datetime_str = f"{interview_date} {interview_time}:00"
+                        scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                        
+                        # 해당 schedule 찾기
+                        schedule = db.query(Schedule).filter(
+                            Schedule.job_post_id == db_job_post.id,
+                            Schedule.scheduled_at == scheduled_at
+                        ).first()
+                        
+                        if schedule:
+                            criteria = InterviewerSelectionCriteria(
+                                job_post_id=db_job_post.id,
+                                schedule_id=schedule.id,
+                                same_department_count=2,
+                                hr_department_count=1
+                            )
+                            InterviewPanelService.create_panel_assignments(db, criteria)
+        except Exception as e:
+            print(f"면접관 자동 배정 실패: {str(e)}")
+            # 면접관 배정 실패는 공고 생성에 영향을 주지 않도록 함
     
     # 가중치 데이터를 weight 테이블에 저장
     if weights_data:
@@ -407,7 +447,146 @@ def update_company_job_post(
     
     # 면접 일정 업데이트 (기존 일정 삭제 후 새로 생성)
     if interview_schedules is not None:
-        # 기존 면접 일정 삭제
+        # 기존 면접관 배정 및 관련 데이터 삭제 (순서 중요)
+        try:
+            from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+            
+            # 1. 면접관 배정 관련 데이터 삭제 (CASCADE로 자동 삭제됨)
+            db.query(InterviewPanelAssignment).filter(
+                InterviewPanelAssignment.job_post_id == job_post_id
+            ).delete()
+        except Exception as e:
+            print(f"면접관 배정 데이터 삭제 실패: {str(e)}")
+        
+        # 2. interview_evaluation_item 테이블 데이터 삭제 (interview_evaluation 참조)
+        try:
+            from app.models.interview_evaluation import InterviewEvaluationItem, InterviewEvaluation
+            from app.models.schedule import ScheduleInterview
+            evaluation_items = db.query(InterviewEvaluationItem).filter(
+                InterviewEvaluationItem.evaluation_id.in_(
+                    db.query(InterviewEvaluation.id).filter(
+                        InterviewEvaluation.interview_id.in_(
+                            db.query(ScheduleInterview.id).filter(
+                                ScheduleInterview.schedule_id.in_(
+                                    db.query(Schedule.id).filter(
+                                        Schedule.job_post_id == job_post_id,
+                                        Schedule.schedule_type == "interview"
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ).all()
+            if evaluation_items:
+                db.query(InterviewEvaluationItem).filter(
+                    InterviewEvaluationItem.evaluation_id.in_(
+                        db.query(InterviewEvaluation.id).filter(
+                            InterviewEvaluation.interview_id.in_(
+                                db.query(ScheduleInterview.id).filter(
+                                    ScheduleInterview.schedule_id.in_(
+                                        db.query(Schedule.id).filter(
+                                            Schedule.job_post_id == job_post_id,
+                                            Schedule.schedule_type == "interview"
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ).delete()
+                print(f"Deleted {len(evaluation_items)} evaluation items for job post {job_post_id}")
+        except Exception as e:
+            print(f"Evaluation items deletion failed: {e}")
+        
+        # 3. evaluation_detail 테이블 데이터 삭제 (interview_evaluation 참조)
+        try:
+            from app.models.interview_evaluation import EvaluationDetail, InterviewEvaluation
+            from app.models.schedule import ScheduleInterview
+            evaluation_details = db.query(EvaluationDetail).filter(
+                EvaluationDetail.evaluation_id.in_(
+                    db.query(InterviewEvaluation.id).filter(
+                        InterviewEvaluation.interview_id.in_(
+                            db.query(ScheduleInterview.id).filter(
+                                ScheduleInterview.schedule_id.in_(
+                                    db.query(Schedule.id).filter(
+                                        Schedule.job_post_id == job_post_id,
+                                        Schedule.schedule_type == "interview"
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            ).all()
+            if evaluation_details:
+                db.query(EvaluationDetail).filter(
+                    EvaluationDetail.evaluation_id.in_(
+                        db.query(InterviewEvaluation.id).filter(
+                            InterviewEvaluation.interview_id.in_(
+                                db.query(ScheduleInterview.id).filter(
+                                    ScheduleInterview.schedule_id.in_(
+                                        db.query(Schedule.id).filter(
+                                            Schedule.job_post_id == job_post_id,
+                                            Schedule.schedule_type == "interview"
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ).delete()
+                print(f"Deleted {len(evaluation_details)} evaluation details for job post {job_post_id}")
+        except Exception as e:
+            print(f"Evaluation details deletion failed: {e}")
+        
+        # 4. interview_evaluation 테이블 데이터 삭제 (schedule_interview 참조)
+        try:
+            from app.models.interview_evaluation import InterviewEvaluation
+            interview_evaluations = db.query(InterviewEvaluation).filter(
+                InterviewEvaluation.interview_id.in_(
+                    db.query(ScheduleInterview.id).filter(
+                        ScheduleInterview.schedule_id.in_(
+                            db.query(Schedule.id).filter(
+                                Schedule.job_post_id == job_post_id,
+                                Schedule.schedule_type == "interview"
+                            )
+                        )
+                    )
+                )
+            ).all()
+            if interview_evaluations:
+                db.query(InterviewEvaluation).filter(
+                    InterviewEvaluation.interview_id.in_(
+                        db.query(ScheduleInterview.id).filter(
+                            ScheduleInterview.schedule_id.in_(
+                                db.query(Schedule.id).filter(
+                                    Schedule.job_post_id == job_post_id,
+                                    Schedule.schedule_type == "interview"
+                                )
+                            )
+                        )
+                    )
+                ).delete()
+                print(f"Deleted {len(interview_evaluations)} interview evaluations for job post {job_post_id}")
+        except Exception as e:
+            print(f"Interview evaluations deletion failed: {e}")
+        
+        # 4. schedule_interview 테이블 데이터 삭제
+        try:
+            from app.models.schedule import ScheduleInterview
+            db.query(ScheduleInterview).filter(
+                ScheduleInterview.schedule_id.in_(
+                    db.query(Schedule.id).filter(
+                        Schedule.job_post_id == job_post_id,
+                        Schedule.schedule_type == "interview"
+                    )
+                )
+            ).delete()
+        except Exception as e:
+            print(f"schedule_interview 데이터 삭제 실패: {str(e)}")
+        
+        # 5. 기존 면접 일정 삭제
         db.query(Schedule).filter(Schedule.job_post_id == job_post_id, Schedule.schedule_type == "interview").delete()
         
         # 새로운 면접 일정 추가
@@ -445,7 +624,66 @@ def update_company_job_post(
                     status=""
                 )
                 db.add(interview_schedule)
+                db.flush()  # Get the ID for interview panel assignment
+
+                # ScheduleInterview 테이블에도 row 생성 (주요 필드 포함)
+                from app.models.schedule import ScheduleInterview, InterviewStatus
+                schedule_interview = ScheduleInterview(
+                    schedule_id=interview_schedule.id,
+                    user_id=current_user.id,
+                    schedule_date=scheduled_at,
+                    status=InterviewStatus.SCHEDULED
+                )
+                db.add(schedule_interview)
+                db.flush()
+        
         db.commit()
+        
+        # 면접관 자동 배정 (업데이트 시)
+        try:
+            from app.services.interview_panel_service import InterviewPanelService
+            from app.schemas.interview_panel import InterviewerSelectionCriteria
+            
+            # 새로운 면접관 배정 (기존 배정은 유지, 중복 체크는 서비스에서 처리)
+            if interview_schedules:
+                for schedule_data in interview_schedules:
+                    # 해당 schedule 찾기
+                    if isinstance(schedule_data, dict):
+                        interview_date = schedule_data.get('interview_date')
+                        interview_time = schedule_data.get('interview_time')
+                    else:
+                        interview_date = schedule_data.interview_date
+                        interview_time = schedule_data.interview_time
+                    
+                    if interview_date and interview_time:
+                        datetime_str = f"{interview_date} {interview_time}:00"
+                        scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                        
+                        # 해당 schedule 찾기
+                        schedule = db.query(Schedule).filter(
+                            Schedule.job_post_id == job_post_id,
+                            Schedule.scheduled_at == scheduled_at
+                        ).first()
+                        
+                        if schedule:
+                            # 해당 schedule에 대한 기존 배정이 있는지 확인
+                            from app.models.interview_panel import InterviewPanelAssignment
+                            existing_assignment = db.query(InterviewPanelAssignment).filter(
+                                InterviewPanelAssignment.schedule_id == schedule.id
+                            ).first()
+                            
+                            # 기존 배정이 없을 때만 새로 배정
+                            if not existing_assignment:
+                                criteria = InterviewerSelectionCriteria(
+                                    job_post_id=job_post_id,
+                                    schedule_id=schedule.id,
+                                    same_department_count=2,
+                                    hr_department_count=1
+                                )
+                                InterviewPanelService.create_panel_assignments(db, criteria)
+        except Exception as e:
+            print(f"면접관 자동 배정 실패: {str(e)}")
+            # 면접관 배정 실패는 공고 수정에 영향을 주지 않도록 함
     
     # Add company name to the response
     if db_job_post.company:
@@ -525,31 +763,157 @@ def delete_company_job_post(
         except Exception as post_interview_error:
             print(f"post_interview table not found or no records to delete: {post_interview_error}")
         
-        # 2. 관련된 지원서(Application) 삭제
+        # 2. 면접관 배정 관련 데이터 삭제 (CASCADE로 자동 삭제됨)
+        try:
+            from app.models.interview_panel import InterviewPanelAssignment
+            interview_assignments = db.query(InterviewPanelAssignment).filter(
+                InterviewPanelAssignment.job_post_id == job_post_id
+            ).all()
+            if interview_assignments:
+                db.query(InterviewPanelAssignment).filter(
+                    InterviewPanelAssignment.job_post_id == job_post_id
+                ).delete()
+                print(f"Deleted {len(interview_assignments)} interview panel assignments for job post {job_post_id}")
+        except Exception as e:
+            print(f"Interview panel assignments deletion failed: {e}")
+        
+        # 3. schedule_interview 테이블 데이터 삭제
+        try:
+            from app.models.schedule import ScheduleInterview
+            schedule_interviews = db.query(ScheduleInterview).filter(
+                ScheduleInterview.schedule_id.in_(
+                    db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                )
+            ).all()
+            if schedule_interviews:
+                db.query(ScheduleInterview).filter(
+                    ScheduleInterview.schedule_id.in_(
+                        db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                    )
+                ).delete()
+                print(f"Deleted {len(schedule_interviews)} schedule interviews for job post {job_post_id}")
+        except Exception as e:
+            print(f"Schedule interviews deletion failed: {e}")
+        
+        # 4. interview_evaluation_item 테이블 데이터 삭제 (interview_evaluation 참조)
+        try:
+            from app.models.interview_evaluation import InterviewEvaluationItem, InterviewEvaluation
+            evaluation_items = db.query(InterviewEvaluationItem).filter(
+                InterviewEvaluationItem.evaluation_id.in_(
+                    db.query(InterviewEvaluation.id).filter(
+                        InterviewEvaluation.interview_id.in_(
+                            db.query(ScheduleInterview.id).filter(
+                                ScheduleInterview.schedule_id.in_(
+                                    db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                                )
+                            )
+                        )
+                    )
+                )
+            ).all()
+            if evaluation_items:
+                db.query(InterviewEvaluationItem).filter(
+                    InterviewEvaluationItem.evaluation_id.in_(
+                        db.query(InterviewEvaluation.id).filter(
+                            InterviewEvaluation.interview_id.in_(
+                                db.query(ScheduleInterview.id).filter(
+                                    ScheduleInterview.schedule_id.in_(
+                                        db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ).delete()
+                print(f"Deleted {len(evaluation_items)} evaluation items for job post {job_post_id}")
+        except Exception as e:
+            print(f"Evaluation items deletion failed: {e}")
+        
+        # 5. evaluation_detail 테이블 데이터 삭제 (interview_evaluation 참조)
+        try:
+            from app.models.interview_evaluation import EvaluationDetail, InterviewEvaluation
+            evaluation_details = db.query(EvaluationDetail).filter(
+                EvaluationDetail.evaluation_id.in_(
+                    db.query(InterviewEvaluation.id).filter(
+                        InterviewEvaluation.interview_id.in_(
+                            db.query(ScheduleInterview.id).filter(
+                                ScheduleInterview.schedule_id.in_(
+                                    db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                                )
+                            )
+                        )
+                    )
+                )
+            ).all()
+            if evaluation_details:
+                db.query(EvaluationDetail).filter(
+                    EvaluationDetail.evaluation_id.in_(
+                        db.query(InterviewEvaluation.id).filter(
+                            InterviewEvaluation.interview_id.in_(
+                                db.query(ScheduleInterview.id).filter(
+                                    ScheduleInterview.schedule_id.in_(
+                                        db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ).delete()
+                print(f"Deleted {len(evaluation_details)} evaluation details for job post {job_post_id}")
+        except Exception as e:
+            print(f"Evaluation details deletion failed: {e}")
+        
+        # 6. interview_evaluation 테이블 데이터 삭제 (schedule_interview 참조)
+        try:
+            from app.models.interview_evaluation import InterviewEvaluation
+            interview_evaluations = db.query(InterviewEvaluation).filter(
+                InterviewEvaluation.interview_id.in_(
+                    db.query(ScheduleInterview.id).filter(
+                        ScheduleInterview.schedule_id.in_(
+                            db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                        )
+                    )
+                )
+            ).all()
+            if interview_evaluations:
+                db.query(InterviewEvaluation).filter(
+                    InterviewEvaluation.interview_id.in_(
+                        db.query(ScheduleInterview.id).filter(
+                            ScheduleInterview.schedule_id.in_(
+                                db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
+                            )
+                        )
+                    )
+                ).delete()
+                print(f"Deleted {len(interview_evaluations)} interview evaluations for job post {job_post_id}")
+        except Exception as e:
+            print(f"Interview evaluations deletion failed: {e}")
+        
+        # 6. 관련된 지원서(Application) 삭제
         applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
         if applications:
             db.query(Application).filter(Application.job_post_id == job_post_id).delete()
             print(f"Deleted {len(applications)} applications for job post {job_post_id}")
         
-        # 3. 관련된 면접 일정(Schedule) 삭제
+        # 7. 관련된 면접 일정(Schedule) 삭제
         schedules = db.query(Schedule).filter(Schedule.job_post_id == job_post_id).all()
         if schedules:
             db.query(Schedule).filter(Schedule.job_post_id == job_post_id).delete()
             print(f"Deleted {len(schedules)} schedules for job post {job_post_id}")
         
-        # 4. 관련된 가중치(Weight) 삭제
+        # 8. 관련된 가중치(Weight) 삭제
         weights = db.query(Weight).filter(Weight.jobpost_id == job_post_id).all()
         if weights:
             db.query(Weight).filter(Weight.jobpost_id == job_post_id).delete()
             print(f"Deleted {len(weights)} weights for job post {job_post_id}")
         
-        # 5. 관련된 채용공고 역할(JobPostRole) 삭제
+        # 9. 관련된 채용공고 역할(JobPostRole) 삭제
         jobpost_roles = db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).all()
         if jobpost_roles:
             db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
             print(f"Deleted {len(jobpost_roles)} job post roles for job post {job_post_id}")
         
-        # 6. 마지막으로 채용공고 삭제
+        # 10. 마지막으로 채용공고 삭제
         db.delete(db_job_post)
         
         db.commit()

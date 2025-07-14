@@ -9,6 +9,7 @@ class Role(str, enum.Enum):
     INDIVIDUAL = "individual"
     ADMIN = "admin"
     COMPANY = "company"
+    USER = "USER"  # 일반 사용자 권한
     MEMBER = "MEMBER"  # 기업회원(채용담당자로 초대된)권한
     MANAGER = "MANAGER"  # 기업회원 공고 생성자 권한
     EMPLOYEE = "EMPLOYEE"  # 기업회원 권한

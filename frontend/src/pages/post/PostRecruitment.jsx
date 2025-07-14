@@ -124,6 +124,7 @@ function PostRecruitment() {
   const isWeightsValid = weights.length >= 5 && weights.every(w => w.item && w.score !== '');
   const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid && isWeightsValid;
   const [showError, setShowError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -132,6 +133,7 @@ function PostRecruitment() {
       return;
     }
     setShowError(false);
+    setSubmitting(true); // 로딩 시작
     
     // Debug authentication
     console.log('Current user:', user);
@@ -149,6 +151,7 @@ function PostRecruitment() {
     if (!token) {
       alert('로그인이 필요합니다. 다시 로그인해주세요.');
       navigate('/login');
+      setSubmitting(false); // 로딩 종료
       return;
     }
     
@@ -223,6 +226,8 @@ function PostRecruitment() {
       }
       
       alert(error.response?.data?.detail?.[0]?.msg || error.response?.data?.message || '채용공고 등록에 실패했습니다.');
+    } finally {
+      setSubmitting(false); // 로딩 종료
     }
   };
 
@@ -771,9 +776,16 @@ function PostRecruitment() {
             </div>
           )}
           <div className="flex justify-center mt-10">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6 py-3 rounded text-lg">등록하기</button>
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white px-6 py-3 rounded text-lg" disabled={submitting}>
+              {submitting ? '등록 중...' : '등록하기'}
+            </button>
           </div>
         </form>
+        {submitting && (
+          <div className="flex justify-center items-center mt-4">
+            <span className="text-blue-600 text-lg">등록 중입니다. 잠시만 기다려주세요...</span>
+          </div>
+        )}
       </div>
 
       {showMemberModal && (

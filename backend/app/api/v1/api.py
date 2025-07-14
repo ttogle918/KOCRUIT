@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1 import auth, company_jobs, public_jobs, applications, resumes, companies, notifications, schedules, users
-from app.api.v1 import interview_evaluation, interview_question
+from app.api.v1 import interview_evaluation, interview_question, interview_panel
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -15,3 +15,4 @@ api_router.include_router(schedules.router, prefix="/schedules", tags=["schedule
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(interview_evaluation.router, prefix="/interview-evaluations", tags=["interview-evaluations"])
 api_router.include_router(interview_question.router, prefix="/interview-questions", tags=["interview-questions"])
+api_router.include_router(interview_panel.router, prefix="/interview-panel", tags=["interview-panel"])

@@ -181,6 +181,7 @@ function EditPost() {
   const isRecruitInfoValid = [formData.title, formData.department, formData.qualifications, formData.conditions, formData.job_details, formData.procedures, formData.headcount, formData.start_date, formData.end_date, formData.location, formData.employment_type].every(v => !isFieldEmpty(v));
   const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid && isWeightsValid;
   const [showError, setShowError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // AI 가중치 추출 함수
   const handleExtractWeights = async () => {
@@ -248,6 +249,7 @@ function EditPost() {
       return;
     }
     setShowError(false);
+    setSubmitting(true); // 로딩 시작
     
     // 디버깅: 토큰 상태 확인
     const token = localStorage.getItem('token');
@@ -260,6 +262,7 @@ function EditPost() {
     if (!token) {
       alert('로그인이 필요합니다. 다시 로그인해주세요.');
       navigate('/login');
+      setSubmitting(false); // 로딩 종료
       return;
     }
     
@@ -321,6 +324,8 @@ function EditPost() {
       }
       
       alert(error.response?.data?.detail?.[0]?.msg || error.response?.data?.message || '채용공고 수정에 실패했습니다.');
+    } finally {
+      setSubmitting(false); // 로딩 종료
     }
   };
 
@@ -820,6 +825,12 @@ function EditPost() {
           </div>
         </form>
       </div>
+
+      {submitting && (
+        <div className="flex justify-center items-center mt-4">
+          <span className="text-blue-600 text-lg">저장 중입니다. 잠시만 기다려주세요...</span>
+        </div>
+      )}
 
       {showMemberModal && (
         <CompanyMemberSelectModal

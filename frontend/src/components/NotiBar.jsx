@@ -25,7 +25,7 @@ export default function NotiBar({ initialNotifications  = [] }) {
   }, []);
 
   const handleNotificationClick = (noti) => {
-    if (noti.type === 'RESUME_VIEWED') {
+    if (noti.type === 'RESUME_VIEWED' || noti.type === 'INTERVIEW_PANEL_REQUEST') {
       navigate('/memberschedule');
     } else {
       navigate('/');
