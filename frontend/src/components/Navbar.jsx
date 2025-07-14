@@ -8,6 +8,7 @@ import { IoSunny } from "react-icons/io5";
 import { FaRegBell } from "react-icons/fa";
 import { BsPersonCircle } from "react-icons/bs";
 import NotiBar from './NotiBar';
+import { fetchUnreadCount } from '../api/notificationApi';
 
 function NavBar() {
   const { user, logout } = useAuth();
@@ -16,22 +17,44 @@ function NavBar() {
   const { isDarkMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  // Example notifications
-  const notifications = [
-    '새로운 지원자가 등록되었습니다.',
-    '면접 일정이 변경되었습니다.',
-    '채용 공고가 마감되었습니다.',
-    '알림 4',
-    '알림 5',
-    '알림 6',
-    '알림 7',
-    '알림 8',
-    '알림 9',
-    '알림 10',
-  ];
-  const notificationCount = notifications.length;
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
   const notiRef = useRef();
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    if (!isGuest) {
+      const fetchNotifications = async () => {
+        try {
+          setLoading(true);
+          const response = await fetchUnreadCount();
+          setUnreadCount(response.data?.count || 0);
+        } catch (error) {
+          console.error('Failed to fetch notification count:', error);
+          setUnreadCount(0);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchNotifications();
+      
+      // Refresh notifications every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      
+      // Also refresh when window gains focus (user returns from another page)
+      const handleFocus = () => {
+        fetchNotifications();
+      };
+      window.addEventListener('focus', handleFocus);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('focus', handleFocus);
+      };
+    }
+  }, [isGuest]);
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -56,6 +79,27 @@ function NavBar() {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleNotificationRead = () => {
+    // Refresh the unread count when a notification is marked as read
+    const refreshCount = async () => {
+      try {
+        const response = await fetchUnreadCount();
+        setUnreadCount(response.data?.count || 0);
+      } catch (error) {
+        console.error('Failed to refresh notification count:', error);
+      }
+    };
+    refreshCount();
+  };
+
+  const handleNotificationClick = () => {
+    setNotiOpen((open) => !open);
+    // Also refresh count when opening notifications
+    if (!notiOpen) {
+      handleNotificationRead();
+    }
   };
 
   return (
@@ -88,20 +132,20 @@ function NavBar() {
             <div className="relative" ref={notiRef}>
               <button
                 className="relative focus:outline-none flex items-center"
-                onClick={() => setNotiOpen((open) => !open)}
+                onClick={handleNotificationClick}
                 aria-label="알림"
               >
                 <span className="text-2xl flex items-center"><FaRegBell /></span>
-                {notificationCount > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full px-1 py-0.3">
-                    {notificationCount}
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </button>
               {/* Only NotiBar as popup */}
               {notiOpen && (
                 <div className="absolute right-0 mt-2 z-50">
-                  <NotiBar notifications={notifications} count={notificationCount} />
+                  <NotiBar onNotificationClick={handleNotificationRead} />
                 </div>
               )}
             </div>

@@ -4,6 +4,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import Layout from '../../layout/Layout';
 import { FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaUserTie, FaHistory } from 'react-icons/fa';
 import { interviewPanelApi } from '../../api/interviewPanelApi';
+import { markInterviewNotificationsAsRead } from '../../api/notificationApi';
 import { useAuth } from '../../context/AuthContext';
 
 export default function MemberSchedule() {
@@ -12,6 +13,22 @@ export default function MemberSchedule() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const { user } = useAuth();
+
+  // Mark all interview notifications as read when page loads
+  useEffect(() => {
+    const markNotificationsAsRead = async () => {
+      if (!user) return;
+      
+      try {
+        await markInterviewNotificationsAsRead();
+        console.log('면접 관련 알림을 모두 읽음 처리했습니다.');
+      } catch (error) {
+        console.error('알림 읽음 처리 실패:', error);
+      }
+    };
+
+    markNotificationsAsRead();
+  }, [user]);
 
   // Load interview panel requests
   useEffect(() => {

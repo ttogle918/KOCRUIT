@@ -12,6 +12,7 @@ from app.models.weight import Weight
 from app.models.user import User, CompanyUser
 from app.models.company import Department
 from app.models.application import Application
+from app.models.interview_panel import InterviewPanelAssignment
 from app.api.v1.auth import get_current_user
 
 router = APIRouter()
@@ -886,7 +887,31 @@ def delete_company_job_post(
             db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
             print(f"Deleted {len(jobpost_roles)} job post roles for job post {job_post_id}")
         
-        # 10. 마지막으로 채용공고 삭제
+        # 10. 관련된 알림(Notification) 삭제 - 면접관 요청 알림들
+        try:
+            from app.models.notification import Notification
+            from app.models.interview_panel import InterviewPanelRequest
+            
+            # 면접관 요청과 연결된 알림들 찾기
+            interview_requests = db.query(InterviewPanelRequest).filter(
+                InterviewPanelRequest.assignment_id.in_(
+                    db.query(InterviewPanelAssignment.id).filter(
+                        InterviewPanelAssignment.job_post_id == job_post_id
+                    )
+                )
+            ).all()
+            
+            notification_ids = [req.notification_id for req in interview_requests if req.notification_id]
+            
+            if notification_ids:
+                deleted_notifications = db.query(Notification).filter(
+                    Notification.id.in_(notification_ids)
+                ).delete()
+                print(f"Deleted {deleted_notifications} notifications for job post {job_post_id}")
+        except Exception as e:
+            print(f"Notification deletion failed: {e}")
+        
+        # 11. 마지막으로 채용공고 삭제
         db.delete(db_job_post)
         
         db.commit()
