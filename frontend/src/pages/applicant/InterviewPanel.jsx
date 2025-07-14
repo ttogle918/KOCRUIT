@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Rating from '@mui/material/Rating';
 import api from '../../api/api';
 import Accordion from '@mui/material/Accordion';
@@ -8,14 +8,25 @@ import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ApplicantCard from '../../components/ApplicantCard';
 
-function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = {}, onEvaluationChange, isAutoSaving = false, resumeId, applicationId, companyName, applicantName }) {
-  // 면접관 지원 도구 상태
-  const [resumeAnalysis, setResumeAnalysis] = useState(null);
-  const [interviewChecklist, setInterviewChecklist] = useState(null);
-  const [strengthsWeaknesses, setStrengthsWeaknesses] = useState(null);
-  const [interviewGuideline, setInterviewGuideline] = useState(null);
-  const [evaluationCriteria, setEvaluationCriteria] = useState(null);
-  const [loadingTools, setLoadingTools] = useState(false);
+
+function InterviewPanel({
+  questions = [],
+  memo = '',
+  onMemoChange,
+  evaluation = {},
+  onEvaluationChange,
+  isAutoSaving = false,
+  resumeId,
+  applicationId,
+  companyName,
+  applicantName,
+  interviewChecklist = null,
+  strengthsWeaknesses = null,
+  interviewGuideline = null,
+  evaluationCriteria = null,
+  toolsLoading = false
+}) {
+  // 면접관 지원 도구 상태 제거 (useState, useEffect, loadInterviewTools 등 모두 삭제)
   const [activeTab, setActiveTab] = useState('questions'); // 'questions', 'analysis', 'checklist', 'guideline', 'criteria'
 
   // 예시: 카테고리별 평가 항목(실제 항목 구조에 맞게 수정)
@@ -41,48 +52,6 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
     }));
   };
 
-  // 면접관 지원 도구 로드
-  const loadInterviewTools = async () => {
-    if (!resumeId) return;
-    
-    setLoadingTools(true);
-    try {
-      const requestData = {
-        resume_id: resumeId,
-        application_id: applicationId,
-        company_name: companyName,
-        name: applicantName
-      };
-
-      // 병렬로 모든 도구 데이터 로드
-      const [analysisRes, checklistRes, strengthsRes, guidelineRes, criteriaRes] = await Promise.allSettled([
-        api.post('/interview-questions/resume-analysis', requestData),
-        api.post('/interview-questions/interview-checklist', requestData),
-        api.post('/interview-questions/strengths-weaknesses', requestData),
-        api.post('/interview-questions/interview-guideline', requestData),
-        api.post('/interview-questions/evaluation-criteria', requestData)
-      ]);
-
-      if (analysisRes.status === 'fulfilled') setResumeAnalysis(analysisRes.value.data);
-      if (checklistRes.status === 'fulfilled') setInterviewChecklist(checklistRes.value.data);
-      if (strengthsRes.status === 'fulfilled') setStrengthsWeaknesses(strengthsRes.value.data);
-      if (guidelineRes.status === 'fulfilled') setInterviewGuideline(guidelineRes.value.data);
-      if (criteriaRes.status === 'fulfilled') setEvaluationCriteria(criteriaRes.value.data);
-
-    } catch (error) {
-      console.error('면접관 지원 도구 로드 실패:', error);
-    } finally {
-      setLoadingTools(false);
-    }
-  };
-
-  // 컴포넌트 마운트 시 도구 로드
-  useEffect(() => {
-    if (resumeId) {
-      loadInterviewTools();
-    }
-  }, [resumeId, applicationId]);
-
   return (
     <div className="flex flex-col gap-4 p-4 h-full">
       {/* 자동 저장 상태 표시 */}
@@ -92,7 +61,6 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
           자동 저장 중...
         </div>
       )}
-      
       {/* 탭 네비게이션 */}
       <div className="flex border-b border-gray-300 dark:border-gray-600">
         <button
@@ -100,12 +68,6 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
           onClick={() => setActiveTab('questions')}
         >
           면접 질문
-        </button>
-        <button
-          className={`px-4 py-2 text-sm font-medium ${activeTab === 'analysis' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => setActiveTab('analysis')}
-        >
-          이력서 분석
         </button>
         <button
           className={`px-4 py-2 text-sm font-medium ${activeTab === 'checklist' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
@@ -126,7 +88,6 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
           평가 기준
         </button>
       </div>
-
       {/* 탭 컨텐츠 */}
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'questions' && (
@@ -137,68 +98,10 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
             </ul>
           </div>
         )}
-
-        {activeTab === 'analysis' && (
-          <div>
-            <div className="mb-2 font-bold text-lg">이력서 분석 리포트</div>
-            {loadingTools ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">분석 중...</span>
-              </div>
-            ) : resumeAnalysis ? (
-              <div className="space-y-4 text-sm">
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">이력서 요약</h4>
-                  <p className="text-gray-700 dark:text-gray-200">{resumeAnalysis.resume_summary}</p>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">주요 프로젝트</h4>
-                  <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {resumeAnalysis.key_projects?.map((project, i) => <li key={i}>{project}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">기술 스택</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {resumeAnalysis.technical_skills?.map((skill, i) => (
-                      <span key={i} className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">면접 집중 영역</h4>
-                  <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {resumeAnalysis.interview_focus_areas?.map((area, i) => <li key={i}>{area}</li>)}
-                  </ul>
-                </div>
-                {resumeAnalysis.job_matching_score && (
-                  <div>
-                    <h4 className="font-semibold text-blue-700 dark:text-blue-300">직무 매칭 점수</h4>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-gray-200 rounded-full">
-                        <div 
-                          className="h-2 bg-blue-600 rounded-full" 
-                          style={{ width: `${resumeAnalysis.job_matching_score * 100}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm">{(resumeAnalysis.job_matching_score * 100).toFixed(0)}%</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-gray-500 text-center py-8">이력서 분석 정보를 불러올 수 없습니다.</div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'checklist' && (
           <div>
             <div className="mb-2 font-bold text-lg">면접 체크리스트</div>
-            {loadingTools ? (
+            {toolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-2">체크리스트 생성 중...</span>
@@ -235,11 +138,10 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
             )}
           </div>
         )}
-
         {activeTab === 'guideline' && (
           <div>
             <div className="mb-2 font-bold text-lg">면접 가이드라인</div>
-            {loadingTools ? (
+            {toolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-2">가이드라인 생성 중...</span>
@@ -273,11 +175,10 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
             )}
           </div>
         )}
-
         {activeTab === 'criteria' && (
           <div>
             <div className="mb-2 font-bold text-lg">평가 기준 제안</div>
-            {loadingTools ? (
+            {toolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-2">평가 기준 생성 중...</span>
@@ -311,7 +212,6 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
           </div>
         )}
       </div>
-
       {/* 평가 항목 (항상 표시) */}
       <div className="border-t border-gray-300 dark:border-gray-600 pt-4">
         <div className="mb-2 font-bold text-lg">평가 항목</div>
@@ -336,7 +236,6 @@ function InterviewPanel({ questions = [], memo = '', onMemoChange, evaluation = 
           ))}
         </div>
       </div>
-
       {/* 메모 입력 */}
       <div>
         <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">면접 메모</h3>
