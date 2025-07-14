@@ -6,7 +6,7 @@ import os
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain.tools.tavily_search import TavilySearchResults
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain.chains.summarize import load_summarize_chain
 from langchain_core.documents import Document
 

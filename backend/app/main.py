@@ -10,12 +10,59 @@ from app.models import Base
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.core.database import SessionLocal
 from app.models.interview_evaluation import auto_process_applications
+from sqlalchemy import text, inspect
+
+
+def safe_create_tables():
+    """안전한 테이블 생성 - 기존 테이블은 건드리지 않고 새로운 테이블만 생성"""
+    try:
+        inspector = inspect(engine)
+        existing_tables = inspector.get_table_names()
+        
+        # 새로운 테이블들만 생성
+        new_tables = [
+            'interview_evaluation_item'  # 새로 추가된 테이블
+        ]
+        
+        for table_name in new_tables:
+            if table_name not in existing_tables:
+                print(f"Creating new table: {table_name}")
+                # 해당 테이블만 생성
+                table = Base.metadata.tables.get(table_name)
+                if table:
+                    table.create(bind=engine, checkfirst=True)
+                    print(f"✅ Table {table_name} created successfully")
+                else:
+                    print(f"⚠️ Table {table_name} not found in metadata")
+            else:
+                print(f"✅ Table {table_name} already exists")
+        
+        # 기존 테이블에 새로운 컬럼 추가 (필요한 경우)
+        try:
+            # interview_evaluation 테이블에 updated_at 컬럼 추가
+            with engine.connect() as conn:
+                result = conn.execute(text("SHOW COLUMNS FROM interview_evaluation LIKE 'updated_at'"))
+                if not result.fetchone():
+                    print("Adding updated_at column to interview_evaluation table")
+                    conn.execute(text("ALTER TABLE interview_evaluation ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+                    conn.commit()
+                    print("✅ updated_at column added successfully")
+                else:
+                    print("✅ updated_at column already exists")
+        except Exception as e:
+            print(f"⚠️ Column update check failed: {e}")
+            
+    except Exception as e:
+        print(f"❌ Safe table creation failed: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    Base.metadata.create_all(bind=engine)
+    print("🚀 Starting application...")
+    
+    # 안전한 테이블 생성
+    safe_create_tables()
     
     # 시드 데이터 실행
     try:

@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
 from typing import Optional
-from langchain.tools.tavily_search import TavilySearchResults
+from langchain_community.tools.tavily_search.tool import TavilySearchResults
 from langchain.chains.summarize import load_summarize_chain
 from langchain_core.documents import Document
 
@@ -357,4 +357,427 @@ def generate_job_question_bundle(resume_text: str, job_info: str, company_name: 
             "일정이 지연될 것 같을 때 어떻게 해결하시나요?"
         ]
     
+    return questions_by_category
+
+# 이력서 분석 리포트 생성 프롬프트
+resume_analysis_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 정보입니다:
+    ---
+    {resume_text}
+    ---
+    
+    직무 정보 (있는 경우):
+    ---
+    {job_info}
+    ---
+    
+    포트폴리오 분석 (있는 경우):
+    ---
+    {portfolio_info}
+    ---
+    
+    직무 매칭 정보 (있는 경우):
+    ---
+    {job_matching_info}
+    ---
+    
+    위 정보를 바탕으로 면접관을 위한 이력서 분석 리포트를 생성해 주세요.
+    다음 항목들을 포함해서 작성해 주세요:
+    
+    1. 이력서 요약 (200자 이내)
+    2. 주요 프로젝트 3-4개 (각각 50자 이내)
+    3. 기술 스택 (구체적인 기술명들)
+    4. 소프트 스킬 (커뮤니케이션, 리더십 등)
+    5. 경험 하이라이트 (주목할 만한 경험들)
+    6. 잠재적 우려사항 (면접에서 확인해야 할 부분들)
+    7. 면접 집중 영역 (중점적으로 질문할 부분들)
+    
+    JSON 형식으로 응답해 주세요:
+    {{
+        "resume_summary": "요약",
+        "key_projects": ["프로젝트1", "프로젝트2"],
+        "technical_skills": ["기술1", "기술2"],
+        "soft_skills": ["스킬1", "스킬2"],
+        "experience_highlights": ["하이라이트1", "하이라이트2"],
+        "potential_concerns": ["우려사항1", "우려사항2"],
+        "interview_focus_areas": ["집중영역1", "집중영역2"],
+        "portfolio_analysis": "포트폴리오 분석 결과",
+        "job_matching_score": 0.85,
+        "job_matching_details": "직무 매칭 상세 분석"
+    }}
+    """
+)
+
+# 면접 체크리스트 생성 프롬프트
+interview_checklist_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 정보입니다:
+    ---
+    {resume_text}
+    ---
+    
+    직무 정보 (있는 경우):
+    ---
+    {job_info}
+    ---
+    
+    회사명: {company_name}
+    
+    위 정보를 바탕으로 면접관을 위한 체크리스트를 생성해 주세요.
+    다음 항목들을 포함해서 작성해 주세요:
+    
+    1. 면접 전 체크리스트 (이력서 검토 시 확인할 점들)
+    2. 면접 중 체크리스트 (면접 진행 시 확인할 점들)
+    3. 면접 후 체크리스트 (평가 시 고려할 점들)
+    4. 주의해야 할 레드플래그 (부정적 신호들)
+    5. 확인해야 할 그린플래그 (긍정적 신호들)
+    
+    JSON 형식으로 응답해 주세요:
+    {{
+        "pre_interview_checklist": ["체크항목1", "체크항목2"],
+        "during_interview_checklist": ["체크항목1", "체크항목2"],
+        "post_interview_checklist": ["체크항목1", "체크항목2"],
+        "red_flags_to_watch": ["레드플래그1", "레드플래그2"],
+        "green_flags_to_confirm": ["그린플래그1", "그린플래그2"]
+    }}
+    """
+)
+
+# 강점/약점 분석 프롬프트
+strengths_weaknesses_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 정보입니다:
+    ---
+    {resume_text}
+    ---
+    
+    직무 정보 (있는 경우):
+    ---
+    {job_info}
+    ---
+    
+    회사명: {company_name}
+    
+    위 정보를 바탕으로 지원자의 강점과 약점을 분석해 주세요.
+    다음 항목들을 포함해서 작성해 주세요:
+    
+    1. 강점 (각 강점에 대한 설명과 근거 포함)
+    2. 약점 (각 약점에 대한 설명과 개선 방향 포함)
+    3. 개발 영역 (성장 가능한 부분들)
+    4. 경쟁 우위 (다른 지원자 대비 장점들)
+    
+    JSON 형식으로 응답해 주세요:
+    {{
+        "strengths": [
+            {{"strength": "강점명", "description": "설명", "evidence": "근거"}}
+        ],
+        "weaknesses": [
+            {{"weakness": "약점명", "description": "설명", "improvement": "개선방향"}}
+        ],
+        "development_areas": ["개발영역1", "개발영역2"],
+        "competitive_advantages": ["경쟁우위1", "경쟁우위2"]
+    }}
+    """
+)
+
+# 면접 가이드라인 생성 프롬프트
+interview_guideline_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 정보입니다:
+    ---
+    {resume_text}
+    ---
+    
+    직무 정보 (있는 경우):
+    ---
+    {job_info}
+    ---
+    
+    회사명: {company_name}
+    
+    위 정보를 바탕으로 면접 가이드라인을 생성해 주세요.
+    다음 항목들을 포함해서 작성해 주세요:
+    
+    1. 면접 접근 방식 (전체적인 면접 전략)
+    2. 카테고리별 핵심 질문들
+    3. 평가 기준 (구체적인 평가 항목들)
+    4. 시간 배분 (각 영역별 소요 시간)
+    5. 후속 질문들 (깊이 있는 탐구 질문들)
+    
+    JSON 형식으로 응답해 주세요:
+    {{
+        "interview_approach": "면접 접근 방식 설명",
+        "key_questions_by_category": {{
+            "기술": ["질문1", "질문2"],
+            "경험": ["질문1", "질문2"],
+            "인성": ["질문1", "질문2"]
+        }},
+        "evaluation_criteria": [
+            {{"category": "기술력", "weight": 0.4, "description": "평가 설명"}}
+        ],
+        "time_allocation": {{
+            "자기소개": "5분",
+            "기술질문": "15분",
+            "경험질문": "10분",
+            "인성질문": "10분"
+        }},
+        "follow_up_questions": ["후속질문1", "후속질문2"]
+    }}
+    """
+)
+
+# 평가 기준 제안 프롬프트
+evaluation_criteria_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 정보입니다:
+    ---
+    {resume_text}
+    ---
+    
+    직무 정보 (있는 경우):
+    ---
+    {job_info}
+    ---
+    
+    회사명: {company_name}
+    
+    위 정보를 바탕으로 면접 평가 기준을 제안해 주세요.
+    다음 항목들을 포함해서 작성해 주세요:
+    
+    1. 제안 평가 기준 (구체적인 평가 항목들)
+    2. 가중치 권장사항 (각 항목별 중요도)
+    3. 평가 질문들 (각 기준별 확인 질문들)
+    4. 채점 가이드라인 (점수 부여 기준)
+    
+    JSON 형식으로 응답해 주세요:
+    {{
+        "suggested_criteria": [
+            {{"criterion": "기술력", "description": "설명", "max_score": 10}}
+        ],
+        "weight_recommendations": [
+            {{"criterion": "기술력", "weight": 0.4, "reason": "이유"}}
+        ],
+        "evaluation_questions": ["평가질문1", "평가질문2"],
+        "scoring_guidelines": {{
+            "excellent": "9-10점 기준",
+            "good": "7-8점 기준",
+            "average": "5-6점 기준",
+            "poor": "3-4점 기준"
+        }}
+    }}
+    """
+)
+
+# LLM 체인 초기화
+resume_analysis_chain = LLMChain(llm=llm, prompt=resume_analysis_prompt)
+interview_checklist_chain = LLMChain(llm=llm, prompt=interview_checklist_prompt)
+strengths_weaknesses_chain = LLMChain(llm=llm, prompt=strengths_weaknesses_prompt)
+interview_guideline_chain = LLMChain(llm=llm, prompt=interview_guideline_prompt)
+evaluation_criteria_chain = LLMChain(llm=llm, prompt=evaluation_criteria_prompt)
+
+def generate_resume_analysis_report(resume_text: str, job_info: str = "", portfolio_info: str = "", job_matching_info: str = ""):
+    """이력서 분석 리포트 생성"""
+    try:
+        result = resume_analysis_chain.invoke({
+            "resume_text": resume_text,
+            "job_info": job_info or "직무 정보가 없습니다.",
+            "portfolio_info": portfolio_info or "포트폴리오 정보가 없습니다.",
+            "job_matching_info": job_matching_info or "직무 매칭 정보가 없습니다."
+        })
+        
+        # JSON 파싱 (더 안전한 방식)
+        import json
+        import re
+        
+        text = result.get("text", "")
+        print(f"AI 응답: {text[:200]}...")  # 디버깅용
+        
+        # JSON 블록 찾기
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if json_match:
+            try:
+                analysis_data = json.loads(json_match.group())
+                return analysis_data
+            except json.JSONDecodeError as je:
+                print(f"JSON 파싱 오류: {je}")
+        
+        # JSON이 없으면 기본 응답 반환
+        return {
+            "resume_summary": "AI 응답을 파싱할 수 없습니다. 기본 분석을 제공합니다.",
+            "key_projects": ["프로젝트 경험 분석 필요"],
+            "technical_skills": ["기술 스택 분석 필요"],
+            "soft_skills": ["소프트 스킬 분석 필요"],
+            "experience_highlights": ["주요 경험 분석 필요"],
+            "potential_concerns": ["면접 시 확인 필요"],
+            "interview_focus_areas": ["기술력", "경험", "인성"],
+            "portfolio_analysis": portfolio_info or "포트폴리오 정보가 없습니다.",
+            "job_matching_score": 0.5,
+            "job_matching_details": job_matching_info or "직무 매칭 정보가 없습니다."
+        }
+    except Exception as e:
+        print(f"이력서 분석 오류: {str(e)}")
+        # 기본 응답 반환
+        return {
+            "resume_summary": "이력서 분석 중 오류가 발생했습니다.",
+            "key_projects": [],
+            "technical_skills": [],
+            "soft_skills": [],
+            "experience_highlights": [],
+            "potential_concerns": [],
+            "interview_focus_areas": [],
+            "portfolio_analysis": portfolio_info or "포트폴리오 정보가 없습니다.",
+            "job_matching_score": None,
+            "job_matching_details": job_matching_info or "직무 매칭 정보가 없습니다."
+        }
+
+def generate_interview_checklist(resume_text: str, job_info: str = "", company_name: str = ""):
+    """면접 체크리스트 생성"""
+    try:
+        result = interview_checklist_chain.invoke({
+            "resume_text": resume_text,
+            "job_info": job_info or "직무 정보가 없습니다.",
+            "company_name": company_name or "회사 정보가 없습니다."
+        })
+        
+        # JSON 파싱 (더 안전한 방식)
+        import json
+        import re
+        
+        text = result.get("text", "")
+        
+        # JSON 블록 찾기
+        json_match = re.search(r'\{.*\}', text, re.DOTALL)
+        if json_match:
+            try:
+                checklist_data = json.loads(json_match.group())
+                return checklist_data
+            except json.JSONDecodeError as je:
+                print(f"체크리스트 JSON 파싱 오류: {je}")
+        
+        # 기본 응답 반환
+        return {
+            "pre_interview_checklist": ["이력서 전체 내용 검토", "직무 요구사항과 매칭도 확인"],
+            "during_interview_checklist": ["지원자의 응답 태도 관찰", "구체적인 경험 사례 확인"],
+            "post_interview_checklist": ["전체적인 인상 평가", "합격 여부 결정"],
+            "red_flags_to_watch": ["모호한 답변", "경험 부족"],
+            "green_flags_to_confirm": ["구체적인 사례 제시", "적극적인 태도"]
+        }
+    except Exception as e:
+        print(f"체크리스트 생성 오류: {str(e)}")
+        # 기본 응답 반환
+        return {
+            "pre_interview_checklist": ["이력서 전체 내용 검토", "직무 요구사항과 매칭도 확인"],
+            "during_interview_checklist": ["지원자의 응답 태도 관찰", "구체적인 경험 사례 확인"],
+            "post_interview_checklist": ["전체적인 인상 평가", "합격 여부 결정"],
+            "red_flags_to_watch": ["모호한 답변", "경험 부족"],
+            "green_flags_to_confirm": ["구체적인 사례 제시", "적극적인 태도"]
+        }
+
+def analyze_candidate_strengths_weaknesses(resume_text: str, job_info: str = "", company_name: str = ""):
+    """지원자 강점/약점 분석"""
+    try:
+        result = strengths_weaknesses_chain.invoke({
+            "resume_text": resume_text,
+            "job_info": job_info or "직무 정보가 없습니다.",
+            "company_name": company_name or "회사 정보가 없습니다."
+        })
+        
+        # JSON 파싱
+        import json
+        analysis_data = json.loads(result.get("text", "{}"))
+        
+        return analysis_data
+    except Exception as e:
+        print(f"강점/약점 분석 오류: {str(e)}")
+        # 기본 응답 반환
+        return {
+            "strengths": [
+                {"strength": "기술 스택", "description": "다양한 기술 보유", "evidence": "이력서에 명시된 기술들"}
+            ],
+            "weaknesses": [
+                {"weakness": "경험 부족", "description": "실무 경험 부족", "improvement": "인턴십이나 프로젝트 경험 필요"}
+            ],
+            "development_areas": ["실무 경험", "팀워크 경험"],
+            "competitive_advantages": ["기술적 역량", "학습 의지"]
+        }
+
+def generate_interview_guideline(resume_text: str, job_info: str = "", company_name: str = ""):
+    """면접 가이드라인 생성"""
+    try:
+        result = interview_guideline_chain.invoke({
+            "resume_text": resume_text,
+            "job_info": job_info or "직무 정보가 없습니다.",
+            "company_name": company_name or "회사 정보가 없습니다."
+        })
+        
+        # JSON 파싱
+        import json
+        guideline_data = json.loads(result.get("text", "{}"))
+        
+        return guideline_data
+    except Exception as e:
+        print(f"가이드라인 생성 오류: {str(e)}")
+        # 기본 응답 반환
+        return {
+            "interview_approach": "지원자의 경험과 기술을 중심으로 한 구조화된 면접",
+            "key_questions_by_category": {
+                "기술": ["주요 기술 스택에 대해 설명해주세요", "프로젝트에서 기술적 도전을 어떻게 해결했나요"],
+                "경험": ["가장 기억에 남는 프로젝트는 무엇인가요", "팀워크 경험을 말해보세요"],
+                "인성": ["자기소개를 해주세요", "우리 회사에 지원한 이유는 무엇인가요"]
+            },
+            "evaluation_criteria": [
+                {"category": "기술력", "weight": 0.4, "description": "기술적 역량과 문제해결 능력"},
+                {"category": "경험", "weight": 0.3, "description": "실무 경험과 프로젝트 성과"},
+                {"category": "인성", "weight": 0.3, "description": "커뮤니케이션과 팀워크 능력"}
+            ],
+            "time_allocation": {
+                "자기소개": "5분",
+                "기술질문": "15분",
+                "경험질문": "10분",
+                "인성질문": "10분"
+            },
+            "follow_up_questions": ["더 구체적인 사례를 들어 설명해주세요", "그 상황에서 다른 대안은 없었나요"]
+        }
+
+def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_name: str = ""):
+    """평가 기준 자동 제안"""
+    try:
+        result = evaluation_criteria_chain.invoke({
+            "resume_text": resume_text,
+            "job_info": job_info or "직무 정보가 없습니다.",
+            "company_name": company_name or "회사 정보가 없습니다."
+        })
+        
+        # JSON 파싱
+        import json
+        criteria_data = json.loads(result.get("text", "{}"))
+        
+        return criteria_data
+    except Exception as e:
+        print(f"평가 기준 제안 오류: {str(e)}")
+        # 기본 응답 반환
+        return {
+            "suggested_criteria": [
+                {"criterion": "기술력", "description": "기술적 역량과 문제해결 능력", "max_score": 10},
+                {"criterion": "경험", "description": "실무 경험과 프로젝트 성과", "max_score": 10},
+                {"criterion": "인성", "description": "커뮤니케이션과 팀워크 능력", "max_score": 10}
+            ],
+            "weight_recommendations": [
+                {"criterion": "기술력", "weight": 0.4, "reason": "직무 수행에 핵심적인 요소"},
+                {"criterion": "경험", "weight": 0.3, "reason": "실무 적응력과 성과 예측"},
+                {"criterion": "인성", "weight": 0.3, "reason": "조직 적합성과 팀워크"}
+            ],
+            "evaluation_questions": [
+                "기술적 문제를 어떻게 해결하시나요?",
+                "팀 프로젝트에서의 역할은 무엇이었나요?",
+                "스트레스 상황에서 어떻게 대처하시나요?"
+            ],
+            "scoring_guidelines": {
+                "excellent": "9-10점: 모든 기준을 충족하고 뛰어난 역량 보유",
+                "good": "7-8점: 대부분의 기준을 충족하고 양호한 역량 보유",
+                "average": "5-6점: 기본적인 기준은 충족하나 개선 필요",
+                "poor": "3-4점: 기준 미달로 추가 개발 필요"
+            }
+        }
     return questions_by_category

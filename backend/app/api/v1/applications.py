@@ -13,6 +13,13 @@ from app.models.resume import Resume, Spec
 from app.models.user import User
 from app.models.applicant_user import ApplicantUser
 import re
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.models.application import Application
+from app.models.user import User
+from app.models.schedule import ScheduleInterview
+from sqlalchemy import Table, MetaData, select
 
 router = APIRouter()
 
@@ -380,3 +387,31 @@ def get_applicants_by_job(
         }
         applicants.append(applicant_data)
     return applicants
+
+@router.get("/job/{job_post_id}/applicants-with-interview")
+def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db)):
+    meta = MetaData()
+    schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+    applicants = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+    result = []
+    for app in applicants:
+        sia_row = db.execute(
+            select(
+                schedule_interview_applicant.c.schedule_interview_id
+            ).where(schedule_interview_applicant.c.user_id == app.user_id)
+        ).first()
+        schedule_interview_id = None
+        schedule_date = None
+        if sia_row:
+            schedule_interview_id = sia_row[0]
+            si = db.query(ScheduleInterview).filter(ScheduleInterview.id == schedule_interview_id).first()
+            if si:
+                schedule_date = si.schedule_date
+        user = db.query(User).filter(User.id == app.user_id).first()
+        result.append({
+            "applicant_id": app.user_id,
+            "name": user.name if user else "",
+            "schedule_interview_id": schedule_interview_id,
+            "schedule_date": schedule_date,
+        })
+    return result

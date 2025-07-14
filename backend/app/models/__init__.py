@@ -7,6 +7,7 @@ from .resume import Resume, ResumeMemo, Spec
 from .notification import Notification
 from .schedule import Schedule, ScheduleInterview
 from .weight import Weight
+from .interview_evaluation import InterviewEvaluation, EvaluationDetail, InterviewEvaluationItem
 
 __all__ = [
     "Base",
@@ -17,5 +18,6 @@ __all__ = [
     "Resume", "ResumeMemo", "Spec",
     "Notification",
     "Schedule", "ScheduleInterview",
-    "Weight"
+    "Weight",
+    "InterviewEvaluation", "EvaluationDetail", "InterviewEvaluationItem"
 ] 

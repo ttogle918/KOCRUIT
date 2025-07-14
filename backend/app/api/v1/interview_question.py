@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import api_key
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.schemas.interview_question import InterviewQuestion, InterviewQuestionCreate
 from app.models.resume import Resume, Spec
@@ -13,6 +13,19 @@ from app.api.v1.company_question_rag import generate_questions
 
 router = APIRouter()
 
+# 통합 API용 스키마
+class IntegratedQuestionRequest(BaseModel):
+    resume_id: Optional[int] = None
+    application_id: Optional[int] = None
+    company_name: str = ""
+    name: str = ""
+
+class IntegratedQuestionResponse(BaseModel):
+    questions: list[str]
+    question_bundle: dict
+    summary_info: dict
+
+# 기존 API용 스키마 (하위 호환성을 위해 유지)
 class CompanyQuestionRequest(BaseModel):
     company_name: str
 
@@ -37,6 +50,75 @@ class JobQuestionResponse(BaseModel):
     questions: list[str]
     question_bundle: dict
     job_matching_info: str
+
+# 새로운 스키마 추가
+class ResumeAnalysisRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+
+class ResumeAnalysisResponse(BaseModel):
+    resume_summary: str
+    key_projects: List[str]
+    technical_skills: List[str]
+    soft_skills: List[str]
+    experience_highlights: List[str]
+    potential_concerns: List[str]
+    interview_focus_areas: List[str]
+    portfolio_analysis: Optional[str] = None
+    job_matching_score: Optional[float] = None
+    job_matching_details: Optional[str] = None
+
+class InterviewChecklistRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+
+class InterviewChecklistResponse(BaseModel):
+    pre_interview_checklist: List[str]
+    during_interview_checklist: List[str]
+    post_interview_checklist: List[str]
+    red_flags_to_watch: List[str]
+    green_flags_to_confirm: List[str]
+
+class StrengthsWeaknessesRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+
+class StrengthsWeaknessesResponse(BaseModel):
+    strengths: List[dict]
+    weaknesses: List[dict]
+    development_areas: List[str]
+    competitive_advantages: List[str]
+
+class InterviewGuidelineRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+
+class InterviewGuidelineResponse(BaseModel):
+    interview_approach: str
+    key_questions_by_category: dict
+    evaluation_criteria: List[dict]
+    time_allocation: dict
+    follow_up_questions: List[str]
+
+class EvaluationCriteriaRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+
+class EvaluationCriteriaResponse(BaseModel):
+    suggested_criteria: List[dict]
+    weight_recommendations: List[dict]
+    evaluation_questions: List[str]
+    scoring_guidelines: dict
 
 def combine_resume_and_specs(resume: Resume, specs: List[Spec]) -> str:
     """Resume와 Spec을 조합하여 포괄적인 resume_text 생성"""
@@ -176,6 +258,308 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
 @router.get("/application/{application_id}", response_model=List[InterviewQuestion])
 def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
     return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
+
+
+@router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
+async def generate_integrated_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
+    """통합 면접 질문 생성 API - 이력서, 공고, 회사 정보를 모두 활용"""
+    # POST /api/v1/interview-questions/integrated-questions
+    # Content-Type: application/json
+    # {
+    #   "resume_id": 41,
+    #   "application_id": 41,
+    #   "company_name": "KOSA공공",
+    #   "name": "홍길동"
+    # }
+
+    try:
+        resume_text = ""
+        job_info = ""
+        actual_company_name = request.company_name
+        job_matching_info = ""
+        portfolio_info = ""
+        
+        # 1. 이력서 정보 수집
+        resume_summary = ""
+        if request.resume_id:
+            resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+            if not resume:
+                raise HTTPException(status_code=404, detail="Resume not found")
+            
+            specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+            resume_text = combine_resume_and_specs(resume, specs)
+            
+            # 자기소개서 요약 생성
+            from agent.agents.interview_question_node import generate_common_question_bundle
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+            from agent.tools.portfolio_tool import portfolio_tool
+            
+            # 자기소개서 요약 생성
+            from agent.agents.interview_question_node import generate_resume_summary
+            resume_summary_result = generate_resume_summary.invoke({"resume_text": resume_text})
+            resume_summary = resume_summary_result.get("text", "")
+            
+            # 포트폴리오 정보 수집
+            portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
+            portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
+        
+        # 2. 공고 정보 수집
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if not application:
+                raise HTTPException(status_code=404, detail="Application not found")
+            
+            job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+            if not job_post:
+                raise HTTPException(status_code=404, detail="Job post not found")
+            
+            job_info = parse_job_post_data(job_post)
+            actual_company_name = job_post.company.name if job_post.company else request.company_name
+            
+            # 직무 매칭 분석
+            if resume_text:
+                job_matching_info = analyze_job_matching(resume_text, job_info)
+        
+        # 3. 통합 질문 생성
+        from agent.agents.interview_question_node import generate_common_question_bundle, generate_job_question_bundle
+        
+        # 기본 질문 생성 (이력서 기반)
+        basic_questions = {}
+        if resume_text:
+            basic_questions = generate_common_question_bundle(
+                resume_text=resume_text,
+                company_name=actual_company_name,
+                portfolio_info=portfolio_info
+            )
+        
+        # 직무 맞춤형 질문 생성 (공고 기반)
+        job_questions = {}
+        if job_info and resume_text:
+            job_questions = generate_job_question_bundle(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=actual_company_name,
+                job_matching_info=job_matching_info
+            )
+        
+        # 4. 질문 통합 및 정리
+        all_questions = []
+        question_bundle = {}
+        
+        # 기본 질문들 추가
+        if basic_questions:
+            question_bundle.update(basic_questions)
+            all_questions.extend(basic_questions.get("인성/동기", []))
+            all_questions.extend(basic_questions.get("프로젝트 경험", []))
+            all_questions.extend(basic_questions.get("회사 관련", []))
+            all_questions.extend(basic_questions.get("상황 대처", []))
+        
+        # 직무 맞춤형 질문들 추가
+        if job_questions:
+            question_bundle.update(job_questions)
+            all_questions.extend(job_questions.get("직무 적합성", []))
+            all_questions.extend(job_questions.get("기술 스택", []))
+            all_questions.extend(job_questions.get("업무 이해도", []))
+            all_questions.extend(job_questions.get("경력 활용", []))
+        
+        # 5. 요약 정보 생성
+        summary_info = {
+            "resume_used": bool(request.resume_id),
+            "job_post_used": bool(request.application_id),
+            "company_name": actual_company_name,
+            "job_matching_info": job_matching_info,
+            "portfolio_info": portfolio_info,
+            "resume_summary": resume_summary
+        }
+        
+        return {
+            "questions": all_questions,
+            "question_bundle": question_bundle,
+            "summary_info": summary_info
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/resume-analysis", response_model=ResumeAnalysisResponse)
+async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """이력서 분석 리포트 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집 (application_id가 있는 경우)
+        job_info = ""
+        job_matching_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+                    job_matching_info = analyze_job_matching(resume_text, job_info)
+        
+        # 포트폴리오 정보 수집
+        portfolio_info = ""
+        if request.name:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+            from agent.tools.portfolio_tool import portfolio_tool
+            portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
+            portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
+        
+        # LangGraph 기반 이력서 분석
+        from agent.agents.interview_question_node import generate_resume_analysis_report
+        analysis_result = generate_resume_analysis_report(
+            resume_text=resume_text,
+            job_info=job_info,
+            portfolio_info=portfolio_info,
+            job_matching_info=job_matching_info
+        )
+        
+        return analysis_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/interview-checklist", response_model=InterviewChecklistResponse)
+async def generate_interview_checklist(request: InterviewChecklistRequest, db: Session = Depends(get_db)):
+    """면접 체크리스트 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 기반 체크리스트 생성
+        from agent.agents.interview_question_node import generate_interview_checklist
+        checklist_result = generate_interview_checklist(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name
+        )
+        
+        return checklist_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/strengths-weaknesses", response_model=StrengthsWeaknessesResponse)
+async def analyze_strengths_weaknesses(request: StrengthsWeaknessesRequest, db: Session = Depends(get_db)):
+    """지원자 강점/약점 분석 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 기반 강점/약점 분석
+        from agent.agents.interview_question_node import analyze_candidate_strengths_weaknesses
+        analysis_result = analyze_candidate_strengths_weaknesses(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name
+        )
+        
+        return analysis_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/interview-guideline", response_model=InterviewGuidelineResponse)
+async def generate_interview_guideline(request: InterviewGuidelineRequest, db: Session = Depends(get_db)):
+    """면접 가이드라인 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 기반 면접 가이드라인 생성
+        from agent.agents.interview_question_node import generate_interview_guideline
+        guideline_result = generate_interview_guideline(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name
+        )
+        
+        return guideline_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/evaluation-criteria", response_model=EvaluationCriteriaResponse)
+async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Session = Depends(get_db)):
+    """평가 기준 자동 제안 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 기반 평가 기준 제안
+        from agent.agents.interview_question_node import suggest_evaluation_criteria
+        criteria_result = suggest_evaluation_criteria(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name
+        )
+        
+        return criteria_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/company-questions", response_model=CompanyQuestionResponse)
 async def generate_company_questions(request: CompanyQuestionRequest):
