@@ -4,8 +4,7 @@ from datetime import datetime
 
 
 class NotificationBase(BaseModel):
-    title: str
-    content: Optional[str] = None
+    message: str
     type: Optional[str] = None
     is_read: bool = False
 
@@ -29,7 +28,7 @@ class NotificationDetail(NotificationBase):
 
 class NotificationList(BaseModel):
     id: int
-    title: str
+    message: str
     type: Optional[str] = None
     is_read: bool
     created_at: datetime

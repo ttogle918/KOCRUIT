@@ -23,6 +23,18 @@ def get_notifications(
     return notifications
 
 
+@router.get("/unread", response_model=List[NotificationList])
+def get_unread_notifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    notifications = db.query(Notification).filter(
+        Notification.user_id == current_user.id,
+        Notification.is_read == False
+    ).all()
+    return notifications
+
+
 @router.get("/{notification_id}", response_model=NotificationDetail)
 def get_notification(
     notification_id: int,
@@ -89,6 +101,16 @@ def delete_notification(
     db.delete(db_notification)
     db.commit()
     return {"message": "Notification deleted successfully"}
+
+
+@router.delete("/all")
+def delete_all_notifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    db.query(Notification).filter(Notification.user_id == current_user.id).delete()
+    db.commit()
+    return {"message": "All notifications deleted successfully"}
 
 
 @router.put("/{notification_id}/read")

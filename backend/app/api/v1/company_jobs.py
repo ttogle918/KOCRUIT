@@ -163,7 +163,7 @@ def create_company_job_post(
     job_data.pop('teamMembers', None)
     
     # weights 데이터를 별도로 저장 (JSON 필드에는 저장하지 않음)
-    weights_data = job_data.pop('weights', [])
+    job_data.pop('weights', None)
     
     db_job_post = JobPost(**job_data, company_id=current_user.company_id)
     db.add(db_job_post)
@@ -250,48 +250,20 @@ def create_company_job_post(
             # 면접관 배정 실패는 공고 생성에 영향을 주지 않도록 함
     
     # 가중치 데이터를 weight 테이블에 저장
+    weights_data = job_post.weights
     if weights_data:
         for weight_item in weights_data:
-            if weight_item.get('item') and weight_item.get('score') is not None:
+            if weight_item.item and weight_item.score is not None:
                 weight_record = Weight(
                     target_type='resume_feature',
                     jobpost_id=db_job_post.id,
-                    field_name=weight_item['item'],
-                    weight_value=float(weight_item['score'])
+                    field_name=weight_item.item,
+                    weight_value=float(weight_item.score)
                 )
                 db.add(weight_record)
         db.commit()
     
     # 팀 멤버 역할을 jobpost_role 테이블에 저장
-    team_members_data = job_post.teamMembers
-    if team_members_data:
-        for member in team_members_data:
-            if member.get('email') and member.get('role'):
-                # 이메일로 CompanyUser 찾기
-                company_user = db.query(CompanyUser).filter(
-                    CompanyUser.email == member['email'],
-                    CompanyUser.company_id == current_user.company_id
-                ).first()
-                
-                if company_user:
-                    # 역할 매핑 (관리자 -> MANAGER, 멤버 -> MEMBER)
-                    role_mapping = {
-                        '관리자': 'MANAGER',
-                        '멤버': 'MEMBER'
-                    }
-                    mapped_role = role_mapping.get(member['role'], 'MEMBER')
-                    
-                    # jobpost_role 생성
-                    jobpost_role = JobPostRole(
-                        jobpost_id=db_job_post.id,
-                        company_user_id=company_user.id,
-                        role=mapped_role
-                    )
-                    db.add(jobpost_role)
-        
-                db.commit()
-    
-    # 팀 멤버 역할을 jobpost_role 테이블에 저장 (생성 시에는 기존 데이터 삭제 불필요)
     team_members_data = job_post.teamMembers
     if team_members_data:
         for member in team_members_data:
@@ -387,7 +359,7 @@ def update_company_job_post(
     job_data.pop('team_members', None)
     
     # weights 데이터를 별도로 저장 (JSON 필드에는 저장하지 않음)
-    weights_data = job_data.pop('weights', None)
+    job_data.pop('weights', None)
     
     for field, value in job_data.items():
         setattr(db_job_post, field, value)
@@ -403,10 +375,10 @@ def update_company_job_post(
         # 새로운 팀 멤버 역할 추가
         if team_members_data:
             for member in team_members_data:
-                if member.get('email') and member.get('role'):
+                if member.email and member.role:
                     # 이메일로 CompanyUser 찾기
                     company_user = db.query(CompanyUser).filter(
-                        CompanyUser.email == member['email'],
+                        CompanyUser.email == member.email,
                         CompanyUser.company_id == current_user.company_id
                     ).first()
                     
@@ -416,7 +388,7 @@ def update_company_job_post(
                             '관리자': 'MANAGER',
                             '멤버': 'MEMBER'
                         }
-                        mapped_role = role_mapping.get(member['role'], 'MEMBER')
+                        mapped_role = role_mapping.get(member.role, 'MEMBER')
                         
                         # jobpost_role 생성
                         jobpost_role = JobPostRole(
@@ -429,18 +401,19 @@ def update_company_job_post(
         db.commit()
     
     # 가중치 데이터를 weight 테이블에 업데이트
+    weights_data = job_post.weights
     if weights_data is not None:
         # 기존 가중치 삭제
         db.query(Weight).filter(Weight.jobpost_id == job_post_id).delete()
         
         # 새로운 가중치 생성
         for weight_item in weights_data:
-            if weight_item.get('item') and weight_item.get('score') is not None:
+            if weight_item.item and weight_item.score is not None:
                 weight_record = Weight(
                     target_type='resume_feature',
                     jobpost_id=job_post_id,
-                    field_name=weight_item['item'],
-                    weight_value=float(weight_item['score'])
+                    field_name=weight_item.item,
+                    weight_value=float(weight_item.score)
                 )
                 db.add(weight_record)
         db.commit()
