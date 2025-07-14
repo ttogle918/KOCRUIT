@@ -14,6 +14,8 @@ function ApplicantListLeft({
   calculateAge,
   onFilteredApplicantsChange,
   compact = false,
+  onBatchReEvaluate,
+  loading = false,
 }) {
   const [activeTab, setActiveTab] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,6 +100,17 @@ function ApplicantListLeft({
             className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 px-2 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-xs h-7"
             style={{ minWidth: 100 }}
           />
+          {/* AI 일괄 재평가 버튼 */}
+          {onBatchReEvaluate && (
+            <button
+              className="px-3 py-1 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors text-xs font-semibold"
+              onClick={onBatchReEvaluate}
+              disabled={loading}
+            >
+              {loading ? '재평가 중...' : 'AI 재평가'}
+            </button>
+          )}
+          <div className="flex-1" />
           {/* 탭 필터 */}
           <div className="flex flex-row gap-0.5 ml-2">
             <button onClick={() => setActiveTab('ALL')} className={getButtonStyle('ALL', activeTab)}>전체</button>
