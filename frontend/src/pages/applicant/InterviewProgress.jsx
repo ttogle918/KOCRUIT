@@ -3,12 +3,13 @@ import { useParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import InterviewApplicantList from './InterviewApplicantList';
-import ResumeCard from '../../components/ResumeCard';
+import ResumePage from '../resume/ResumePage';
 import InterviewPanel from './InterviewPanel';
 import api from '../../api/api';
 import { FiChevronLeft, FiChevronRight, FiSave } from 'react-icons/fi';
 import { MdOutlineAutoAwesome } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
+import { mapResumeData } from '../../utils/resumeUtils';
 
 function InterviewProgress() {
   const { jobPostId } = useParams();
@@ -96,19 +97,20 @@ function InterviewProgress() {
     };
   }, [isLeftOpen]);
 
-  const handleApplicantClick = async (applicant) => {
-    // 기존: const id = applicant.id;
+  const handleApplicantClick = async (applicant, index) => {
     const id = applicant.applicant_id || applicant.id; // 우선 applicant_id 사용
     setSelectedApplicantIndex(index);
     setResume(null);
     try {
       const res = await api.get(`/applications/${id}`);
-      setResume(res.data);
+      const mappedResume = mapResumeData(res.data);
+      setResume(mappedResume);
       setSelectedApplicant(applicant);
       setMemo('');
       setEvaluation({});
       setExistingEvaluationId(null);
     } catch (err) {
+      console.error('지원자 데이터 로드 실패:', err);
       setResume(null);
     }
   };
@@ -321,7 +323,7 @@ function InterviewProgress() {
         <div className="flex-1 flex flex-col h-full min-h-0 bg-[#f7faff] dark:bg-gray-900">
           <div className="flex-1 h-full overflow-y-auto flex flex-col items-stretch justify-start">
             {resume ? (
-              <ResumeCard resume={resume} />
+              <ResumePage resume={resume} loading={false} error={null} />
             ) : (
               <div className="text-gray-400 dark:text-gray-500 flex items-center justify-center h-full">지원자를 선택하세요</div>
             )}

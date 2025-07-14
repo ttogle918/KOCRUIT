@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../constants/roles';
 import SettingsMenu, { getDefaultSettingsButton } from '../../components/SettingsMenu';
 import ApplicantListLeft from './ApplicantListLeft';
-import ResumeCard from '../../components/ResumeCard';
+import ResumePage from '../resume/ResumePage';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import api from '../../api/api';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
@@ -191,6 +191,9 @@ export default function ApplicantList() {
       setResume(mappedResume);
       setSelectedApplicant(applicant);
       setSplitMode(true);
+    } catch (err) {
+      console.error('지원자 데이터 로드 실패:', err);
+      setResume(null);
     } finally {
       setResumeLoading(false);
     }
@@ -416,7 +419,7 @@ export default function ApplicantList() {
                 </div>
                 {/*여기를 이력서로*/}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
-                  <ResumeCard resume={resume} loading={resumeLoading} onClick={handleApplicantClick}/>
+                  <ResumePage resume={resume} loading={resumeLoading} error={null} onClick={handleApplicantClick}/>
                 </div>
                 <div className="p-4 border-t bg-white dark:bg-gray-800">
                   {/* 합격/불합격/건너뛰기 버튼 */}
@@ -659,7 +662,7 @@ export default function ApplicantList() {
               </div>
               <div className="w-3/5 overflow-y-auto">
                 {selectedApplicant ? (
-                  <ResumeCard resume={selectedApplicant} loading={resumeLoading} />
+                  <ResumePage resume={selectedApplicant} loading={resumeLoading} />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">지원자를 선택하세요</div>
                 )}

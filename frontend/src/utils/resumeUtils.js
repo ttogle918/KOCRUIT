@@ -82,6 +82,7 @@ export const mapResumeData = (data) => {
   }
 
   return {
+    id: data.resume_id || data.id, // resume_id 추가
     applicantName: data.name || data.applicantName || '',
     gender: data.gender || '',
     birthDate: data.birthDate || data.birthdate || data.birthday || '',
