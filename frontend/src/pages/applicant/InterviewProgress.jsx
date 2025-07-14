@@ -18,11 +18,12 @@ function InterviewProgress() {
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
   const [resume, setResume] = useState(null);
-  const [questions, setQuestions] = useState([
-    '자기소개를 해주세요.',
-    '프로젝트 경험 중 가장 기억에 남는 것은?',
-    '팀에서 맡았던 역할은 무엇인가요?'
-  ]);
+  const [questions, setQuestions] = useState([]);
+  const [interviewChecklist, setInterviewChecklist] = useState(null);
+  const [strengthsWeaknesses, setStrengthsWeaknesses] = useState(null);
+  const [interviewGuideline, setInterviewGuideline] = useState(null);
+  const [evaluationCriteria, setEvaluationCriteria] = useState(null);
+  const [toolsLoading, setToolsLoading] = useState(false);
   const [memo, setMemo] = useState('');
   const [evaluation, setEvaluation] = useState({});
   const [loading, setLoading] = useState(true);
@@ -74,6 +75,40 @@ function InterviewProgress() {
     if (jobPostId) fetchJobPost();
   }, [jobPostId]);
 
+  const fetchInterviewTools = async (resumeId, applicationId, companyName, applicantName) => {
+    if (!resumeId) return;
+    setToolsLoading(true);
+    const requestData = { resume_id: resumeId, application_id: applicationId, company_name: companyName, name: applicantName };
+    try {
+      const [
+        questionsRes,
+        checklistRes,
+        strengthsRes,
+        guidelineRes,
+        criteriaRes
+      ] = await Promise.allSettled([
+        api.post('/interview-questions/integrated-questions', requestData),
+        api.post('/interview-questions/interview-checklist', requestData),
+        api.post('/interview-questions/strengths-weaknesses', requestData),
+        api.post('/interview-questions/interview-guideline', requestData),
+        api.post('/interview-questions/evaluation-criteria', requestData)
+      ]);
+      setQuestions(questionsRes.status === 'fulfilled' ? questionsRes.value.data.questions || [] : []);
+      setInterviewChecklist(checklistRes.status === 'fulfilled' ? checklistRes.value.data : null);
+      setStrengthsWeaknesses(strengthsRes.status === 'fulfilled' ? strengthsRes.value.data : null);
+      setInterviewGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
+      setEvaluationCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
+    } catch (e) {
+      setQuestions([]);
+      setInterviewChecklist(null);
+      setStrengthsWeaknesses(null);
+      setInterviewGuideline(null);
+      setEvaluationCriteria(null);
+    } finally {
+      setToolsLoading(false);
+    }
+  };
+
   // 드래그 핸들러
   const handleMouseDown = (e) => {
     isDragging.current = true;
@@ -109,9 +144,21 @@ function InterviewProgress() {
       setMemo('');
       setEvaluation({});
       setExistingEvaluationId(null);
+      // 면접관 도구 fetch
+      await fetchInterviewTools(
+        mappedResume.id,
+        applicant.id,
+        jobPost?.company?.name,
+        applicant.name
+      );
     } catch (err) {
       console.error('지원자 데이터 로드 실패:', err);
       setResume(null);
+      setQuestions([]);
+      setInterviewChecklist(null);
+      setStrengthsWeaknesses(null);
+      setInterviewGuideline(null);
+      setEvaluationCriteria(null);
     }
   };
 
@@ -369,6 +416,11 @@ function InterviewProgress() {
             </div>
             <InterviewPanel
               questions={questions}
+              interviewChecklist={interviewChecklist}
+              strengthsWeaknesses={strengthsWeaknesses}
+              interviewGuideline={interviewGuideline}
+              evaluationCriteria={evaluationCriteria}
+              toolsLoading={toolsLoading}
               memo={memo}
               onMemoChange={setMemo}
               evaluation={evaluation}
