@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from app.api.v1 import auth, company_jobs, public_jobs, applications, resumes, companies, notifications, schedules, users
 from app.api.v1 import interview_evaluation, interview_question, interview_panel
 
+
 api_router = APIRouter(prefix="/api/v1")
 
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])

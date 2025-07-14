@@ -206,8 +206,24 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
       {/* 자기소개서 */}
       <section>
         <h3 className="text-lg font-bold mb-2 text-blue-700 dark:text-blue-300">자기소개서</h3>
-        <div className="bg-gray-50 dark:bg-gray-800 rounded p-4 text-gray-800 dark:text-gray-100 whitespace-pre-line border dark:border-gray-700 min-h-[80px]">
-          {content || ''}
+        <div className="bg-gray-50 dark:bg-gray-800 rounded p-4 text-gray-800 dark:text-gray-100 whitespace-pre-line border dark:border-gray-700 min-h-[80px] space-y-6">
+          {(() => {
+            let parsed = [];
+            try {
+              parsed = typeof content === 'string' ? JSON.parse(content) : Array.isArray(content) ? content : [];
+            } catch {
+              parsed = [];
+            }
+            if (!Array.isArray(parsed) || parsed.length === 0) {
+              return <div>내용이 없습니다.</div>;
+            }
+            return parsed.map((item, idx) => (
+              <div key={idx} className="mb-6">
+                <div className="font-bold text-lg mb-2 text-blue-800 dark:text-blue-200">{item.title}</div>
+                <div className="whitespace-pre-line text-base">{item.content}</div>
+              </div>
+            ));
+          })()}
         </div>
       </section>
     </div>

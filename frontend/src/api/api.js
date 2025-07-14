@@ -7,7 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // 30초 타임아웃
+  timeout: 300000, // 5분 타임아웃
 });
 
 // 요청 전 인터셉터: 토큰이 있다면 자동으로 추가

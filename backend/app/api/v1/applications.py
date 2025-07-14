@@ -20,6 +20,8 @@ from app.models.application import Application
 from app.models.user import User
 from app.models.schedule import ScheduleInterview
 from sqlalchemy import Table, MetaData, select
+from app.models.job import JobPost
+from app.models.weight import Weight
 
 router = APIRouter()
 
@@ -272,12 +274,295 @@ def update_application_status(
     application = db.query(Application).filter(Application.id == application_id).first()
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
+    
+    # 일반적인 상태 업데이트 (AI 평가는 이미 완료된 상태)
     if status_update.status:
         application.status = status_update.status.value 
     if status_update.document_status:
         application.document_status = status_update.document_status.value
+    
     db.commit()
     return {"message": "Application status updated successfully"}
+
+
+
+
+
+@router.post("/{application_id}/ai-evaluate")
+def ai_evaluate_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """AI를 사용하여 지원자의 서류를 평가합니다. (개발/테스트용)"""
+    import requests
+    import json
+    
+    # 지원서 정보 가져오기
+    application = db.query(Application).filter(Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    # 채용공고 정보 가져오기
+    job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+    if not job_post:
+        raise HTTPException(status_code=404, detail="Job post not found")
+    
+    # 이력서 정보 가져오기
+    resume = db.query(Resume).filter(Resume.id == application.resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    
+    # Spec 데이터 구성
+    spec_data = {
+        "education": {},
+        "experience": {},
+        "skills": {},
+        "portfolio": {}
+    }
+    
+    if resume.specs:
+        for spec in resume.specs:
+            if spec.spec_type == "education":
+                if spec.spec_title == "institution":
+                    spec_data["education"]["university"] = spec.spec_description
+                elif spec.spec_title == "major":
+                    spec_data["education"]["major"] = spec.spec_description
+                elif spec.spec_title == "degree":
+                    spec_data["education"]["degree"] = spec.spec_description
+                elif spec.spec_title == "gpa":
+                    spec_data["education"]["gpa"] = float(spec.spec_description) if spec.spec_description and spec.spec_description.replace('.', '').isdigit() else 0.0
+            elif spec.spec_type == "activity":
+                if spec.spec_title == "organization":
+                    spec_data["experience"]["companies"] = [spec.spec_description]
+                elif spec.spec_title == "role":
+                    spec_data["experience"]["position"] = spec.spec_description
+                elif spec.spec_title == "duration":
+                    spec_data["experience"]["duration"] = spec.spec_description
+            elif spec.spec_type == "project_experience":
+                if spec.spec_title == "title":
+                    spec_data["experience"]["projects"] = [spec.spec_description]
+            elif spec.spec_type == "skills":
+                if spec.spec_title == "name":
+                    spec_data["skills"]["programming_languages"] = [spec.spec_description]
+            elif spec.spec_type == "certifications":
+                if spec.spec_title == "name":
+                    spec_data["skills"]["certifications"] = [spec.spec_description]
+    
+    # Weight 데이터 구성
+    weights = db.query(Weight).filter(
+        Weight.target_type == "resume_feature",
+        Weight.jobpost_id == job_post.id
+    ).all()
+    weight_dict = {w.field_name: w.weight_value for w in weights}
+
+    # 이력서 데이터 구성
+    resume_data = {
+        "personal_info": {
+            "name": application.user.name if application.user else "",
+            "email": application.user.email if application.user else "",
+            "phone": application.user.phone if application.user else ""
+        },
+        "summary": resume.content[:200] if resume.content else "",
+        "work_experience": [],
+        "projects": []
+    }
+    
+    # 채용공고 내용 구성
+    job_posting = f"""
+    [채용공고]
+    제목: {job_post.title}
+    회사: {job_post.company.name if job_post.company else 'N/A'}
+    직무: {job_post.department or 'N/A'}
+    요구사항: {job_post.qualifications or ''}
+    우대사항: {job_post.conditions or ''}
+    """
+    
+    # AI Agent API 호출
+    try:
+        agent_url = "http://kocruit_agent:8001/evaluate-application/"
+        payload = {
+            "job_posting": job_posting,
+            "spec_data": spec_data,
+            "resume_data": resume_data,
+            "weight_data": weight_dict
+        }
+        
+        response = requests.post(agent_url, json=payload, timeout=30)
+        response.raise_for_status()
+        
+        result = response.json()
+        
+        # 데이터베이스 업데이트
+        application.ai_score = result.get("ai_score", 0.0)
+        application.pass_reason = result.get("pass_reason", "")
+        application.fail_reason = result.get("fail_reason", "")
+        
+        # AI가 제안한 상태로 업데이트
+        ai_suggested_status = result.get("status", "REJECTED")
+        if ai_suggested_status in ["PASSED", "REJECTED"]:
+            application.status = ai_suggested_status
+        
+        db.commit()
+        
+        return {
+            "message": "AI evaluation completed successfully",
+            "ai_score": application.ai_score,
+            "status": application.status,
+            "pass_reason": application.pass_reason,
+            "fail_reason": application.fail_reason,
+            "scoring_details": result.get("scoring_details", {}),
+            "confidence": result.get("confidence", 0.0)
+        }
+        
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"AI Agent API 호출 실패: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI 평가 중 오류 발생: {str(e)}")
+
+
+@router.post("/batch-ai-evaluate")
+def batch_ai_evaluate_applications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """모든 지원자에 대해 AI 평가를 배치로 실행합니다."""
+    from app.models.interview_evaluation import auto_evaluate_all_applications
+    
+    try:
+        result = auto_evaluate_all_applications(db)
+        return {
+            "message": "AI evaluation batch process completed successfully",
+            "result": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI 평가 배치 프로세스 중 오류 발생: {str(e)}")
+
+
+@router.post("/job/{job_post_id}/batch-ai-re-evaluate")
+def batch_ai_re_evaluate_applications(
+    job_post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """특정 채용공고의 모든 지원자에 대해 AI 평가를 재실행합니다."""
+    import requests
+    from app.models.application import Application
+    from app.models.job import JobPost
+    from app.models.resume import Resume
+    from app.models.weight import Weight
+
+    applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+    total_count = len(applications)
+    reeval_count = 0
+    failed_count = 0
+    
+    print(f"AI 일괄 재평가 시작: job_post_id={job_post_id}, 총 {total_count}명 지원자")
+    for application in applications:
+        # 채용공고 정보 가져오기
+        job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+        if not job_post:
+            continue
+        # 이력서 정보 가져오기
+        resume = db.query(Resume).filter(Resume.id == application.resume_id).first()
+        if not resume:
+            continue
+        # Spec 데이터 구성 (기존과 동일)
+        spec_data = {
+            "education": {},
+            "experience": {},
+            "skills": {},
+            "portfolio": {}
+        }
+        if resume.specs:
+            for spec in resume.specs:
+                if spec.spec_type == "education":
+                    if spec.spec_title == "institution":
+                        spec_data["education"]["university"] = spec.spec_description
+                    elif spec.spec_title == "major":
+                        spec_data["education"]["major"] = spec.spec_description
+                    elif spec.spec_title == "degree":
+                        spec_data["education"]["degree"] = spec.spec_description
+                    elif spec.spec_title == "gpa":
+                        spec_data["education"]["gpa"] = float(spec.spec_description) if spec.spec_description and spec.spec_description.replace('.', '').isdigit() else 0.0
+                elif spec.spec_type == "activity":
+                    if spec.spec_title == "organization":
+                        spec_data["experience"]["companies"] = [spec.spec_description]
+                    elif spec.spec_title == "role":
+                        spec_data["experience"]["position"] = spec.spec_description
+                    elif spec.spec_title == "duration":
+                        spec_data["experience"]["duration"] = spec.spec_description
+                elif spec.spec_type == "project_experience":
+                    if spec.spec_title == "title":
+                        spec_data["experience"]["projects"] = [spec.spec_description]
+                elif spec.spec_type == "skills":
+                    if spec.spec_title == "name":
+                        spec_data["skills"]["programming_languages"] = [spec.spec_description]
+                elif spec.spec_type == "certifications":
+                    if spec.spec_title == "name":
+                        spec_data["skills"]["certifications"] = [spec.spec_description]
+        # Weight 데이터 구성
+        weights = db.query(Weight).filter(
+            Weight.target_type == "resume_feature",
+            Weight.jobpost_id == job_post.id
+        ).all()
+        weight_dict = {w.field_name: w.weight_value for w in weights}
+        # 이력서 데이터 구성
+        resume_data = {
+            "personal_info": {
+                "name": application.user.name if application.user else "",
+                "email": application.user.email if application.user else "",
+                "phone": application.user.phone if application.user else ""
+            },
+            "summary": resume.content[:200] if resume.content else "",
+            "work_experience": [],
+            "projects": []
+        }
+        # 채용공고 내용 구성
+        job_posting = f"""
+        [채용공고]
+        제목: {job_post.title}
+        회사: {job_post.company.name if job_post.company else 'N/A'}
+        직무: {job_post.department or 'N/A'}
+        요구사항: {job_post.qualifications or ''}
+        우대사항: {job_post.conditions or ''}
+        """
+        # AI Agent API 호출
+        agent_url = "http://kocruit_agent:8001/evaluate-application/"
+        payload = {
+            "job_posting": job_posting,
+            "spec_data": spec_data,
+            "resume_data": resume_data,
+            "weight_data": weight_dict
+        }
+        try:
+            print(f"AI 재평가 진행 중: {reeval_count + 1}/{total_count} - application_id={application.id}")
+            response = requests.post(agent_url, json=payload, timeout=120)  # 2분으로 증가
+            response.raise_for_status()
+            result = response.json()
+            # 데이터베이스 업데이트
+            application.ai_score = result.get("ai_score", 0.0)
+            application.pass_reason = result.get("pass_reason", "")
+            application.fail_reason = result.get("fail_reason", "")
+            ai_suggested_status = result.get("status", "REJECTED")
+            if ai_suggested_status == "PASSED":
+                application.status = "PASSED"
+            elif ai_suggested_status == "REJECTED":
+                application.status = "REJECTED"
+            reeval_count += 1
+            print(f"AI 재평가 성공: application_id={application.id}, score={application.ai_score}")
+        except Exception as e:
+            failed_count += 1
+            print(f"AI 재평가 실패: application_id={application.id}, error={str(e)}")
+            continue
+    db.commit()
+    print(f"AI 일괄 재평가 완료: 성공 {reeval_count}명, 실패 {failed_count}명")
+    return {
+        "message": f"AI 일괄 재평가 완료: 성공 {reeval_count}명, 실패 {failed_count}명",
+        "success_count": reeval_count,
+        "failed_count": failed_count,
+        "total_count": total_count
+    }
 
 
 @router.get("/job/{job_post_id}/applicants")
@@ -375,6 +660,9 @@ def get_applicants_by_job(
             "status": app.status,
             "applied_at": app.applied_at,
             "score": app.score,
+            "ai_score": app.ai_score,  # AI 점수 추가
+            "pass_reason": app.pass_reason,  # 합격 이유 추가
+            "fail_reason": app.fail_reason,  # 불합격 이유 추가
             "birthDate": app.user.birth_date.isoformat() if app.user.birth_date else None,
             "gender": app.user.gender if app.user.gender else None,
             "education": education,
