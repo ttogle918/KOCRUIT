@@ -30,6 +30,7 @@ import InterviewProgress from './pages/applicant/InterviewProgress';
 import { ThemeProvider } from "./context/ThemeContext";
 import { ROLES } from './constants/roles';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { FormProvider } from './context/FormContext';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -169,7 +170,9 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <AppRoutes />
+        <FormProvider>
+          <AppRoutes />
+        </FormProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

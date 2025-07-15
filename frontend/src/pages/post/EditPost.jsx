@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import "../../styles/datepicker.css";
 import { useAuth } from '../../context/AuthContext';
+import { useFormContext } from '../../context/FormContext';
 import Layout from '../../layout/Layout';
 import TimePicker from '../../components/TimePicker';
 import CompanyMemberSelectModal from '../../components/CompanyMemberSelectModal';
@@ -32,6 +33,16 @@ function EditPost() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { jobPostId } = useParams();
+  const { 
+    formData: contextFormData, 
+    updateFormData, 
+    updateFormField, 
+    updateTeamMembers, 
+    updateSchedules, 
+    updateWeights, 
+    activateForm, 
+    deactivateForm 
+  } = useFormContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -71,21 +82,27 @@ function EditPost() {
   const proceduresRef = useAutoResize(formData.procedures);
 
   const handleTextareaChange = (e, field) => {
+    const newValue = e.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: e.target.value
+      [field]: newValue
     }));
+    updateFormField(field, newValue);
   };
 
   const handleInputChange = (e, field) => {
+    const newValue = e.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: e.target.value
+      [field]: newValue
     }));
+    updateFormField(field, newValue);
   };
 
-  // Fetch existing job post data
+  // 폼 활성화 및 기존 데이터 로드
   useEffect(() => {
+    activateForm('edit');
+    
     const fetchJobPost = async () => {
       try {
         const response = await api.get(`/company/jobposts/${jobPostId}`);
@@ -94,7 +111,7 @@ function EditPost() {
 
         
         // Pre-populate form data
-        setFormData({
+        const newFormData = {
           title: jobPost.title || '',
           department: jobPost.department || '',
           qualifications: jobPost.qualifications || '',
@@ -108,10 +125,15 @@ function EditPost() {
           employment_type: jobPost.employment_type || '',
           deadline: jobPost.deadline ? new Date(jobPost.deadline) : null,
           company: jobPost.company || null
-        });
+        };
+        
+        setFormData(newFormData);
+        updateFormData(newFormData);
 
         // Set team members, schedules, and weights
-        setTeamMembers(jobPost.teamMembers || [{ email: '', name: '', role: '' }]);
+        const newTeamMembers = jobPost.teamMembers || [{ email: '', name: '', role: '' }];
+        setTeamMembers(newTeamMembers);
+        updateTeamMembers(newTeamMembers);
         
         // Convert interview schedules from API format to form format
         if (jobPost.interview_schedules && jobPost.interview_schedules.length > 0) {
@@ -128,12 +150,17 @@ function EditPost() {
             };
           });
           setSchedules(convertedSchedules);
+          updateSchedules(convertedSchedules);
         } else {
-          setSchedules([{ date: null, time: '', place: '' }]);
+          const defaultSchedules = [{ date: null, time: '', place: '' }];
+          setSchedules(defaultSchedules);
+          updateSchedules(defaultSchedules);
         }
         
         // Set weights from existing data
-        setWeights(jobPost.weights || []);
+        const newWeights = jobPost.weights || [];
+        setWeights(newWeights);
+        updateWeights(newWeights);
         
         setLoading(false);
       } catch (err) {
@@ -146,7 +173,12 @@ function EditPost() {
     if (jobPostId) {
       fetchJobPost();
     }
-  }, [jobPostId]);
+
+    // 컴포넌트 언마운트 시 폼 비활성화
+    return () => {
+      deactivateForm();
+    };
+  }, [jobPostId, activateForm, deactivateForm, updateFormData, updateTeamMembers, updateSchedules, updateWeights]);
 
   // Fetch initial user data for company member selection
   useEffect(() => {
@@ -341,6 +373,26 @@ function EditPost() {
       return updated;
     });
   };
+
+  // Context와 폼 데이터 동기화
+  useEffect(() => {
+    if (contextFormData && Object.keys(contextFormData).length > 0) {
+      // Context에서 업데이트된 데이터가 있으면 폼에 반영
+      const updatedFormData = { ...formData, ...contextFormData };
+      setFormData(updatedFormData);
+      
+      // 팀 멤버, 스케줄, 가중치도 동기화
+      if (contextFormData.teamMembers && contextFormData.teamMembers.length > 0) {
+        setTeamMembers(contextFormData.teamMembers);
+      }
+      if (contextFormData.schedules && contextFormData.schedules.length > 0) {
+        setSchedules(contextFormData.schedules);
+      }
+      if (contextFormData.weights && contextFormData.weights.length > 0) {
+        setWeights(contextFormData.weights);
+      }
+    }
+  }, [contextFormData]);
 
   // 실시간 폼 데이터를 챗봇이 읽을 수 있도록 접근성 속성 업데이트
   useEffect(() => {

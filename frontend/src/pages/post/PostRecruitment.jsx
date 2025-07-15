@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import "../../styles/datepicker.css";
 import { useAuth } from '../../context/AuthContext';
+import { useFormContext } from '../../context/FormContext';
 import Layout from '../../layout/Layout';
 import TimePicker from '../../components/TimePicker';
 import CompanyMemberSelectModal from '../../components/CompanyMemberSelectModal';
@@ -31,6 +32,16 @@ const useAutoResize = (value) => {
 function PostRecruitment() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { 
+    formData: contextFormData, 
+    updateFormData, 
+    updateFormField, 
+    updateTeamMembers, 
+    updateSchedules, 
+    updateWeights, 
+    activateForm, 
+    deactivateForm 
+  } = useFormContext();
   const [formData, setFormData] = useState({
     title: '',
     department: '',
@@ -68,21 +79,29 @@ function PostRecruitment() {
   const proceduresRef = useAutoResize(formData.procedures);
 
   const handleTextareaChange = (e, field) => {
+    const newValue = e.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: e.target.value
+      [field]: newValue
     }));
+    // Context 업데이트는 한 번만
+    updateFormField(field, newValue);
   };
 
   const handleInputChange = (e, field) => {
+    const newValue = e.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: e.target.value
+      [field]: newValue
     }));
+    // Context 업데이트는 한 번만
+    updateFormField(field, newValue);
   };
 
-  // Fetch initial data if needed
+  // 폼 활성화 및 초기 데이터 로드
   useEffect(() => {
+    activateForm('create');
+    
     const fetchInitialData = async () => {
       try {
         const response = await api.get('/auth/me');
@@ -114,7 +133,58 @@ function PostRecruitment() {
     };
 
     fetchInitialData();
-  }, []);
+
+    // 컴포넌트 언마운트 시 폼 비활성화
+    return () => {
+      deactivateForm();
+    };
+  }, [activateForm, deactivateForm]);
+
+  // Context와 로컬 상태 동기화 (한 번만 실행)
+  useEffect(() => {
+    if (contextFormData && Object.keys(contextFormData).length > 0) {
+      // 기존 데이터와 다른 경우에만 업데이트
+      const hasChanges = Object.keys(contextFormData).some(key => {
+        if (key === 'teamMembers' || key === 'schedules' || key === 'weights') return false;
+        return JSON.stringify(contextFormData[key]) !== JSON.stringify(formData[key]);
+      });
+      
+      if (hasChanges) {
+        setFormData(prev => ({
+          ...prev,
+          ...contextFormData
+        }));
+      }
+    }
+  }, [contextFormData]);
+
+  // Context의 팀 멤버, 스케줄, 가중치와 로컬 상태 동기화 (한 번만 실행)
+  useEffect(() => {
+    if (contextFormData.teamMembers && contextFormData.teamMembers.length > 0) {
+      const hasChanges = JSON.stringify(contextFormData.teamMembers) !== JSON.stringify(teamMembers);
+      if (hasChanges) {
+        setTeamMembers(contextFormData.teamMembers);
+      }
+    }
+  }, [contextFormData.teamMembers]);
+
+  useEffect(() => {
+    if (contextFormData.schedules && contextFormData.schedules.length > 0) {
+      const hasChanges = JSON.stringify(contextFormData.schedules) !== JSON.stringify(schedules);
+      if (hasChanges) {
+        setSchedules(contextFormData.schedules);
+      }
+    }
+  }, [contextFormData.schedules]);
+
+  useEffect(() => {
+    if (contextFormData.weights && contextFormData.weights.length > 0) {
+      const hasChanges = JSON.stringify(contextFormData.weights) !== JSON.stringify(weights);
+      if (hasChanges) {
+        setWeights(contextFormData.weights);
+      }
+    }
+  }, [contextFormData.weights]);
 
   // 입력 검증 함수
   const isFieldEmpty = (value) => value === null || value === undefined || value === '';
@@ -231,17 +301,48 @@ function PostRecruitment() {
     }
   };
 
-  const handleAdd = (setter, defaultItem) => setter(prev => [...prev, defaultItem]);
-  const handleRemove = (setter, index) => setter(prev => prev.filter((_, i) => i !== index));
+  const handleAdd = (setter, defaultItem) => {
+    const newList = [...setter, defaultItem];
+    setter(newList);
+    
+    // Context 업데이트
+    if (setter === teamMembers) {
+      updateTeamMembers(newList);
+    } else if (setter === schedules) {
+      updateSchedules(newList);
+    } else if (setter === weights) {
+      updateWeights(newList);
+    }
+  };
+  
+  const handleRemove = (setter, index) => {
+    const newList = setter.filter((_, i) => i !== index);
+    setter(newList);
+    
+    // Context 업데이트
+    if (setter === teamMembers) {
+      updateTeamMembers(newList);
+    } else if (setter === schedules) {
+      updateSchedules(newList);
+    } else if (setter === weights) {
+      updateWeights(newList);
+    }
+  };
+  
   const handleChange = (setter, index, field, value) => {
-    setter(prev => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        [field]: value
-      };
-      return updated;
-    });
+    const newList = setter.map((item, i) => 
+      i === index ? { ...item, [field]: value } : item
+    );
+    setter(newList);
+    
+    // Context 업데이트
+    if (setter === teamMembers) {
+      updateTeamMembers(newList);
+    } else if (setter === schedules) {
+      updateSchedules(newList);
+    } else if (setter === weights) {
+      updateWeights(newList);
+    }
   };
 
   // AI 가중치 추출 함수
@@ -303,6 +404,26 @@ function PostRecruitment() {
     }
   };
 
+  // Context와 폼 데이터 동기화
+  useEffect(() => {
+    if (contextFormData && Object.keys(contextFormData).length > 0) {
+      // Context에서 업데이트된 데이터가 있으면 폼에 반영
+      const updatedFormData = { ...formData, ...contextFormData };
+      setFormData(updatedFormData);
+      
+      // 팀 멤버, 스케줄, 가중치도 동기화
+      if (contextFormData.teamMembers && contextFormData.teamMembers.length > 0) {
+        setTeamMembers(contextFormData.teamMembers);
+      }
+      if (contextFormData.schedules && contextFormData.schedules.length > 0) {
+        setSchedules(contextFormData.schedules);
+      }
+      if (contextFormData.weights && contextFormData.weights.length > 0) {
+        setWeights(contextFormData.weights);
+      }
+    }
+  }, [contextFormData]);
+
   // 실시간 폼 데이터를 챗봇이 읽을 수 있도록 접근성 속성 업데이트
   useEffect(() => {
     // 면접 일정 데이터를 실시간으로 접근성 속성에 반영
@@ -312,7 +433,11 @@ function PostRecruitment() {
       const placeElement = document.getElementById(`schedule-${idx + 1}-place`);
       
       if (dateElement) {
-        dateElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 날짜 선택${schedule.date ? `: ${schedule.date.toLocaleDateString()}` : ''}`);
+        const dateLabel = schedule.date ? 
+          (schedule.date instanceof Date ? schedule.date.toLocaleDateString() : 
+           typeof schedule.date === 'string' ? new Date(schedule.date).toLocaleDateString() : 
+           '날짜 형식 오류') : '';
+        dateElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 날짜 선택${dateLabel ? `: ${dateLabel}` : ''}`);
       }
       if (timeElement) {
         timeElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 시간 선택${schedule.time ? `: ${schedule.time}` : ''}`);
@@ -487,11 +612,12 @@ function PostRecruitment() {
                     <label className="text-sm text-gray-700 dark:text-white">모집기간:</label>
                     <div className="flex flex-col md:flex-row items-center gap-1 w-full">
                       <DatePicker 
-                                selected={formData.start_date}
-        onChange={(date) => handleInputChange({ target: { value: date } }, 'start_date')} 
+                        selected={formData.start_date}
+                        onChange={(date) => handleInputChange({ target: { value: date } }, 'start_date')} 
                         selectsStart 
                         startDate={formData.start_date} 
                         endDate={formData.end_date} 
+                        minDate={new Date()} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
                         className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.start_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
@@ -506,7 +632,7 @@ function PostRecruitment() {
                         selectsEnd 
                         startDate={formData.start_date} 
                         endDate={formData.end_date} 
-                        minDate={formData.start_date} 
+                        minDate={formData.start_date || new Date()} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
                         className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.end_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
@@ -616,6 +742,7 @@ function PostRecruitment() {
                             selected={sch.date} 
                             onChange={date => setSchedules(prev => prev.map((s, i) => i === idx ? { ...s, date } : s))} 
                             dateFormat="yyyy/MM/dd" 
+                            minDate={new Date()}
                             className={`w-full border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm ${showError && !sch.date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
                             placeholderText="날짜 선택" 
                             calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 

@@ -6,6 +6,9 @@ from agents.chatbot_node import ChatbotNode
 from redis_monitor import RedisMonitor
 from scheduler import RedisScheduler
 from tools.weight_extraction_tool import weight_extraction_tool
+from tools.form_fill_tool import form_fill_tool, form_improve_tool
+from tools.form_field_tool import form_field_update_tool, form_status_check_tool
+from tools.form_field_improve_tool import form_field_improve_tool
 from agents.application_evaluation_agent import evaluate_application
 from dotenv import load_dotenv
 import uuid
@@ -398,3 +401,172 @@ async def evaluate_application_api(request: Request):
             "decision_reason": "",
             "confidence": 0.0
         }
+
+# 폼 관련 API 엔드포인트들
+@app.post("/ai/form-fill")
+async def ai_form_fill(request: Request):
+    """AI를 통한 폼 자동 채우기"""
+    data = await request.json()
+    description = data.get("description", "")
+    current_form_data = data.get("current_form_data", {})
+    
+    if not description:
+        return {"error": "Description is required"}
+    
+    try:
+        state = {
+            "description": description,
+            "current_form_data": current_form_data
+        }
+        result = form_fill_tool(state)
+        return result
+    except Exception as e:
+        return {"error": f"Form fill failed: {str(e)}"}
+
+@app.post("/ai/form-improve")
+async def ai_form_improve(request: Request):
+    """AI를 통한 폼 개선 제안"""
+    data = await request.json()
+    current_form_data = data.get("current_form_data", {})
+    
+    if not current_form_data:
+        return {"error": "Current form data is required"}
+    
+    try:
+        state = {
+            "current_form_data": current_form_data
+        }
+        result = form_improve_tool(state)
+        return result
+    except Exception as e:
+        return {"error": f"Form improve failed: {str(e)}"}
+
+@app.post("/ai/form-field-update")
+async def ai_form_field_update(request: Request):
+    """AI를 통한 특정 폼 필드 수정"""
+    data = await request.json()
+    field_name = data.get("field_name", "")
+    new_value = data.get("new_value", "")
+    current_form_data = data.get("current_form_data", {})
+    
+    if not field_name or not new_value:
+        return {"error": "Field name and new value are required"}
+    
+    try:
+        state = {
+            "field_name": field_name,
+            "new_value": new_value,
+            "current_form_data": current_form_data
+        }
+        result = form_field_update_tool(state)
+        return result
+    except Exception as e:
+        return {"error": f"Form field update failed: {str(e)}"}
+
+@app.post("/ai/form-status-check")
+async def ai_form_status_check(request: Request):
+    """AI를 통한 폼 상태 확인"""
+    data = await request.json()
+    current_form_data = data.get("current_form_data", {})
+    
+    try:
+        state = {
+            "current_form_data": current_form_data
+        }
+        result = form_status_check_tool(state)
+        return result
+    except Exception as e:
+        return {"error": f"Form status check failed: {str(e)}"}
+
+@app.post("/ai/field-improve")
+async def ai_field_improve(request: Request):
+    """AI를 통한 특정 필드 개선"""
+    data = await request.json()
+    field_name = data.get("field_name", "")
+    current_content = data.get("current_content", "")
+    user_request = data.get("user_request", "")
+    form_context = data.get("form_context", {})
+    
+    if not field_name:
+        return {"error": "Field name is required"}
+    
+    try:
+        state = {
+            "field_name": field_name,
+            "current_content": current_content,
+            "user_request": user_request,
+            "form_context": form_context
+        }
+        result = form_field_improve_tool(state)
+        return result
+    except Exception as e:
+        return {"error": f"Field improve failed: {str(e)}"}
+
+@app.post("/ai/route")
+async def ai_route(request: Request):
+    """LLM 기반 라우팅 - 사용자 의도를 분석하여 적절한 도구로 분기"""
+    data = await request.json()
+    message = data.get("message", "")
+    current_form_data = data.get("current_form_data", {})
+    user_intent = data.get("user_intent", "")
+    
+    if not message:
+        return {"error": "message is required"}
+    
+    try:
+        # LangGraph를 사용한 라우팅
+        state = {
+            "message": message,
+            "user_intent": user_intent,
+            "current_form_data": current_form_data,
+            "description": message  # form_fill_tool이 description 필드를 사용하므로 추가
+        }
+        
+        # 그래프가 초기화되지 않은 경우
+        if graph_agent is None:
+            return {"error": "Graph agent not initialized"}
+        
+        result = graph_agent.invoke(state)
+        
+        # 결과에서 적절한 응답 추출
+        if "form_data" in result:
+            return {
+                "success": True,
+                "response": result.get("message", "폼이 채워졌습니다."),
+                "form_data": result.get("form_data", {}),
+                "tool_used": "form_fill_tool"
+            }
+        elif "suggestions" in result:
+            return {
+                "success": True,
+                "response": "폼 개선 제안:\n" + "\n".join([f"{i+1}. {s}" for i, s in enumerate(result.get("suggestions", []))]),
+                "tool_used": "form_improve_tool"
+            }
+        elif "questions" in result:
+            return {
+                "success": True,
+                "response": "면접 질문:\n" + "\n".join([f"{i+1}. {q}" for i, q in enumerate(result.get("questions", []))]),
+                "tool_used": "project_question_generator"
+            }
+        elif "status" in result:
+            return {
+                "success": True,
+                "response": result.get("status", "폼 상태를 확인했습니다."),
+                "tool_used": "form_status_check_tool"
+            }
+        else:
+            # message가 있으면 그것을 사용, 없으면 기본 메시지
+            response_message = result.get("message", "요청을 처리했습니다.")
+            return {
+                "success": True,
+                "response": response_message,
+                "form_data": result.get("form_data", {}),
+                "tool_used": "unknown"
+            }
+            
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

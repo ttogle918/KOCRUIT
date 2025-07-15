@@ -32,6 +32,7 @@ import {
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useFormContext } from '../context/FormContext';
 import { parseFilterConditions } from '../utils/filterUtils';
 import { calculateAge } from '../utils/resumeUtils';
 import CommonResumeList from './CommonResumeList';
@@ -96,6 +97,18 @@ const Chatbot = () => {
   const location = useLocation();
   const toast = useToast();
   const { user } = useAuth();
+  const { 
+    formData, 
+    isFormActive, 
+    currentFormType, 
+    updateFormField, 
+    updateTeamMembers, 
+    updateSchedules, 
+    updateWeights, 
+    fillFormWithAI, 
+    suggestFormImprovements,
+    setFormData // 추가: formData를 직접 반영하기 위해 필요
+  } = useFormContext();
   const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure();
   
   // useState 훅들
@@ -135,6 +148,14 @@ const Chatbot = () => {
     "지원자 관리",
     "면접 일정 관리",
     "주요 기능 안내"
+  ];
+
+  // 폼 관련 빠른 응답
+  const formQuickReplies = [
+    "프론트엔드 개발자 2명 뽑는 공고 작성해줘",
+    "현재 폼 상태 확인",
+    "폼 개선 제안",
+    "부서명을 개발팀으로 변경"
   ];
 
   // 지원자 데이터 로드
@@ -498,6 +519,419 @@ const Chatbot = () => {
     }
   }, [isResizing, resizeStart, resizeDirection]);
 
+  // 폼 명령 처리 함수
+  // AI 기반 필드 개선 함수
+  const improveFieldWithAI = async (fieldName, currentContent, userRequest) => {
+    try {
+      const response = await fetch('http://localhost:8001/ai/field-improve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          field_name: fieldName,
+          current_content: currentContent,
+          user_request: userRequest,
+          form_context: formData
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.improved_content || currentContent;
+      } else {
+        throw new Error('AI 서버 응답 오류');
+      }
+    } catch (error) {
+      console.error('AI 필드 개선 오류:', error);
+      // 로컬 폴백 로직
+      return improveFieldLocally(fieldName, currentContent, userRequest);
+    }
+  };
+
+  // 로컬 폴백 개선 로직
+  const improveFieldLocally = (fieldName, currentContent, userRequest) => {
+    const improvements = {
+      title: {
+        '더 구체적으로': 'React 프론트엔드 개발자 2명 채용',
+        '더 상세하게': '[신입/경력] React 프론트엔드 개발자 2명 모집',
+        '간단하게': '프론트엔드 개발자 채용'
+      },
+      department: {
+        '더 구체적으로': 'IT개발팀',
+        '더 상세하게': '소프트웨어개발팀',
+        '간단하게': '개발팀'
+      },
+      qualifications: {
+        '더 구체적으로': '• 관련 분야 학사 이상\n• 관련 업무 경험 2년 이상\n• HTML, CSS, JavaScript 숙련자\n• React 또는 Vue.js 경험 필수\n• Git 버전 관리 시스템 경험\n• 팀워크 및 커뮤니케이션 능력',
+        '더 상세하게': '• 컴퓨터 공학 또는 관련 전공 학사 이상\n• 프론트엔드 개발 경력 2년 이상\n• HTML5, CSS3, JavaScript ES6+ 숙련자\n• React.js 또는 Vue.js 1년 이상 경험\n• Git, GitHub 등 버전 관리 시스템 경험\n• RESTful API 연동 경험\n• 반응형 웹 디자인 경험\n• 팀워크 및 커뮤니케이션 능력 우대',
+        '간단하게': '• 관련 분야 학사 이상\n• 프론트엔드 개발 경험\n• React/Vue.js 경험'
+      },
+      conditions: {
+        '더 구체적으로': '• 근무시간: 09:00 ~ 18:00 (주 5일)\n• 급여: 연봉 3,500만원 ~ 5,000만원\n• 복리후생: 4대보험, 퇴직연금, 점심식대, 교통비\n• 연차: 법정연차, 반차, 반반차\n• 교육비 지원, 자기계발 지원',
+        '더 상세하게': '• 근무시간: 09:00 ~ 18:00 (월~금, 주 40시간)\n• 급여: 연봉 3,500만원 ~ 5,000만원 (경력에 따라 협의)\n• 복리후생: 4대보험, 퇴직연금, 점심식대 1만원, 교통비 월 10만원\n• 연차: 법정연차, 반차, 반반차, 경조사 휴가\n• 교육비 지원: 연간 100만원, 자기계발 지원\n• 건강검진: 연 1회 무료',
+        '간단하게': '• 주 5일 근무, 09:00~18:00\n• 연봉 협의\n• 4대보험, 복리후생'
+      },
+      job_details: {
+        '더 구체적으로': '• 프론트엔드 애플리케이션 개발 및 유지보수\n• UI/UX 개선 및 사용자 경험 최적화\n• API 연동 및 백엔드와의 협업\n• 최신 웹 기술 트렌드 반영\n• 팀과의 협업을 통한 프로젝트 진행',
+        '더 상세하게': '• React.js 기반 프론트엔드 애플리케이션 개발\n• 사용자 인터페이스 설계 및 구현\n• RESTful API 연동 및 데이터 처리\n• 성능 최적화 및 코드 리팩토링\n• 크로스 브라우저 호환성 확보\n• 반응형 웹 디자인 구현\n• Git을 통한 버전 관리 및 협업\n• 코드 리뷰 및 기술 문서 작성',
+        '간단하게': '• 웹 애플리케이션 개발\n• UI/UX 구현\n• 팀 협업'
+      },
+      procedures: {
+        '더 구체적으로': '1차 서류전형 → 2차 1차면접(온라인) → 3차 2차면접(대면) → 최종합격',
+        '더 상세하게': '• 서류전형: 지원서 접수 후 1주일 내 결과 통보\n• 1차면접: 온라인 화상면접 (30분)\n• 2차면접: 대면면접 (1시간)\n• 최종합격: 2차면접 후 1주일 내 개별 통보',
+        '간단하게': '서류 → 면접 → 합격'
+      },
+      location: {
+        '더 구체적으로': '서울특별시 강남구 테헤란로 123',
+        '더 상세하게': '서울특별시 강남구 테헤란로 123, 코리아타워 15층',
+        '간단하게': '서울시 강남구'
+      }
+    };
+
+    const fieldImprovements = improvements[fieldName];
+    if (!fieldImprovements) return currentContent;
+
+    // 사용자 요청에서 키워드 찾기
+    for (const [keyword, improvedContent] of Object.entries(fieldImprovements)) {
+      if (userRequest.includes(keyword)) {
+        return improvedContent;
+      }
+    }
+
+    // 기본 개선
+    return fieldImprovements['더 구체적으로'] || currentContent;
+  };
+
+  const handleFormCommands = async (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // 백엔드의 LLM 기반 라우팅을 사용하기 위해 API 호출
+    try {
+      const response = await fetch('http://localhost:8001/ai/route', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          current_form_data: formData,
+          user_intent: ""
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // === form_data가 있으면 폼에 반영 ===
+        if (result.form_data && Object.keys(result.form_data).length > 0) {
+          setFormData(result.form_data);
+        }
+        return result.response || result.message || '요청을 처리했습니다.';
+      } else {
+        throw new Error('라우팅 서버 응답 오류');
+      }
+    } catch (error) {
+      console.error('라우팅 오류:', error);
+      // 백엔드 라우팅이 실패하면 기존 로직으로 폴백
+      return handleFormCommandsFallback(message);
+    }
+  };
+
+  const handleFormCommandsFallback = async (message) => {
+    const lowerMessage = message.toLowerCase();
+    
+    // 명령어 의도 파악 함수
+    const parseFieldUpdateCommand = (fieldName, fieldPattern, message) => {
+      // 일반적인 수정 요청 패턴들 (실제 값 변경이 아닌 경우)
+      const generalModifyPatterns = [
+        /수정해줘/,
+        /바꿔줘/,
+        /고쳐줘/,
+        /개선해줘/,
+        /조정해줘/,
+        /업데이트해줘/,
+        /변경해줘/
+      ];
+      
+      // AI 기반 개선 요청 패턴들
+      const aiImprovePatterns = [
+        /더\s+구체적으로/,
+        /더\s+상세하게/,
+        /더\s+자세하게/,
+        /개선해줘/,
+        /보완해줘/,
+        /완성해줘/,
+        /작성해줘/
+      ];
+      
+      // 구체적인 값 변경 패턴들
+      const specificValuePatterns = [
+        new RegExp(`${fieldPattern}\\s*(?:을|를)?\\s*(.+?)\\s*(?:으로|로)\\s*(?:변경|바꿔|수정|설정)`, 'i'),
+        new RegExp(`${fieldPattern}\\s*(?:을|를)?\\s*(.+?)(?:\\s|$|으로|로)`, 'i'),
+        new RegExp(`${fieldPattern}\\s*:\\s*(.+)`, 'i'),
+        new RegExp(`${fieldPattern}\\s*=\\s*(.+)`, 'i')
+      ];
+      
+      // AI 기반 개선 요청인지 확인
+      const isAIImproveRequest = aiImprovePatterns.some(pattern => 
+        pattern.test(message) && !specificValuePatterns.some(specificPattern => specificPattern.test(message))
+      );
+      
+      if (isAIImproveRequest) {
+        return {
+          isAIRequest: true,
+          fieldName: fieldName,
+          message: `${fieldName}을 AI가 개선해드리겠습니다. 잠시만 기다려주세요...`
+        };
+      }
+      
+      // 일반적인 수정 요청인지 확인
+      const isGeneralModifyRequest = generalModifyPatterns.some(pattern => 
+        pattern.test(message) && !specificValuePatterns.some(specificPattern => specificPattern.test(message))
+      );
+      
+      if (isGeneralModifyRequest) {
+        return {
+          isGeneralRequest: true,
+          fieldName: fieldName,
+          message: `${fieldName}을 어떻게 수정하고 싶으신가요? 구체적으로 말씀해 주세요.\n\n예시:\n• "${fieldName}을 더 구체적으로 작성해줘"\n• "${fieldName}에 경력 요건을 추가해줘"\n• "${fieldName}을 간단하게 줄여줘"`
+        };
+      }
+      
+      // 구체적인 값 변경 요청인지 확인
+      for (const pattern of specificValuePatterns) {
+        const match = message.match(pattern);
+        if (match) {
+          const newValue = match[1].trim();
+          // 너무 짧거나 의미 없는 값인지 확인
+          if (newValue.length < 2 || ['조금', '약간', '좀', '그냥', '일반'].includes(newValue)) {
+            return {
+              isGeneralRequest: true,
+              fieldName: fieldName,
+              message: `${fieldName}을 어떻게 수정하고 싶으신가요? 더 구체적으로 말씀해 주세요.\n\n예시:\n• "${fieldName}을 더 구체적으로 작성해줘"\n• "${fieldName}에 경력 요건을 추가해줘"\n• "${fieldName}을 간단하게 줄여줘"`
+            };
+          }
+          return {
+            isGeneralRequest: false,
+            fieldName: fieldName,
+            newValue: newValue
+          };
+        }
+      }
+      
+      return null;
+    };
+    
+    // 특정 필드 수정 명령
+    if (lowerMessage.includes('부서') || lowerMessage.includes('department')) {
+      const result = parseFieldUpdateCommand('부서명', '부서[명]*', message);
+      if (result) {
+        if (result.isAIRequest) {
+          // AI 기반 개선 요청
+          try {
+            const improvedContent = await improveFieldWithAI('department', formData.department, message);
+            updateFormField('department', improvedContent);
+            return `부서명을 AI가 개선했습니다:\n\n${improvedContent}`;
+          } catch (error) {
+            return `AI 개선 중 오류가 발생했습니다: ${error.message}`;
+          }
+        } else if (result.isGeneralRequest) {
+          return result.message;
+        } else {
+          updateFormField('department', result.newValue);
+          return `부서명을 "${result.newValue}"로 변경했습니다.`;
+        }
+      }
+    }
+    
+    if (lowerMessage.includes('제목') || lowerMessage.includes('title')) {
+      const result = parseFieldUpdateCommand('제목', '제목', message);
+      if (result) {
+        if (result.isAIRequest) {
+          // AI 기반 개선 요청
+          try {
+            const improvedContent = await improveFieldWithAI('title', formData.title, message);
+            updateFormField('title', improvedContent);
+            return `채용공고 제목을 AI가 개선했습니다:\n\n${improvedContent}`;
+          } catch (error) {
+            return `AI 개선 중 오류가 발생했습니다: ${error.message}`;
+          }
+        } else if (result.isGeneralRequest) {
+          return result.message;
+        } else {
+          updateFormField('title', result.newValue);
+          return `채용공고 제목을 "${result.newValue}"로 변경했습니다.`;
+        }
+      }
+    }
+    
+    if (lowerMessage.includes('지원자격') || lowerMessage.includes('qualifications')) {
+      const result = parseFieldUpdateCommand('지원자격', '지원자격', message);
+      if (result) {
+        if (result.isAIRequest) {
+          // AI 기반 개선 요청
+          try {
+            const improvedContent = await improveFieldWithAI('qualifications', formData.qualifications, message);
+            updateFormField('qualifications', improvedContent);
+            return `지원자격을 AI가 개선했습니다:\n\n${improvedContent}`;
+          } catch (error) {
+            return `AI 개선 중 오류가 발생했습니다: ${error.message}`;
+          }
+        } else if (result.isGeneralRequest) {
+          return result.message;
+        } else {
+          updateFormField('qualifications', result.newValue);
+          return `지원자격을 "${result.newValue}"로 변경했습니다.`;
+        }
+      }
+    }
+    
+    if (lowerMessage.includes('근무조건') || lowerMessage.includes('conditions')) {
+      const result = parseFieldUpdateCommand('근무조건', '근무조건', message);
+      if (result) {
+        if (result.isAIRequest) {
+          // AI 기반 개선 요청
+          try {
+            const improvedContent = await improveFieldWithAI('conditions', formData.conditions, message);
+            updateFormField('conditions', improvedContent);
+            return `근무조건을 AI가 개선했습니다:\n\n${improvedContent}`;
+          } catch (error) {
+            return `AI 개선 중 오류가 발생했습니다: ${error.message}`;
+          }
+        } else if (result.isGeneralRequest) {
+          return result.message;
+        } else {
+          updateFormField('conditions', result.newValue);
+          return `근무조건을 "${result.newValue}"로 변경했습니다.`;
+        }
+      }
+    }
+    
+    if (lowerMessage.includes('모집분야') || lowerMessage.includes('job_details')) {
+      const result = parseFieldUpdateCommand('모집분야', '모집분야', message);
+      if (result) {
+        if (result.isAIRequest) {
+          // AI 기반 개선 요청
+          try {
+            const improvedContent = await improveFieldWithAI('job_details', formData.job_details, message);
+            updateFormField('job_details', improvedContent);
+            return `모집분야를 AI가 개선했습니다:\n\n${improvedContent}`;
+          } catch (error) {
+            return `AI 개선 중 오류가 발생했습니다: ${error.message}`;
+          }
+        } else if (result.isGeneralRequest) {
+          return result.message;
+        } else {
+          updateFormField('job_details', result.newValue);
+          return `모집분야를 "${result.newValue}"로 변경했습니다.`;
+        }
+      }
+    }
+    
+    if (lowerMessage.includes('전형절차') || lowerMessage.includes('procedures')) {
+      const result = parseFieldUpdateCommand('전형절차', '전형절차', message);
+      if (result) {
+        if (result.isAIRequest) {
+          // AI 기반 개선 요청
+          try {
+            const improvedContent = await improveFieldWithAI('procedures', formData.procedures, message);
+            updateFormField('procedures', improvedContent);
+            return `전형절차를 AI가 개선했습니다:\n\n${improvedContent}`;
+          } catch (error) {
+            return `AI 개선 중 오류가 발생했습니다: ${error.message}`;
+          }
+        } else if (result.isGeneralRequest) {
+          return result.message;
+        } else {
+          updateFormField('procedures', result.newValue);
+          return `전형절차를 "${result.newValue}"로 변경했습니다.`;
+        }
+      }
+    }
+    
+    if (lowerMessage.includes('모집인원') || lowerMessage.includes('headcount')) {
+      const headMatch = message.match(/모집인원\s*(?:을|를)?\s*(\d+)/);
+      if (headMatch) {
+        const newHeadcount = headMatch[1];
+        updateFormField('headcount', newHeadcount);
+        return `모집인원을 ${newHeadcount}명으로 변경했습니다.`;
+      }
+    }
+    
+    if (lowerMessage.includes('근무지역') || lowerMessage.includes('location')) {
+      const result = parseFieldUpdateCommand('근무지역', '근무지역', message);
+      if (result) {
+        if (result.isAIRequest) {
+          // AI 기반 개선 요청
+          try {
+            const improvedContent = await improveFieldWithAI('location', formData.location, message);
+            updateFormField('location', improvedContent);
+            return `근무지역을 AI가 개선했습니다:\n\n${improvedContent}`;
+          } catch (error) {
+            return `AI 개선 중 오류가 발생했습니다: ${error.message}`;
+          }
+        } else if (result.isGeneralRequest) {
+          return result.message;
+        } else {
+          updateFormField('location', result.newValue);
+          return `근무지역을 "${result.newValue}"로 변경했습니다.`;
+        }
+      }
+    }
+    
+    if (lowerMessage.includes('고용형태') || lowerMessage.includes('employment_type')) {
+      const empMatch = message.match(/고용형태\s*(?:을|를)?\s*(정규직|계약직|인턴|프리랜서)/);
+      if (empMatch) {
+        const newEmploymentType = empMatch[1];
+        updateFormField('employment_type', newEmploymentType);
+        return `고용형태를 "${newEmploymentType}"로 변경했습니다.`;
+      }
+    }
+    
+    // 기존 하드코딩된 로직은 백엔드 라우팅으로 대체되었으므로 제거
+    // 모든 폼 관련 요청은 백엔드의 LLM 기반 라우터가 처리
+    
+    // 폼 개선 제안
+    if (lowerMessage.includes('개선') || lowerMessage.includes('조언') || lowerMessage.includes('제안')) {
+      try {
+        const result = await suggestFormImprovements();
+        if (result.success) {
+          let response = '**폼 개선 제안**\n\n';
+          result.suggestions.forEach((suggestion, index) => {
+            response += `${index + 1}. ${suggestion}\n`;
+          });
+          return response;
+        } else {
+          return `${result.message}`;
+        }
+      } catch (error) {
+        return '폼 개선 제안 중 오류가 발생했습니다.';
+      }
+    }
+    
+    // 현재 폼 상태 확인
+    if (lowerMessage.includes('현재') || lowerMessage.includes('상태') || lowerMessage.includes('확인')) {
+      let response = '**현재 폼 상태**\n\n';
+      if (formData.title) response += `제목: ${formData.title}\n`;
+      if (formData.department) response += `부서: ${formData.department}\n`;
+      if (formData.headcount) response += `모집인원: ${formData.headcount}명\n`;
+      if (formData.location) response += `근무지역: ${formData.location}\n`;
+      if (formData.employment_type) response += `고용형태: ${formData.employment_type}\n`;
+      if (formData.teamMembers && formData.teamMembers.length > 0) {
+        response += `팀멤버: ${formData.teamMembers.length}명\n`;
+      }
+      if (formData.schedules && formData.schedules.length > 0) {
+        response += `면접일정: ${formData.schedules.length}개\n`;
+      }
+      if (formData.weights && formData.weights.length > 0) {
+        response += `가중치: ${formData.weights.length}개\n`;
+      }
+      return response;
+    }
+    
+    return null; // 폼 명령이 아닌 경우
+  };
+
   const handleQuickReply = (reply) => {
     setInputMessage(reply);
     handleSendMessage(reply);
@@ -565,6 +999,24 @@ const Chatbot = () => {
           const botMessage = {
             id: messages.length + 2,
             text: `조건에 맞는 지원자가 없습니다. 다른 조건으로 검색해보세요.`,
+            sender: 'bot',
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, botMessage]);
+          setIsTyping(false);
+          return;
+        }
+      }
+
+      // 폼 관련 명령 처리
+      if (isFormActive && (location.pathname.includes('postrecruitment') || location.pathname.includes('editpost'))) {
+        console.log('폼 명령 처리 시작:', { isFormActive, pathname: location.pathname, message: messageToSend });
+        const formResponse = await handleFormCommands(messageToSend);
+        console.log('폼 명령 처리 결과:', formResponse);
+        if (formResponse) {
+          const botMessage = {
+            id: messages.length + 2,
+            text: formResponse,
             sender: 'bot',
             timestamp: new Date(),
           };
@@ -825,7 +1277,7 @@ const Chatbot = () => {
               {/* 빠른 응답 버튼들 */}
               {messages.length === 1 && !isTyping && sessionId && (
                 <HStack spacing={2} flexWrap="wrap" justify="flex-start" w="100%">
-                  {quickReplies.map((reply, index) => (
+                  {(isFormActive ? formQuickReplies : quickReplies).map((reply, index) => (
                     <Badge
                       key={index}
                       colorScheme="blue"
