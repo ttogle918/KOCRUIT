@@ -227,7 +227,25 @@ export default function PassedApplicants() {
             )}
           </div>
         </div>
+        {/* Floating Action Buttons */}
+        <div className="fixed bottom-8 right-8 flex flex-row gap-4 z-50">
+          <button 
+            className="w-14 h-14 flex items-center justify-center rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition text-2xl"
+            onClick={handleEmailClick}
+            disabled={selectedApplicants.length === 0}
+          >
+            <FaEnvelope />
+          </button>
+        </div>
       </div>
+      
+      {/* Interview Info Modal */}
+      {showInterviewModal && (
+        <InterviewInfoModal
+          onSubmit={handleInterviewSubmit}
+          onClose={() => setShowInterviewModal(false)}
+        />
+      )}
     </Layout>
   );
 }

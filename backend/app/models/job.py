@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
+from .written_test_question import WrittenTestQuestion
 
 
 class JobPost(Base):
@@ -36,6 +37,7 @@ class JobPost(Base):
     applications = relationship("Application", back_populates="job_post")
     interview_schedules = relationship("Schedule", back_populates="job_post", cascade="all, delete-orphan")
     jobpost_roles = relationship("JobPostRole", back_populates="jobpost", cascade="all, delete-orphan")
+    written_test_questions = relationship("WrittenTestQuestion", back_populates="job_post")
 
 
 class JobPostRole(Base):
