@@ -12,6 +12,7 @@ from app.models.weight import Weight
 from app.models.user import User, CompanyUser
 from app.models.company import Department
 from app.models.application import Application
+from app.models.interview_panel import InterviewPanelAssignment
 from app.api.v1.auth import get_current_user
 
 router = APIRouter()
@@ -163,7 +164,7 @@ def create_company_job_post(
     job_data.pop('teamMembers', None)
     
     # weights 데이터를 별도로 저장 (JSON 필드에는 저장하지 않음)
-    weights_data = job_data.pop('weights', [])
+    job_data.pop('weights', None)
     
     db_job_post = JobPost(**job_data, company_id=current_user.company_id)
     db.add(db_job_post)
@@ -250,48 +251,20 @@ def create_company_job_post(
             # 면접관 배정 실패는 공고 생성에 영향을 주지 않도록 함
     
     # 가중치 데이터를 weight 테이블에 저장
+    weights_data = job_post.weights
     if weights_data:
         for weight_item in weights_data:
-            if weight_item.get('item') and weight_item.get('score') is not None:
+            if weight_item.item and weight_item.score is not None:
                 weight_record = Weight(
                     target_type='resume_feature',
                     jobpost_id=db_job_post.id,
-                    field_name=weight_item['item'],
-                    weight_value=float(weight_item['score'])
+                    field_name=weight_item.item,
+                    weight_value=float(weight_item.score)
                 )
                 db.add(weight_record)
         db.commit()
     
     # 팀 멤버 역할을 jobpost_role 테이블에 저장
-    team_members_data = job_post.teamMembers
-    if team_members_data:
-        for member in team_members_data:
-            if member.get('email') and member.get('role'):
-                # 이메일로 CompanyUser 찾기
-                company_user = db.query(CompanyUser).filter(
-                    CompanyUser.email == member['email'],
-                    CompanyUser.company_id == current_user.company_id
-                ).first()
-                
-                if company_user:
-                    # 역할 매핑 (관리자 -> MANAGER, 멤버 -> MEMBER)
-                    role_mapping = {
-                        '관리자': 'MANAGER',
-                        '멤버': 'MEMBER'
-                    }
-                    mapped_role = role_mapping.get(member['role'], 'MEMBER')
-                    
-                    # jobpost_role 생성
-                    jobpost_role = JobPostRole(
-                        jobpost_id=db_job_post.id,
-                        company_user_id=company_user.id,
-                        role=mapped_role
-                    )
-                    db.add(jobpost_role)
-        
-                db.commit()
-    
-    # 팀 멤버 역할을 jobpost_role 테이블에 저장 (생성 시에는 기존 데이터 삭제 불필요)
     team_members_data = job_post.teamMembers
     if team_members_data:
         for member in team_members_data:
@@ -319,6 +292,23 @@ def create_company_job_post(
                     db.add(jobpost_role)
         
         db.commit()
+        
+        # 팀 멤버에게 알림 발송
+        try:
+            from app.services.notification_service import NotificationService
+            
+            # 공고 작성자 제외하고 팀 멤버에게 알림 발송
+            NotificationService.create_team_member_notifications(
+                db=db,
+                job_post=db_job_post,
+                team_members=team_members_data,
+                creator_user_id=current_user.id,
+                is_update=False
+            )
+            print(f"팀 멤버 알림 발송 완료: {len(team_members_data)}명")
+        except Exception as e:
+            print(f"팀 멤버 알림 발송 실패: {str(e)}")
+            # 알림 발송 실패는 공고 생성에 영향을 주지 않도록 함
     
     # Add company name to the response
     if db_job_post.company:
@@ -387,7 +377,7 @@ def update_company_job_post(
     job_data.pop('team_members', None)
     
     # weights 데이터를 별도로 저장 (JSON 필드에는 저장하지 않음)
-    weights_data = job_data.pop('weights', None)
+    job_data.pop('weights', None)
     
     for field, value in job_data.items():
         setattr(db_job_post, field, value)
@@ -397,16 +387,29 @@ def update_company_job_post(
     
     # 팀 멤버 역할을 jobpost_role 테이블에 업데이트
     if team_members_data is not None:
+        # 기존 팀 멤버 정보 저장 (알림 처리용)
+        existing_team_members = db.query(JobPostRole).filter(
+            JobPostRole.jobpost_id == job_post_id
+        ).all()
+        existing_emails = []
+        for existing_member in existing_team_members:
+            company_user = db.query(CompanyUser).filter(
+                CompanyUser.id == existing_member.company_user_id
+            ).first()
+            if company_user:
+                existing_emails.append(company_user.email)
+        
         # 기존 팀 멤버 역할 삭제
         db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
         
         # 새로운 팀 멤버 역할 추가
+        new_team_members = []
         if team_members_data:
             for member in team_members_data:
-                if member.get('email') and member.get('role'):
+                if member.email and member.role:
                     # 이메일로 CompanyUser 찾기
                     company_user = db.query(CompanyUser).filter(
-                        CompanyUser.email == member['email'],
+                        CompanyUser.email == member.email,
                         CompanyUser.company_id == current_user.company_id
                     ).first()
                     
@@ -416,7 +419,7 @@ def update_company_job_post(
                             '관리자': 'MANAGER',
                             '멤버': 'MEMBER'
                         }
-                        mapped_role = role_mapping.get(member['role'], 'MEMBER')
+                        mapped_role = role_mapping.get(member.role, 'MEMBER')
                         
                         # jobpost_role 생성
                         jobpost_role = JobPostRole(
@@ -425,22 +428,53 @@ def update_company_job_post(
                             role=mapped_role
                         )
                         db.add(jobpost_role)
+                        new_team_members.append(member)
         
         db.commit()
+        
+        # 팀 멤버 변경사항에 따른 알림 처리
+        try:
+            from app.services.notification_service import NotificationService
+            
+            # 새로 추가된 팀 멤버에게 알림 발송
+            if new_team_members:
+                NotificationService.create_team_member_notifications(
+                    db=db,
+                    job_post=db_job_post,
+                    team_members=new_team_members,
+                    creator_user_id=current_user.id,
+                    is_update=True
+                )
+                print(f"팀 멤버 알림 발송 완료: {len(new_team_members)}명")
+            
+            # 제거된 팀 멤버의 알림 삭제
+            removed_emails = [email for email in existing_emails if email not in [m['email'] for m in new_team_members]]
+            if removed_emails:
+                removed_count = NotificationService.remove_team_member_notifications(
+                    db=db,
+                    job_post_id=job_post_id,
+                    removed_member_emails=removed_emails
+                )
+                print(f"제거된 팀 멤버 알림 삭제 완료: {removed_count}개")
+                
+        except Exception as e:
+            print(f"팀 멤버 알림 처리 실패: {str(e)}")
+            # 알림 처리 실패는 공고 수정에 영향을 주지 않도록 함
     
     # 가중치 데이터를 weight 테이블에 업데이트
+    weights_data = job_post.weights
     if weights_data is not None:
         # 기존 가중치 삭제
         db.query(Weight).filter(Weight.jobpost_id == job_post_id).delete()
         
         # 새로운 가중치 생성
         for weight_item in weights_data:
-            if weight_item.get('item') and weight_item.get('score') is not None:
+            if weight_item.item and weight_item.score is not None:
                 weight_record = Weight(
                     target_type='resume_feature',
                     jobpost_id=job_post_id,
-                    field_name=weight_item['item'],
-                    weight_value=float(weight_item['score'])
+                    field_name=weight_item.item,
+                    weight_value=float(weight_item.score)
                 )
                 db.add(weight_record)
         db.commit()
@@ -913,7 +947,39 @@ def delete_company_job_post(
             db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
             print(f"Deleted {len(jobpost_roles)} job post roles for job post {job_post_id}")
         
-        # 10. 마지막으로 채용공고 삭제
+        # 10. 관련된 알림(Notification) 삭제 - 면접관 요청 알림들
+        try:
+            from app.models.notification import Notification
+            from app.models.interview_panel import InterviewPanelRequest
+
+            # 면접관 요청과 연결된 알림들 찾기
+            interview_requests = db.query(InterviewPanelRequest).filter(
+                InterviewPanelRequest.assignment_id.in_(
+                    db.query(InterviewPanelAssignment.id).filter(
+                        InterviewPanelAssignment.job_post_id == job_post_id
+                    )
+                )
+            ).all()
+            
+            notification_ids = [req.notification_id for req in interview_requests if req.notification_id]
+            
+            # 면접관 요청 알림 삭제
+            if notification_ids:
+                deleted_notifications = db.query(Notification).filter(
+                    Notification.id.in_(notification_ids)
+                ).delete()
+                print(f"Deleted {deleted_notifications} notifications for job post {job_post_id}")
+
+            # 팀 편성 알림 등 job_post.title이 포함된 알림도 삭제
+            if db_job_post.title:
+                deleted_team_notifications = db.query(Notification).filter(
+                    Notification.message.like(f"%{db_job_post.title}%")
+                ).delete()
+                print(f"Deleted {deleted_team_notifications} team/related notifications for job post {job_post_id}")
+        except Exception as e:
+            print(f"Notification deletion failed: {e}")
+        
+        # 11. 마지막으로 채용공고 삭제
         db.delete(db_job_post)
         
         db.commit()

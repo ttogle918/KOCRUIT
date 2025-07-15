@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import "../../styles/datepicker.css";
 import { useAuth } from '../../context/AuthContext';
+import { useFormContext } from '../../context/FormContext';
 import Layout from '../../layout/Layout';
 import TimePicker from '../../components/TimePicker';
 import CompanyMemberSelectModal from '../../components/CompanyMemberSelectModal';
@@ -28,10 +29,31 @@ const useAutoResize = (value) => {
   return textareaRef;
 };
 
+// Helper function to validate and convert dates for DatePicker
+const validateDate = (date) => {
+  if (!date) return null;
+  if (date instanceof Date && !isNaN(date.getTime())) return date;
+  if (typeof date === 'string') {
+    const parsedDate = new Date(date);
+    return !isNaN(parsedDate.getTime()) ? parsedDate : null;
+  }
+  return null;
+};
+
 function EditPost() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { jobPostId } = useParams();
+  const { 
+    formData: contextFormData, 
+    updateFormData, 
+    updateFormField, 
+    updateTeamMembers, 
+    updateSchedules, 
+    updateWeights, 
+    activateForm, 
+    deactivateForm 
+  } = useFormContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -71,21 +93,27 @@ function EditPost() {
   const proceduresRef = useAutoResize(formData.procedures);
 
   const handleTextareaChange = (e, field) => {
+    const newValue = e.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: e.target.value
+      [field]: newValue
     }));
+    updateFormField(field, newValue);
   };
 
   const handleInputChange = (e, field) => {
+    const newValue = e.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: e.target.value
+      [field]: newValue
     }));
+    updateFormField(field, newValue);
   };
 
-  // Fetch existing job post data
+  // 폼 활성화 및 기존 데이터 로드
   useEffect(() => {
+    activateForm('edit');
+    
     const fetchJobPost = async () => {
       try {
         const response = await api.get(`/company/jobposts/${jobPostId}`);
@@ -94,7 +122,7 @@ function EditPost() {
 
         
         // Pre-populate form data
-        setFormData({
+        const newFormData = {
           title: jobPost.title || '',
           department: jobPost.department || '',
           qualifications: jobPost.qualifications || '',
@@ -108,10 +136,15 @@ function EditPost() {
           employment_type: jobPost.employment_type || '',
           deadline: jobPost.deadline ? new Date(jobPost.deadline) : null,
           company: jobPost.company || null
-        });
+        };
+        
+        setFormData(newFormData);
+        updateFormData(newFormData);
 
         // Set team members, schedules, and weights
-        setTeamMembers(jobPost.teamMembers || [{ email: '', name: '', role: '' }]);
+        const newTeamMembers = jobPost.teamMembers || [{ email: '', name: '', role: '' }];
+        setTeamMembers(newTeamMembers);
+        updateTeamMembers(newTeamMembers);
         
         // Convert interview schedules from API format to form format
         if (jobPost.interview_schedules && jobPost.interview_schedules.length > 0) {
@@ -128,12 +161,17 @@ function EditPost() {
             };
           });
           setSchedules(convertedSchedules);
+          updateSchedules(convertedSchedules);
         } else {
-          setSchedules([{ date: null, time: '', place: '' }]);
+          const defaultSchedules = [{ date: null, time: '', place: '' }];
+          setSchedules(defaultSchedules);
+          updateSchedules(defaultSchedules);
         }
         
         // Set weights from existing data
-        setWeights(jobPost.weights || []);
+        const newWeights = jobPost.weights || [];
+        setWeights(newWeights);
+        updateWeights(newWeights);
         
         setLoading(false);
       } catch (err) {
@@ -146,7 +184,12 @@ function EditPost() {
     if (jobPostId) {
       fetchJobPost();
     }
-  }, [jobPostId]);
+
+    // 컴포넌트 언마운트 시 폼 비활성화
+    return () => {
+      deactivateForm();
+    };
+  }, [jobPostId, activateForm, deactivateForm, updateFormData, updateTeamMembers, updateSchedules, updateWeights]);
 
   // Fetch initial user data for company member selection
   useEffect(() => {
@@ -162,6 +205,44 @@ function EditPost() {
         });
         if (response.data) {
           setUserCompanyId(response.data.company_id);
+          
+          // 부서 정보 가져오기 (여러 필드명 확인)
+          const getUserDepartment = (userData) => {
+            // API에서 department_name이 오는지 확인
+            if (userData.department_name) {
+              console.log('Found department_name from API:', userData.department_name);
+              return userData.department_name;
+            }
+            
+            // 여러 가능한 필드명 확인
+            const possibleFields = [
+              userData.department,
+              userData.dept,
+              userData.team,
+              userData.division,
+              userData.company?.department,
+              userData.company?.dept,
+              userData.company?.team
+            ];
+            
+            const department = possibleFields.find(field => field && typeof field === 'string');
+            console.log('Department detection:', {
+              possibleFields,
+              foundDepartment: department
+            });
+            
+            return department;
+          };
+          
+          const userDepartment = getUserDepartment(response.data);
+          
+          // 사용자의 부서명을 자동으로 설정 (새로 생성하는 경우에만)
+          if (!formData.department && userDepartment) {
+            setFormData(prev => ({
+              ...prev,
+              department: userDepartment
+            }));
+          }
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -176,7 +257,14 @@ function EditPost() {
   // 입력 검증 함수
   const isFieldEmpty = (value) => value === null || value === undefined || value === '';
   const isTeamValid = teamMembers.length > 0 && teamMembers.every(m => m.email && m.role);
-  const isScheduleValid = schedules.length > 0 && schedules.every(s => s.date && s.time && s.place);
+  const isScheduleValid = schedules.length > 0 && schedules.every(s => {
+    // Check if date is valid (either Date object or valid date string)
+    const isValidDate = s.date && (
+      s.date instanceof Date || 
+      (typeof s.date === 'string' && !isNaN(new Date(s.date).getTime()))
+    );
+    return isValidDate && s.time && s.place;
+  });
   const isWeightsValid = weights.length >= 5 && weights.every(w => w.item && w.score !== '');
   const isRecruitInfoValid = [formData.title, formData.department, formData.qualifications, formData.conditions, formData.job_details, formData.procedures, formData.headcount, formData.start_date, formData.end_date, formData.location, formData.employment_type].every(v => !isFieldEmpty(v));
   const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid && isWeightsValid;
@@ -270,32 +358,43 @@ function EditPost() {
       // 날짜 형식 변환 - 시간대 정보 제거
       const formatDate = (date) => {
         if (!date) return null;
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
+        // Ensure date is a valid Date object
+        const validDate = validateDate(date);
+        if (!validDate) return null;
+        
+        const year = validDate.getFullYear();
+        const month = String(validDate.getMonth() + 1).padStart(2, '0');
+        const day = String(validDate.getDate()).padStart(2, '0');
+        const hours = String(validDate.getHours()).padStart(2, '0');
+        const minutes = String(validDate.getMinutes()).padStart(2, '0');
         return `${year}-${month}-${day} ${hours}:${minutes}`;
       };
 
       // 면접 일정 데이터 변환
       const interviewSchedules = schedules
         .filter(schedule => schedule.date && schedule.time && schedule.place)
-        .map(schedule => ({
-          interview_date: schedule.date.toISOString().split('T')[0],  // YYYY-MM-DD
-          interview_time: schedule.time,  // HH:MM
-          location: schedule.place,
-          interview_type: "ONSITE",
-          max_participants: 1,
-          notes: null
-        }));
+        .map(schedule => {
+          // Ensure date is a valid Date object
+          const date = validateDate(schedule.date);
+          if (!date) return null;
+          
+          return {
+            interview_date: date.toISOString().split('T')[0],  // YYYY-MM-DD
+            interview_time: schedule.time,  // HH:MM
+            location: schedule.place,
+            interview_type: "ONSITE",
+            max_participants: 1,
+            notes: null
+          };
+        })
+        .filter(Boolean); // Remove null entries
 
       const formattedData = {
         ...formData,
         headcount: formData.headcount ? parseInt(formData.headcount) : null,
         start_date: formatDate(formData.start_date),
         end_date: formatDate(formData.end_date),
-        deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
+        deadline: formData.deadline ? validateDate(formData.deadline)?.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
         weights: weights.filter(weight => weight.item && weight.score).map(weight => ({
           ...weight,
@@ -342,6 +441,26 @@ function EditPost() {
     });
   };
 
+  // Context와 폼 데이터 동기화
+  useEffect(() => {
+    if (contextFormData && Object.keys(contextFormData).length > 0) {
+      // Context에서 업데이트된 데이터가 있으면 폼에 반영
+      const updatedFormData = { ...formData, ...contextFormData };
+      setFormData(updatedFormData);
+      
+      // 팀 멤버, 스케줄, 가중치도 동기화
+      if (contextFormData.teamMembers && contextFormData.teamMembers.length > 0) {
+        setTeamMembers(contextFormData.teamMembers);
+      }
+      if (contextFormData.schedules && contextFormData.schedules.length > 0) {
+        setSchedules(contextFormData.schedules);
+      }
+      if (contextFormData.weights && contextFormData.weights.length > 0) {
+        setWeights(contextFormData.weights);
+      }
+    }
+  }, [contextFormData]);
+
   // 실시간 폼 데이터를 챗봇이 읽을 수 있도록 접근성 속성 업데이트
   useEffect(() => {
     // 면접 일정 데이터를 실시간으로 접근성 속성에 반영
@@ -351,7 +470,11 @@ function EditPost() {
       const placeElement = document.getElementById(`schedule-${idx + 1}-place`);
       
       if (dateElement) {
-        dateElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 날짜 선택${schedule.date ? `: ${schedule.date.toLocaleDateString()}` : ''}`);
+        const dateLabel = schedule.date ? 
+          (schedule.date instanceof Date ? schedule.date.toLocaleDateString() : 
+           typeof schedule.date === 'string' ? new Date(schedule.date).toLocaleDateString() : 
+           '날짜 형식 오류') : '';
+        dateElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 날짜 선택${dateLabel ? `: ${dateLabel}` : ''}`);
       }
       if (timeElement) {
         timeElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 시간 선택${schedule.time ? `: ${schedule.time}` : ''}`);
@@ -544,11 +667,11 @@ function EditPost() {
                     <label className="text-sm text-gray-700 dark:text-white">모집기간:</label>
                     <div className="flex flex-col md:flex-row items-center gap-1 w-full">
                       <DatePicker 
-                        selected={formData.start_date}
+                        selected={validateDate(formData.start_date)}
                         onChange={(date) => handleInputChange({ target: { value: date } }, 'start_date')} 
                         selectsStart 
-                        startDate={formData.start_date} 
-                        endDate={formData.end_date} 
+                        startDate={validateDate(formData.start_date)} 
+                        endDate={validateDate(formData.end_date)} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
                         className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.start_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
@@ -558,12 +681,12 @@ function EditPost() {
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300 px-1">~</span>
                       <DatePicker 
-                        selected={formData.end_date} 
+                        selected={validateDate(formData.end_date)} 
                         onChange={(date) => handleInputChange({ target: { value: date } }, 'end_date')} 
                         selectsEnd 
-                        startDate={formData.start_date} 
-                        endDate={formData.end_date} 
-                        minDate={formData.start_date} 
+                        startDate={validateDate(formData.start_date)} 
+                        endDate={validateDate(formData.end_date)} 
+                        minDate={validateDate(formData.start_date)} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
                         className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.end_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
@@ -625,7 +748,8 @@ function EditPost() {
                       setSelectedMemberIndex(teamMembers.length);
                       setShowMemberModal(true);
                     }} 
-                    className="text-sm text-blue-600 hover:underline ml-4 mt-3"
+                    className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
+                    aria-label="새로운 팀 멤버 추가"
                   >
                     + 멤버 추가
                   </button>
@@ -657,7 +781,7 @@ function EditPost() {
                         <div className="space-y-1">
                           <label className="text-xs text-gray-600 dark:text-gray-400" htmlFor={`schedule-${idx + 1}-date`}>날짜</label>
                           <DatePicker 
-                            selected={sch.date} 
+                            selected={validateDate(sch.date)} 
                             onChange={date => setSchedules(prev => prev.map((s, i) => i === idx ? { ...s, date } : s))} 
                             dateFormat="yyyy/MM/dd" 
                             className={`w-full border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm ${showError && !sch.date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
@@ -665,7 +789,10 @@ function EditPost() {
                             calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 
                             popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg"
                             id={`schedule-${idx + 1}-date`}
-                            aria-label={`면접 일정 ${idx + 1} 날짜 선택${sch.date ? `: ${sch.date.toLocaleDateString()}` : ''}`}
+                            aria-label={`면접 일정 ${idx + 1} 날짜 선택${sch.date ? 
+                              (sch.date instanceof Date ? `: ${sch.date.toLocaleDateString()}` : 
+                               typeof sch.date === 'string' ? `: ${new Date(sch.date).toLocaleDateString()}` : 
+                               ': 날짜 형식 오류') : ''}`}
                           />
                         </div>
                         
@@ -699,7 +826,20 @@ function EditPost() {
                   
                   <button 
                     type="button" 
-                    onClick={() => setSchedules(prev => [...prev, { date: null, time: '', place: '' }])} 
+                    onClick={() => {
+                      setSchedules(prev => {
+                        if (prev.length === 0) {
+                          return [{ date: null, time: '', place: '' }];
+                        }
+                        // 마지막 면접 일정의 형식을 복사
+                        const lastSchedule = prev[prev.length - 1];
+                        return [...prev, { 
+                          date: lastSchedule.date, 
+                          time: lastSchedule.time, 
+                          place: lastSchedule.place 
+                        }];
+                      });
+                    }} 
                     className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border-dashed border-blue-300 dark:border-blue-600 transition-colors"
                     aria-label="새로운 면접 일정 추가"
                   >
@@ -711,7 +851,13 @@ function EditPost() {
                       최소 하나의 면접 일정을 추가해 주세요.
                     </div>
                   )}
-                  {showError && schedules.length > 0 && schedules.some(s => !s.date || !s.time || !s.place) && (
+                  {showError && schedules.length > 0 && schedules.some(s => {
+                    const isValidDate = s.date && (
+                      s.date instanceof Date || 
+                      (typeof s.date === 'string' && !isNaN(new Date(s.date).getTime()))
+                    );
+                    return !isValidDate || !s.time || !s.place;
+                  }) && (
                     <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded" role="alert">
                       모든 면접 일정의 날짜, 시간, 장소를 입력하세요.
                     </div>
@@ -769,14 +915,6 @@ function EditPost() {
                       </div>
                     </div>
                   ))}
-                  <button 
-                    type="button" 
-                    onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
-                    className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
-                    aria-label="새로운 가중치 항목 추가"
-                  >
-                    + 가중치 추가
-                  </button>
                   <div className="sr-only" id="weights-description">
                     현재 설정된 가중치 항목: {weights.filter(w => w.item && w.score).map((w, idx) => `${idx + 1}. ${w.item} (${w.score})`).join(', ')}
                   </div>
@@ -790,7 +928,7 @@ function EditPost() {
                       모든 가중치 항목의 항목명과 점수를 입력하세요.
                     </div>
                   )}
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-gray-700 dark:text-gray-300">AI 가중치 추출</span>
                     <button 
                       type="button" 
@@ -801,6 +939,14 @@ function EditPost() {
                       {isExtractingWeights ? '추출 중...' : 'AI 가중치 추출'}
                     </button>
                   </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setWeights(prev => [...prev, { item: '', score: '' }])} 
+                    className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border border-dashed border-blue-300 dark:border-blue-600 transition-colors"
+                    aria-label="새로운 가중치 항목 추가"
+                  >
+                    + 가중치 추가
+                  </button>
                   <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded" role="note">
                     <strong>가중치 점수 설명:</strong><br/>
                     • 0.0: 매우 낮은 중요도<br/>
@@ -835,6 +981,7 @@ function EditPost() {
       {showMemberModal && (
         <CompanyMemberSelectModal
           companyId={userCompanyId}
+          selectedMembers={teamMembers.filter(member => member.email && member.email.trim() !== '')}
           onSelect={(email, name) => {
             if (selectedMemberIndex !== null) {
               setTeamMembers(prev => {

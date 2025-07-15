@@ -137,10 +137,15 @@ def refresh(request: RefreshTokenRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserDetail)
-def get_current_user_info(current_user: User = Depends(get_current_user)):
+def get_current_user_info(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Add company name if user is a company user
     if hasattr(current_user, 'company') and current_user.company:
         current_user.companyName = current_user.company.name
+    
+    # Add department name if user is a company user with department
+    if hasattr(current_user, 'department') and current_user.department:
+        current_user.department_name = current_user.department.name
+        current_user.department_id = current_user.department.id
     
     # Ensure role is properly converted to enum
     try:
