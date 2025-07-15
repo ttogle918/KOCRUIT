@@ -29,6 +29,7 @@ def form_field_update_tool(state):
         - 모집인원, headcount
         - 근무지역, location
         - 고용형태, employment_type
+        - 면접일정, schedules
         
         응답은 정확히 다음 JSON 형식으로만 반환하세요:
         {{
@@ -39,6 +40,7 @@ def form_field_update_tool(state):
         예시:
         - "부서명 개발팀으로 바꿔달라" → {{"field_name": "부서명", "new_value": "개발팀"}}
         - "제목을 백엔드 개발자로 변경" → {{"field_name": "제목", "new_value": "백엔드 개발자"}}
+        - "면접 일정 하나 지워줘" → {{"field_name": "면접일정", "new_value": "삭제"}}
         """
         
         try:
@@ -86,13 +88,33 @@ def form_field_update_tool(state):
         "근무지역": "location",
         "location": "location",
         "고용형태": "employment_type",
-        "employment_type": "employment_type"
+        "employment_type": "employment_type",
+        "면접일정": "schedules",
+        "schedules": "schedules"
     }
     
     # 필드명 변환
     actual_field = field_mapping.get(field_name, field_name)
     
-    # 폼 데이터 업데이트
+    # 삭제/제거 명령 처리
+    delete_keywords = ["삭제", "지워", "제거"]
+    if any(k in str(new_value) for k in delete_keywords):
+        updated_form_data = {**current_form_data}
+        # 배열형 필드만 삭제 허용
+        if actual_field in ["schedules"] and isinstance(updated_form_data.get(actual_field), list):
+            if updated_form_data[actual_field]:
+                updated_form_data[actual_field] = updated_form_data[actual_field][:-1]
+                return {
+                    **state,
+                    "form_data": updated_form_data,
+                    "message": f"{field_name} 항목 1개를 삭제했습니다."
+                }
+            else:
+                return {**state, "message": f"{field_name}에 삭제할 항목이 없습니다."}
+        else:
+            return {**state, "message": f"{field_name}은(는) 삭제 명령을 지원하지 않습니다."}
+    
+    # 폼 데이터 업데이트 (일반 값 변경)
     updated_form_data = {**current_form_data}
     updated_form_data[actual_field] = new_value
     
