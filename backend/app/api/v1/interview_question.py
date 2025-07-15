@@ -9,6 +9,11 @@ from app.models.application import Application
 from pydantic import BaseModel
 
 from app.api.v1.company_question_rag import generate_questions
+from app.main import app as fastapi_app
+# import redis.asyncio as aioredis
+# import hashlib
+# import json
+# from app.core.config import REDIS_CACHE_TTL
 
 router = APIRouter()
 
@@ -384,16 +389,14 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
 
 @router.post("/resume-analysis", response_model=ResumeAnalysisResponse)
 async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
-    """이력서 분석 리포트 생성 API"""
+    """이력서 분석 리포트 생성 API (항상 실시간 분석, 캐시 미사용)"""
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
         if not resume:
             raise HTTPException(status_code=404, detail="Resume not found")
-        
         specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
         resume_text = combine_resume_and_specs(resume, specs)
-        
         # 직무 정보 수집 (application_id가 있는 경우)
         job_info = ""
         job_matching_info = ""
@@ -404,7 +407,6 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
                 if job_post:
                     job_info = parse_job_post_data(job_post)
                     job_matching_info = analyze_job_matching(resume_text, job_info)
-        
         # 포트폴리오 정보 수집
         portfolio_info = ""
         if request.name:
@@ -414,8 +416,7 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
             from agent.tools.portfolio_tool import portfolio_tool
             portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
             portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
-        
-        # LangGraph 기반 이력서 분석
+        # LangGraph 기반 이력서 분석 (항상 직접 수행)
         from agent.agents.interview_question_node import generate_resume_analysis_report
         analysis_result = generate_resume_analysis_report(
             resume_text=resume_text,
@@ -423,7 +424,6 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
             portfolio_info=portfolio_info,
             job_matching_info=job_matching_info
         )
-        
         return analysis_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

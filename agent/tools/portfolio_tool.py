@@ -10,7 +10,7 @@ class PortfolioLinkTool:
     
     def __init__(self):
         self.search_tool = TavilySearchResults()
-        self.llm = ChatOpenAI(model="gpt-4o")
+        self.llm = ChatOpenAI(model="gpt-4o-mini")
         self.summarize_chain = load_summarize_chain(self.llm, chain_type="stuff")
     
     def extract_portfolio_links(self, resume_text: str, name: str = "") -> Dict:

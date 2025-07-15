@@ -12,8 +12,6 @@ class Settings(BaseSettings):
     MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
     MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
 
-
-
     # Database (환경변수 우선, 기본값 fallback)
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: str = os.getenv("DB_PORT", "3307")
@@ -29,7 +27,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # Redis
-    REDIS_URL: str = "redis://localhost:6379"
+    # REDIS_URL: str = "redis://localhost:6379"
+    
+    # AI API Keys
+    OPENAI_API_KEY: Optional[str] = None
+    TAVILY_API_KEY: Optional[str] = None
     
     # OAuth
     GOOGLE_CLIENT_ID: Optional[str] = None
@@ -41,5 +43,8 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
+        extra = "ignore"  # 추가 환경변수는 무시
 
 settings = Settings()
+
+# REDIS_CACHE_TTL = int(os.getenv("REDIS_CACHE_TTL", 60 * 60))

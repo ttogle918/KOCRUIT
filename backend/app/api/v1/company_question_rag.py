@@ -13,7 +13,8 @@ from langchain_core.documents import Document
 router = APIRouter()
 load_dotenv()
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o-mini")
+
 
 # 1. Tavily로 검색
 search_tool = TavilySearchResults()  # <-- 반드시 본인 API Key 입력

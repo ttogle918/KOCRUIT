@@ -1,8 +1,9 @@
 from langchain_openai import ChatOpenAI
 
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
 def job_posting_recommend_tool(state):
     content = state.get("job_posting", "")
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
     prompt = (
         "아래의 채용 공고 내용을 읽고, 공고의 어색한 점을 수정하거나, "
         "더 효과적으로 매력적으로 보이게끔 문장을 추천해줘. "
