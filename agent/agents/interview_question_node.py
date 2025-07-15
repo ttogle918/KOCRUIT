@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any
 from langchain_community.tools.tavily_search.tool import TavilySearchResults
 from langchain.chains.summarize import load_summarize_chain
 from langchain_core.documents import Document
+from agent.utils.llm_cache import redis_cache
 
 load_dotenv()
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
@@ -146,6 +147,7 @@ generate_news_questions = LLMChain(llm=llm, prompt=news_prompt)
 generate_job_questions = LLMChain(llm=llm, prompt=job_prompt)
 
 # 3. 전체 질문 통합 함수
+@redis_cache()
 def generate_common_question_bundle(resume_text: str, company_name: Optional[str] = None, portfolio_info: str = ""):
     personality_questions = FIXED_QUESTIONS["personality"]
 
@@ -181,6 +183,7 @@ def generate_common_question_bundle(resume_text: str, company_name: Optional[str
         "자기소개서 요약": resume_summary
     }
 
+@redis_cache()
 def generate_company_questions(company_name: str):
     """회사명을 기반으로 인재상과 뉴스를 모두 고려한 질문 생성"""
     try:
@@ -273,6 +276,7 @@ def company_info_scraping_tool(company_name):
         "company_news": "2024년 7월, AI 반도체 신제품 출시 및 글로벌 시장 진출 발표"
     }
 
+@redis_cache()
 def generate_job_question_bundle(resume_text: str, job_info: str, company_name: str = "", job_matching_info: str = ""):
     """직무 기반 면접 질문 생성"""
     
@@ -576,6 +580,7 @@ strengths_weaknesses_chain = LLMChain(llm=llm, prompt=strengths_weaknesses_promp
 interview_guideline_chain = LLMChain(llm=llm, prompt=interview_guideline_prompt)
 evaluation_criteria_chain = LLMChain(llm=llm, prompt=evaluation_criteria_prompt)
 
+@redis_cache()
 def generate_resume_analysis_report(resume_text: str, job_info: str = "", portfolio_info: str = "", job_matching_info: str = ""):
     """이력서 분석 리포트 생성"""
     try:
@@ -631,6 +636,7 @@ def generate_resume_analysis_report(resume_text: str, job_info: str = "", portfo
             "job_matching_details": job_matching_info or "직무 매칭 정보가 없습니다."
         }
 
+@redis_cache()
 def generate_interview_checklist(resume_text: str, job_info: str = "", company_name: str = ""):
     """면접 체크리스트 생성"""
     try:
@@ -674,6 +680,7 @@ def generate_interview_checklist(resume_text: str, job_info: str = "", company_n
             "green_flags_to_confirm": ["구체적인 사례 제시", "적극적인 태도"]
         }
 
+@redis_cache()
 def analyze_candidate_strengths_weaknesses(resume_text: str, job_info: str = "", company_name: str = ""):
     """지원자 강점/약점 분석"""
     try:
@@ -702,6 +709,7 @@ def analyze_candidate_strengths_weaknesses(resume_text: str, job_info: str = "",
             "competitive_advantages": ["기술적 역량", "학습 의지"]
         }
 
+@redis_cache()
 def generate_interview_guideline(resume_text: str, job_info: str = "", company_name: str = ""):
     """면접 가이드라인 생성"""
     try:
@@ -740,6 +748,7 @@ def generate_interview_guideline(resume_text: str, job_info: str = "", company_n
             "follow_up_questions": ["더 구체적인 사례를 들어 설명해주세요", "그 상황에서 다른 대안은 없었나요"]
         }
 
+@redis_cache()
 def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_name: str = ""):
     """평가 기준 자동 제안"""
     try:
@@ -889,6 +898,7 @@ technical_practical_understanding_prompt = PromptTemplate.from_template(
 technical_practical_understanding_chain = LLMChain(llm=llm, prompt=technical_practical_understanding_prompt)
 
 
+@redis_cache()
 def generate_advanced_competency_questions(resume_text: str, job_info: str = ""):
     practical = practical_competency_chain.invoke({"resume_text": resume_text, "job_info": job_info})
     problem = problem_solving_chain.invoke({"resume_text": resume_text, "job_info": job_info})

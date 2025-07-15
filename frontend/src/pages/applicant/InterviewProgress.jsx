@@ -11,6 +11,9 @@ import { MdOutlineAutoAwesome } from 'react-icons/md';
 import { useAuth } from '../../context/AuthContext';
 import { mapResumeData } from '../../utils/resumeUtils';
 import CommonInterviewQuestionsPanel from '../../components/CommonInterviewQuestionsPanel';
+import Drawer from '@mui/material/Drawer';
+import Button from '@mui/material/Button';
+import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 
 function InterviewProgress() {
   const { jobPostId } = useParams();
@@ -38,6 +41,7 @@ function InterviewProgress() {
   const [existingEvaluationId, setExistingEvaluationId] = useState(null); // 기존 평가 ID
   const saveTimer = useRef(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true); // 자동저장 ON이 기본값
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // 좌측 width 드래그 조절 및 닫기/열기
   const [leftWidth, setLeftWidth] = useState(240);
@@ -121,6 +125,16 @@ function InterviewProgress() {
     }
   };
 
+  const fetchApplicantQuestions = async (resumeId, companyName, applicantName) => {
+    const requestData = { resume_id: resumeId, company_name: companyName, name: applicantName };
+    try {
+      const res = await api.post('/interview-questions/project-questions', requestData);
+      setQuestions(res.data.questions || []);
+    } catch (e) {
+      setQuestions([]);
+    }
+  };
+
   // 드래그 핸들러
   const handleMouseDown = (e) => {
     isDragging.current = true;
@@ -146,7 +160,11 @@ function InterviewProgress() {
   }, [isLeftOpen]);
 
   const handleApplicantClick = async (applicant, index) => {
-    const id = applicant.applicant_id || applicant.id; // 우선 applicant_id 사용
+    const id = applicant.applicant_id || applicant.id;
+    if (selectedApplicantIndex === index) {
+      setDrawerOpen(true); // 이미 선택된 지원자를 다시 클릭하면 Drawer 오픈
+      return;
+    }
     setSelectedApplicantIndex(index);
     setResume(null);
     try {
@@ -164,6 +182,7 @@ function InterviewProgress() {
         jobPost?.company?.name,
         applicant.name
       );
+      await fetchApplicantQuestions(mappedResume.id, jobPost?.company?.name, applicant.name);
     } catch (err) {
       console.error('지원자 데이터 로드 실패:', err);
       setResume(null);
@@ -231,7 +250,7 @@ function InterviewProgress() {
     }
     
     // 실제 interview_id 찾기
-    let interviewId = 1; // 기본값
+    let interviewId = null;
     try {
       // schedule_interview 테이블에서 해당 지원자의 면접 ID 조회
       const scheduleResponse = await api.get(`/interview-evaluations/interview-schedules/applicant/${selectedApplicant.id}`);
@@ -239,8 +258,11 @@ function InterviewProgress() {
         interviewId = scheduleResponse.data[0].id;
       }
     } catch (scheduleError) {
-      console.warn('면접 일정 조회 실패, 기본값 사용:', scheduleError);
-      // 면접 일정이 없으면 기본값 1 사용
+      interviewId = null;
+    }
+    if (!interviewId) {
+      setSaveStatus('면접 일정이 존재하지 않아 평가를 저장할 수 없습니다.');
+      return;
     }
 
     // 항상 최신 평가ID를 GET해서 분기
@@ -320,12 +342,10 @@ function InterviewProgress() {
       // 면접 도구 fetch
       Promise.allSettled([
         api.post('/interview-questions/interview-checklist/job-based', requestData),
-        api.post('/interview-questions/strengths-weaknesses/job-based', requestData),
         api.post('/interview-questions/interview-guideline/job-based', requestData),
         api.post('/interview-questions/evaluation-criteria/job-based', requestData)
       ]).then(([checklistRes, strengthsRes, guidelineRes, criteriaRes]) => {
         setCommonChecklist(checklistRes.status === 'fulfilled' ? checklistRes.value.data : null);
-        setCommonStrengths(strengthsRes.status === 'fulfilled' ? strengthsRes.value.data : null);
         setCommonGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
         setCommonCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
       }).finally(() => setCommonToolsLoading(false));
@@ -397,6 +417,37 @@ function InterviewProgress() {
           ) : null}
         </div>
       </div>
+      {/* Drawer: 공통 면접 질문 패널 (이력서 선택 후에도 접근 가능) */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        PaperProps={{ sx: { width: 480, maxWidth: '100vw' } }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #e0e0e0' }}>
+            <span style={{ fontWeight: 700, fontSize: 18 }}>공통 면접 질문/도구</span>
+            <Button onClick={() => setDrawerOpen(false)} color="primary">닫기</Button>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <CommonInterviewQuestionsPanel
+              questions={commonQuestions}
+              onChange={setCommonQuestions}
+              fullWidth
+              resumeId={resume?.id}
+              jobPostId={jobPostId}
+              applicationId={selectedApplicant?.id}
+              companyName={jobPost?.companyName}
+              applicantName={selectedApplicant?.name}
+              interviewChecklist={commonChecklist}
+              strengthsWeaknesses={commonStrengths}
+              interviewGuideline={commonGuideline}
+              evaluationCriteria={commonCriteria}
+              toolsLoading={commonToolsLoading || commonQuestionsLoading}
+            />
+          </div>
+        </div>
+      </Drawer>
       {/* 중앙/우측 패널: 좌측 패널 width만큼 margin-left */}
       <div
         className="flex flex-row"
@@ -427,13 +478,45 @@ function InterviewProgress() {
           </div>
         ) : (
           <>
-            {/* 공통 면접 질문 패널 (이력서 선택 시 숨김) */}
-            {/* <div style={{ width: 400, minWidth: 320, maxWidth: 480, marginRight: 16, height: '100%' }}>
-              <CommonInterviewQuestionsPanel
-                questions={commonQuestions}
-                onChange={setCommonQuestions}
-              />
-            </div> */}
+            {/* 오른쪽 중앙 엣지에 세로 버튼 */}
+            <div
+              style={{
+                position: 'fixed',
+                top: '50%',
+                right: 0,
+                transform: 'translateY(-50%)',
+                zIndex: 1300,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                pointerEvents: 'none', // 버튼만 클릭 가능하게 아래에서 pointerEvents 복구
+              }}
+            >
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<QuestionAnswerIcon />}
+                onClick={() => setDrawerOpen(prev => !prev)}
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  minWidth: '48px',
+                  minHeight: '140px',
+                  writingMode: 'vertical-rl',
+                  textOrientation: 'mixed',
+                  letterSpacing: '0.1em',
+                  fontSize: 18,
+                  boxShadow: 3,
+                  pointerEvents: 'auto',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  px: 1,
+                  py: 2,
+                }}
+              >
+                공통면접질문
+              </Button>
+            </div>
             {/* 중앙 이력서 */}
             <div className="flex-1 flex flex-col h-full min-h-0 bg-[#f7faff] dark:bg-gray-900">
               <div className="flex-1 h-full overflow-y-auto flex flex-col items-stretch justify-start">

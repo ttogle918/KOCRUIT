@@ -310,14 +310,7 @@ def get_questions_by_application(application_id: int, db: Session = Depends(get_
 @router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
 async def generate_integrated_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
     """통합 면접 질문 생성 API - 이력서, 공고, 회사 정보를 모두 활용"""
-    # POST /api/v1/interview-questions/integrated-questions
-    # Content-Type: application/json
-    # {
-    #   "resume_id": 41,
-    #   "application_id": 41,
-    #   "company_name": "KOSA공공",
-    #   "name": "홍길동"
-    # }
+
 
     cache_key = f"integrated_questions:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
     cached = redis_client.get(cache_key)
