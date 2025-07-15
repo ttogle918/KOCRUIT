@@ -205,6 +205,44 @@ function EditPost() {
         });
         if (response.data) {
           setUserCompanyId(response.data.company_id);
+          
+          // 부서 정보 가져오기 (여러 필드명 확인)
+          const getUserDepartment = (userData) => {
+            // API에서 department_name이 오는지 확인
+            if (userData.department_name) {
+              console.log('Found department_name from API:', userData.department_name);
+              return userData.department_name;
+            }
+            
+            // 여러 가능한 필드명 확인
+            const possibleFields = [
+              userData.department,
+              userData.dept,
+              userData.team,
+              userData.division,
+              userData.company?.department,
+              userData.company?.dept,
+              userData.company?.team
+            ];
+            
+            const department = possibleFields.find(field => field && typeof field === 'string');
+            console.log('Department detection:', {
+              possibleFields,
+              foundDepartment: department
+            });
+            
+            return department;
+          };
+          
+          const userDepartment = getUserDepartment(response.data);
+          
+          // 사용자의 부서명을 자동으로 설정 (새로 생성하는 경우에만)
+          if (!formData.department && userDepartment) {
+            setFormData(prev => ({
+              ...prev,
+              department: userDepartment
+            }));
+          }
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -788,7 +826,20 @@ function EditPost() {
                   
                   <button 
                     type="button" 
-                    onClick={() => setSchedules(prev => [...prev, { date: null, time: '', place: '' }])} 
+                    onClick={() => {
+                      setSchedules(prev => {
+                        if (prev.length === 0) {
+                          return [{ date: null, time: '', place: '' }];
+                        }
+                        // 마지막 면접 일정의 형식을 복사
+                        const lastSchedule = prev[prev.length - 1];
+                        return [...prev, { 
+                          date: lastSchedule.date, 
+                          time: lastSchedule.time, 
+                          place: lastSchedule.place 
+                        }];
+                      });
+                    }} 
                     className="w-full text-sm text-blue-600 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 py-2 rounded border-dashed border-blue-300 dark:border-blue-600 transition-colors"
                     aria-label="새로운 면접 일정 추가"
                   >
