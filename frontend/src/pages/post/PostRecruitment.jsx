@@ -64,7 +64,8 @@ function PostRecruitment() {
     updateSchedules, 
     updateWeights, 
     activateForm, 
-    deactivateForm 
+    deactivateForm,
+    resetFormData // 폼 진입 시 항상 초기화
   } = useFormContext();
   const [formData, setFormData] = useState({
     title: '',
@@ -129,6 +130,7 @@ function PostRecruitment() {
   // 폼 활성화 및 초기 데이터 로드
   useEffect(() => {
     activateForm('create');
+    resetFormData(); // 폼 진입 시 항상 초기화
     
     const fetchInitialData = async () => {
       try {

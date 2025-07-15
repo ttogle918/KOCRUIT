@@ -140,6 +140,18 @@ class InterviewPanelService:
             
             # Create requests for each interviewer
             for interviewer in selection_result['same_department']:
+                # Only check for duplicates if there are already requests for this assignment
+                existing_any = db.query(InterviewPanelRequest).filter(
+                    InterviewPanelRequest.assignment_id == same_dept_assignment.id
+                ).first()
+                if existing_any:
+                    existing_request = db.query(InterviewPanelRequest).filter(
+                        InterviewPanelRequest.assignment_id == same_dept_assignment.id,
+                        InterviewPanelRequest.company_user_id == interviewer.id,
+                        InterviewPanelRequest.status == RequestStatus.PENDING
+                    ).first()
+                    if existing_request:
+                        continue  # Skip duplicate
                 notification = InterviewPanelService._create_notification(
                     db, interviewer, criteria.job_post_id, "SAME_DEPARTMENT"
                 )
@@ -166,6 +178,18 @@ class InterviewPanelService:
             
             # Create requests for each interviewer
             for interviewer in selection_result['hr_department']:
+                # Only check for duplicates if there are already requests for this assignment
+                existing_any = db.query(InterviewPanelRequest).filter(
+                    InterviewPanelRequest.assignment_id == hr_assignment.id
+                ).first()
+                if existing_any:
+                    existing_request = db.query(InterviewPanelRequest).filter(
+                        InterviewPanelRequest.assignment_id == hr_assignment.id,
+                        InterviewPanelRequest.company_user_id == interviewer.id,
+                        InterviewPanelRequest.status == RequestStatus.PENDING
+                    ).first()
+                    if existing_request:
+                        continue  # Skip duplicate
                 notification = InterviewPanelService._create_notification(
                     db, interviewer, criteria.job_post_id, "HR_DEPARTMENT"
                 )
@@ -189,12 +213,20 @@ class InterviewPanelService:
         if not job_post:
             return None
         
-        # Changed message and type as per user request
-        message = f"[채용팀 추가] {job_post.title} 공고의 채용팀에 편성되었습니다"
+        # Custom message and type based on assignment_type
+        if assignment_type == "SAME_DEPARTMENT":
+            message = f"[면접관 요청] {job_post.title} 공고의 면접관으로 선정되었습니다. (같은부서)"
+            notif_type = "INTERVIEW_PANEL_REQUEST"
+        elif assignment_type == "HR_DEPARTMENT":
+            message = f"[면접관 요청] {job_post.title} 공고의 면접관으로 선정되었습니다. (인사팀)"
+            notif_type = "INTERVIEW_PANEL_REQUEST"
+        else:
+            message = f"[채용팀 추가] {job_post.title} 공고의 채용팀에 편성되었습니다"
+            notif_type = "NOTIFICATION"
         notification = Notification(
             message=message,
             user_id=interviewer.id,
-            type="NOTIFICATION",
+            type=notif_type,
             is_read=False
         )
         db.add(notification)

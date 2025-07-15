@@ -48,8 +48,11 @@ class NotificationService:
                 continue
                 
             # Create notification message
-            action = "수정된" if is_update else "새로 등록된"
-            message = f"[팀 편성 알림] {job_post.title} 공고에 {action} 팀원으로 추가되었습니다. (역할: {member['role']})"
+            if not is_update:
+                message = f"[팀 편성 알림] {job_post.title} 공고의 채용팀에 편성되었습니다"
+            else:
+                action = "수정된"
+                message = f"[팀 편성 알림] {job_post.title} 공고에 {action} 팀원으로 추가되었습니다. (역할: {member['role']})"
             url = f"http://localhost:5173/viewpost/{job_post.id}"
 
             try:

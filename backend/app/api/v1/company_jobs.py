@@ -674,12 +674,18 @@ def update_company_job_post(
         db.commit()
         
         # 면접관 자동 배정 (업데이트 시)
+        # 부서가 변경된 경우에만 실행
+        department_changed = False
+        prev_department_id = db_job_post.department_id
+        new_department_id = department_id
+        if prev_department_id != new_department_id:
+            department_changed = True
+
         try:
             from app.services.interview_panel_service import InterviewPanelService
             from app.schemas.interview_panel import InterviewerSelectionCriteria
-            
             # 새로운 면접관 배정 (기존 배정은 유지, 중복 체크는 서비스에서 처리)
-            if interview_schedules:
+            if interview_schedules and department_changed:
                 for schedule_data in interview_schedules:
                     # 해당 schedule 찾기
                     if isinstance(schedule_data, dict):
