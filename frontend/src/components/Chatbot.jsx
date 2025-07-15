@@ -91,6 +91,32 @@ const chatbotApi = axios.create({
   timeout: 10000,
 });
 
+// 챗봇 API에 토큰 인터셉터 추가
+chatbotApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// 챗봇 API 응답 인터셉터 (자동 로그아웃 방지)
+chatbotApi.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('챗봇 API 에러:', error.response?.data || error.message);
+    
+    // 챗봇 API에서는 자동 로그아웃하지 않음
+    if (error.response?.status === 401) {
+      console.log('챗봇 API 토큰 만료 - 자동 로그아웃 방지');
+      // 토스트 메시지만 표시하고 로그아웃하지 않음
+      return Promise.reject(new Error('챗봇 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'));
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 const Chatbot = () => {
   console.log('Chatbot component rendering');
   // 모든 훅을 최상단에 배치 (순서 중요!)
@@ -523,10 +549,12 @@ const Chatbot = () => {
   // AI 기반 필드 개선 함수
   const improveFieldWithAI = async (fieldName, currentContent, userRequest) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8001/ai/field-improve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
           field_name: fieldName,
@@ -608,10 +636,12 @@ const Chatbot = () => {
     
     // 백엔드의 LLM 기반 라우팅을 사용하기 위해 API 호출
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8001/ai/route', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
           message: message,
@@ -1069,14 +1099,28 @@ const Chatbot = () => {
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('챗봇 응답 오류:', error);
-      const errorMessage = {
+      
+      // 챗봇 API 관련 오류 처리
+      let errorMessage = '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      
+      if (error.message.includes('챗봇 서비스에 연결할 수 없습니다')) {
+        errorMessage = '🤖 챗봇 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+      } else if (error.response?.status === 401) {
+        errorMessage = '🔐 인증이 만료되었습니다. 페이지를 새로고침하고 다시 시도해주세요.';
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = '🔌 챗봇 서버에 연결할 수 없습니다. 서버가 실행 중인지 확인해주세요.';
+      } else if (error.code === 'ETIMEDOUT') {
+        errorMessage = '⏰ 요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+      }
+      
+      const errorBotMessage = {
         id: messages.length + 2,
-        text: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        text: errorMessage,
         sender: 'bot',
         timestamp: new Date(),
         isError: true,
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorBotMessage]);
     } finally {
       setIsTyping(false);
     }

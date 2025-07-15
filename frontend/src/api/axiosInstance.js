@@ -32,12 +32,23 @@ instance.interceptors.response.use(
       'access-control-allow-headers': error.response?.headers?.['access-control-allow-headers']
     });
     
-    // 토큰 만료 시 자동 로그아웃
+    // 토큰 만료 시 자동 로그아웃 (챗봇 관련 요청 제외)
     if (error.response?.status === 401) {
-      console.log('토큰이 만료되었습니다. 자동 로그아웃 처리');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const requestUrl = error.config?.url || '';
+      
+      // 챗봇 관련 요청인지 확인
+      const isChatbotRequest = requestUrl.includes('localhost:8001') || 
+                              requestUrl.includes('/ai/') ||
+                              requestUrl.includes('/chat/');
+      
+      if (!isChatbotRequest) {
+        console.log('토큰이 만료되었습니다. 자동 로그아웃 처리');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      } else {
+        console.log('챗봇 관련 요청에서 401 에러 발생 - 자동 로그아웃 방지');
+      }
     }
     
     return Promise.reject(error);

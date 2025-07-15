@@ -111,10 +111,12 @@ export const FormProvider = ({ children }) => {
       const currentFormData = formData;
       
       // 실제 AI 서버 호출
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8001/ai/form-fill', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
           description: description,
@@ -284,10 +286,12 @@ export const FormProvider = ({ children }) => {
       const currentFormData = formData;
       
       // 실제 AI 서버 호출
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8001/ai/form-improve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         body: JSON.stringify({
           current_form_data: currentFormData
