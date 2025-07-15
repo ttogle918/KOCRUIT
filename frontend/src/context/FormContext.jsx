@@ -10,6 +10,19 @@ export const useFormContext = () => {
   return context;
 };
 
+// Headcount sanitizer
+function sanitizeHeadcount(value) {
+  if (typeof value === 'string') {
+    // Remove all non-digit characters (e.g., "명")
+    const num = value.replace(/[^\d]/g, '');
+    return num ? parseInt(num, 10) : '';
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  return '';
+}
+
 export const FormProvider = ({ children }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -34,9 +47,14 @@ export const FormProvider = ({ children }) => {
 
   // 폼 데이터 업데이트 함수
   const updateFormData = useCallback((newData) => {
+    // Sanitize headcount if present
+    const sanitizedData = { ...newData };
+    if ('headcount' in sanitizedData) {
+      sanitizedData.headcount = sanitizeHeadcount(sanitizedData.headcount);
+    }
     setFormData(prev => ({
       ...prev,
-      ...newData
+      ...sanitizedData
     }));
   }, []);
 
@@ -145,7 +163,9 @@ export const FormProvider = ({ children }) => {
           ...aiGeneratedData,
           // 날짜 필드들을 Date 객체로 변환
           start_date: aiGeneratedData.start_date ? parseDateString(aiGeneratedData.start_date) : currentFormData.start_date,
-          end_date: aiGeneratedData.end_date ? parseDateString(aiGeneratedData.end_date) : currentFormData.end_date
+          end_date: aiGeneratedData.end_date ? parseDateString(aiGeneratedData.end_date) : currentFormData.end_date,
+          // Sanitize headcount
+          headcount: sanitizeHeadcount(aiGeneratedData.headcount)
         };
         
         setFormData(updatedFormData);
