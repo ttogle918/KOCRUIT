@@ -157,6 +157,8 @@ const Chatbot = () => {
   const [resizeDirection, setResizeDirection] = useState('');
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const [sessionId, setSessionId] = useState(null);
+  const [suggestedReplies, setSuggestedReplies] = useState([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   
   // useRef 훅들
   const messagesEndRef = useRef(null);
@@ -1176,6 +1178,42 @@ const Chatbot = () => {
     setResizeDirection('');
   };
 
+  // 예시 질문(빠른 응답) LLM API 호출
+  const fetchSuggestedReplies = async () => {
+    setIsLoadingSuggestions(true);
+    try {
+      const response = await fetch('http://localhost:8001/chat/suggest-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recent_messages: messages.slice(-6), // 최근 6개만
+          page_context: getPageContext(),
+          form_data: formData
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestedReplies(Array.isArray(data.suggestions) ? data.suggestions : []);
+      } else {
+        setSuggestedReplies([]);
+      }
+    } catch (e) {
+      setSuggestedReplies([]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  // 대화/페이지/폼 상태가 바뀔 때마다 예시 질문 요청
+  useEffect(() => {
+    if (sessionId && !isTyping && messages.length > 1) {
+      fetchSuggestedReplies();
+    }
+    // eslint-disable-next-line
+  }, [sessionId, isTyping, location.pathname, formData, messages.length]);
+
   return (
     <Box 
       position="fixed" 
@@ -1339,23 +1377,44 @@ const Chatbot = () => {
                 </Box>
               )}
 
-              {/* 빠른 응답 버튼들 */}
-              {messages.length === 1 && !isTyping && sessionId && (
-                <HStack spacing={2} flexWrap="wrap" justify="flex-start" w="100%">
-                  {(isFormActive ? formQuickReplies : quickReplies).map((reply, index) => (
-                    <Badge
-                      key={index}
-                      colorScheme="blue"
-                      variant="outline"
-                      cursor="pointer"
-                      _hover={{ bg: 'blue.50' }}
-                      onClick={() => handleQuickReply(reply)}
-                      p={2}
-                      borderRadius="full"
-                    >
-                      {reply}
-                    </Badge>
-                  ))}
+              {/* 빠른 응답(예시 질문) 버튼: 대화 중에도 계속 노출 */}
+              {!isTyping && sessionId && (
+                <HStack spacing={2} flexWrap="wrap" justify="flex-start" w="100%" mt={2}>
+                  {messages.length === 1 ? (
+                    (isFormActive ? formQuickReplies : quickReplies).map((reply, index) => (
+                      <Badge
+                        key={index}
+                        colorScheme="blue"
+                        variant="outline"
+                        cursor="pointer"
+                        _hover={{ bg: 'blue.50' }}
+                        onClick={() => handleQuickReply(reply)}
+                        p={2}
+                        borderRadius="full"
+                      >
+                        {reply}
+                      </Badge>
+                    ))
+                  ) : isLoadingSuggestions ? (
+                    <Text fontSize="sm" color="gray.400">예시 질문 생성 중...</Text>
+                  ) : suggestedReplies.length > 0 ? (
+                    suggestedReplies.map((reply, index) => (
+                      <Badge
+                        key={index}
+                        colorScheme="blue"
+                        variant="outline"
+                        cursor="pointer"
+                        _hover={{ bg: 'blue.50' }}
+                        onClick={() => handleQuickReply(reply)}
+                        p={2}
+                        borderRadius="full"
+                      >
+                        {reply}
+                      </Badge>
+                    ))
+                  ) : (
+                    <Text fontSize="sm" color="gray.400">추천 예시 질문이 없습니다.</Text>
+                  )}
                 </HStack>
               )}
 

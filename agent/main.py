@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 import uuid
 import os
 from fastapi import HTTPException
+from langchain_openai import ChatOpenAI
+import json
 
 load_dotenv()
 
@@ -510,6 +512,8 @@ async def ai_route(request: Request):
     current_form_data = data.get("current_form_data", {})
     user_intent = data.get("user_intent", "")
     
+    print(f"🔄 /ai/route 호출: message={message}")
+    
     if not message:
         return {"error": "message is required"}
     
@@ -519,7 +523,8 @@ async def ai_route(request: Request):
             "message": message,
             "user_intent": user_intent,
             "current_form_data": current_form_data,
-            "description": message  # form_fill_tool이 description 필드를 사용하므로 추가
+            "description": message,  # form_fill_tool이 description 필드를 사용하므로 추가
+            "page_context": data.get("page_context", {})
         }
         
         # 그래프가 초기화되지 않은 경우
@@ -527,9 +532,17 @@ async def ai_route(request: Request):
             return {"error": "Graph agent not initialized"}
         
         result = graph_agent.invoke(state)
+        print(f"🎯 라우팅 결과: {result}")
         
         # 결과에서 적절한 응답 추출
-        if "form_data" in result:
+        if "info" in result:
+            print(f"📋 info_tool 결과 감지: {result['info']}")
+            return {
+                "success": True,
+                "response": result["info"],
+                "tool_used": "info_tool"
+            }
+        elif "form_data" in result:
             return {
                 "success": True,
                 "response": result.get("message", "폼이 채워졌습니다."),
@@ -557,6 +570,7 @@ async def ai_route(request: Request):
         else:
             # message가 있으면 그것을 사용, 없으면 기본 메시지
             response_message = result.get("message", "요청을 처리했습니다.")
+            print(f"📝 기본 응답: {response_message}")
             return {
                 "success": True,
                 "response": response_message,
@@ -565,7 +579,60 @@ async def ai_route(request: Request):
             }
             
     except Exception as e:
+        print(f"❌ /ai/route 오류: {e}")
         return {"success": False, "error": str(e)}
+
+@app.post("/chat/suggest-questions")
+async def suggest_questions(request: Request):
+    """LLM을 활용한 예시 질문(빠른 응답) 생성 API"""
+    data = await request.json()
+    recent_messages = data.get("recent_messages", [])  # [{sender, text, timestamp} ...]
+    page_context = data.get("page_context", {})
+    form_data = data.get("form_data", {})
+
+    # 최근 메시지 텍스트만 추출
+    last_user_message = ""
+    for msg in reversed(recent_messages):
+        if msg.get("sender") == "user":
+            last_user_message = msg.get("text", "")
+            break
+
+    # 프롬프트 설계
+    prompt = f"""
+    아래는 채용/HR 챗봇의 대화 맥락과 페이지 정보, 폼 상태입니다.
+    이 맥락에서 사용자가 다음에 할 수 있는 유용한 예시 질문(빠른 응답 버튼용)을 4개 추천해 주세요.
+    - 너무 단순하거나 반복적이지 않게, 실제로 도움이 될 만한 질문이어야 합니다.
+    - 예시 질문은 한글로, 짧고 명확하게 작성하세요.
+    - 반드시 배열(JSON)로만 응답하세요.
+
+    [최근 사용자 메시지]
+    {last_user_message}
+
+    [페이지 정보]
+    {page_context}
+
+    [폼 상태]
+    {form_data}
+
+    예시 응답:
+    ["지원자 목록 보여줘", "경력 우대 조건 추가", "면접 일정 추천해줘", "폼 개선 제안"]
+    """
+    
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.5)
+    try:
+        response = llm.invoke(prompt)
+        text = response.content.strip()
+        # JSON 배열만 추출
+        if "[" in text:
+            start = text.find("[")
+            end = text.find("]", start)
+            arr = text[start:end+1]
+            suggestions = json.loads(arr)
+        else:
+            suggestions = [text]
+        return {"suggestions": suggestions}
+    except Exception as e:
+        return {"suggestions": ["지원자 목록 보여줘", "폼 개선 제안", "면접 일정 추천해줘", "채용공고 작성 방법"]}
 
 if __name__ == "__main__":
     import uvicorn

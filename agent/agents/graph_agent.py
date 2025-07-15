@@ -6,6 +6,7 @@ from tools.portfolio_tool import portfolio_tool
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_field_tool import form_field_update_tool, form_status_check_tool
 import json
+import re
 
 def analyze_complex_command(message):
     """복합 명령을 분석하여 필요한 작업들을 추출"""
@@ -70,6 +71,45 @@ def analyze_complex_command(message):
         print(f"복합 명령 분석 중 오류: {e}")
         return None
 
+def info_tool(state):
+    """정보성 안내/설명/FAQ 응답 도구"""
+    message = state.get("message", "")
+    page_context = state.get("page_context", {})
+    
+    print(f"🔍 info_tool 호출됨: message={message}")
+    
+    # LLM 프롬프트: 설명/가이드/FAQ만 반환, 행동 X
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+    prompt = f"""
+    사용자의 질문에 대해 실제 행동(폼 작성, 수정 등) 없이, 정보성 안내/설명/가이드/FAQ만 제공하세요.
+    - 예시: '공고 작성 방법 알려줘', '지원자 관리란?', '면접 일정 등록 방법 설명해줘' 등
+    - 절대 폼을 생성하거나 데이터를 변경하지 마세요.
+    - 한글로, 친절하고 명확하게 안내하세요.
+    - 1~2문단 이내로 간결하게 답변하세요.
+    
+    [질문]
+    {message}
+    [페이지 정보]
+    {page_context}
+    """
+    
+    try:
+        response = llm.invoke(prompt)
+        info_content = response.content.strip()
+        print(f"📝 info_tool 응답: {info_content}")
+        
+        return {
+            "info": info_content,
+            "message": info_content  # message 키도 추가하여 호환성 확보
+        }
+    except Exception as e:
+        print(f"❌ info_tool 오류: {e}")
+        error_msg = "죄송합니다. 안내 정보를 불러오지 못했습니다."
+        return {
+            "info": error_msg,
+            "message": error_msg
+        }
+
 def router(state):
     """라우터: LLM을 사용하여 사용자 의도를 분석하고 적절한 도구로 분기"""
     # state가 문자열인 경우 처리
@@ -94,6 +134,22 @@ def router(state):
             "complex_analysis": complex_analysis
         }
     
+    # 정보성 안내/설명/FAQ/기능 안내 패턴 우선 분기
+    info_patterns = [
+        "할 수 있나요", "할 수 있어", "가능해", "가능한가요", "방법", "어떻게 해", "어떻게 하면", "어떻게 변경", "어떻게 조정", "어떻게 수정", "어떻게 추가", "어떻게 삭제", "어떻게 바꿔", "어떻게 설정"
+    ]
+    # 명확한 값 지정 패턴 (예: '정규직으로 변경해줘', '3명으로 바꿔줘')
+    value_change_patterns = [
+        r"(을|를)?\s*([\w가-힣]+)\s*(으로|로)\s*(변경|바꿔|수정|설정)",
+        r"(을|를)?\s*([\w가-힣]+)\s*로\s*조정"
+    ]
+    is_info_pattern = any(p in message for p in info_patterns)
+    is_value_change = any(re.search(p, message) for p in value_change_patterns)
+    print(f"🔍 패턴 분석: info_pattern={is_info_pattern}, value_change={is_value_change}")
+    if is_info_pattern and not is_value_change:
+        print(f"✅ 기능 안내/설명 패턴 감지: {message}")
+        return {"next": "info_tool", **state}
+    
     # LLM을 사용한 의도 분석
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
     
@@ -111,6 +167,7 @@ def router(state):
     5. job_posting_tool - 채용공고 관련 조언이나 추천
     6. company_question_generator - 회사 관련 면접 질문 생성
     7. project_question_generator - 프로젝트 기반 면접 질문 생성
+    8. info_tool - 정보성 안내/설명/FAQ 요청 (실제 행동 없이 설명만)
     
     분석 기준:
     - 폼 채우기/생성: "작성", "채워줘", "생성", "만들어줘", "공고 작성" 등의 키워드
@@ -119,11 +176,14 @@ def router(state):
     - 필드 수정: "변경", "수정", "바꿔줘", "고쳐줘", "~로 바꿔달라", "~로 변경" + 특정 필드명
     - 면접 질문: "면접", "질문", "인터뷰" 등의 키워드
     - 채용공고: "채용", "공고", "job" 등의 키워드
+    - 정보성 안내: "방법", "설명", "알려줘", "어떻게", "란?", "무엇인가" 등 (실제 행동 없이)
     
-    중요: 필드 수정 요청의 경우, 사용자가 특정 필드명(제목, 부서, 부서명, 지원자격 등)과 새로운 값을 명시한 경우에만 form_field_update_tool을 선택하세요.
+    중요: 
+    - 정보성 안내 요청의 경우 info_tool을 선택하세요 (실제 폼 작성/수정 없이 설명만)
+    - 필드 수정 요청의 경우, 사용자가 특정 필드명(제목, 부서, 부서명, 지원자격 등)과 새로운 값을 명시한 경우에만 form_field_update_tool을 선택하세요.
     
     응답은 정확히 다음 중 하나만 반환하세요:
-    form_fill_tool, form_improve_tool, form_status_check_tool, form_field_update_tool, job_posting_tool, company_question_generator, project_question_generator
+    form_fill_tool, form_improve_tool, form_status_check_tool, form_field_update_tool, job_posting_tool, company_question_generator, project_question_generator, info_tool
     """
     
     try:
@@ -171,7 +231,7 @@ def router(state):
         valid_tools = [
             "form_fill_tool", "form_improve_tool", "form_status_check_tool", 
             "form_field_update_tool", "job_posting_tool", "company_question_generator", 
-            "project_question_generator"
+            "project_question_generator", "info_tool"
         ]
         
         if tool_choice in valid_tools:
@@ -286,6 +346,7 @@ def build_graph():
     graph.add_node("form_improve_tool", form_improve_tool)
     graph.add_node("form_status_check_tool", form_status_check_tool)
     graph.add_node("form_field_update_tool", form_field_update_tool)
+    graph.add_node("info_tool", info_tool)
 
     # 라우터를 entry point로 설정
     graph.set_entry_point("router")
@@ -301,7 +362,8 @@ def build_graph():
             "form_fill_tool": "form_fill_tool",
             "form_improve_tool": "form_improve_tool",
             "form_status_check_tool": "form_status_check_tool",
-            "form_field_update_tool": "form_field_update_tool"
+            "form_field_update_tool": "form_field_update_tool",
+            "info_tool": "info_tool"
         }
     )
     
@@ -313,6 +375,7 @@ def build_graph():
     graph.add_edge("form_improve_tool", END)
     graph.add_edge("form_status_check_tool", END)
     graph.add_edge("form_field_update_tool", END)
+    graph.add_edge("info_tool", END)
     
     return graph.compile()
 
