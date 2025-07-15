@@ -29,6 +29,17 @@ const useAutoResize = (value) => {
   return textareaRef;
 };
 
+// Helper function to validate and convert dates for DatePicker
+const validateDate = (date) => {
+  if (!date) return null;
+  if (date instanceof Date && !isNaN(date.getTime())) return date;
+  if (typeof date === 'string') {
+    const parsedDate = new Date(date);
+    return !isNaN(parsedDate.getTime()) ? parsedDate : null;
+  }
+  return null;
+};
+
 function EditPost() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -208,7 +219,14 @@ function EditPost() {
   // 입력 검증 함수
   const isFieldEmpty = (value) => value === null || value === undefined || value === '';
   const isTeamValid = teamMembers.length > 0 && teamMembers.every(m => m.email && m.role);
-  const isScheduleValid = schedules.length > 0 && schedules.every(s => s.date && s.time && s.place);
+  const isScheduleValid = schedules.length > 0 && schedules.every(s => {
+    // Check if date is valid (either Date object or valid date string)
+    const isValidDate = s.date && (
+      s.date instanceof Date || 
+      (typeof s.date === 'string' && !isNaN(new Date(s.date).getTime()))
+    );
+    return isValidDate && s.time && s.place;
+  });
   const isWeightsValid = weights.length >= 5 && weights.every(w => w.item && w.score !== '');
   const isRecruitInfoValid = [formData.title, formData.department, formData.qualifications, formData.conditions, formData.job_details, formData.procedures, formData.headcount, formData.start_date, formData.end_date, formData.location, formData.employment_type].every(v => !isFieldEmpty(v));
   const isReady = isRecruitInfoValid && isTeamValid && isScheduleValid && isWeightsValid;
@@ -302,32 +320,43 @@ function EditPost() {
       // 날짜 형식 변환 - 시간대 정보 제거
       const formatDate = (date) => {
         if (!date) return null;
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
+        // Ensure date is a valid Date object
+        const validDate = validateDate(date);
+        if (!validDate) return null;
+        
+        const year = validDate.getFullYear();
+        const month = String(validDate.getMonth() + 1).padStart(2, '0');
+        const day = String(validDate.getDate()).padStart(2, '0');
+        const hours = String(validDate.getHours()).padStart(2, '0');
+        const minutes = String(validDate.getMinutes()).padStart(2, '0');
         return `${year}-${month}-${day} ${hours}:${minutes}`;
       };
 
       // 면접 일정 데이터 변환
       const interviewSchedules = schedules
         .filter(schedule => schedule.date && schedule.time && schedule.place)
-        .map(schedule => ({
-          interview_date: schedule.date.toISOString().split('T')[0],  // YYYY-MM-DD
-          interview_time: schedule.time,  // HH:MM
-          location: schedule.place,
-          interview_type: "ONSITE",
-          max_participants: 1,
-          notes: null
-        }));
+        .map(schedule => {
+          // Ensure date is a valid Date object
+          const date = validateDate(schedule.date);
+          if (!date) return null;
+          
+          return {
+            interview_date: date.toISOString().split('T')[0],  // YYYY-MM-DD
+            interview_time: schedule.time,  // HH:MM
+            location: schedule.place,
+            interview_type: "ONSITE",
+            max_participants: 1,
+            notes: null
+          };
+        })
+        .filter(Boolean); // Remove null entries
 
       const formattedData = {
         ...formData,
         headcount: formData.headcount ? parseInt(formData.headcount) : null,
         start_date: formatDate(formData.start_date),
         end_date: formatDate(formData.end_date),
-        deadline: formData.deadline ? formData.deadline.toISOString().split('T')[0] : null,
+        deadline: formData.deadline ? validateDate(formData.deadline)?.toISOString().split('T')[0] : null,
         teamMembers: teamMembers.filter(member => member.email && member.role),  // 빈 항목 제거
         weights: weights.filter(weight => weight.item && weight.score).map(weight => ({
           ...weight,
@@ -403,7 +432,11 @@ function EditPost() {
       const placeElement = document.getElementById(`schedule-${idx + 1}-place`);
       
       if (dateElement) {
-        dateElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 날짜 선택${schedule.date ? `: ${schedule.date.toLocaleDateString()}` : ''}`);
+        const dateLabel = schedule.date ? 
+          (schedule.date instanceof Date ? schedule.date.toLocaleDateString() : 
+           typeof schedule.date === 'string' ? new Date(schedule.date).toLocaleDateString() : 
+           '날짜 형식 오류') : '';
+        dateElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 날짜 선택${dateLabel ? `: ${dateLabel}` : ''}`);
       }
       if (timeElement) {
         timeElement.setAttribute('aria-label', `면접 일정 ${idx + 1} 시간 선택${schedule.time ? `: ${schedule.time}` : ''}`);
@@ -596,11 +629,11 @@ function EditPost() {
                     <label className="text-sm text-gray-700 dark:text-white">모집기간:</label>
                     <div className="flex flex-col md:flex-row items-center gap-1 w-full">
                       <DatePicker 
-                        selected={formData.start_date}
+                        selected={validateDate(formData.start_date)}
                         onChange={(date) => handleInputChange({ target: { value: date } }, 'start_date')} 
                         selectsStart 
-                        startDate={formData.start_date} 
-                        endDate={formData.end_date} 
+                        startDate={validateDate(formData.start_date)} 
+                        endDate={validateDate(formData.end_date)} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
                         className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.start_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
@@ -610,12 +643,12 @@ function EditPost() {
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300 px-1">~</span>
                       <DatePicker 
-                        selected={formData.end_date} 
+                        selected={validateDate(formData.end_date)} 
                         onChange={(date) => handleInputChange({ target: { value: date } }, 'end_date')} 
                         selectsEnd 
-                        startDate={formData.start_date} 
-                        endDate={formData.end_date} 
-                        minDate={formData.start_date} 
+                        startDate={validateDate(formData.start_date)} 
+                        endDate={validateDate(formData.end_date)} 
+                        minDate={validateDate(formData.start_date)} 
                         dateFormat="yyyy/MM/dd HH:mm" 
                         showTimeSelect
                         className={`w-full md:w-36 min-w-0 border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm transition-colors ${showError && !formData.end_date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`}
@@ -710,7 +743,7 @@ function EditPost() {
                         <div className="space-y-1">
                           <label className="text-xs text-gray-600 dark:text-gray-400" htmlFor={`schedule-${idx + 1}-date`}>날짜</label>
                           <DatePicker 
-                            selected={sch.date} 
+                            selected={validateDate(sch.date)} 
                             onChange={date => setSchedules(prev => prev.map((s, i) => i === idx ? { ...s, date } : s))} 
                             dateFormat="yyyy/MM/dd" 
                             className={`w-full border px-2 py-1 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm ${showError && !sch.date ? 'border-red-500' : 'border-gray-400 dark:border-gray-600'}`} 
@@ -718,7 +751,10 @@ function EditPost() {
                             calendarClassName="bg-white text-gray-900 dark:bg-gray-800 dark:text-white" 
                             popperClassName="dark:bg-gray-800 dark:text-white border-0 shadow-lg"
                             id={`schedule-${idx + 1}-date`}
-                            aria-label={`면접 일정 ${idx + 1} 날짜 선택${sch.date ? `: ${sch.date.toLocaleDateString()}` : ''}`}
+                            aria-label={`면접 일정 ${idx + 1} 날짜 선택${sch.date ? 
+                              (sch.date instanceof Date ? `: ${sch.date.toLocaleDateString()}` : 
+                               typeof sch.date === 'string' ? `: ${new Date(sch.date).toLocaleDateString()}` : 
+                               ': 날짜 형식 오류') : ''}`}
                           />
                         </div>
                         
@@ -764,7 +800,13 @@ function EditPost() {
                       최소 하나의 면접 일정을 추가해 주세요.
                     </div>
                   )}
-                  {showError && schedules.length > 0 && schedules.some(s => !s.date || !s.time || !s.place) && (
+                  {showError && schedules.length > 0 && schedules.some(s => {
+                    const isValidDate = s.date && (
+                      s.date instanceof Date || 
+                      (typeof s.date === 'string' && !isNaN(new Date(s.date).getTime()))
+                    );
+                    return !isValidDate || !s.time || !s.place;
+                  }) && (
                     <div className="text-red-500 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded" role="alert">
                       모든 면접 일정의 날짜, 시간, 장소를 입력하세요.
                     </div>
