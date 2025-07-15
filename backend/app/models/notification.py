@@ -13,6 +13,7 @@ class Notification(Base):
     type = Column(String(255))
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    url = Column(String(255), nullable=True)
     
     # Relationships
     user = relationship("User") 

@@ -50,29 +50,38 @@ class NotificationService:
             # Create notification message
             action = "수정된" if is_update else "새로 등록된"
             message = f"[팀 편성 알림] {job_post.title} 공고에 {action} 팀원으로 추가되었습니다. (역할: {member['role']})"
-            
-            # Check if notification already exists for this user and job post
-            existing_notification = db.query(Notification).filter(
-                Notification.user_id == company_user.id,
-                Notification.type == "TEAM_MEMBER_ADDED",
-                Notification.message.like(f"%{job_post.title}%")
-            ).first()
-            
-            if existing_notification:
-                # Update existing notification
-                existing_notification.message = message
-                existing_notification.is_read = False
-                notifications.append(existing_notification)
-            else:
-                # Create new notification
-                notification = Notification(
-                    message=message,
-                    user_id=company_user.id,
-                    type="TEAM_MEMBER_ADDED",
-                    is_read=False
-                )
-                db.add(notification)
-                notifications.append(notification)
+            url = f"http://localhost:5173/viewpost/{job_post.id}"
+
+            try:
+                # Check if notification already exists for this user and job post
+                existing_notification = db.query(Notification).filter(
+                    Notification.user_id == company_user.id,
+                    Notification.type == "TEAM_MEMBER_ADDED",
+                    Notification.message.like(f"%{job_post.title}%")
+                ).first()
+
+                if existing_notification:
+                    # Update existing notification
+                    existing_notification.message = message
+                    existing_notification.is_read = False
+                    existing_notification.url = url
+                    notifications.append(existing_notification)
+                else:
+                    # Create new notification
+                    notification = Notification(
+                        message=message,
+                        user_id=company_user.id,
+                        type="TEAM_MEMBER_ADDED",
+                        is_read=False,
+                        url=url
+                    )
+                    db.add(notification)
+                    notifications.append(notification)
+            except Exception as e:
+                import traceback
+                print(f"[알림 생성 오류] {company_user.email}: {str(e)}")
+                traceback.print_exc()
+                continue
         
         db.commit()
         return notifications

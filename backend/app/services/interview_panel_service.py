@@ -189,13 +189,12 @@ class InterviewPanelService:
         if not job_post:
             return None
         
-        dept_type = "같은 부서" if assignment_type == "SAME_DEPARTMENT" else "인사팀"
-        message = f"[면접관 요청] {job_post.title} 공고의 면접관으로 선정되었습니다. ({dept_type})"
-        
+        # Changed message and type as per user request
+        message = f"[채용팀 추가] {job_post.title} 공고의 채용팀에 편성되었습니다"
         notification = Notification(
             message=message,
             user_id=interviewer.id,
-            type="INTERVIEW_PANEL_REQUEST",
+            type="NOTIFICATION",
             is_read=False
         )
         db.add(notification)
