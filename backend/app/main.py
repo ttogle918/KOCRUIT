@@ -114,6 +114,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# FastAPI 등록된 경로 목록 출력 (디버깅용)
+@app.on_event("startup")
+async def print_routes():
+    print("=== FastAPI 등록된 경로 목록 ===")
+    for route in app.routes:
+        print(route.path, route.methods)
+
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
@@ -132,8 +139,8 @@ app.add_middleware(
 )
 
 # API 라우터 등록
-app.include_router(api_router)
-
+#app.include_router(api_router)
+app.include_router(api_router, prefix="/api/v1")
 
 def run_auto_process():
     print("run_auto_process called") 

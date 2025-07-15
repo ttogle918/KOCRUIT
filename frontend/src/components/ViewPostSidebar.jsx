@@ -65,6 +65,17 @@ export default function ViewPostSidebar({ jobPost }) {
           <MdCheckCircle size={22} />
           {isHovered && <span className="ml-2">서류 합격자 명단</span>}
         </button>
+        {/* 필기 질문 생성 버튼 추가 */}
+        <button
+          className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-semibold
+            ${isHovered ? 'justify-start' : 'justify-center'}
+            bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 hover:bg-teal-200 dark:hover:bg-teal-800'
+          `}
+          onClick={() => navigate('/applicant/written-test-generator')}
+        >
+          <MdOutlinePlayCircle size={20} />
+          {isHovered && <span className="ml-2">필기 질문 생성</span>}
+        </button>
         <button
           className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-bold
             ${isHovered ? 'justify-start' : 'justify-center'}

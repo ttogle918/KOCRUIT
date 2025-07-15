@@ -133,10 +133,10 @@ export const AuthProvider = ({ children }) => {
     error,
     login,
     fastLogin,
-    logout,
-    hasRole,
-    hasAnyRole,
-    hasAllRoles
+    logout
+    // hasRole,
+    // hasAnyRole,
+    // hasAllRoles
   };
 
   return (

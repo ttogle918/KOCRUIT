@@ -25,6 +25,7 @@ import RejectedApplicants from "./pages/applicant/RejectedApplicants.jsx";
 import ManagerSchedule from './pages/schedule/ManagerSchedule.jsx';
 import MemberSchedule from './pages/schedule/MemberSchedule.jsx';
 import InterviewProgress from './pages/applicant/InterviewProgress';
+import WrittenTestGenerator from './pages/applicant/WrittenTestGenerator';
 
 // Context & Constants
 import { ThemeProvider } from "./context/ThemeContext";
@@ -152,6 +153,7 @@ function AppRoutes() {
                 <Route path="/memberschedule" element={<ProtectedRoute><MemberSchedule /></ProtectedRoute>} />
                 <Route path="/applicantlist/:jobPostId" element={<ProtectedRoute><ApplicantList /></ProtectedRoute>} />
                 <Route path="/interview-progress/:jobPostId" element={<ProtectedRoute><InterviewProgress /></ProtectedRoute>} />
+                <Route path="/applicant/written-test-generator" element={<ProtectedRoute><WrittenTestGenerator /></ProtectedRoute>} />
               
               </Routes>
               <Chatbot />
