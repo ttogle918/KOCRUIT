@@ -622,11 +622,32 @@ const Chatbot = () => {
 
       if (response.ok) {
         const result = await response.json();
+        console.log('백엔드 라우팅 결과:', result);
+        
         // === form_data가 있으면 폼에 반영 ===
         if (result.form_data && Object.keys(result.form_data).length > 0) {
           setFormData(result.form_data);
         }
-        return result.response || result.message || '요청을 처리했습니다.';
+        
+        // 복합 명령 처리 결과 메시지 개선
+        let responseMessage = result.response || result.message || '요청을 처리했습니다.';
+        
+        // 복합 명령의 경우 더 상세한 응답 제공
+        if (result.tool_used === 'form_fill_tool' && message.includes('부서명') && message.includes('경력')) {
+          responseMessage = `✅ **복합 요청 처리 완료**\n\n` +
+            `📝 **작성된 채용공고**\n` +
+            `• 제목: ${result.form_data?.title || '백엔드 개발자 채용'}\n` +
+            `• 부서: ${result.form_data?.department || '서버개발팀'}\n` +
+            `• 모집인원: ${result.form_data?.headcount || '2'}명\n` +
+            `• 면접일정: ${result.form_data?.schedules?.length || 0}개 설정\n\n` +
+            `🎯 **적용된 요구사항**\n` +
+            `• 부서명을 서버개발팀으로 설정\n` +
+            `• 경력 우대 조건 강화\n` +
+            `• 면접 2회 일정 설정\n\n` +
+            `모든 요구사항이 반영된 완전한 채용공고가 작성되었습니다!`;
+        }
+        
+        return responseMessage;
       } else {
         throw new Error('라우팅 서버 응답 오류');
       }

@@ -5,6 +5,70 @@ from agents.interview_question_node import generate_company_questions, generate_
 from tools.portfolio_tool import portfolio_tool
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_field_tool import form_field_update_tool, form_status_check_tool
+import json
+
+def analyze_complex_command(message):
+    """복합 명령을 분석하여 필요한 작업들을 추출"""
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+    
+    analysis_prompt = f"""
+    사용자의 메시지를 분석하여 필요한 작업들을 추출해주세요.
+    
+    사용자 메시지: {message}
+    
+    분석해야 할 작업들:
+    1. 폼 생성/작성 요청 (예: "백엔드 개발자 2명 뽑는 공고를 작성해줘")
+    2. 특정 필드 설정 요청 (예: "부서명은 서버개발팀", "경력을 중요시했으면 좋겠어")
+    3. 면접 일정 설정 요청 (예: "면접은 두개 정도로 잡으면 될거 같아")
+    4. 기타 요구사항
+    
+    응답 형식 (JSON):
+    {{
+        "primary_action": "form_fill_tool 또는 form_improve_tool 또는 form_status_check_tool",
+        "field_updates": [
+            {{
+                "field": "필드명 (title, department, qualifications, conditions, job_details, procedures, headcount, location, employment_type)",
+                "value": "설정할 값",
+                "reason": "설정 이유"
+            }}
+        ],
+        "schedule_requests": [
+            {{
+                "type": "면접 일정 요청 타입",
+                "count": "면접 횟수",
+                "details": "추가 세부사항"
+            }}
+        ],
+        "other_requirements": ["기타 요구사항들"],
+        "complexity_level": "simple 또는 complex"
+    }}
+    
+    중요:
+    - 복합 요청인 경우 primary_action은 form_fill_tool로 설정
+    - 단순 필드 수정인 경우 primary_action은 form_field_update_tool로 설정
+    - 여러 필드가 언급된 경우 field_updates 배열에 모두 포함
+    - 면접 관련 요청이 있으면 schedule_requests에 포함
+    """
+    
+    try:
+        response = llm.invoke(analysis_prompt)
+        response_text = response.content.strip()
+        
+        # JSON 부분만 추출
+        if "```json" in response_text:
+            start = response_text.find("```json") + 7
+            end = response_text.find("```", start)
+            response_text = response_text[start:end].strip()
+        elif "```" in response_text:
+            start = response_text.find("```") + 3
+            end = response_text.find("```", start)
+            response_text = response_text[start:end].strip()
+        
+        analysis = json.loads(response_text)
+        return analysis
+    except Exception as e:
+        print(f"복합 명령 분석 중 오류: {e}")
+        return None
 
 def router(state):
     """라우터: LLM을 사용하여 사용자 의도를 분석하고 적절한 도구로 분기"""
@@ -17,6 +81,18 @@ def router(state):
         user_intent = state.get("user_intent", "")
     
     print(f"라우터 호출: message={message}, user_intent={user_intent}")
+    
+    # 복합 명령 분석
+    complex_analysis = analyze_complex_command(message)
+    
+    if complex_analysis and complex_analysis.get("complexity_level") == "complex":
+        print(f"복합 명령 감지: {complex_analysis}")
+        # 복합 명령의 경우 form_fill_tool로 라우팅하고 분석 결과를 state에 포함
+        return {
+            "next": "form_fill_tool", 
+            **state,
+            "complex_analysis": complex_analysis
+        }
     
     # LLM을 사용한 의도 분석
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)

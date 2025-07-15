@@ -8,9 +8,11 @@ def form_fill_tool(state):
     """
     description = state.get("description", "")
     current_form_data = state.get("current_form_data", {})
+    complex_analysis = state.get("complex_analysis", None)
     
     print(f"form_fill_tool 호출됨: description={description}")
     print(f"current_form_data: {current_form_data}")
+    print(f"complex_analysis: {complex_analysis}")
     
     if not description:
         print("설명이 제공되지 않음")
@@ -32,12 +34,35 @@ def form_fill_tool(state):
     # 면접일: 종료일 + 3일
     interview_date = end_date + timedelta(days=3)
     
+    # 복합 분석 결과가 있으면 추가 요구사항을 프롬프트에 포함
+    additional_requirements = ""
+    if complex_analysis:
+        field_updates = complex_analysis.get("field_updates", [])
+        schedule_requests = complex_analysis.get("schedule_requests", [])
+        other_requirements = complex_analysis.get("other_requirements", [])
+        
+        if field_updates:
+            additional_requirements += "\n\n추가 필드 요구사항:\n"
+            for update in field_updates:
+                additional_requirements += f"- {update['field']}: {update['value']} (이유: {update['reason']})\n"
+        
+        if schedule_requests:
+            additional_requirements += "\n\n면접 일정 요구사항:\n"
+            for schedule in schedule_requests:
+                additional_requirements += f"- {schedule['type']}: {schedule['count']}회, {schedule['details']}\n"
+        
+        if other_requirements:
+            additional_requirements += "\n\n기타 요구사항:\n"
+            for req in other_requirements:
+                additional_requirements += f"- {req}\n"
+    
     prompt = f"""
     사용자의 설명을 바탕으로 채용공고 폼을 자동으로 작성해주세요.
     
     사용자 설명: {description}
     
     현재 폼 데이터: {json.dumps(current_form_data, ensure_ascii=False, indent=2)}
+    {additional_requirements}
     
     요구사항:
     1. 사용자 설명에서 직무, 인원, 지역 등을 추출
@@ -47,6 +72,7 @@ def form_fill_tool(state):
     5. 구체적이고 실용적인 내용으로 작성
     6. 가중치는 빈 배열로 설정 (별도로 설정하도록)
     7. 날짜는 반드시 미래 날짜로 설정 (현재 기준: {current_date.strftime('%Y-%m-%d')})
+    8. 추가 요구사항이 있으면 반드시 반영
     
     응답 형식 (JSON):
     {{
@@ -77,7 +103,10 @@ def form_fill_tool(state):
     - "UI/UX 디자이너" → Figma, Sketch 등 디자인 도구 포함
     - "마케팅 매니저" → 디지털 마케팅, SNS 마케팅 등 포함
     
-    중요: 모든 날짜는 반드시 {current_date.strftime('%Y-%m-%d')} 이후로 설정해야 합니다.
+    중요: 
+    - 모든 날짜는 반드시 {current_date.strftime('%Y-%m-%d')} 이후로 설정해야 합니다.
+    - 추가 요구사항이 있으면 반드시 반영하세요.
+    - 복합 요청의 경우 모든 요구사항을 통합하여 완전한 폼을 작성하세요.
     """
     
     try:
@@ -96,6 +125,32 @@ def form_fill_tool(state):
         
         # JSON 파싱
         form_data = json.loads(response_text)
+        
+        # 복합 분석 결과가 있으면 추가 필드 업데이트 적용
+        if complex_analysis:
+            field_updates = complex_analysis.get("field_updates", [])
+            for update in field_updates:
+                field = update.get("field", "")
+                value = update.get("value", "")
+                if field and value and field in form_data:
+                    # 필드명 매핑
+                    field_mapping = {
+                        "제목": "title",
+                        "부서": "department", 
+                        "부서명": "department",
+                        "지원자격": "qualifications",
+                        "근무조건": "conditions",
+                        "모집분야": "job_details",
+                        "전형절차": "procedures",
+                        "모집인원": "headcount",
+                        "근무지역": "location",
+                        "고용형태": "employment_type"
+                    }
+                    
+                    mapped_field = field_mapping.get(field, field)
+                    if mapped_field in form_data:
+                        form_data[mapped_field] = value
+                        print(f"복합 분석에 따라 필드 업데이트: {mapped_field} = {value}")
         
         # 날짜 형식 처리
         current_date = datetime.now()
@@ -151,10 +206,20 @@ def form_fill_tool(state):
                     except:
                         weight["score"] = 0.5
         
+        # 복합 분석 결과가 있으면 응답 메시지 개선
+        if complex_analysis:
+            message = "복합 요청을 분석하여 완전한 채용공고를 작성했습니다."
+            if complex_analysis.get("field_updates"):
+                message += "\n\n적용된 추가 요구사항:"
+                for update in complex_analysis["field_updates"]:
+                    message += f"\n- {update['field']}: {update['value']}"
+        else:
+            message = "AI가 폼을 자동으로 작성했습니다."
+        
         return {
             **state, 
             "form_data": form_data,
-            "message": "AI가 폼을 자동으로 작성했습니다."
+            "message": message
         }
         
     except Exception as e:
