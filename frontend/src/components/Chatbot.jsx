@@ -22,7 +22,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
-  useDisclosure
+  useDisclosure,
+  Textarea
 } from '@chakra-ui/react';
 import {
   ChatIcon,
@@ -163,6 +164,7 @@ const Chatbot = () => {
   // useRef 훅들
   const messagesEndRef = useRef(null);
   const chatRef = useRef(null);
+  const inputRef = useRef(null);
 
   // useColorModeValue 훅들
   const bgColor = useColorModeValue('white', 'gray.800');
@@ -1426,13 +1428,36 @@ const Chatbot = () => {
             {/* 입력 영역 */}
             <Box p={4} bg={bgColor}>
               <HStack spacing={2}>
-                <Input
+                <Textarea
+                  ref={inputRef}
                   value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onChange={(e) => {
+                    setInputMessage(e.target.value);
+                    // 높이 자동 조절
+                    if (inputRef.current) {
+                      inputRef.current.style.height = '36px'; // reset
+                      const newHeight = Math.min(inputRef.current.scrollHeight, 180);
+                      inputRef.current.style.height = newHeight + 'px';
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
                   placeholder={sessionId ? "메시지를 입력하세요..." : "연결 중..."}
                   disabled={isTyping || !sessionId}
                   size="sm"
+                  minH="36px"
+                  maxH="160px"
+                  resize="none"
+                  overflowY="auto"
+                  borderRadius="md"
+                  bg={bgColor}
+                  sx={{
+                    'textarea': { lineHeight: 1.5 }
+                  }}
                 />
                 <IconButton
                   colorScheme="blue"
