@@ -9,7 +9,6 @@ from app.models.application import Application
 from pydantic import BaseModel
 
 from app.api.v1.company_question_rag import generate_questions
-from app.main import app as fastapi_app
 # import redis.asyncio as aioredis
 # import hashlib
 # import json
