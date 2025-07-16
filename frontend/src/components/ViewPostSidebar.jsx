@@ -124,10 +124,10 @@ export default function ViewPostSidebar({ jobPost }) {
           className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm
             ${isHovered ? 'justify-start' : 'justify-center'}
             bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600`}
-          onClick={() => navigate('/memberschedule')}
+          onClick={() => navigate(`/interview-panel-management/${effectiveJobPostId}`)}
         >
           <CiCalendar size={22} />
-          {isHovered && <span className="ml-2">면접 응답</span>}
+          {isHovered && <span className="ml-2">면접관 편성</span>}
         </button>
         <button
           className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm
