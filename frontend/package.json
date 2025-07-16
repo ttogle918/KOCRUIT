@@ -28,7 +28,8 @@
     "recharts": "^2.9.0",
     "react-simple-maps": "^3.0.0",
     "d3-geo": "^3.1.0",
-    "react-window": "^1.8.7"
+    "react-window": "^1.8.7",
+    "@hello-pangea/dnd": "latest"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

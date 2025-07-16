@@ -51,21 +51,29 @@ export default function NotiBar({ onNotificationClick }) {
       if (!noti.is_read) {
         setMarkingAsRead(noti.id);
         await markNotificationAsRead(noti.id);
-        
-        // Update local state
         setNotifications(prev => 
           prev.map(n => 
             n.id === noti.id ? { ...n, is_read: true } : n
           )
         );
-        
-        // Notify parent component
         if (onNotificationClick) {
           onNotificationClick();
         }
       }
-      
-      // Navigate based on notification type
+
+      // --- PATCH: Use noti.url if present ---
+      if (noti.url) {
+        if (noti.url.startsWith('http')) {
+          window.location.href = noti.url;
+          return;
+        } else if (noti.url.startsWith('/')) {
+          navigate(noti.url);
+          return;
+        }
+      }
+      // --- END PATCH ---
+
+      // Navigate based on notification type (fallback)
       if (noti.type === 'RESUME_VIEWED' || noti.type === 'INTERVIEW_PANEL_REQUEST') {
         navigate('/memberschedule');
       } else {
@@ -74,6 +82,15 @@ export default function NotiBar({ onNotificationClick }) {
     } catch (error) {
       console.error('알림 읽음 처리 실패:', error);
       // Still navigate even if marking as read fails
+      if (noti.url) {
+        if (noti.url.startsWith('http')) {
+          window.location.href = noti.url;
+          return;
+        } else if (noti.url.startsWith('/')) {
+          navigate(noti.url);
+          return;
+        }
+      }
       if (noti.type === 'RESUME_VIEWED' || noti.type === 'INTERVIEW_PANEL_REQUEST') {
         navigate('/memberschedule');
       } else {

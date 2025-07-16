@@ -37,12 +37,12 @@ services:
     depends_on:
       - redis
     volumes:
-      - ./agent:/app
+      - ./agent:/app/agent
       - ./backend:/app/backend
       - ./.env:/app/.env
     networks:
       - app-net
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+    command: uvicorn agent.main:app --host 0.0.0.0 --port 8001 --reload
 
   frontend:
     image: node:18-alpine

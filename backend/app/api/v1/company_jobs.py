@@ -268,46 +268,53 @@ def create_company_job_post(
     team_members_data = job_post.teamMembers
     if team_members_data:
         for member in team_members_data:
-            if member.email and member.role:
-                # 이메일로 CompanyUser 찾기
+            # Support both dict and Pydantic object
+            if (hasattr(member, 'email') and hasattr(member, 'role')):
+                email = getattr(member, 'email', None)
+                role = getattr(member, 'role', None)
+            else:
+                email = member.get('email') if isinstance(member, dict) else None
+                role = member.get('role') if isinstance(member, dict) else None
+            if email and role:
                 company_user = db.query(CompanyUser).filter(
-                    CompanyUser.email == member.email,
+                    CompanyUser.email == email,
                     CompanyUser.company_id == current_user.company_id
                 ).first()
-                
                 if company_user:
-                    # 역할 매핑 (관리자 -> MANAGER, 멤버 -> MEMBER)
                     role_mapping = {
                         '관리자': 'MANAGER',
                         '멤버': 'MEMBER'
                     }
-                    mapped_role = role_mapping.get(member.role, 'MEMBER')
-                    
-                    # jobpost_role 생성
+                    mapped_role = role_mapping.get(role, 'MEMBER')
                     jobpost_role = JobPostRole(
-                        jobpost_id=db_job_post.id,  # 새로 생성된 job post의 ID 사용
+                        jobpost_id=db_job_post.id,
                         company_user_id=company_user.id,
                         role=mapped_role
                     )
                     db.add(jobpost_role)
-        
         db.commit()
-        
-        # 팀 멤버에게 알림 발송
+        # 팀 멤버에게 알림 발송 (공고 생성 시 모든 멤버)
         try:
             from app.services.notification_service import NotificationService
-            
-            # 공고 작성자 제외하고 팀 멤버에게 알림 발송
+            # Patch: pass list of dicts for notification service
+            notify_members = []
+            for member in team_members_data:
+                if (hasattr(member, 'email') and hasattr(member, 'role')):
+                    notify_members.append({'email': member.email, 'role': member.role})
+                elif isinstance(member, dict):
+                    notify_members.append({'email': member.get('email'), 'role': member.get('role')})
             NotificationService.create_team_member_notifications(
                 db=db,
                 job_post=db_job_post,
-                team_members=team_members_data,
+                team_members=notify_members,
                 creator_user_id=current_user.id,
                 is_update=False
             )
-            print(f"팀 멤버 알림 발송 완료: {len(team_members_data)}명")
+            print(f"팀 멤버 알림 발송 완료: {len(notify_members)}명")
         except Exception as e:
+            import traceback
             print(f"팀 멤버 알림 발송 실패: {str(e)}")
+            traceback.print_exc()
             # 알림 발송 실패는 공고 생성에 영향을 주지 않도록 함
     
     # Add company name to the response
@@ -387,7 +394,6 @@ def update_company_job_post(
     
     # 팀 멤버 역할을 jobpost_role 테이블에 업데이트
     if team_members_data is not None:
-        # 기존 팀 멤버 정보 저장 (알림 처리용)
         existing_team_members = db.query(JobPostRole).filter(
             JobPostRole.jobpost_id == job_post_id
         ).all()
@@ -398,56 +404,49 @@ def update_company_job_post(
             ).first()
             if company_user:
                 existing_emails.append(company_user.email)
-        
-        # 기존 팀 멤버 역할 삭제
         db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post_id).delete()
-        
-        # 새로운 팀 멤버 역할 추가
         new_team_members = []
         if team_members_data:
             for member in team_members_data:
-                if member.email and member.role:
-                    # 이메일로 CompanyUser 찾기
+                if (hasattr(member, 'email') and hasattr(member, 'role')):
+                    email = getattr(member, 'email', None)
+                    role = getattr(member, 'role', None)
+                else:
+                    email = member.get('email') if isinstance(member, dict) else None
+                    role = member.get('role') if isinstance(member, dict) else None
+                if email and role:
                     company_user = db.query(CompanyUser).filter(
-                        CompanyUser.email == member.email,
+                        CompanyUser.email == email,
                         CompanyUser.company_id == current_user.company_id
                     ).first()
-                    
                     if company_user:
-                        # 역할 매핑 (관리자 -> MANAGER, 멤버 -> MEMBER)
                         role_mapping = {
                             '관리자': 'MANAGER',
                             '멤버': 'MEMBER'
                         }
-                        mapped_role = role_mapping.get(member.role, 'MEMBER')
-                        
-                        # jobpost_role 생성
+                        mapped_role = role_mapping.get(role, 'MEMBER')
                         jobpost_role = JobPostRole(
                             jobpost_id=job_post_id,
                             company_user_id=company_user.id,
                             role=mapped_role
                         )
                         db.add(jobpost_role)
-                        new_team_members.append(member)
-        
+                        new_team_members.append({'email': email, 'role': role})
         db.commit()
-        
         # 팀 멤버 변경사항에 따른 알림 처리
         try:
             from app.services.notification_service import NotificationService
-            
-            # 새로 추가된 팀 멤버에게 알림 발송
-            if new_team_members:
+            added_emails = [m['email'] for m in new_team_members if m['email'] not in existing_emails]
+            added_members = [m for m in new_team_members if m['email'] in added_emails]
+            if added_members:
                 NotificationService.create_team_member_notifications(
                     db=db,
                     job_post=db_job_post,
-                    team_members=new_team_members,
+                    team_members=added_members,
                     creator_user_id=current_user.id,
                     is_update=True
                 )
-                print(f"팀 멤버 알림 발송 완료: {len(new_team_members)}명")
-            
-            # 제거된 팀 멤버의 알림 삭제
+                print(f"팀 멤버 알림 발송 완료: {len(added_members)}명")
             removed_emails = [email for email in existing_emails if email not in [m['email'] for m in new_team_members]]
             if removed_emails:
                 removed_count = NotificationService.remove_team_member_notifications(
@@ -456,9 +455,10 @@ def update_company_job_post(
                     removed_member_emails=removed_emails
                 )
                 print(f"제거된 팀 멤버 알림 삭제 완료: {removed_count}개")
-                
         except Exception as e:
+            import traceback
             print(f"팀 멤버 알림 처리 실패: {str(e)}")
+            traceback.print_exc()
             # 알림 처리 실패는 공고 수정에 영향을 주지 않도록 함
     
     # 가중치 데이터를 weight 테이블에 업데이트
@@ -674,12 +674,18 @@ def update_company_job_post(
         db.commit()
         
         # 면접관 자동 배정 (업데이트 시)
+        # 부서가 변경된 경우에만 실행
+        department_changed = False
+        prev_department_id = db_job_post.department_id
+        new_department_id = department_id
+        if prev_department_id != new_department_id:
+            department_changed = True
+
         try:
             from app.services.interview_panel_service import InterviewPanelService
             from app.schemas.interview_panel import InterviewerSelectionCriteria
-            
             # 새로운 면접관 배정 (기존 배정은 유지, 중복 체크는 서비스에서 처리)
-            if interview_schedules:
+            if interview_schedules and department_changed:
                 for schedule_data in interview_schedules:
                     # 해당 schedule 찾기
                     if isinstance(schedule_data, dict):

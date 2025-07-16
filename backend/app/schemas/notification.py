@@ -7,6 +7,7 @@ class NotificationBase(BaseModel):
     message: str
     type: Optional[str] = None
     is_read: bool = False
+    url: Optional[str] = None
 
 
 class NotificationCreate(NotificationBase):
@@ -21,6 +22,7 @@ class NotificationDetail(NotificationBase):
     id: int
     user_id: int
     created_at: datetime
+    url: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -32,6 +34,7 @@ class NotificationList(BaseModel):
     type: Optional[str] = None
     is_read: bool
     created_at: datetime
+    url: Optional[str] = None
     
     class Config:
         from_attributes = True 
