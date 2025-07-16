@@ -200,16 +200,18 @@ export const FormProvider = ({ children }) => {
   const generateFormDataFromDescription = useCallback((description) => {
     // 현재 날짜 기준으로 날짜 설정
     const currentDate = new Date();
-    const baseDate = new Date('2025-08-01');
-    const referenceDate = new Date(Math.max(currentDate.getTime(), baseDate.getTime()));
     
-    // 모집 기간 설정
-    const startDate = new Date(referenceDate.getTime() + 24 * 60 * 60 * 1000); // +1일
-    const endDate = new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000); // +14일
+    // 모집 시작일: 현재 날짜 + 1~3일 (랜덤)
+    const startOffset = Math.floor(Math.random() * 3) + 1; // 1~3일
+    const startDate = new Date(currentDate.getTime() + startOffset * 24 * 60 * 60 * 1000);
     
-    // 면접 일정 (기본값) - 별도 업데이트
+    // 모집 종료일: 시작일 + 14일
+    const endDate = new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000);
+    
+    // 면접 일정: 종료일 + 3~7일 (랜덤)
+    const interviewOffset = Math.floor(Math.random() * 5) + 3; // 3~7일
     const defaultSchedules = [
-      { date: new Date(endDate.getTime() + 3 * 24 * 60 * 60 * 1000), time: '14:00', place: '회사 3층 회의실' }
+      { date: new Date(endDate.getTime() + interviewOffset * 24 * 60 * 60 * 1000), time: '14:00', place: '회사 3층 회의실' }
     ];
 
     // 가중치 (기본값) - 별도 업데이트
