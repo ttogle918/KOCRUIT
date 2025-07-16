@@ -567,6 +567,13 @@ async def ai_route(request: Request):
                 "response": result.get("status", "폼 상태를 확인했습니다."),
                 "tool_used": "form_status_check_tool"
             }
+        elif "response" in result:
+            # spell_check_tool 등이 반환하는 response 필드 처리
+            return {
+                "success": True,
+                "response": result.get("response", "요청을 처리했습니다."),
+                "tool_used": "spell_check_tool"
+            }
         else:
             # message가 있으면 그것을 사용, 없으면 기본 메시지
             response_message = result.get("message", "요청을 처리했습니다.")

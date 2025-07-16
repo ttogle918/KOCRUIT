@@ -78,6 +78,20 @@ export const extractWeights = async (jobPostingContent, existingWeights = []) =>
   }
 };
 
+// 맞춤법 검사 API
+export const spellCheck = async (text, fieldName = "") => {
+  try {
+    const response = await api.post('/ai-evaluate/spell-check', {
+      text: text,
+      field_name: fieldName
+    });
+    return response.data;
+  } catch (error) {
+    console.error('맞춤법 검사 실패:', error);
+    throw error;
+  }
+};
+
 // 개발자 전용 빠른 로그인 API
 export const devLogin = async (email) => {
   try {
