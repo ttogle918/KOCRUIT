@@ -167,7 +167,6 @@ def get_interview_schedules(
             "application_id": interview.application_id,
             "interviewer_id": interview.interviewer_id,
             "schedule_id": interview.schedule_id,
-            "interview_type": interview.interview_type,
             "status": interview.status,
             "notes": interview.notes,
             "created_at": interview.created_at
@@ -181,7 +180,6 @@ def create_interview_schedule(
     application_id: int,
     interviewer_id: int,
     schedule_id: int,
-    interview_type: str = "ONSITE",
     notes: str = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -190,7 +188,6 @@ def create_interview_schedule(
         application_id=application_id,
         interviewer_id=interviewer_id,
         schedule_id=schedule_id,
-        interview_type=interview_type,
         notes=notes
     )
     db.add(db_interview)
@@ -202,7 +199,6 @@ def create_interview_schedule(
         "application_id": db_interview.application_id,
         "interviewer_id": db_interview.interviewer_id,
         "schedule_id": db_interview.schedule_id,
-        "interview_type": db_interview.interview_type,
         "status": db_interview.status,
         "notes": db_interview.notes,
         "created_at": db_interview.created_at
