@@ -1,4 +1,5 @@
 // src/api/api.js
+import axiosInstance from './axiosInstance'; // 이 줄 추가!
 import axios from 'axios';
 
 const api = axios.create({
@@ -88,3 +89,30 @@ export const devLogin = async (email) => {
     throw error;
   }
 };
+
+// 자기소개서 형광펜 하이라이팅 API
+export const highlightResumeText = async (text, jobDescription = "", companyValues = "") => {
+  try {
+    // baseURL이 http://localhost:8000 이므로, 전체 경로를 명확히 적음
+    const response = await axiosInstance.post('/api/v1/ai/highlight-resume', {
+      text,
+      job_description: jobDescription,
+      company_values: companyValues
+    });
+    return response.data;
+  } catch (error) {
+    console.error('자기소개서 하이라이팅 분석 실패:', error);
+    throw error;
+  }
+};
+
+export async function getResumeHighlights(text) {
+  const res = await fetch('/api/v1/highlight', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text })
+  });
+  if (!res.ok) throw new Error('Failed to fetch highlights');
+  const data = await res.json();
+  return data.highlights;
+}

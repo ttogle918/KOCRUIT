@@ -1,10 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { extractMajorAndDegree } from '../utils/resumeUtils';
+import HighlightedText, { HighlightStats } from './HighlightedText';
+import { highlightResumeText } from '../api/api';
 
 export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle }) {
   const [localBookmarked, setLocalBookmarked] = useState(bookmarked);
+  const [highlightData, setHighlightData] = useState(null);
+  const [highlightLoading, setHighlightLoading] = useState(false);
+  const [showHighlights, setShowHighlights] = useState(false);
+  
   useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
+
+  // 자기소개서 형광펜 하이라이팅 분석
+  const analyzeContent = async (content) => {
+    if (!content || typeof content !== 'string') return;
+    
+    try {
+      setHighlightLoading(true);
+      const result = await highlightResumeText(content);
+      console.log('highlight API result:', result);
+      setHighlightData(result);
+    } catch (error) {
+      console.error('형광펜 분석 실패:', error);
+      setHighlightData(null); // 명시적으로 null로 설정
+    } finally {
+      setHighlightLoading(false);
+    }
+  };
+
+  // 자기소개서 내용 추출 및 분석
+  useEffect(() => {
+    if (resume && resume.content) {
+      let contentText = '';
+      
+      try {
+        const parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          contentText = parsed.map(item => item.content).join('\n\n');
+        } else {
+          contentText = resume.content;
+        }
+      } catch {
+        contentText = resume.content;
+      }
+      
+      if (contentText) {
+        analyzeContent(contentText);
+      }
+    }
+  }, [resume]);
+
+  useEffect(() => {
+    console.log('highlightData:', highlightData);
+  }, [highlightData]);
 
   if (loading) return (
     <div className="flex items-center justify-center h-full min-h-[300px] text-blue-500 text-xl font-bold animate-pulse">
@@ -52,6 +101,21 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
   
   // 표에서 빈칸을 위한 함수
   const safe = v => v || '';
+
+  // 자기소개서 내용 추출
+  const getContentText = () => {
+    try {
+      const parsed = typeof content === 'string' ? JSON.parse(content) : Array.isArray(content) ? content : [];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(item => item.content).join('\n\n');
+      }
+      return content;
+    } catch {
+      return content;
+    }
+  };
+
+  const contentText = getContentText();
 
   return (
     <div
@@ -205,7 +269,31 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
 
       {/* 자기소개서 */}
       <section>
-        <h3 className="text-lg font-bold mb-2 text-blue-700 dark:text-blue-300">자기소개서</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-bold text-blue-700 dark:text-blue-300">자기소개서</h3>
+          {highlightData && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowHighlights(!showHighlights)}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  showHighlights 
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {showHighlights ? '형광펜 끄기' : '형광펜 켜기'}
+              </button>
+              {highlightLoading && (
+                <span className="text-xs text-blue-500">분석 중...</span>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {highlightData && showHighlights && (
+          <HighlightStats highlights={highlightData.highlights || []} />
+        )}
+        
         <div className="bg-gray-50 dark:bg-gray-800 rounded p-4 text-gray-800 dark:text-gray-100 whitespace-pre-line border dark:border-gray-700 min-h-[80px] space-y-6">
           {(() => {
             let parsed = [];
@@ -220,7 +308,18 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
             return parsed.map((item, idx) => (
               <div key={idx} className="mb-6">
                 <div className="font-bold text-lg mb-2 text-blue-800 dark:text-blue-200">{item.title}</div>
-                <div className="whitespace-pre-line text-base">{item.content}</div>
+                {showHighlights && highlightData ? (
+                  <HighlightedText 
+                    text={item.content}
+                    highlights={highlightData.highlights || []}
+                    showLegend={false}
+                    onHighlightClick={(highlight) => {
+                      console.log('하이라이팅 클릭:', highlight);
+                    }}
+                  />
+                ) : (
+                  <div className="whitespace-pre-line text-base">{item.content}</div>
+                )}
               </div>
             ));
           })()}
