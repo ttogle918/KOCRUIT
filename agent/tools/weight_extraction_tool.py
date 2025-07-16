@@ -1,6 +1,8 @@
 from langchain_openai import ChatOpenAI
 import json
 
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
 def weight_extraction_tool(state):
     """
     채용공고 내용을 분석하여 이력서 평가에 필요한 가중치를 추출합니다.
@@ -9,8 +11,6 @@ def weight_extraction_tool(state):
     
     if not content:
         return {**state, "weights": []}
-    
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
     
     prompt = f"""
     아래의 채용공고 내용을 분석하여, 이력서 평가 시 고려해야 할 가중치 항목들을 추출해주세요.

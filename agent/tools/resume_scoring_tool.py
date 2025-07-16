@@ -1,6 +1,8 @@
 from langchain_openai import ChatOpenAI
 import json
 
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
 def resume_scoring_tool(state):
     """
     spec 테이블과 resume 테이블 데이터를 기반으로 지원자의 서류 점수를 평가합니다.
@@ -17,8 +19,6 @@ def resume_scoring_tool(state):
     
     if not spec_data or not resume_data:
         return {**state, "ai_score": 0.0, "scoring_details": {}}
-    
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
     
     prompt = f"""
     아래의 정보를 바탕으로 지원자의 서류 점수를 0-100점 사이로 평가해주세요.
