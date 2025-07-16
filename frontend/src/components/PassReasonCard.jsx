@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaStar, FaRegStar, FaEnvelope, FaPhone, FaCalendarAlt } from 'react-icons/fa';
 import api from '../api/api';
 import { calculateAge } from '../utils/resumeUtils';
+import GrowthPredictionCard from './GrowthPredictionCard';
 
 const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   const [resume, setResume] = useState(null);
@@ -16,6 +17,12 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
   const [questionLoading, setQuestionLoading] = useState(false);
   const [questionError, setQuestionError] = useState(null);
   const [aiQuestions, setAiQuestions] = useState([]);
+  const [questionRequested, setQuestionRequested] = useState(false);
+
+  // GrowthPredictionCard 노출 상태
+  const [showGrowthPrediction, setShowGrowthPrediction] = useState(false);
+  // applicationId 추출
+  const applicationId = applicant?.application_id || applicant?.applicationId;
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -44,55 +51,35 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
     }
   }, [applicant?.ai_score, applicant?.pass_reason, applicant?.fail_reason]);
 
-  // AI 기반 이력서 질문 생성
+  // AI 기반 이력서 질문 생성 (버튼 클릭 시에만)
+  const handleRequestQuestions = async () => {
+    if (!applicant?.application_id && !applicant?.applicationId) return;
+    setQuestionLoading(true);
+    setQuestionError(null);
+    setAiQuestions([]);
+    setQuestionRequested(true);
+    try {
+      const response = await api.post('/interview-questions/job-questions', {
+        application_id: applicant.application_id || applicant.applicationId,
+        company_name: applicant.companyName || applicant.company_name || '회사'
+      });
+      let q = response.data?.question_bundle || response.data?.question_categories || response.data?.questions || {};
+      if (Array.isArray(q)) q = { "AI 질문": q };
+      setAiQuestions(q);
+    } catch (err) {
+      setQuestionError('AI 질문 생성 중 오류가 발생했습니다.');
+    } finally {
+      setQuestionLoading(false);
+    }
+  };
+
+  // applicant가 바뀌면 질문 상태 초기화
   useEffect(() => {
-    const fetchQuestions = async () => {
-      if (!applicant?.application_id && !applicant?.applicationId) return;
-      setQuestionLoading(true);
-      setQuestionError(null);
-      setAiQuestions([]);
-      try {
-        const response = await api.post('/interview-questions/job-questions', {
-          application_id: applicant.application_id || applicant.applicationId,
-          company_name: applicant.companyName || applicant.company_name || '회사'
-        });
-        
-        // API 응답 구조 디버깅을 위한 콘솔 로그
-        console.log('=== AI 질문 API 응답 디버깅 ===');
-        console.log('전체 응답:', response);
-        console.log('response.data:', response.data);
-        console.log('response.data.question_categories:', response.data?.question_categories);
-        console.log('response.data.questions:', response.data?.questions);
-        console.log('response.data 타입:', typeof response.data);
-        console.log('response.data가 객체인가?', typeof response.data === 'object' && !Array.isArray(response.data));
-        console.log('response.data 키들:', Object.keys(response.data || {}));
-        console.log('================================');
-        
-        // question_bundle 필드를 우선적으로 사용 (실제 질문이 있는 필드)
-        let q = response.data?.question_bundle || response.data?.question_categories || response.data?.questions || {};
-        
-        console.log('question_bundle 내용:', response.data?.question_bundle);
-        
-        // 배열이면 객체로 변환
-        if (Array.isArray(q)) {
-          console.log('응답이 배열입니다. 객체로 변환합니다.');
-          q = { "AI 질문": q };
-        }
-        
-        console.log('최종 파싱된 질문 데이터:', q);
-        console.log('질문 데이터 타입:', typeof q);
-        console.log('질문 데이터 키 개수:', Object.keys(q).length);
-        
-        setAiQuestions(q);
-      } catch (err) {
-        console.error('AI 질문 fetch 에러:', err);
-        setQuestionError('AI 질문 생성 중 오류가 발생했습니다.');
-      } finally {
-        setQuestionLoading(false);
-      }
-    };
-    fetchQuestions();
-  }, [applicant?.application_id, applicant?.applicationId, applicant?.companyName, applicant?.company_name]);
+    setAiQuestions([]);
+    setQuestionError(null);
+    setQuestionLoading(false);
+    setQuestionRequested(false);
+  }, [applicant?.application_id, applicant?.applicationId]);
 
   const handleBookmarkToggle = async () => {
     try {
@@ -238,6 +225,22 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
             </div>
           </div>
         </div>
+        {/* 성장 가능성 예측 버튼 및 결과 */}
+        {applicationId && (
+          <div className="mt-4">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              onClick={() => setShowGrowthPrediction((prev) => !prev)}
+            >
+              {showGrowthPrediction ? '예측 결과 숨기기' : '성장 가능성 예측'}
+            </button>
+            {showGrowthPrediction && (
+              <div className="mt-4">
+                <GrowthPredictionCard applicationId={applicationId} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Pass/Reject Reason */}
@@ -254,32 +257,38 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
         </div>
       </div>
 
-      {/* 이력서 기반 개인별 질문 - 합격자만 표시 */}
-      {applicant?.status === 'PASSED' && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">이력서 기반 개인별 질문</h3>
-          {questionLoading ? (
-            <div className="text-blue-500">AI 질문 생성 중...</div>
-          ) : questionError ? (
-            <div className="text-red-500">{questionError}</div>
-          ) : aiQuestions && Object.keys(aiQuestions).length > 0 ? (
-            <div className="space-y-2">
-              {Object.entries(aiQuestions).map(([category, questions]) => (
-                <div key={category}>
-                  <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">{category}</div>
-                  <ul className="list-disc pl-6">
-                    {Array.isArray(questions) && questions.map((q, idx) => (
-                      <li key={idx} className="text-gray-700 dark:text-gray-300">{q}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-gray-500">AI 질문이 없습니다.</div>
-          )}
-        </div>
-      )}
+      {/* 이력서 기반 개인별 질문 - 합격/불합격 모두 버튼 노출 */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">이력서 기반 개인별 질문</h3>
+        {!questionRequested ? (
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-2"
+            onClick={handleRequestQuestions}
+            disabled={questionLoading}
+          >
+            {questionLoading ? 'AI 질문 생성 중...' : 'AI 질문 생성'}
+          </button>
+        ) : questionLoading ? (
+          <div className="text-blue-500">AI 질문 생성 중...</div>
+        ) : questionError ? (
+          <div className="text-red-500">{questionError}</div>
+        ) : aiQuestions && Object.keys(aiQuestions).length > 0 ? (
+          <div className="space-y-2">
+            {Object.entries(aiQuestions).map(([category, questions]) => (
+              <div key={category}>
+                <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">{category}</div>
+                <ul className="list-disc pl-6">
+                  {Array.isArray(questions) && questions.map((q, idx) => (
+                    <li key={idx} className="text-gray-700 dark:text-gray-300">{q}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-gray-500">AI 질문이 없습니다.</div>
+        )}
+      </div>
 
       {/* Action Buttons */}
       <div className="flex gap-3">
