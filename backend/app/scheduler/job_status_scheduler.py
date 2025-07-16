@@ -33,6 +33,14 @@ class JobStatusScheduler:
         self.running = True
         self.logger.info("JobPost status scheduler started")
         
+        # 서버 시작 시 즉시 상태 업데이트 실행
+        self.logger.info("Running initial JobPost status update...")
+        try:
+            initial_result = await self._update_job_status()
+            self.logger.info(f"Initial JobPost status update result: {initial_result}")
+        except Exception as e:
+            self.logger.error(f"Initial JobPost status update error: {e}")
+        
         # 상태 업데이트 태스크 실행
         self.task = asyncio.create_task(self._status_update_loop())
         
@@ -72,6 +80,22 @@ class JobStatusScheduler:
             db = SessionLocal()
             now = datetime.now()
             updated_count = 0
+            
+            # 0. ACTIVE 상태인 공고들을 현재 시간 기준으로 올바른 상태로 변경
+            active_job_posts = db.query(JobPost).filter(JobPost.status == "ACTIVE").all()
+            active_updated = 0
+            for job_post in active_job_posts:
+                from app.utils.job_status_utils import determine_job_status
+                new_status = determine_job_status(job_post.start_date, job_post.end_date)
+                if new_status != "ACTIVE":
+                    job_post.status = new_status
+                    active_updated += 1
+                    self.logger.info(f"Updated ACTIVE job post {job_post.id} to {new_status}")
+            
+            if active_updated > 0:
+                db.commit()
+                updated_count += active_updated
+                self.logger.info(f"Updated {active_updated} ACTIVE posts to correct status")
             
             # 1. 시작일이 된 예정 공고를 모집중으로 변경
             started_scheduled_query = (
@@ -130,6 +154,7 @@ class JobStatusScheduler:
             return {
                 "success": True,
                 "updated_count": updated_count,
+                "active_to_correct": active_updated,
                 "scheduled_to_recruiting": started_count,
                 "expired_to_selecting": expired_count,
                 "timestamp": now.isoformat()
