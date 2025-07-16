@@ -2,6 +2,25 @@ import React from 'react';
 import ResumeCard from '../../components/ResumeCard';
 import ResumeAnalysisAccordion from './ResumeAnalysisAccordion';
 import GrowthPredictionCard from '../../components/GrowthPredictionCard';
+import HighlightedText from '../../components/HighlightedText';
+import axios from 'axios';
+import { useState, useEffect } from 'react';
+
+// 예시: 자기소개서 하이라이트 표시용 코드 (기존 코드 아래에 추가)
+function ResumeSelfIntroHighlight({ selfIntroText }) {
+  const [highlights, setHighlights] = useState([]);
+
+  useEffect(() => {
+    if (!selfIntroText) return;
+    axios.post('/api/v1/highlight', { text: selfIntroText })
+      .then(res => setHighlights(res.data.highlights))
+      .catch(() => setHighlights([]));
+  }, [selfIntroText]);
+
+  return (
+    <HighlightedText text={selfIntroText} highlights={highlights} />
+  );
+}
 
 export default function ResumePage({ resume, loading, error }) {
   // applicationId는 resume.applicationId 또는 resume.application_id에서 가져와야 함

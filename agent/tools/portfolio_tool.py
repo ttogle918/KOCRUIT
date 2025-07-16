@@ -4,13 +4,17 @@ from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 from typing import List, Dict
 import re
+import redis
+import json
+
+redis_client = redis.Redis(host='redis', port=6379, db=0)
 
 class PortfolioLinkTool:
     """포트폴리오 링크 수집 및 분석 도구"""
     
     def __init__(self):
         self.search_tool = TavilySearchResults()
-        self.llm = ChatOpenAI(model="gpt-4o")
+        self.llm = ChatOpenAI(model="gpt-4o-mini")
         self.summarize_chain = load_summarize_chain(self.llm, chain_type="stuff")
     
     def extract_portfolio_links(self, resume_text: str, name: str = "") -> Dict:
@@ -96,8 +100,14 @@ class PortfolioLinkTool:
         return links
     
     def analyze_portfolio_content(self, links: Dict) -> str:
-        """포트폴리오 내용 분석 및 요약"""
+        """포트폴리오 내용 분석 및 요약 (Redis 캐시 적용)"""
         try:
+            # 캐시 키 생성 (링크 조합)
+            key_str = json.dumps(links, sort_keys=True)
+            cache_key = f"portfolio_analysis:{key_str}"
+            cached = redis_client.get(cache_key)
+            if isinstance(cached, bytes):
+                return cached.decode('utf-8')
             all_content = []
             
             # GitHub 분석
@@ -125,6 +135,7 @@ class PortfolioLinkTool:
             if all_content:
                 docs = [Document(page_content=content) for content in all_content]
                 summary = self.summarize_chain.run(docs)
+                redis_client.set(cache_key, summary, ex=60*60*24)
                 return summary
             else:
                 return "포트폴리오 내용을 찾을 수 없습니다."

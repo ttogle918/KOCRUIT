@@ -3,10 +3,11 @@ from langchain.chains import LLMChain
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import os
-from typing import Optional
+from typing import Optional, Dict, Any
 from langchain_community.tools.tavily_search.tool import TavilySearchResults
 from langchain.chains.summarize import load_summarize_chain
 from langchain_core.documents import Document
+from agent.utils.llm_cache import redis_cache
 
 load_dotenv()
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
@@ -27,7 +28,7 @@ FIXED_QUESTIONS = {
     ]
 }
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 # Tavily 검색 도구 초기화
 search_tool = TavilySearchResults()
@@ -105,8 +106,8 @@ news_prompt = PromptTemplate.from_template(
     각 질문은 한 줄로 명확하게 작성해 주세요.
     """
 )
-
-# 직무 기반 질문 생성 프롬프트
+# TODO: 직무 기반 질문 생성 프롬프트 ( 지원자의 이력서와 관계 X )
+# 직무 기반 질문 생성 프롬프트 ( 지원자의 이력서와 관계 O )
 job_prompt = PromptTemplate.from_template(
     """
     다음은 공고 정보입니다:
@@ -146,6 +147,7 @@ generate_news_questions = LLMChain(llm=llm, prompt=news_prompt)
 generate_job_questions = LLMChain(llm=llm, prompt=job_prompt)
 
 # 3. 전체 질문 통합 함수
+@redis_cache()
 def generate_common_question_bundle(resume_text: str, company_name: Optional[str] = None, portfolio_info: str = ""):
     personality_questions = FIXED_QUESTIONS["personality"]
 
@@ -181,6 +183,7 @@ def generate_common_question_bundle(resume_text: str, company_name: Optional[str
         "자기소개서 요약": resume_summary
     }
 
+@redis_cache()
 def generate_company_questions(company_name: str):
     """회사명을 기반으로 인재상과 뉴스를 모두 고려한 질문 생성"""
     try:
@@ -273,6 +276,7 @@ def company_info_scraping_tool(company_name):
         "company_news": "2024년 7월, AI 반도체 신제품 출시 및 글로벌 시장 진출 발표"
     }
 
+@redis_cache()
 def generate_job_question_bundle(resume_text: str, job_info: str, company_name: str = "", job_matching_info: str = ""):
     """직무 기반 면접 질문 생성"""
     
@@ -576,6 +580,7 @@ strengths_weaknesses_chain = LLMChain(llm=llm, prompt=strengths_weaknesses_promp
 interview_guideline_chain = LLMChain(llm=llm, prompt=interview_guideline_prompt)
 evaluation_criteria_chain = LLMChain(llm=llm, prompt=evaluation_criteria_prompt)
 
+@redis_cache()
 def generate_resume_analysis_report(resume_text: str, job_info: str = "", portfolio_info: str = "", job_matching_info: str = ""):
     """이력서 분석 리포트 생성"""
     try:
@@ -631,6 +636,7 @@ def generate_resume_analysis_report(resume_text: str, job_info: str = "", portfo
             "job_matching_details": job_matching_info or "직무 매칭 정보가 없습니다."
         }
 
+@redis_cache()
 def generate_interview_checklist(resume_text: str, job_info: str = "", company_name: str = ""):
     """면접 체크리스트 생성"""
     try:
@@ -674,6 +680,7 @@ def generate_interview_checklist(resume_text: str, job_info: str = "", company_n
             "green_flags_to_confirm": ["구체적인 사례 제시", "적극적인 태도"]
         }
 
+@redis_cache()
 def analyze_candidate_strengths_weaknesses(resume_text: str, job_info: str = "", company_name: str = ""):
     """지원자 강점/약점 분석"""
     try:
@@ -702,6 +709,7 @@ def analyze_candidate_strengths_weaknesses(resume_text: str, job_info: str = "",
             "competitive_advantages": ["기술적 역량", "학습 의지"]
         }
 
+@redis_cache()
 def generate_interview_guideline(resume_text: str, job_info: str = "", company_name: str = ""):
     """면접 가이드라인 생성"""
     try:
@@ -740,6 +748,7 @@ def generate_interview_guideline(resume_text: str, job_info: str = "", company_n
             "follow_up_questions": ["더 구체적인 사례를 들어 설명해주세요", "그 상황에서 다른 대안은 없었나요"]
         }
 
+@redis_cache()
 def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_name: str = ""):
     """평가 기준 자동 제안"""
     try:
@@ -781,3 +790,130 @@ def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_na
             }
         }
     return questions_by_category
+
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+
+# 실무역량 프롬프트
+practical_competency_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 및 직무 정보입니다:
+    ---
+    {resume_text}
+    ---
+    {job_info}
+    ---
+    위 정보를 바탕으로 실무 역량(Practical Competency)을 평가할 수 있는 면접 질문 3개를 생성해 주세요.
+    각 질문은 실제 업무 상황을 가정하여 작성해 주세요.
+    """
+)
+practical_competency_chain = LLMChain(llm=llm, prompt=practical_competency_prompt)
+
+# 문제해결능력 프롬프트
+problem_solving_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 및 직무 정보입니다:
+    ---
+    {resume_text}
+    ---
+    {job_info}
+    ---
+    위 정보를 바탕으로 문제해결능력(Problem Solving)을 평가할 수 있는 면접 질문 3개를 생성해 주세요.
+    실제로 발생할 수 있는 문제 상황을 가정하여 작성해 주세요.
+    """
+)
+problem_solving_chain = LLMChain(llm=llm, prompt=problem_solving_prompt)
+
+# 커뮤니케이션 프롬프트
+communication_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 및 직무 정보입니다:
+    ---
+    {resume_text}
+    ---
+    {job_info}
+    ---
+    위 정보를 바탕으로 커뮤니케이션 능력(Communication)을 평가할 수 있는 면접 질문 3개를 생성해 주세요.
+    팀워크, 협업, 갈등 상황을 중심으로 작성해 주세요.
+    """
+)
+communication_chain = LLMChain(llm=llm, prompt=communication_prompt)
+
+# 성장 가능성 프롬프트
+growth_potential_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 및 직무 정보입니다:
+    ---
+    {resume_text}
+    ---
+    {job_info}
+    ---
+    위 정보를 바탕으로 성장 가능성(Growth Potential)을 평가할 수 있는 면접 질문 3개를 생성해 주세요.
+    학습, 자기계발, 도전 경험을 중심으로 작성해 주세요.
+    """
+)
+growth_potential_chain = LLMChain(llm=llm, prompt=growth_potential_prompt)
+
+# === 추가 역량 프롬프트 및 체인 ===
+collaboration_attitude_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 및 직무 정보입니다:
+    ---
+    {resume_text}
+    ---
+    {job_info}
+    ---
+    위 정보를 바탕으로 협업 태도(Collaboration Attitude)를 평가할 수 있는 면접 질문 3개를 생성해 주세요.
+    다양한 팀 환경, 역할 분담, 협업 경험을 중심으로 작성해 주세요.
+    """
+)
+collaboration_attitude_chain = LLMChain(llm=llm, prompt=collaboration_attitude_prompt)
+
+domain_fit_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 및 직무 정보입니다:
+    ---
+    {resume_text}
+    ---
+    {job_info}
+    ---
+    위 정보를 바탕으로 도메인 적합성(Domain Fit)을 평가할 수 있는 면접 질문 3개를 생성해 주세요.
+    해당 산업/분야에 대한 이해, 관심, 경험을 중심으로 작성해 주세요.
+    """
+)
+domain_fit_chain = LLMChain(llm=llm, prompt=domain_fit_prompt)
+
+technical_practical_understanding_prompt = PromptTemplate.from_template(
+    """
+    다음은 지원자의 이력서 및 직무 정보입니다:
+    ---
+    {resume_text}
+    ---
+    {job_info}
+    ---
+    위 정보를 바탕으로 기술 실무 이해도(Technical Practical Understanding)를 평가할 수 있는 면접 질문 3개를 생성해 주세요.
+    실제 기술 적용, 실무 활용 경험, 구체적 사례를 중심으로 작성해 주세요.
+    """
+)
+technical_practical_understanding_chain = LLMChain(llm=llm, prompt=technical_practical_understanding_prompt)
+
+
+@redis_cache()
+def generate_advanced_competency_questions(resume_text: str, job_info: str = ""):
+    practical = practical_competency_chain.invoke({"resume_text": resume_text, "job_info": job_info})
+    problem = problem_solving_chain.invoke({"resume_text": resume_text, "job_info": job_info})
+    communication = communication_chain.invoke({"resume_text": resume_text, "job_info": job_info})
+    growth = growth_potential_chain.invoke({"resume_text": resume_text, "job_info": job_info})
+    collaboration = collaboration_attitude_chain.invoke({"resume_text": resume_text, "job_info": job_info})
+    domain = domain_fit_chain.invoke({"resume_text": resume_text, "job_info": job_info})
+    technical = technical_practical_understanding_chain.invoke({"resume_text": resume_text, "job_info": job_info})
+
+    return {
+        "실무역량": [q.strip() for q in practical.get("text", "").split("\n") if q.strip()],
+        "문제해결능력": [q.strip() for q in problem.get("text", "").split("\n") if q.strip()],
+        "커뮤니케이션": [q.strip() for q in communication.get("text", "").split("\n") if q.strip()],
+        "성장가능성": [q.strip() for q in growth.get("text", "").split("\n") if q.strip()],
+        "협업태도": [q.strip() for q in collaboration.get("text", "").split("\n") if q.strip()],
+        "도메인적합성": [q.strip() for q in domain.get("text", "").split("\n") if q.strip()],
+        "기술실무이해도": [q.strip() for q in technical.get("text", "").split("\n") if q.strip()],
+    }

@@ -26,3 +26,5 @@ COPY agent ./agent
 
 # FastAPI 실행 (UVicorn)
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+ENV PYTHONPATH=/app
