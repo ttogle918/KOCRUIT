@@ -9,6 +9,7 @@ from .schedule import Schedule, ScheduleInterview
 from .weight import Weight
 from .interview_evaluation import InterviewEvaluation, EvaluationDetail, InterviewEvaluationItem
 from .interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember, AssignmentType, AssignmentStatus, RequestStatus, PanelRole
+from .high_performers import HighPerformer
 
 __all__ = [
     "Base",
