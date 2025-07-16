@@ -10,6 +10,11 @@ from pydantic import BaseModel
 
 from app.api.v1.company_question_rag import generate_questions
 
+import redis
+import json
+
+redis_client = redis.Redis(host='redis', port=6379, db=0)
+
 router = APIRouter()
 
 # 통합 API용 스키마
@@ -118,6 +123,49 @@ class EvaluationCriteriaResponse(BaseModel):
     weight_recommendations: List[dict]
     evaluation_questions: List[str]
     scoring_guidelines: dict
+
+# --- 공고 기반 Request/Response 모델 ---
+class JobBasedChecklistRequest(BaseModel):
+    job_post_id: int
+    company_name: str
+
+class JobBasedChecklistResponse(BaseModel):
+    pre_interview_checklist: List[str]
+    during_interview_checklist: List[str]
+    post_interview_checklist: List[str]
+    red_flags_to_watch: List[str]
+    green_flags_to_confirm: List[str]
+
+class JobBasedGuidelineRequest(BaseModel):
+    job_post_id: int
+    company_name: str
+
+class JobBasedGuidelineResponse(BaseModel):
+    interview_approach: str
+    key_questions_by_category: Dict
+    evaluation_criteria: List[Dict]
+    time_allocation: Dict
+    follow_up_questions: List[str]
+
+class JobBasedCriteriaRequest(BaseModel):
+    job_post_id: int
+    company_name: str
+
+class JobBasedCriteriaResponse(BaseModel):
+    suggested_criteria: List[Dict]
+    weight_recommendations: List[Dict]
+    evaluation_questions: List[str]
+    scoring_guidelines: Dict
+
+class JobBasedStrengthsRequest(BaseModel):
+    job_post_id: int
+    company_name: str
+
+class JobBasedStrengthsResponse(BaseModel):
+    strengths: List[Dict]
+    weaknesses: List[Dict]
+    development_areas: List[str]
+    competitive_advantages: List[str]
 
 def combine_resume_and_specs(resume: Resume, specs: List[Spec]) -> str:
     """Resume와 Spec을 조합하여 포괄적인 resume_text 생성"""
@@ -262,14 +310,12 @@ def get_questions_by_application(application_id: int, db: Session = Depends(get_
 @router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
 async def generate_integrated_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
     """통합 면접 질문 생성 API - 이력서, 공고, 회사 정보를 모두 활용"""
-    # POST /api/v1/interview-questions/integrated-questions
-    # Content-Type: application/json
-    # {
-    #   "resume_id": 41,
-    #   "application_id": 41,
-    #   "company_name": "KOSA공공",
-    #   "name": "홍길동"
-    # }
+
+
+    cache_key = f"integrated_questions:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
 
     try:
         resume_text = ""
@@ -373,11 +419,13 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
             "resume_summary": resume_summary
         }
         
-        return {
+        result = {
             "questions": all_questions,
             "question_bundle": question_bundle,
             "summary_info": summary_info
         }
+        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+        return result
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -385,6 +433,10 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
 @router.post("/resume-analysis", response_model=ResumeAnalysisResponse)
 async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
     """이력서 분석 리포트 생성 API"""
+    cache_key = f"resume_analysis:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -424,6 +476,7 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
             job_matching_info=job_matching_info
         )
         
+        redis_client.set(cache_key, json.dumps(analysis_result), ex=60*60*24)
         return analysis_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -431,6 +484,10 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
 @router.post("/interview-checklist", response_model=InterviewChecklistResponse)
 async def generate_interview_checklist(request: InterviewChecklistRequest, db: Session = Depends(get_db)):
     """면접 체크리스트 생성 API"""
+    cache_key = f"interview_checklist:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -457,6 +514,7 @@ async def generate_interview_checklist(request: InterviewChecklistRequest, db: S
             company_name=request.company_name or "회사"
         )
         
+        redis_client.set(cache_key, json.dumps(checklist_result), ex=60*60*24)
         return checklist_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -464,6 +522,10 @@ async def generate_interview_checklist(request: InterviewChecklistRequest, db: S
 @router.post("/strengths-weaknesses", response_model=StrengthsWeaknessesResponse)
 async def analyze_strengths_weaknesses(request: StrengthsWeaknessesRequest, db: Session = Depends(get_db)):
     """지원자 강점/약점 분석 API"""
+    cache_key = f"strengths_weaknesses:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -490,6 +552,7 @@ async def analyze_strengths_weaknesses(request: StrengthsWeaknessesRequest, db: 
             company_name=request.company_name or "회사"
         )
         
+        redis_client.set(cache_key, json.dumps(analysis_result), ex=60*60*24)
         return analysis_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -497,6 +560,10 @@ async def analyze_strengths_weaknesses(request: StrengthsWeaknessesRequest, db: 
 @router.post("/interview-guideline", response_model=InterviewGuidelineResponse)
 async def generate_interview_guideline(request: InterviewGuidelineRequest, db: Session = Depends(get_db)):
     """면접 가이드라인 생성 API"""
+    cache_key = f"interview_guideline:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -523,6 +590,7 @@ async def generate_interview_guideline(request: InterviewGuidelineRequest, db: S
             company_name=request.company_name
         )
         
+        redis_client.set(cache_key, json.dumps(guideline_result), ex=60*60*24)
         return guideline_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -530,6 +598,10 @@ async def generate_interview_guideline(request: InterviewGuidelineRequest, db: S
 @router.post("/evaluation-criteria", response_model=EvaluationCriteriaResponse)
 async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Session = Depends(get_db)):
     """평가 기준 자동 제안 API"""
+    cache_key = f"evaluation_criteria:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -556,6 +628,7 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
             company_name=request.company_name
         )
         
+        redis_client.set(cache_key, json.dumps(criteria_result), ex=60*60*24)
         return criteria_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -570,6 +643,11 @@ async def generate_company_questions(request: CompanyQuestionRequest):
     # TODO: 기술 혁신/신사업
     # TODO: 회사 기본 정보 이해
 
+    cache_key = f"company_questions:{request.company_name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
+
     try:
         # LangGraph 기반 통합 질문 생성
         result = generate_questions(request.company_name)
@@ -578,6 +656,7 @@ async def generate_company_questions(request: CompanyQuestionRequest):
         if isinstance(questions, str):
             questions = questions.strip().split("\n")
         
+        redis_client.set(cache_key, json.dumps({"questions": questions}), ex=60*60*24)
         return {"questions": questions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -592,6 +671,11 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
     #   "company_name": "네이버",
     #   "name": "홍길동"
     # }
+
+    cache_key = f"project_questions:{request.resume_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
 
     try:
         # Resume와 Spec 데이터 조회
@@ -629,11 +713,13 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
         all_questions.extend(question_bundle.get("회사 관련", []))
         all_questions.extend(question_bundle.get("상황 대처", []))
         
-        return {
+        result = {
             "questions": all_questions,
             "question_bundle": question_bundle,
             "portfolio_info": portfolio_info
         }
+        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -646,6 +732,11 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
     #   "application_id": 41,
     #   "company_name": "KOSA공공"
     # }
+
+    cache_key = f"job_questions:{request.application_id}:{request.company_name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
 
     try:
         # Application 데이터 조회
@@ -715,13 +806,15 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
         all_questions.extend(question_bundle.get("팀워크", []))
         all_questions.extend(question_bundle.get("성장 의지", []))
         
-        return {
+        result = {
             "application_id": request.application_id,
             "company_name": actual_company_name,
             "questions": all_questions,
             "question_bundle": question_bundle,
             "job_matching_info": job_matching_info
         }
+        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+        return result
     except Exception as e:
         import traceback
         print("=== [job-questions] Exception ===")
@@ -744,6 +837,11 @@ async def generate_passed_applicants_questions(
     #   "job_post_id": 17,
     #   "company_name": "KOSA공공"
     # }
+
+    cache_key = f"passed_applicants_questions:{job_post_id}:{company_name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
 
     try:
         # 서류 합격자 조회 - applications.py의 함수를 직접 호출
@@ -816,13 +914,13 @@ async def generate_passed_applicants_questions(
             
             # Spec 데이터에서 추가 정보 추출
             for spec in specs:
-                if spec.spec_type == "experience" and spec.spec_title == "company":
+                if str(spec.spec_type) == "experience" and str(spec.spec_title) == "company":
                     resume_data["experience"]["companies"].append(spec.spec_description or "")
-                elif spec.spec_type == "experience" and spec.spec_title == "position":
+                elif str(spec.spec_type) == "experience" and str(spec.spec_title) == "position":
                     resume_data["experience"]["position"] = spec.spec_description or ""
-                elif spec.spec_type == "experience" and spec.spec_title == "duration":
+                elif str(spec.spec_type) == "experience" and str(spec.spec_title) == "duration":
                     resume_data["experience"]["duration"] = spec.spec_description or ""
-                elif spec.spec_type == "skills" and spec.spec_title == "name":
+                elif str(spec.spec_type) == "skills" and str(spec.spec_title) == "name":
                     if "Java" in (spec.spec_description or ""):
                         resume_data["skills"]["programming_languages"].append("Java")
                     if "Python" in (spec.spec_description or ""):
@@ -831,12 +929,12 @@ async def generate_passed_applicants_questions(
                         resume_data["skills"]["frameworks"].append("Spring")
                     if "React" in (spec.spec_description or ""):
                         resume_data["skills"]["frameworks"].append("React")
-                elif spec.spec_type == "projects" and spec.spec_title == "name":
+                elif str(spec.spec_type) == "projects" and str(spec.spec_title) == "name":
                     resume_data["projects"].append({
                         "name": spec.spec_description or "",
                         "description": ""
                     })
-                elif spec.spec_type == "activities" and spec.spec_title == "name":
+                elif str(spec.spec_type) == "activities" and str(spec.spec_title) == "name":
                     resume_data["activities"].append({
                         "name": spec.spec_description or "",
                         "description": ""
@@ -861,13 +959,173 @@ async def generate_passed_applicants_questions(
             company_name=actual_company_name
         )
         
-        return {
+        result = {
             "message": "서류 합격자 개인별 질문 생성 완료",
             "job_post_id": job_post_id,
             "company_name": actual_company_name,
             "total_applicants": len(passed_applicants),
             "personal_questions": batch_questions.get("personal_questions", {})
         }
+        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+        return result
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/analysis-questions", response_model=Dict[str, Any])
+async def generate_analysis_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
+    """
+    다양한 직무 역량(실무, 문제해결, 커뮤니케이션, 성장 가능성 등) 평가 질문 통합 API
+    """
+    cache_key = f"analysis_questions:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
+
+    try:
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+
+        from agent.agents.interview_question_node import generate_advanced_competency_questions
+
+        competency_questions = generate_advanced_competency_questions(resume_text=resume_text, job_info=job_info)
+
+        result = {"competency_questions": competency_questions}
+        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/job-common-questions", response_model=Dict[str, Any])
+async def generate_job_common_questions(
+    job_post_id: int,
+    company_name: str = "",
+    db: Session = Depends(get_db)
+):
+    """
+    공고/직무/회사 기준의 실무진 공통 질문 생성 API
+    (지원자별이 아닌, 모든 지원자에게 적용할 수 있는 직무 중심 질문)
+    """
+    cache_key = f"job_common_questions:{job_post_id}:{company_name}"
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
+
+    job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+    if not job_post:
+        raise HTTPException(status_code=404, detail="Job post not found")
+    job_info = parse_job_post_data(job_post)
+    from agent.agents.interview_question_node import generate_job_question_bundle
+    # resume_text 없이(공통 질문)
+    question_bundle = generate_job_question_bundle(
+        resume_text="",
+        job_info=job_info,
+        company_name=company_name,
+        job_matching_info=""
+    )
+    result = {"question_bundle": question_bundle}
+    redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+    return result
+
+# --- 공고 기반 체크리스트 ---
+@router.post("/interview-checklist/job-based", response_model=JobBasedChecklistResponse)
+async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Session = Depends(get_db)):
+    cache_key = f"job_based_checklist:{request.job_post_id}:{request.company_name}"
+    cached = redis_client.get(cache_key)
+    if isinstance(cached, bytes):
+        return json.loads(cached)
+    try:
+        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        job_info = parse_job_post_data(job_post)
+        from agent.agents.interview_question_node import generate_interview_checklist
+        checklist_result = generate_interview_checklist(
+            resume_text=None,
+            job_info=job_info,
+            company_name=request.company_name or ""
+        )
+        redis_client.set(cache_key, json.dumps(checklist_result), ex=60*60*24)
+        return checklist_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- 공고 기반 강점/약점 ---
+@router.post("/strengths-weaknesses/job-based", response_model=JobBasedStrengthsResponse)
+async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsRequest, db: Session = Depends(get_db)):
+    cache_key = f"job_based_strengths_weaknesses:{request.job_post_id}:{request.company_name}"
+    cached = redis_client.get(cache_key)
+    if isinstance(cached, bytes):
+        return json.loads(cached)
+    try:
+        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        job_info = parse_job_post_data(job_post)
+        from agent.agents.interview_question_node import analyze_candidate_strengths_weaknesses
+        analysis_result = analyze_candidate_strengths_weaknesses(
+            resume_text=None,
+            job_info=job_info,
+            company_name=request.company_name or ""
+        )
+        redis_client.set(cache_key, json.dumps(analysis_result), ex=60*60*24)
+        return analysis_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- 공고 기반 가이드라인 ---
+@router.post("/interview-guideline/job-based", response_model=JobBasedGuidelineResponse)
+async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Session = Depends(get_db)):
+    cache_key = f"job_based_guideline:{request.job_post_id}:{request.company_name}"
+    cached = redis_client.get(cache_key)
+    if isinstance(cached, bytes):
+        return json.loads(cached)
+    try:
+        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        job_info = parse_job_post_data(job_post)
+        from agent.agents.interview_question_node import generate_interview_guideline
+        guideline_result = generate_interview_guideline(
+            resume_text=None,
+            job_info=job_info,
+            company_name=request.company_name or ""
+        )
+        redis_client.set(cache_key, json.dumps(guideline_result), ex=60*60*24)
+        return guideline_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- 공고 기반 평가 기준 ---
+@router.post("/evaluation-criteria/job-based", response_model=JobBasedCriteriaResponse)
+async def suggest_job_based_evaluation_criteria(request: JobBasedCriteriaRequest, db: Session = Depends(get_db)):
+    cache_key = f"job_based_evaluation_criteria:{request.job_post_id}:{request.company_name}"
+    cached = redis_client.get(cache_key)
+    if isinstance(cached, bytes):
+        return json.loads(cached)
+    try:
+        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        job_info = parse_job_post_data(job_post)
+        from agent.agents.interview_question_node import suggest_evaluation_criteria
+        criteria_result = suggest_evaluation_criteria(
+            resume_text=None,
+            job_info=job_info,
+            company_name=request.company_name or ""
+        )
+        redis_client.set(cache_key, json.dumps(criteria_result), ex=60*60*24)
+        return criteria_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
