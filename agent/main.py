@@ -284,7 +284,7 @@ async def start_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    # asyncio.create_task(scheduler.start()) # This line was commented out in the original file
+    asyncio.create_task(scheduler.start())
     return {"message": "Scheduler started"}
 
 @app.post("/monitor/scheduler/stop")
@@ -293,7 +293,7 @@ async def stop_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    # await scheduler.stop() # This line was commented out in the original file
+    await scheduler.stop()
     return {"message": "Scheduler stopped"}
 
 @app.get("/monitor/scheduler/status")
@@ -324,6 +324,8 @@ async def manual_backup(request: Request):
     
     result = await scheduler.run_manual_backup(backup_name)
     return result
+
+
 
 @app.post("/extract-weights/")
 async def extract_weights(request: Request):

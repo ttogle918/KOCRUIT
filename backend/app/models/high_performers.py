@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text
-from backend.app.core.database import Base
+from app.core.database import Base
 
 class HighPerformer(Base):
     __tablename__ = 'high_performers'
@@ -15,4 +15,4 @@ class HighPerformer(Base):
     promotion_speed_years = Column(Float, nullable=True)
     kpi_score = Column(Float, nullable=True)
     notable_projects = Column(Text, nullable=True)
-    created_at = Column(DateTime, nullable=False) 
+    created_at = Column(DateTime, nullable=False)

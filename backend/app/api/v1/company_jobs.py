@@ -29,13 +29,23 @@ def check_company_role(current_user: User):
 def get_company_job_posts(
     skip: int = 0,
     limit: int = 100,
+    status: str = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     # 기업 사용자만 접근 가능
     check_company_role(current_user)
     
-    job_posts = db.query(JobPost).filter(JobPost.company_id == current_user.company_id).offset(skip).limit(limit).all()
+    query = db.query(JobPost).filter(JobPost.company_id == current_user.company_id)
+    
+    # 상태별 필터링
+    if status:
+        if status.upper() in ["SCHEDULED", "RECRUITING", "SELECTING", "CLOSED"]:
+            query = query.filter(JobPost.status == status.upper())
+        else:
+            raise HTTPException(status_code=400, detail="Invalid status. Use SCHEDULED, RECRUITING, SELECTING, or CLOSED")
+    
+    job_posts = query.offset(skip).limit(limit).all()
     
     # Add company name to each job post
     for job_post in job_posts:

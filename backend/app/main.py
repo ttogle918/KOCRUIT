@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
+import asyncio
 
 from app.core.config import settings
 from app.api.v1.api import api_router
@@ -11,6 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.core.database import SessionLocal
 from app.models.interview_evaluation import auto_process_applications
 from sqlalchemy import text, inspect
+from app.scheduler.job_status_scheduler import JobStatusScheduler
 
 
 def safe_create_tables():
@@ -57,6 +59,10 @@ def safe_create_tables():
 from app.models.interview_evaluation import auto_process_applications, auto_evaluate_all_applications
 
 
+# JobPost 상태 스케줄러 인스턴스 (싱글톤)
+from app.scheduler.job_status_scheduler import JobStatusScheduler
+job_status_scheduler = JobStatusScheduler()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("=== FastAPI 서버 시작 ===")
@@ -68,6 +74,11 @@ async def lifespan(app: FastAPI):
     safe_create_tables()
     Base.metadata.create_all(bind=engine)
     print("데이터베이스 테이블 생성 완료")
+    
+    # JobPost 상태 스케줄러 시작
+    print("🔄 Starting JobPost status scheduler...")
+    asyncio.create_task(job_status_scheduler.start())
+    print("JobPost 상태 스케줄러 시작 완료")
     
     # 시드 데이터 실행
     try:
@@ -103,8 +114,11 @@ async def lifespan(app: FastAPI):
     print("=== FastAPI 서버 시작 완료 ===")
     
     yield
+    
     # Shutdown
-    pass
+    print("🔄 Stopping JobPost status scheduler...")
+    await job_status_scheduler.stop()
+    print("JobPost 상태 스케줄러 중지 완료")
 
 
 app = FastAPI(
