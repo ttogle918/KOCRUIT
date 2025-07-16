@@ -11,6 +11,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.core.database import SessionLocal
 from app.models.interview_evaluation import auto_process_applications
 from sqlalchemy import text, inspect
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler()]
+)
 
 
 def safe_create_tables():
