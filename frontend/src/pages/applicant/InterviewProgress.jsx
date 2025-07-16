@@ -342,10 +342,12 @@ function InterviewProgress() {
       // 면접 도구 fetch
       Promise.allSettled([
         api.post('/interview-questions/interview-checklist/job-based', requestData),
+        api.post('/interview-questions/strengths-weaknesses/job-based', requestData),
         api.post('/interview-questions/interview-guideline/job-based', requestData),
         api.post('/interview-questions/evaluation-criteria/job-based', requestData)
       ]).then(([checklistRes, strengthsRes, guidelineRes, criteriaRes]) => {
         setCommonChecklist(checklistRes.status === 'fulfilled' ? checklistRes.value.data : null);
+        setCommonStrengths(strengthsRes.status === 'fulfilled' ? strengthsRes.value.data : null);
         setCommonGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
         setCommonCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
       }).finally(() => setCommonToolsLoading(false));
