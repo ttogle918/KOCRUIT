@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text
-from backend.app.core.database import Base
+from app.core.database import Base
 
 class HighPerformer(Base):
     __tablename__ = 'high_performers'
