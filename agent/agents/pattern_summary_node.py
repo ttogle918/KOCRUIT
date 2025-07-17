@@ -1,21 +1,104 @@
 import logging
-from typing import Dict, Any, List
+import json
+import hashlib
+from typing import Dict, Any, List, Optional
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
+import redis
 
 logger = logging.getLogger(__name__)
 
 class PatternSummaryNode:
     """고성과자 패턴 요약 LangGraph 노드"""
     
-    def __init__(self, llm_model: str = "gpt-3.5-turbo"):
+    def __init__(self, llm_model: str = "gpt-3.5-turbo", redis_url: str = "redis://localhost:6379"):
         """
         Args:
             llm_model: 사용할 LLM 모델명
+            redis_url: Redis 연결 URL
         """
         self.llm = ChatOpenAI(model=llm_model, temperature=0.3)
         self.pattern_summary_prompt = self._create_pattern_summary_prompt()
+        
+        # Redis 클라이언트 초기화
+        try:
+            self.redis_client = redis.from_url(redis_url, decode_responses=True)
+            self.redis_client.ping()  # 연결 테스트
+            logger.info("Redis 연결 성공")
+        except Exception as e:
+            logger.warning(f"Redis 연결 실패: {e}. 캐싱 기능이 비활성화됩니다.")
+            self.redis_client = None
+    
+    def _generate_cache_key(self, cluster_patterns: List[Dict[str, Any]]) -> str:
+        """클러스터 패턴 데이터를 기반으로 캐시 키 생성"""
+        # 데이터를 JSON 문자열로 변환하여 해시 생성
+        data_str = json.dumps(cluster_patterns, sort_keys=True, ensure_ascii=False)
+        hash_object = hashlib.md5(data_str.encode('utf-8'))
+        return f"pattern_summary:{hash_object.hexdigest()}"
+    
+    def _get_cached_summary(self, cache_key: str) -> Optional[str]:
+        """캐시에서 패턴 요약 결과 조회"""
+        if not self.redis_client:
+            return None
+        
+        try:
+            cached_result = self.redis_client.get(cache_key)
+            if cached_result:
+                logger.info(f"캐시에서 패턴 요약 결과 조회: {cache_key}")
+                return cached_result
+        except Exception as e:
+            logger.error(f"캐시 조회 실패: {e}")
+        
+        return None
+    
+    def _cache_summary(self, cache_key: str, summary: str, expire_seconds: int = 3600) -> bool:
+        """패턴 요약 결과를 캐시에 저장"""
+        if not self.redis_client:
+            return False
+        
+        try:
+            self.redis_client.setex(cache_key, expire_seconds, summary)
+            logger.info(f"패턴 요약 결과 캐시 저장: {cache_key} (만료: {expire_seconds}초)")
+            return True
+        except Exception as e:
+            logger.error(f"캐시 저장 실패: {e}")
+            return False
+    
+    def clear_cache(self, pattern: str = "pattern_summary:*") -> bool:
+        """캐시 삭제"""
+        if not self.redis_client:
+            return False
+        
+        try:
+            keys = self.redis_client.keys(pattern)
+            if keys:
+                self.redis_client.delete(*keys)
+                logger.info(f"캐시 삭제 완료: {len(keys)}개 키")
+                return True
+            else:
+                logger.info("삭제할 캐시가 없습니다.")
+                return True
+        except Exception as e:
+            logger.error(f"캐시 삭제 실패: {e}")
+            return False
+    
+    def get_cache_info(self) -> Dict[str, Any]:
+        """캐시 정보 조회"""
+        if not self.redis_client:
+            return {"error": "Redis 연결이 없습니다."}
+        
+        try:
+            pattern_keys = self.redis_client.keys("pattern_summary:*")
+            cache_info = {
+                "total_keys": len(pattern_keys),
+                "keys": pattern_keys[:10],  # 처음 10개만 표시
+                "redis_info": self.redis_client.info()
+            }
+            return cache_info
+        except Exception as e:
+            logger.error(f"캐시 정보 조회 실패: {e}")
+            return {"error": str(e)}
     
     def _create_pattern_summary_prompt(self) -> PromptTemplate:
         """패턴 요약 프롬프트 템플릿 생성"""
@@ -105,17 +188,28 @@ class PatternSummaryNode:
         
         return "\n".join(formatted_info)
     
-    def summarize_patterns(self, cluster_patterns: List[Dict[str, Any]]) -> str:
+    def summarize_patterns(self, cluster_patterns: List[Dict[str, Any]], use_cache: bool = True) -> str:
         """
         클러스터 패턴을 LLM으로 요약
         
         Args:
             cluster_patterns: 클러스터별 패턴 정보 리스트
+            use_cache: 캐시 사용 여부 (기본값: True)
             
         Returns:
             LLM이 생성한 패턴 요약 텍스트
         """
         try:
+            # 캐시 키 생성
+            cache_key = self._generate_cache_key(cluster_patterns)
+            
+            # 캐시에서 결과 조회 (캐시 사용이 활성화된 경우)
+            if use_cache:
+                cached_summary = self._get_cached_summary(cache_key)
+                if cached_summary:
+                    logger.info(f"캐시에서 패턴 요약 결과 조회: {cache_key}")
+                    return cached_summary
+            
             # 클러스터 정보 포맷팅
             cluster_info = self._format_cluster_info(cluster_patterns)
             
@@ -125,6 +219,10 @@ class PatternSummaryNode:
             
             summary = response.content
             logger.info(f"패턴 요약 완료: {len(summary)}자")
+            
+            # 결과를 캐시에 저장 (캐시 사용이 활성화된 경우)
+            if use_cache:
+                self._cache_summary(cache_key, summary)
             
             return summary
             
@@ -140,6 +238,7 @@ class PatternSummaryNode:
             cluster_patterns: List[Dict[str, Any]]
             pattern_summary: str = ""
             error: str = ""
+            use_cache: bool = True
         
         # 노드 함수들
         def summarize_patterns_node(state: PatternSummaryState) -> PatternSummaryState:
@@ -149,7 +248,7 @@ class PatternSummaryNode:
                     state.error = "클러스터 패턴 데이터가 없습니다."
                     return state
                 
-                summary = self.summarize_patterns(state.cluster_patterns)
+                summary = self.summarize_patterns(state.cluster_patterns, use_cache=state.use_cache)
                 state.pattern_summary = summary
                 
             except Exception as e:
@@ -170,12 +269,13 @@ class PatternSummaryNode:
         
         return workflow.compile()
     
-    def run_pattern_summary(self, cluster_patterns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def run_pattern_summary(self, cluster_patterns: List[Dict[str, Any]], use_cache: bool = True) -> Dict[str, Any]:
         """
         패턴 요약 워크플로우 실행
         
         Args:
             cluster_patterns: 클러스터별 패턴 정보
+            use_cache: 캐시 사용 여부 (기본값: True)
             
         Returns:
             워크플로우 실행 결과
@@ -188,7 +288,8 @@ class PatternSummaryNode:
             initial_state = {
                 "cluster_patterns": cluster_patterns,
                 "pattern_summary": "",
-                "error": ""
+                "error": "",
+                "use_cache": use_cache
             }
             
             # 워크플로우 실행
@@ -208,6 +309,6 @@ class PatternSummaryNode:
                 "error": str(e)
             }
 
-def create_pattern_summary_node(llm_model: str = "gpt-3.5-turbo") -> PatternSummaryNode:
+def create_pattern_summary_node(llm_model: str = "gpt-3.5-turbo", redis_url: str = "redis://localhost:6379") -> PatternSummaryNode:
     """패턴 요약 노드 팩토리 함수"""
-    return PatternSummaryNode(llm_model) 
+    return PatternSummaryNode(llm_model, redis_url) 
