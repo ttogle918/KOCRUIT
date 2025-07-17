@@ -15,7 +15,10 @@ def get_public_job_posts(
     db: Session = Depends(get_db)
 ):
     """지원자가 볼 수 있는 공개 채용공고 목록"""
-    job_posts = db.query(JobPost).filter(JobPost.status == "ACTIVE").offset(skip).limit(limit).all()
+    # SCHEDULED와 RECRUITING 상태인 공고만 표시
+    job_posts = db.query(JobPost).filter(
+        JobPost.status.in_(["SCHEDULED", "RECRUITING"])
+    ).offset(skip).limit(limit).all()
     
     # Add company name to each job post
     for job_post in job_posts:
@@ -33,7 +36,7 @@ def get_public_job_post(
     """지원자가 볼 수 있는 공개 채용공고 상세"""
     job_post = db.query(JobPost).filter(
         JobPost.id == job_post_id,
-        JobPost.status == "ACTIVE"
+        JobPost.status.in_(["SCHEDULED", "RECRUITING"])
     ).first()
     
     if not job_post:
