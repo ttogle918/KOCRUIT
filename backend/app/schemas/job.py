@@ -17,7 +17,6 @@ class InterviewScheduleCreate(BaseModel):
     interview_date: str  # YYYY-MM-DD
     interview_time: str  # HH:MM
     location: str
-    interview_type: Optional[str] = "ONSITE"
     max_participants: Optional[int] = 1
     notes: Optional[str] = None
 

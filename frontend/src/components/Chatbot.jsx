@@ -37,7 +37,7 @@ import { useFormContext } from '../context/FormContext';
 import { parseFilterConditions } from '../utils/filterUtils';
 import { calculateAge } from '../utils/resumeUtils';
 import CommonResumeList from './CommonResumeList';
-import api from '../api/api';
+import api, { spellCheck } from '../api/api';
 
 // === 학력 레벨 판별 함수 (applicantStats.js 로직 참고) ===
 function getEducationLevel(applicant) {
@@ -185,6 +185,7 @@ const Chatbot = () => {
     "프론트엔드 개발자 2명 뽑는 공고 작성해줘",
     "현재 폼 상태 확인",
     "폼 개선 제안",
+    "맞춤법 검사",
     "부서명을 개발팀으로 변경"
   ];
 
@@ -964,6 +965,103 @@ const Chatbot = () => {
       }
     }
     
+    // 맞춤법 검사
+    if (lowerMessage.includes('맞춤법') || lowerMessage.includes('띄어쓰기') || lowerMessage.includes('문법') || lowerMessage.includes('오타')) {
+      try {
+        // 폼 데이터에서 텍스트 필드들을 수집
+        const textFields = {
+          '제목': formData.title || '',
+          '부서명': formData.department || '',
+          '지원자격': formData.qualifications || '',
+          '근무조건': formData.conditions || '',
+          '모집분야': formData.job_details || '',
+          '전형절차': formData.procedures || '',
+          '근무지역': formData.location || ''
+        };
+        
+        // 빈 필드 제외하고 검사할 텍스트 수집
+        const textsToCheck = Object.entries(textFields)
+          .filter(([_, text]) => text.trim() !== '')
+          .map(([fieldName, text]) => ({ fieldName, text }));
+        
+        if (textsToCheck.length === 0) {
+          return '검사할 텍스트가 없습니다. 폼에 내용을 입력한 후 다시 시도해주세요.';
+        }
+        
+        let allErrors = [];
+        let allSuggestions = [];
+        let correctedFields = {};
+        
+        // 각 필드별로 맞춤법 검사 수행
+        for (const { fieldName, text } of textsToCheck) {
+          const result = await spellCheck(text, fieldName);
+          
+          if (result.errors && result.errors.length > 0) {
+            allErrors.push(...result.errors.map(error => ({
+              ...error,
+              field: fieldName
+            })));
+          }
+          
+          if (result.suggestions && result.suggestions.length > 0) {
+            allSuggestions.push(...result.suggestions);
+          }
+          
+          if (result.corrected_text && result.corrected_text !== text) {
+            correctedFields[fieldName] = result.corrected_text;
+          }
+        }
+        
+        // 결과 메시지 생성
+        let response = '🔍 **맞춤법 검사 결과**\n\n';
+        
+        if (allErrors.length === 0) {
+          response += '✅ 모든 텍스트의 맞춤법이 정확합니다!\n\n';
+        } else {
+          response += `❌ ${allErrors.length}개의 오류를 발견했습니다:\n\n`;
+          
+          allErrors.forEach((error, index) => {
+            response += `${index + 1}. **[${error.field}]** ${error.original} → ${error.corrected}\n`;
+            response += `   💡 ${error.explanation}\n\n`;
+          });
+        }
+        
+        if (allSuggestions.length > 0) {
+          response += '💡 **전반적인 개선 제안**\n';
+          allSuggestions.forEach((suggestion, index) => {
+            response += `${index + 1}. ${suggestion}\n`;
+          });
+          response += '\n';
+        }
+        
+        if (Object.keys(correctedFields).length > 0) {
+          response += '🔄 **수정된 내용을 폼에 적용하시겠습니까?**\n';
+          response += '다음 명령어로 수정할 수 있습니다:\n';
+          
+          Object.entries(correctedFields).forEach(([fieldName, correctedText]) => {
+            const fieldKey = {
+              '제목': 'title',
+              '부서명': 'department',
+              '지원자격': 'qualifications',
+              '근무조건': 'conditions',
+              '모집분야': 'job_details',
+              '전형절차': 'procedures',
+              '근무지역': 'location'
+            }[fieldName];
+            
+            if (fieldKey) {
+              response += `• "${fieldName}을 ${correctedText}로 변경"\n`;
+            }
+          });
+        }
+        
+        return response;
+      } catch (error) {
+        console.error('맞춤법 검사 오류:', error);
+        return '맞춤법 검사 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      }
+    }
+    
     // 현재 폼 상태 확인
     if (lowerMessage.includes('현재') || lowerMessage.includes('상태') || lowerMessage.includes('확인')) {
       let response = '**현재 폼 상태**\n\n';
@@ -1066,6 +1164,8 @@ const Chatbot = () => {
       // 폼 관련 명령 처리
       if (isFormActive && (location.pathname.includes('postrecruitment') || location.pathname.includes('editpost'))) {
         console.log('폼 명령 처리 시작:', { isFormActive, pathname: location.pathname, message: messageToSend });
+        
+        // 모든 폼 명령은 백엔드 라우팅 사용 (맞춤법 검사 포함)
         const formResponse = await handleFormCommands(messageToSend);
         console.log('폼 명령 처리 결과:', formResponse);
         if (formResponse) {
