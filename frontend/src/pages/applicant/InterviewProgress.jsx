@@ -70,7 +70,13 @@ function InterviewProgress() {
       try {
         const res = await api.get(`/applications/job/${jobPostId}/applicants-with-interview`);
         setApplicants(res.data);
-        console.log('applicants:', applicants);
+
+        // 1. 면접시간 기준 정렬
+        const sorted = [...res.data].sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date));
+        if (sorted.length > 0) {
+          // 2. 첫 지원자만 상세 fetch
+          handleApplicantClick(sorted[0], 0);
+        }
       } catch (err) {
         setError('지원자 목록을 불러오지 못했습니다.');
       } finally {
@@ -161,10 +167,7 @@ function InterviewProgress() {
 
   const handleApplicantClick = async (applicant, index) => {
     const id = applicant.applicant_id || applicant.id;
-    if (selectedApplicantIndex === index) {
-      setDrawerOpen(true); // 이미 선택된 지원자를 다시 클릭하면 Drawer 오픈
-      return;
-    }
+    // 지원자 클릭 시 Drawer(공통질문패널) 자동 오픈 로직 제거
     setSelectedApplicantIndex(index);
     setResume(null);
     try {
@@ -199,6 +202,7 @@ function InterviewProgress() {
 
   // 평가 저장 핸들러 (자동 저장용, 중복 방지)
   const handleSaveEvaluation = async (auto = false) => {
+    if (auto && !autoSaveEnabled) return; // 오토세이브 OFF면 무시
     if (!selectedApplicant || !user?.id) {
       if (!auto) setSaveStatus('지원자 또는 평가자 정보가 없습니다.');
       return;
@@ -240,7 +244,10 @@ function InterviewProgress() {
     
     // 변경사항이 없으면 저장하지 않음
     const current = JSON.stringify({ evaluation, memo });
-    if (lastSaved === current && auto) return;
+    if (lastSaved === current && auto) {
+      if (auto) setIsAutoSaving(false); // <- 이 줄이 반드시 필요!
+      return;
+    }
     
     // 저장 상태 설정
     if (auto) {
@@ -323,10 +330,16 @@ function InterviewProgress() {
 
   // 자동 저장 useEffect (10초마다)
   useEffect(() => {
-    if (!selectedApplicant || !autoSaveEnabled) return;
+    if (!selectedApplicant || !autoSaveEnabled) {
+      if (saveTimer.current) clearInterval(saveTimer.current);
+      setIsAutoSaving(false); // 오프시 즉시 상태 해제
+      return;
+    }
     if (saveTimer.current) clearInterval(saveTimer.current);
     saveTimer.current = setInterval(() => {
-      handleSaveEvaluation(true);
+      if (autoSaveEnabled) {
+        handleSaveEvaluation(true);
+      }
     }, 10000); // 10초마다
     return () => {
       if (saveTimer.current) clearInterval(saveTimer.current);
@@ -409,10 +422,14 @@ function InterviewProgress() {
             <InterviewApplicantList
               applicants={applicants}
               splitMode={true}
+              selectedApplicantId={selectedApplicant?.id}
               selectedApplicantIndex={selectedApplicantIndex}
               onSelectApplicant={handleApplicantClick}
               handleApplicantClick={handleApplicantClick}
               handleCloseDetailedView={() => {}}
+              toggleBookmark={() => {}}
+              bookmarkedList={[]}
+              selectedCardRef={null}
               calculateAge={() => ''}
               compact={true}
             />
@@ -531,7 +548,7 @@ function InterviewProgress() {
                 {/* 자동저장 토글 버튼 및 상태 메시지 (상단) */}
                 <div className="flex items-center justify-end gap-4 px-4 pt-4 min-h-[40px]">
                   {/* 자동저장 상태 메시지 */}
-                  {isAutoSaving && (
+                  {autoSaveEnabled && isAutoSaving && (
                     <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                       자동 저장 중...

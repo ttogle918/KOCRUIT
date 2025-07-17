@@ -26,9 +26,13 @@ function groupApplicantsByTime(applicants) {
 function InterviewApplicantList({
   applicants = [],
   selectedApplicantId,
+  selectedApplicantIndex,
   onSelectApplicant,
   handleApplicantClick,
   handleCloseDetailedView,
+  toggleBookmark,
+  bookmarkedList = [],
+  selectedCardRef,
   compact = false,
   splitMode = false,
   calculateAge,
@@ -44,25 +48,30 @@ function InterviewApplicantList({
             <Typography fontWeight="bold">{time}</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            {grouped[time].map((applicant) => {
+            {grouped[time].map((applicant, localIndex) => {
               const id = applicant.applicant_id || applicant.id;
               const isSelected = selectedApplicantId === id;
+              const globalIndex = applicants.findIndex(a => (a.applicant_id || a.id) === id);
+              
               return (
                 <ApplicantCard
-                  key={id}
+                  key={applicant.id}
+                  ref={isSelected ? selectedCardRef : null}
                   applicant={applicant}
+                  index={globalIndex + 1}
                   isSelected={isSelected}
                   splitMode={splitMode}
-                  bookmarked={false}
+                  bookmarked={bookmarkedList[globalIndex]}
                   onClick={() => {
-                    console.log('클릭된 applicant:', applicant);
                     if (splitMode && isSelected) {
-                      handleCloseDetailedView && handleCloseDetailedView();
+                      handleCloseDetailedView();
+                    } else if (splitMode && !isSelected) {
+                      onSelectApplicant(applicant, globalIndex);
                     } else {
-                      onSelectApplicant && onSelectApplicant(applicant);
+                      handleApplicantClick(applicant, globalIndex);
                     }
                   }}
-                  onBookmarkToggle={() => {}}
+                  onBookmarkToggle={() => toggleBookmark(globalIndex)}
                   calculateAge={calculateAge}
                   compact={compact}
                 />

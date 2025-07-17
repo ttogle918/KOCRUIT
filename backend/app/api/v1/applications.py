@@ -658,9 +658,9 @@ def get_applicants_by_job(
         }
         applicants.append(applicant_data)
     return applicants
-
 @router.get("/job/{job_post_id}/applicants-with-interview")
 def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db)):
+    # 지원자 + 면접일정 포함 API : "지원자 면접시간 그룹핑"과 "첫 지원자만 미리 상세 fetch"
     meta = MetaData()
     schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
     applicants = db.query(Application).filter(Application.job_post_id == job_post_id).all()
