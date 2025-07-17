@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -11,16 +11,27 @@ export default function ResumeAnalysisAccordion({ resumeId }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [open, setOpen] = useState(false);
+  const [requested, setRequested] = useState(false);
 
-  useEffect(() => {
+  // 버튼 클릭 시에만 분석 요청
+  const handleRequestAnalysis = () => {
     if (!resumeId || typeof resumeId !== 'number') return;
     setAnalysis(null);
     setError(null);
     setLoading(true);
+    setRequested(true);
     api.post('/interview-questions/resume-analysis', { resume_id: resumeId })
       .then(res => setAnalysis(res.data))
       .catch(err => setError(err?.response?.data?.detail || err.message))
       .finally(() => setLoading(false));
+  };
+
+  // resumeId가 바뀌면 상태 초기화
+  React.useEffect(() => {
+    setAnalysis(null);
+    setError(null);
+    setLoading(false);
+    setRequested(false);
   }, [resumeId]);
 
   return (
@@ -29,7 +40,15 @@ export default function ResumeAnalysisAccordion({ resumeId }) {
         <Typography className="font-bold text-blue-700 dark:text-blue-300">이력서 분석</Typography>
       </AccordionSummary>
       <AccordionDetails>
-        {loading ? (
+        {!requested ? (
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-2"
+            onClick={handleRequestAnalysis}
+            disabled={loading}
+          >
+            {loading ? '분석 중...' : '이력서 분석/질문 생성'}
+          </button>
+        ) : loading ? (
           <div className="flex items-center gap-2 text-blue-500"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>분석 중...</div>
         ) : error ? (
           <div className="text-red-500">분석 실패: {error}</div>

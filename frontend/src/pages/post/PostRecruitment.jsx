@@ -40,6 +40,19 @@ const validateDate = (date) => {
   return null;
 };
 
+// Headcount sanitizer (copy from context if not imported)
+function sanitizeHeadcount(value) {
+  if (typeof value === 'string') {
+    const num = value.replace(/[^\d]/g, '');
+    console.log('Sanitizing headcount:', value, '->', num);
+    return num ? parseInt(num, 10) : '';
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  return '';
+}
+
 function PostRecruitment() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -51,7 +64,8 @@ function PostRecruitment() {
     updateSchedules, 
     updateWeights, 
     activateForm, 
-    deactivateForm 
+    deactivateForm,
+    resetFormData // 폼 진입 시 항상 초기화
   } = useFormContext();
   const [formData, setFormData] = useState({
     title: '',
@@ -100,7 +114,11 @@ function PostRecruitment() {
   };
 
   const handleInputChange = (e, field) => {
-    const newValue = e.target.value;
+    let newValue = e.target.value;
+    if (field === 'headcount') {
+      newValue = sanitizeHeadcount(newValue);
+      console.log('Input headcount value:', newValue);
+    }
     setFormData(prev => ({
       ...prev,
       [field]: newValue
@@ -112,6 +130,7 @@ function PostRecruitment() {
   // 폼 활성화 및 초기 데이터 로드
   useEffect(() => {
     activateForm('create');
+    resetFormData(); // 폼 진입 시 항상 초기화
     
     const fetchInitialData = async () => {
       try {
@@ -191,12 +210,21 @@ function PostRecruitment() {
         if (key === 'teamMembers' || key === 'schedules' || key === 'weights') return false;
         return JSON.stringify(contextFormData[key]) !== JSON.stringify(formData[key]);
       });
-      
       if (hasChanges) {
-        setFormData(prev => ({
-          ...prev,
-          ...contextFormData
-        }));
+        // 우대 사항이 qualifications에 있으면 job_details로 이동
+        let newFormData = { ...formData, ...contextFormData };
+        if (newFormData.qualifications && /우대[\s\S]*?([\n\r]|$)/.test(newFormData.qualifications)) {
+          const parts = newFormData.qualifications.split(/(우대[사항:]*[\n\r]*)/);
+          if (parts.length > 2) {
+            newFormData.qualifications = parts[0].trim();
+            newFormData.job_details = (newFormData.job_details || '') + '\n[우대 사항]\n' + parts.slice(2).join('').trim();
+          }
+        }
+        // 모집 인원도 항상 sanitize
+        if ('headcount' in newFormData) {
+          newFormData.headcount = sanitizeHeadcount(newFormData.headcount);
+        }
+        setFormData(newFormData);
       }
     }
   }, [contextFormData]);
@@ -304,7 +332,6 @@ function PostRecruitment() {
             interview_date: date.toISOString().split('T')[0],  // YYYY-MM-DD
             interview_time: schedule.time,  // HH:MM
             location: schedule.place,
-            interview_type: "ONSITE",
             max_participants: 1,
             notes: null
           };
@@ -553,6 +580,9 @@ function PostRecruitment() {
     });
   }, [teamMembers]);
 
+  // 모집 인원 input 바로 위에 디버그 로그 추가
+  console.log('Rendering headcount input:', formData.headcount);
+
   return (
     <Layout title="채용공고 등록">
       <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
@@ -636,7 +666,7 @@ function PostRecruitment() {
                     <label className="w-24 text-sm text-gray-700 dark:text-white">모집 인원:</label>
                     <input 
                       type="number" 
-                      value={formData.headcount} 
+                      value={typeof formData.headcount === 'number' ? formData.headcount : (parseInt(formData.headcount, 10) || '')}
                       onChange={(e) => handleInputChange(e, 'headcount')} 
                       min="1"
                       step="1"

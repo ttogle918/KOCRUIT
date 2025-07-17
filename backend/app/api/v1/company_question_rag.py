@@ -9,15 +9,18 @@ from langchain_openai import ChatOpenAI
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain.chains.summarize import load_summarize_chain
 from langchain_core.documents import Document
+import redis
+import json
 
 router = APIRouter()
 load_dotenv()
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 llm = ChatOpenAI(model="gpt-4o-mini")
 
+redis_client = redis.Redis(host='redis', port=6379, db=0)
 
 # 1. Tavily로 검색
-search_tool = TavilySearchResults()  # <-- 반드시 본인 API Key 입력
+search_tool = TavilySearchResults()
 
 # 2. 요약 체인 (검색 결과 요약)
 summarize_chain = load_summarize_chain(llm, chain_type="stuff")
@@ -59,6 +62,10 @@ class CompanyQuestionRagResponse(BaseModel):
 # 6. API 라우터
 @router.get("/company/questions/rag", response_model=CompanyQuestionRagResponse)
 async def generate_company_questions_rag(company_name: str = Query(...)):
+    cache_key = f"company_questions_rag:{company_name}"
+    cached = redis_client.get(cache_key)
+    if isinstance(cached, bytes):
+        return json.loads(cached)
     try:
         # 1) 인재상/가치관 검색
         values_search_results = search_tool.invoke({
@@ -116,12 +123,14 @@ async def generate_company_questions_rag(company_name: str = Query(...)):
         tech_text = tech_result.get("text", "")
         tech_questions = [q.strip() for q in tech_text.split("\n") if q.strip()]
 
-        return {
+        result = {
             "values_summary": values_summary,
             "news_summary": news_summary,
             "values_questions": values_questions,
             "tech_questions": tech_questions
         }
+        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+        return result
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -129,6 +138,10 @@ async def generate_company_questions_rag(company_name: str = Query(...)):
 # 7. LangGraph 노드용 함수
 def generate_questions(company_name: str, company_context: str = ""):
     """LangGraph 노드에서 사용할 통합 질문 생성 함수"""
+    cache_key = f"company_questions_rag:{company_name}:{company_context}"
+    cached = redis_client.get(cache_key)
+    if isinstance(cached, bytes):
+        return json.loads(cached)
     try:
         # 인재상 검색
         values_search_results = search_tool.invoke({
@@ -201,7 +214,9 @@ def generate_questions(company_name: str, company_context: str = ""):
                 f"{company_name}에서 일하고 싶은 이유는 무엇인가요?"
             ]
 
-        return {"text": all_questions}
+        result = {"text": all_questions}
+        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
+        return result
 
     except Exception as e:
         return {"text": [f"질문 생성 중 오류가 발생했습니다: {str(e)}"]}

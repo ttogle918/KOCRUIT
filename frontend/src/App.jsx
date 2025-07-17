@@ -26,6 +26,7 @@ import ManagerSchedule from './pages/schedule/ManagerSchedule.jsx';
 import MemberSchedule from './pages/schedule/MemberSchedule.jsx';
 import InterviewProgress from './pages/applicant/InterviewProgress';
 import WrittenTestGenerator from './pages/applicant/WrittenTestGenerator';
+import InterviewPanelManagement from './pages/applicant/InterviewPanelManagement';
 
 // Context & Constants
 import { ThemeProvider } from "./context/ThemeContext";
@@ -86,33 +87,6 @@ const muiTheme = createTheme({
       main: '#dc004e',
     },
   },
-  shadows: [
-    "none",
-    "0px 1px 3px rgba(0,0,0,0.2), 0px 1px 1px rgba(0,0,0,0.14), 0px 2px 1px rgba(0,0,0,0.12)",
-    "0px 1px 5px rgba(0,0,0,0.2), 0px 2px 2px rgba(0,0,0,0.14), 0px 3px 1px rgba(0,0,0,0.12)",
-    "0px 1.5px 8px rgba(0,0,0,0.2), 0px 3px 4px rgba(0,0,0,0.14), 0px 4.5px 2px rgba(0,0,0,0.12)",
-    "0px 2px 4px rgba(0,0,0,0.2), 0px 4px 5px rgba(0,0,0,0.14), 0px 6px 2px rgba(0,0,0,0.12)",
-    "0px 3px 5px rgba(0,0,0,0.2), 0px 6px 10px rgba(0,0,0,0.14), 0px 8px 3px rgba(0,0,0,0.12)",
-    "0px 4px 5px rgba(0,0,0,0.2), 0px 8px 10px rgba(0,0,0,0.14), 0px 12px 3px rgba(0,0,0,0.12)",
-    "0px 5px 5px rgba(0,0,0,0.2), 0px 10px 10px rgba(0,0,0,0.14), 0px 14px 3px rgba(0,0,0,0.12)",
-    "0px 6px 5px rgba(0,0,0,0.2), 0px 12px 10px rgba(0,0,0,0.14), 0px 16px 3px rgba(0,0,0,0.12)",
-    "0px 7px 8px rgba(0,0,0,0.2), 0px 14px 12px rgba(0,0,0,0.14), 0px 20px 5px rgba(0,0,0,0.12)",
-    "0px 8px 10px rgba(0,0,0,0.2), 0px 16px 14px rgba(0,0,0,0.14), 0px 24px 6px rgba(0,0,0,0.12)",
-    "0px 9px 12px rgba(0,0,0,0.2), 0px 18px 16px rgba(0,0,0,0.14), 0px 28px 7px rgba(0,0,0,0.12)",
-    "0px 10px 14px rgba(0,0,0,0.2), 0px 20px 18px rgba(0,0,0,0.14), 0px 32px 8px rgba(0,0,0,0.12)",
-    "0px 11px 15px rgba(0,0,0,0.2), 0px 22px 20px rgba(0,0,0,0.14), 0px 36px 9px rgba(0,0,0,0.12)",
-    "0px 12px 17px rgba(0,0,0,0.2), 0px 24px 22px rgba(0,0,0,0.14), 0px 40px 10px rgba(0,0,0,0.12)",
-    "0px 13px 19px rgba(0,0,0,0.2), 0px 26px 24px rgba(0,0,0,0.14), 0px 44px 11px rgba(0,0,0,0.12)",
-    "0px 14px 21px rgba(0,0,0,0.2), 0px 28px 26px rgba(0,0,0,0.14), 0px 48px 12px rgba(0,0,0,0.12)",
-    "0px 15px 22px rgba(0,0,0,0.2), 0px 30px 28px rgba(0,0,0,0.14), 0px 52px 13px rgba(0,0,0,0.12)",
-    "0px 16px 24px rgba(0,0,0,0.2), 0px 32px 30px rgba(0,0,0,0.14), 0px 56px 14px rgba(0,0,0,0.12)",
-    "0px 17px 26px rgba(0,0,0,0.2), 0px 34px 32px rgba(0,0,0,0.14), 0px 60px 15px rgba(0,0,0,0.12)",
-    "0px 18px 28px rgba(0,0,0,0.2), 0px 36px 34px rgba(0,0,0,0.14), 0px 64px 16px rgba(0,0,0,0.12)",
-    "0px 19px 29px rgba(0,0,0,0.2), 0px 38px 36px rgba(0,0,0,0.14), 0px 68px 17px rgba(0,0,0,0.12)",
-    "0px 20px 31px rgba(0,0,0,0.2), 0px 40px 38px rgba(0,0,0,0.14), 0px 72px 18px rgba(0,0,0,0.12)",
-    "0px 21px 33px rgba(0,0,0,0.2), 0px 42px 40px rgba(0,0,0,0.14), 0px 76px 19px rgba(0,0,0,0.12)",
-    "0px 22px 35px rgba(0,0,0,0.2), 0px 44px 42px rgba(0,0,0,0.14), 0px 80px 20px rgba(0,0,0,0.12)"
-  ],
 });
 
 // App Routes Component
@@ -154,6 +128,7 @@ function AppRoutes() {
                 <Route path="/memberschedule" element={<ProtectedRoute><MemberSchedule /></ProtectedRoute>} />
                 <Route path="/applicantlist/:jobPostId" element={<ProtectedRoute><ApplicantList /></ProtectedRoute>} />
                 <Route path="/interview-progress/:jobPostId" element={<ProtectedRoute><InterviewProgress /></ProtectedRoute>} />
+                <Route path="/interview-panel-management/:jobPostId" element={<ProtectedRoute><InterviewPanelManagement /></ProtectedRoute>} />
                 <Route path="/applicant/written-test-generator" element={<ProtectedRoute><WrittenTestGenerator /></ProtectedRoute>} />
               
               </Routes>

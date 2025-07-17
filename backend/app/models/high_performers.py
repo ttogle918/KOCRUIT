@@ -15,4 +15,4 @@ class HighPerformer(Base):
     promotion_speed_years = Column(Float, nullable=True)
     kpi_score = Column(Float, nullable=True)
     notable_projects = Column(Text, nullable=True)
-    created_at = Column(DateTime, nullable=False) 
+    created_at = Column(DateTime, nullable=False)

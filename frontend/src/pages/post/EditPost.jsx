@@ -382,7 +382,6 @@ function EditPost() {
             interview_date: date.toISOString().split('T')[0],  // YYYY-MM-DD
             interview_time: schedule.time,  // HH:MM
             location: schedule.place,
-            interview_type: "ONSITE",
             max_participants: 1,
             notes: null
           };

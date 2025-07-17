@@ -22,17 +22,18 @@ def form_fill_tool(state):
     
     # 현재 날짜 기준으로 모집 기간과 면접 일정 설정
     current_date = datetime.now()
-    base_date = datetime(2025, 8, 1)  # 2025년 8월 1일 기준점
     
-    # 더 늦은 날짜를 기준으로 사용
-    reference_date = max(current_date, base_date)
+    # 모집 시작일: 현재 날짜 + 1~3일 (랜덤)
+    import random
+    start_offset = random.randint(1, 3)
+    start_date = current_date + timedelta(days=start_offset)
     
-    # 모집 시작일: 기준일 + 1일
-    start_date = reference_date + timedelta(days=1)
     # 모집 종료일: 시작일 + 14일 (2주간 모집)
     end_date = start_date + timedelta(days=14)
-    # 면접일: 종료일 + 3일
-    interview_date = end_date + timedelta(days=3)
+    
+    # 면접일: 종료일 + 3~7일 (랜덤)
+    interview_offset = random.randint(3, 7)
+    interview_date = end_date + timedelta(days=interview_offset)
     
     # 복합 분석 결과가 있으면 추가 요구사항을 프롬프트에 포함
     additional_requirements = ""
@@ -154,28 +155,36 @@ def form_fill_tool(state):
         
         # 날짜 형식 처리
         current_date = datetime.now()
-        base_date = datetime(2025, 8, 1)
-        reference_date = max(current_date, base_date)
         
         # 모집 기간 날짜 처리
         if "start_date" in form_data and isinstance(form_data["start_date"], str):
             try:
                 start_date_obj = datetime.strptime(form_data["start_date"], "%Y-%m-%d %H:%M")
-                if start_date_obj < reference_date:
-                    start_date_obj = reference_date + timedelta(days=1)
+                if start_date_obj < current_date:
+                    # 현재 날짜 + 1~3일 (랜덤)
+                    start_offset = random.randint(1, 3)
+                    start_date_obj = current_date + timedelta(days=start_offset)
                 form_data["start_date"] = start_date_obj.strftime("%Y-%m-%d %H:%M")
             except:
-                start_date_obj = reference_date + timedelta(days=1)
+                # 현재 날짜 + 1~3일 (랜덤)
+                start_offset = random.randint(1, 3)
+                start_date_obj = current_date + timedelta(days=start_offset)
                 form_data["start_date"] = start_date_obj.strftime("%Y-%m-%d %H:%M")
         
         if "end_date" in form_data and isinstance(form_data["end_date"], str):
             try:
                 end_date_obj = datetime.strptime(form_data["end_date"], "%Y-%m-%d %H:%M")
-                if end_date_obj < reference_date:
-                    end_date_obj = reference_date + timedelta(days=15)
+                if end_date_obj < current_date:
+                    # 시작일 + 14일로 설정
+                    start_offset = random.randint(1, 3)
+                    start_date = current_date + timedelta(days=start_offset)
+                    end_date_obj = start_date + timedelta(days=14)
                 form_data["end_date"] = end_date_obj.strftime("%Y-%m-%d %H:%M")
             except:
-                end_date_obj = reference_date + timedelta(days=15)
+                # 시작일 + 14일로 설정
+                start_offset = random.randint(1, 3)
+                start_date = current_date + timedelta(days=start_offset)
+                end_date_obj = start_date + timedelta(days=14)
                 form_data["end_date"] = end_date_obj.strftime("%Y-%m-%d %H:%M")
         
         # 면접 일정 날짜 처리
@@ -185,16 +194,29 @@ def form_fill_tool(state):
                     try:
                         # 문자열 날짜를 ISO 형식으로 변환
                         date_obj = datetime.strptime(schedule["date"], "%Y-%m-%d")
-                        if date_obj < reference_date:
-                            date_obj = reference_date + timedelta(days=18)  # 모집 종료 후 3일
+                        if date_obj < current_date:
+                            # 모집 종료 후 3~7일 (랜덤)
+                            interview_offset = random.randint(3, 7)
+                            start_offset = random.randint(1, 3)
+                            start_date = current_date + timedelta(days=start_offset)
+                            end_date = start_date + timedelta(days=14)
+                            date_obj = end_date + timedelta(days=interview_offset)
                         schedule["date"] = date_obj.isoformat()
                     except:
-                        # 기본값: 모집 종료 후 3일
-                        default_date = reference_date + timedelta(days=18)
+                        # 기본값: 모집 종료 후 3~7일 (랜덤)
+                        interview_offset = random.randint(3, 7)
+                        start_offset = random.randint(1, 3)
+                        start_date = current_date + timedelta(days=start_offset)
+                        end_date = start_date + timedelta(days=14)
+                        default_date = end_date + timedelta(days=interview_offset)
                         schedule["date"] = default_date.isoformat()
                 elif schedule.get("date") is None:
                     # 날짜가 없으면 기본값 설정
-                    default_date = reference_date + timedelta(days=18)
+                    interview_offset = random.randint(3, 7)
+                    start_offset = random.randint(1, 3)
+                    start_date = current_date + timedelta(days=start_offset)
+                    end_date = start_date + timedelta(days=14)
+                    default_date = end_date + timedelta(days=interview_offset)
                     schedule["date"] = default_date.isoformat()
         
         # 점수 형식 처리
@@ -226,8 +248,15 @@ def form_fill_tool(state):
         print(f"폼 채우기 중 오류 발생: {e}")
         # 기본 폼 데이터 반환
         current_date = datetime.now()
-        base_date = datetime(2025, 8, 1)
-        reference_date = max(current_date, base_date)
+        
+        # 현재 날짜 + 1~3일 (랜덤)
+        start_offset = random.randint(1, 3)
+        start_date = current_date + timedelta(days=start_offset)
+        end_date = start_date + timedelta(days=14)
+        
+        # 면접일: 종료일 + 3~7일 (랜덤)
+        interview_offset = random.randint(3, 7)
+        interview_date = end_date + timedelta(days=interview_offset)
         
         default_form_data = {
             "title": "신입/경력 채용",
@@ -239,11 +268,11 @@ def form_fill_tool(state):
             "headcount": "1",
             "location": "서울시 강남구",
             "employment_type": "정규직",
-            "start_date": (reference_date + timedelta(days=1)).strftime("%Y-%m-%d %H:%M"),
-            "end_date": (reference_date + timedelta(days=15)).strftime("%Y-%m-%d %H:%M"),
+            "start_date": start_date.strftime("%Y-%m-%d %H:%M"),
+            "end_date": end_date.strftime("%Y-%m-%d %H:%M"),
             "schedules": [
                 {
-                    "date": (reference_date + timedelta(days=18)).isoformat(),
+                    "date": interview_date.isoformat(),
                     "time": "14:00",
                     "place": "회사 3층 회의실"
                 }

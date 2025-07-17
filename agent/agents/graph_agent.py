@@ -5,6 +5,7 @@ from agents.interview_question_node import generate_company_questions, generate_
 from tools.portfolio_tool import portfolio_tool
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_field_tool import form_field_update_tool, form_status_check_tool
+from tools.spell_check_tool import spell_check_tool, apply_spell_corrections
 import json
 import re
 
@@ -119,9 +120,13 @@ def router(state):
     else:
         message = state.get("message", "")
         user_intent = state.get("user_intent", "")
-    
-    print(f"라우터 호출: message={message}, user_intent={user_intent}")
-    
+
+    # 맞춤법 검사 키워드 체크 (LLM 분석 전에 무조건 분기)
+    spell_check_keywords = ["맞춤법", "띄어쓰기", "문법", "어색한", "오타", "틀린", "고쳐줘", "수정해줘"]
+    if any(keyword in message for keyword in spell_check_keywords):
+        print(f"[강제 분기] 맞춤법 검사 감지: {message}")
+        return {"next": "spell_check_tool", **state}
+
     # 복합 명령 분석
     complex_analysis = analyze_complex_command(message)
     
@@ -164,16 +169,18 @@ def router(state):
     2. form_improve_tool - 폼 개선이나 조언을 요청하는 경우
     3. form_status_check_tool - 현재 폼 상태를 확인하는 요청
     4. form_field_update_tool - 특정 필드를 수정하거나 변경하는 요청
-    5. job_posting_tool - 채용공고 관련 조언이나 추천
-    6. company_question_generator - 회사 관련 면접 질문 생성
-    7. project_question_generator - 프로젝트 기반 면접 질문 생성
-    8. info_tool - 정보성 안내/설명/FAQ 요청 (실제 행동 없이 설명만)
+    5. spell_check_tool - 맞춤법 검사나 문법 수정 요청
+    6. job_posting_tool - 채용공고 관련 조언이나 추천
+    7. company_question_generator - 회사 관련 면접 질문 생성
+    8. project_question_generator - 프로젝트 기반 면접 질문 생성
+    9. info_tool - 정보성 안내/설명/FAQ 요청 (실제 행동 없이 설명만)
     
     분석 기준:
     - 폼 채우기/생성: "작성", "채워줘", "생성", "만들어줘", "공고 작성" 등의 키워드
     - 폼 개선: "개선", "조언", "제안", "어떻게" 등의 키워드
     - 상태 확인: "현재", "상태", "확인", "어떻게 되어있어" 등의 키워드
     - 필드 수정: "변경", "수정", "바꿔줘", "고쳐줘", "~로 바꿔달라", "~로 변경" + 특정 필드명
+    - 맞춤법 검사: "맞춤법", "띄어쓰기", "문법", "어색한", "오타", "틀린" 등의 키워드
     - 면접 질문: "면접", "질문", "인터뷰" 등의 키워드
     - 채용공고: "채용", "공고", "job" 등의 키워드
     - 정보성 안내: "방법", "설명", "알려줘", "어떻게", "란?", "무엇인가" 등 (실제 행동 없이)
@@ -181,14 +188,21 @@ def router(state):
     중요: 
     - 정보성 안내 요청의 경우 info_tool을 선택하세요 (실제 폼 작성/수정 없이 설명만)
     - 필드 수정 요청의 경우, 사용자가 특정 필드명(제목, 부서, 부서명, 지원자격 등)과 새로운 값을 명시한 경우에만 form_field_update_tool을 선택하세요.
+    - 맞춤법 검사 요청의 경우 spell_check_tool을 선택하세요.
     
     응답은 정확히 다음 중 하나만 반환하세요:
-    form_fill_tool, form_improve_tool, form_status_check_tool, form_field_update_tool, job_posting_tool, company_question_generator, project_question_generator, info_tool
+    form_fill_tool, form_improve_tool, form_status_check_tool, form_field_update_tool, spell_check_tool, apply_spell_corrections, job_posting_tool, company_question_generator, project_question_generator, info_tool
     """
     
     try:
         # 먼저 키워드 기반으로 빠른 판단
         message_lower = message.lower()
+        
+        # 맞춤법 검사 키워드 체크 (먼저 확인)
+        spell_check_keywords = ["맞춤법", "띄어쓰기", "문법", "어색한", "오타", "틀린", "고쳐줘", "수정해줘"]
+        if any(keyword in message for keyword in spell_check_keywords):
+            print(f"키워드 기반 맞춤법 검사 감지: {message}")
+            return {"next": "spell_check_tool", **state}
         
         # AI 개선 요청 키워드 체크 (먼저 확인)
         ai_improve_keywords = ["더 상세하게", "더 구체적으로", "개선해줘", "보완해줘", "완성해줘", "작성해줘", "어떻게", "조언"]
@@ -230,8 +244,8 @@ def router(state):
         # 응답 검증
         valid_tools = [
             "form_fill_tool", "form_improve_tool", "form_status_check_tool", 
-            "form_field_update_tool", "job_posting_tool", "company_question_generator", 
-            "project_question_generator", "info_tool"
+            "form_field_update_tool", "spell_check_tool", "apply_spell_corrections", "job_posting_tool", 
+            "company_question_generator", "project_question_generator", "info_tool"
         ]
         
         if tool_choice in valid_tools:
@@ -346,6 +360,8 @@ def build_graph():
     graph.add_node("form_improve_tool", form_improve_tool)
     graph.add_node("form_status_check_tool", form_status_check_tool)
     graph.add_node("form_field_update_tool", form_field_update_tool)
+    graph.add_node("spell_check_tool", spell_check_tool)
+    graph.add_node("apply_spell_corrections", apply_spell_corrections)
     graph.add_node("info_tool", info_tool)
 
     # 라우터를 entry point로 설정
@@ -363,6 +379,8 @@ def build_graph():
             "form_improve_tool": "form_improve_tool",
             "form_status_check_tool": "form_status_check_tool",
             "form_field_update_tool": "form_field_update_tool",
+            "spell_check_tool": "spell_check_tool",
+            "apply_spell_corrections": "apply_spell_corrections",
             "info_tool": "info_tool"
         }
     )
@@ -375,6 +393,8 @@ def build_graph():
     graph.add_edge("form_improve_tool", END)
     graph.add_edge("form_status_check_tool", END)
     graph.add_edge("form_field_update_tool", END)
+    graph.add_edge("spell_check_tool", END)
+    graph.add_edge("apply_spell_corrections", END)
     graph.add_edge("info_tool", END)
     
     return graph.compile()
@@ -412,9 +432,11 @@ def build_form_graph():
     graph.add_node("form_improve_tool", form_improve_tool)
     graph.add_node("form_status_check_tool", form_status_check_tool)
     graph.add_node("form_field_update_tool", form_field_update_tool)
+    graph.add_node("spell_check_tool", spell_check_tool)
     graph.set_entry_point("form_fill_tool")
     graph.add_edge("form_fill_tool", "form_improve_tool")
     graph.add_edge("form_improve_tool", "form_status_check_tool")
     graph.add_edge("form_status_check_tool", "form_field_update_tool")
-    graph.set_finish_point("form_field_update_tool")
+    graph.add_edge("form_field_update_tool", "spell_check_tool")
+    graph.set_finish_point("spell_check_tool")
     return graph.compile()
