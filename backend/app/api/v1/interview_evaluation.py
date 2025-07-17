@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.models.interview_evaluation import InterviewEvaluation, EvaluationDetail, InterviewEvaluationItem
 from app.schemas.interview_evaluation import InterviewEvaluation as InterviewEvaluationSchema, InterviewEvaluationCreate
 from datetime import datetime
 from decimal import Decimal
 from app.models.application import Application
+import os
+import uuid
 
 router = APIRouter()
 
@@ -139,3 +141,67 @@ def get_interview_schedules_by_applicant(applicant_id: int, db: Session = Depend
         if hasattr(app, 'schedule_interview_id') and app.schedule_interview_id:
             result.append({"id": app.schedule_interview_id})
     return result 
+
+@router.post("/upload-audio")
+async def upload_interview_audio(
+    audio_file: UploadFile = File(...),
+    application_id: int = Form(...),
+    job_post_id: Optional[int] = Form(None),
+    company_name: Optional[str] = Form(None),
+    applicant_name: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """면접 녹음 파일 업로드 API"""
+    try:
+        # 파일 유효성 검사
+        if not audio_file.filename:
+            raise HTTPException(status_code=400, detail="파일이 선택되지 않았습니다.")
+        
+        # 지원자 정보 확인
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="지원자 정보를 찾을 수 없습니다.")
+        
+        # 파일 확장자 검사
+        allowed_extensions = ['.webm', '.mp3', '.wav', '.m4a']
+        file_extension = os.path.splitext(audio_file.filename)[1].lower()
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"지원하지 않는 파일 형식입니다. 지원 형식: {', '.join(allowed_extensions)}"
+            )
+        
+        # 파일 크기 검사 (50MB 제한)
+        max_size = 50 * 1024 * 1024  # 50MB
+        if audio_file.size and audio_file.size > max_size:
+            raise HTTPException(status_code=400, detail="파일 크기가 너무 큽니다. (최대 50MB)")
+        
+        # 고유한 파일명 생성
+        unique_filename = f"interview_{application_id}_{uuid.uuid4().hex}{file_extension}"
+        
+        # 업로드 디렉토리 생성
+        upload_dir = "uploads/interview_audio"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 파일 저장
+        file_path = os.path.join(upload_dir, unique_filename)
+        with open(file_path, "wb") as buffer:
+            content = await audio_file.read()
+            buffer.write(content)
+        
+        # 데이터베이스에 녹음 파일 정보 저장 (필요시)
+        # 여기서는 파일 경로를 application 테이블에 저장하거나 별도 테이블에 저장할 수 있습니다.
+        
+        return {
+            "message": "녹음 파일이 성공적으로 업로드되었습니다.",
+            "filename": unique_filename,
+            "file_path": file_path,
+            "file_size": len(content),
+            "application_id": application_id,
+            "uploaded_at": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"파일 업로드 중 오류가 발생했습니다: {str(e)}") 

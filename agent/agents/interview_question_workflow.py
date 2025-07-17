@@ -19,7 +19,7 @@ from agent.agents.interview_question_node import (
 import json
 
 # LLM 초기화
-llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
 
 def analyze_interview_requirements(state: Dict[str, Any]) -> Dict[str, Any]:
     """면접 요구사항 분석 노드"""
