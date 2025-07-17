@@ -160,6 +160,35 @@ curl -X POST http://localhost:8001/monitor/scheduler/start
 curl http://localhost:8001/monitor/backups
 ```
 
+### Redis 캐시 관리
+AI Agent의 LLM 응답 캐시를 관리할 수 있습니다.
+
+#### 캐시 관리 스크립트 사용
+```bash
+# 캐시 관리 스크립트 실행
+python agent/clear_cache.py
+```
+
+**옵션:**
+1. **특정 함수 캐시 제거**: 특정 함수의 캐시만 삭제
+2. **함수명 변경 캐시 마이그레이션**: 함수명 변경 시 기존 캐시를 새 함수명으로 이동
+3. **변경된 함수들의 캐시 제거**: 함수명 변경으로 인한 캐시 충돌 해결
+4. **전체 캐시 삭제 (FLUSHALL)**: 모든 Redis 캐시 완전 삭제
+
+#### Docker 명령으로 직접 캐시 삭제
+```bash
+# 전체 Redis 데이터 삭제
+docker exec -it kosa-redis redis-cli FLUSHALL
+
+# Redis 데이터 크기 확인
+docker exec -it kosa-redis redis-cli DBSIZE
+```
+
+#### 캐시 관련 문제 해결
+- **함수명 변경 후 캐시 충돌**: 옵션 3 또는 4 사용
+- **개발 중 캐시 혼란**: 옵션 4로 전체 삭제
+- **Redis 연결 오류**: Docker 컨테이너 상태 확인 (`docker ps`)
+
 ### 프론트엔드 (개별 실행)
 
 처음 복제 했을 때, package.json 또는 package-lock.json이 수정 됐을 때
@@ -330,6 +359,23 @@ mysql -h kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com -u admin -p -e "SEL
 # 백엔드가 RDS에 연결할 수 없는 경우
 # (ERR_CONNECTION_RESET, Connection refused 등)
 docker-compose restart backend
+```
+
+### Redis 캐시 관련 오류
+```bash
+# Redis 연결 오류 (Error 11001 connecting to redis:6379)
+# → Docker 컨테이너가 실행 중인지 확인
+docker ps | grep kosa-redis
+
+# Redis 컨테이너 재시작
+docker-compose restart redis
+
+# 캐시 관리 스크립트 실행 시 연결 오류
+# → 로컬에서 실행할 때는 host='localhost'로 설정됨
+python agent/clear_cache.py
+
+# Docker 컨테이너 내부에서 실행
+docker exec -it kocruit_agent python clear_cache.py
 ```
 
 ---

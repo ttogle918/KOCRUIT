@@ -1,19 +1,21 @@
-# FastAPI and server
-fastapi==0.110.0
-uvicorn==0.29.0
-
-# LangChain ecosystem
+# LangChain ecosystem (AI 에이전트 핵심)
 langchain==0.3.13
 langchain-core>=0.3.56
 langchain-openai==0.2.14
 langchain-community==0.3.13
 
-# LangGraph
+# LangGraph (워크플로우 관리)
 langgraph==0.2.60
 
 # RAG and Vector Database
 chromadb==0.4.24
-sentence-transformers==3.0.1
+
+# CPU 전용 PyTorch 및 sentence-transformers
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.0+cpu
+torchvision==0.17.0+cpu
+torchaudio==2.2.0+cpu
+sentence-transformers==2.5.1
 
 # Memory and State Management
 redis>=4.0.0
@@ -24,3 +26,9 @@ psutil==5.9.5
 # Utilities
 python-dotenv==1.0.1
 pydantic==2.9.2
+
+# --- 오디오/음성인식/AI 평가 ---
+openai-whisper==20231117  # ✅ 음성인식
+librosa>=0.10.0           # ✅ 오디오 처리
+soundfile>=0.12.0         # ✅ 파일 처리
+pydub>=0.25.0             # ✅ 포맷 변환

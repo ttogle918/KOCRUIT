@@ -45,3 +45,11 @@ scikit-learn==1.5.2
 numpy==1.26.4
 pandas==2.2.2
 hdbscan==0.8.40
+
+# --- 오디오/음성인식/AI 평가 ---
+openai-whisper==20231117  # ✅ 유지 (빠르고 정확)
+librosa>=0.10.0           # ✅ 유지 (오디오 처리)
+soundfile>=0.12.0         # ✅ 유지 (파일 처리)
+pydub>=0.25.0             # ✅ 유지 (포맷 변환)
+# pyannote.audio>=3.0.0   # ❌ 제거 (화자분리, 필요시만)
+# transformers>=4.30.0    # ❌ 제거 (Whisper가 더 효율적)

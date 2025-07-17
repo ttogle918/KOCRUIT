@@ -596,6 +596,9 @@ function InterviewProgress() {
                   applicationId={selectedApplicant?.id}
                   companyName={jobPost?.company?.name}
                   applicantName={selectedApplicant?.name}
+                  audioFile={selectedApplicant?.audio_file || null} // 추가: 오디오 파일 경로
+                  jobInfo={jobPost ? JSON.stringify(jobPost) : null} // 추가: 채용공고 정보
+                  resumeInfo={resume ? JSON.stringify(resume) : null} // 추가: 이력서 정보
                 />
                 <div className="mt-4 flex flex-col items-end gap-2 px-4 pb-4">
                   {/* 하단 자동저장 상태 메시지 제거, 저장 버튼만 남김 */}
