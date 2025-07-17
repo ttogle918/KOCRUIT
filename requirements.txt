@@ -23,6 +23,8 @@ pydantic-settings==2.5.2
 apscheduler==3.10.4
 requests==2.31.0
 
+
+
 # DB & Security
 sqlalchemy==2.0.23
 alembic==1.13.1
@@ -32,3 +34,10 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 redis==5.0.1
 httpx==0.25.2
+
+# Embedding/AI
+sentence-transformers>=2.2.2
+torch==2.1.2
+transformers==4.36.2
+numpy>=1.21.0
+python-Levenshtein>=0.12.0

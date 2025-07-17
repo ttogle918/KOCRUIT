@@ -91,13 +91,14 @@ export const devLogin = async (email) => {
 };
 
 // 자기소개서 형광펜 하이라이팅 API
-export const highlightResumeText = async (text, jobDescription = "", companyValues = "") => {
+export const highlightResumeText = async (text, jobDescription = "", companyValues = "", qualifications = "") => {
   try {
     // baseURL이 http://localhost:8000 이므로, 전체 경로를 명확히 적음
     const response = await axiosInstance.post('/api/v1/ai/highlight-resume', {
       text,
       job_description: jobDescription,
-      company_values: companyValues
+      company_values: companyValues,
+      qualifications
     });
     return response.data;
   } catch (error) {

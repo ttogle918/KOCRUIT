@@ -36,13 +36,14 @@ function HighlightedText({ text, highlights }) {
       <span
         key={start + '-' + end}
         style={{
-          backgroundColor: catObj ? catObj.color : '#FFD600',
-          color: '#fff',
+          backgroundColor: highlight.bg_color || (catObj ? catObj.color : '#FFD600'),
+          color: highlight.color || '#222',
           padding: '2px 4px',
           borderRadius: '3px',
-          fontWeight: 500
+          fontWeight: 500,
+          opacity: 0.7, // ← 불투명도 추가
         }}
-        title={catObj ? catObj.label : category}
+        title={highlight.sub_label ? `${category}(${highlight.sub_label})` : (catObj ? catObj.label : category)}
       >
         {text.slice(start, end)}
       </span>
@@ -67,7 +68,7 @@ export const HIGHLIGHT_CATEGORIES = [
 ];
 
 // 하이라이팅 통계 컴포넌트
-export function HighlightStats({ highlights = [] }) {
+export function HighlightStats({ highlights = [], categories = {} }) {
   console.log('하이라이트 전체:', highlights);
   const stats = highlights.reduce((acc, highlight) => {
     acc[highlight.category] = (acc[highlight.category] || 0) + 1;
@@ -75,24 +76,33 @@ export function HighlightStats({ highlights = [] }) {
   }, {});
   console.log('카테고리별 통계:', stats);
 
+  // categories: 백엔드에서 내려준 색상 정보 (key: {color, bg_color, ...})
+  // fallback: HIGHLIGHT_CATEGORIES
+  const allCategoryKeys = Object.keys(categories).length > 0
+    ? Object.keys(categories)
+    : HIGHLIGHT_CATEGORIES.map(c => c.key);
+
   return (
     <div className="highlight-stats p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
       <h4 className="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-300">
         하이라이팅 통계
       </h4>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        {HIGHLIGHT_CATEGORIES.map(category => (
-          <div key={category.key} className="text-center">
-            <div
-              className="w-4 h-4 mx-auto mb-1 rounded-sm"
-              style={{ backgroundColor: category.color }}
-            ></div>
-            <div className="text-xs font-medium" style={{ color: category.color }}>
-              {stats[category.key] || 0}
+        {allCategoryKeys.map(key => {
+          const cat = categories[key] || HIGHLIGHT_CATEGORIES.find(c => c.key === key) || {};
+          return (
+            <div key={key} className="text-center">
+              <div
+                className="w-4 h-4 mx-auto mb-1 rounded-sm"
+                style={{ backgroundColor: cat.bg_color || cat.color || '#FFD600' }}
+              ></div>
+              <div className="text-xs font-medium" style={{ color: cat.color || '#FFD600' }}>
+                {stats[key] || 0}
+              </div>
+              <div className="text-xs text-gray-500">{cat.label || cat.name || key}</div>
             </div>
-            <div className="text-xs text-gray-500">{category.label}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

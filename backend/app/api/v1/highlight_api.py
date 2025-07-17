@@ -21,8 +21,9 @@ def highlight_resume_by_id(resume_id: int, db: Session = Depends(get_db)):
 def highlight_resume_by_text(
     text: str = Body(..., embed=True),
     job_description: str = Body("", embed=True),
-    company_values: str = Body("", embed=True)
+    company_values: str = Body("", embed=True),
+    qualifications: str = Body("", embed=True)
 ):
     tool = HighlightResumeTool()
-    result = tool.analyze_text(text, job_description, company_values)
+    result = tool.analyze_text(text, job_description, company_values, qualifications)
     return result 

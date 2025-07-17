@@ -6,54 +6,53 @@ import { highlightResumeText } from '../api/api';
 
 export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle }) {
   const [localBookmarked, setLocalBookmarked] = useState(bookmarked);
-  const [highlightData, setHighlightData] = useState(null);
+  const [highlightData, setHighlightData] = useState([]);
   const [highlightLoading, setHighlightLoading] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
   
   useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
 
-  // 자기소개서 형광펜 하이라이팅 분석
-  const analyzeContent = async (content) => {
-    if (!content || typeof content !== 'string') return;
-    
+  // 문단별 하이라이트 분석
+  const analyzeContent = async (contentArr) => {
+    if (!Array.isArray(contentArr) || contentArr.length === 0) return;
+    setHighlightLoading(true);
     try {
-      setHighlightLoading(true);
-      const result = await highlightResumeText(content);
-      console.log('highlight API result:', result);
-      setHighlightData(result);
+      const results = await Promise.all(
+        contentArr.map(item => highlightResumeText(item.content))
+      );
+      setHighlightData(results); // [{highlights: [...]}, ...]
     } catch (error) {
-      console.error('형광펜 분석 실패:', error);
-      setHighlightData(null); // 명시적으로 null로 설정
+      setHighlightData([]);
     } finally {
       setHighlightLoading(false);
     }
   };
 
-  // 자기소개서 내용 추출 및 분석
+  // content 배열로 분석
   useEffect(() => {
     if (resume && resume.content) {
-      let contentText = '';
-      
+      let parsed = [];
       try {
-        const parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          contentText = parsed.map(item => item.content).join('\n\n');
-        } else {
-          contentText = resume.content;
-        }
+        parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
       } catch {
-        contentText = resume.content;
+        parsed = [];
       }
-      
-      if (contentText) {
-        analyzeContent(contentText);
+      if (parsed.length > 0) {
+        analyzeContent(parsed);
       }
     }
   }, [resume]);
 
-  useEffect(() => {
-    console.log('highlightData:', highlightData);
-  }, [highlightData]);
+  // 전체 통계용 하이라이트 합치기
+  const allHighlights = (highlightData || []).flatMap(d => d.highlights || []);
+
+  // content 파싱
+  let parsed = [];
+  try {
+    parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
+  } catch {
+    parsed = [];
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-full min-h-[300px] text-blue-500 text-xl font-bold animate-pulse">
@@ -271,7 +270,7 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
       <section>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-bold text-blue-700 dark:text-blue-300">자기소개서</h3>
-          {highlightData && (
+          {highlightData.length > 0 && (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowHighlights(!showHighlights)}
@@ -290,40 +289,26 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
           )}
         </div>
         
-        {highlightData && showHighlights && (
-          <HighlightStats highlights={highlightData.highlights || []} />
+        {/* 전체 통계 */}
+        {highlightData.length > 0 && showHighlights && (
+          <HighlightStats highlights={allHighlights} />
         )}
-        
-        <div className="bg-gray-50 dark:bg-gray-800 rounded p-4 text-gray-800 dark:text-gray-100 whitespace-pre-line border dark:border-gray-700 min-h-[80px] space-y-6">
-          {(() => {
-            let parsed = [];
-            try {
-              parsed = typeof content === 'string' ? JSON.parse(content) : Array.isArray(content) ? content : [];
-            } catch {
-              parsed = [];
-            }
-            if (!Array.isArray(parsed) || parsed.length === 0) {
-              return <div>내용이 없습니다.</div>;
-            }
-            return parsed.map((item, idx) => (
-              <div key={idx} className="mb-6">
-                <div className="font-bold text-lg mb-2 text-blue-800 dark:text-blue-200">{item.title}</div>
-                {showHighlights && highlightData ? (
-                  <HighlightedText 
-                    text={item.content}
-                    highlights={highlightData.highlights || []}
-                    showLegend={false}
-                    onHighlightClick={(highlight) => {
-                      console.log('하이라이팅 클릭:', highlight);
-                    }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-line text-base">{item.content}</div>
-                )}
-              </div>
-            ));
-          })()}
-        </div>
+
+        {/* 문단별 하이라이트만 */}
+        {parsed.map((item, idx) => (
+          <div key={idx} className="mb-6">
+            <div className="font-bold text-lg mb-2 text-blue-800 dark:text-blue-200">{item.title}</div>
+            {showHighlights && highlightData[idx] ? (
+              <HighlightedText
+                text={item.content}
+                highlights={highlightData[idx].highlights || []}
+                showLegend={false}
+              />
+            ) : (
+              <div className="whitespace-pre-line text-base">{item.content}</div>
+            )}
+          </div>
+        ))}
       </section>
     </div>
   );
