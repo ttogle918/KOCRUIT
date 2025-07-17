@@ -319,7 +319,7 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
     cache_key = f"integrated_questions:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
     cached = redis_client.get(cache_key)
     if cached:
-        return json.loads(cached)
+        return json.loads(cached.decode('utf-8'))
 
     try:
         resume_text = ""
@@ -372,12 +372,18 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
                 job_matching_info = analyze_job_matching(resume_text, job_info)
         
         # 3. 통합 질문 생성
-        from agent.agents.interview_question_node import generate_common_question_bundle, generate_job_question_bundle
+        from agent.agents.interview_question_node import generate_personal_questions, generate_job_question_bundle, generate_common_questions
         
-        # 기본 질문 생성 (이력서 기반)
-        basic_questions = {}
+        # 공통 질문 생성 (인성/동기 포함)
+        common_questions = generate_common_questions(
+            company_name=actual_company_name,
+            job_info=job_info
+        )
+        
+        # 개인별 맞춤형 질문 생성 (이력서 기반, 인성/동기 제외)
+        personal_questions = {}
         if resume_text:
-            basic_questions = generate_common_question_bundle(
+            personal_questions = generate_personal_questions(
                 resume_text=resume_text,
                 company_name=actual_company_name,
                 portfolio_info=portfolio_info
@@ -397,13 +403,20 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
         all_questions = []
         question_bundle = {}
         
-        # 기본 질문들 추가
-        if basic_questions:
-            question_bundle.update(basic_questions)
-            all_questions.extend(basic_questions.get("인성/동기", []))
-            all_questions.extend(basic_questions.get("프로젝트 경험", []))
-            all_questions.extend(basic_questions.get("회사 관련", []))
-            all_questions.extend(basic_questions.get("상황 대처", []))
+        # 공통 질문들 추가 (인성/동기 포함)
+        if common_questions:
+            question_bundle.update(common_questions)
+            all_questions.extend(common_questions.get("인성/동기", []))
+            all_questions.extend(common_questions.get("회사 관련", []))
+            all_questions.extend(common_questions.get("직무 이해", []))
+            all_questions.extend(common_questions.get("상황 대처", []))
+        
+        # 개인별 질문들 추가 (인성/동기 제외)
+        if personal_questions:
+            question_bundle.update(personal_questions)
+            all_questions.extend(personal_questions.get("프로젝트 경험", []))
+            all_questions.extend(personal_questions.get("회사 관련", []))
+            all_questions.extend(personal_questions.get("상황 대처", []))
         
         # 직무 맞춤형 질문들 추가
         if job_questions:
@@ -568,7 +581,7 @@ async def generate_interview_guideline(request: InterviewGuidelineRequest, db: S
         guideline_result = generate_interview_guideline(
             resume_text=resume_text,
             job_info=job_info,
-            company_name=request.company_name
+            company_name=request.company_name or "회사"
         )
         
         return guideline_result
@@ -601,7 +614,7 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
         criteria_result = suggest_evaluation_criteria(
             resume_text=resume_text,
             job_info=job_info,
-            company_name=request.company_name
+            company_name=request.company_name or "회사"
         )
         
         return criteria_result
@@ -632,7 +645,7 @@ async def generate_company_questions(request: CompanyQuestionRequest):
 
 @router.post("/project-questions", response_model=ProjectQuestionResponse)
 async def generate_project_questions(request: ProjectQuestionRequest, db: Session = Depends(get_db)):
-    """자기소개서/이력서 기반 프로젝트 면접 질문 생성"""
+    """자기소개서/이력서 기반 프로젝트 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     # POST /api/v1/interview-questions/project-questions
     # Content-Type: application/json
     # {
@@ -652,35 +665,74 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
         # Resume + Spec 통합 텍스트 생성
         resume_text = combine_resume_and_specs(resume, specs)
         
-        # LangGraph 기반 프로젝트 질문 생성
-        from agent.agents.interview_question_node import generate_common_question_bundle
+        # LangGraph 워크플로우를 사용한 종합 질문 생성
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-        from agent.tools.portfolio_tool import portfolio_tool
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
-        # 포트폴리오 링크 수집 및 분석
-        portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
-        portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
-        
-        # 통합 질문 생성
-        question_bundle = generate_common_question_bundle(
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
             resume_text=resume_text,
             company_name=request.company_name,
-            portfolio_info=portfolio_info
+            applicant_name=request.name,
+            interview_type="general"
+        )
+        
+        # 결과에서 질문 추출
+        questions = workflow_result.get("questions", [])
+        question_bundle = workflow_result.get("question_bundle", {})
+        portfolio_info = ""
+        
+        # 포트폴리오 정보 추출
+        if "personal" in question_bundle and "자기소개서 요약" in question_bundle["personal"]:
+            portfolio_info = question_bundle["personal"].get("자기소개서 요약", "")
+        
+        result = {
+            "resume_id": request.resume_id,
+            "company_name": request.company_name,
+            "questions": questions,
+            "question_bundle": question_bundle,
+            "portfolio_info": portfolio_info
+        }
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/common-questions", response_model=Dict[str, Any])
+async def generate_common_questions_endpoint(
+    company_name: str = "",
+    job_post_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """모든 지원자에게 공통으로 적용할 수 있는 질문 생성 API"""
+    try:
+        job_info = ""
+        if job_post_id:
+            job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+            if job_post:
+                job_info = parse_job_post_data(job_post)
+        
+        # 공통 질문 생성
+        from agent.agents.interview_question_node import generate_common_questions
+        common_questions = generate_common_questions(
+            company_name=company_name,
+            job_info=job_info
         )
         
         # 모든 질문을 하나의 리스트로 통합
         all_questions = []
-        all_questions.extend(question_bundle.get("인성/동기", []))
-        all_questions.extend(question_bundle.get("프로젝트 경험", []))
-        all_questions.extend(question_bundle.get("회사 관련", []))
-        all_questions.extend(question_bundle.get("상황 대처", []))
+        all_questions.extend(common_questions.get("인성/동기", []))
+        all_questions.extend(common_questions.get("회사 관련", []))
+        all_questions.extend(common_questions.get("직무 이해", []))
+        all_questions.extend(common_questions.get("상황 대처", []))
         
         result = {
             "questions": all_questions,
-            "question_bundle": question_bundle,
-            "portfolio_info": portfolio_info
+            "question_bundle": common_questions,
+            "company_name": company_name,
+            "job_post_id": job_post_id
         }
         return result
     except Exception as e:
@@ -688,7 +740,7 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
 
 @router.post("/job-questions", response_model=JobQuestionResponse)
 async def generate_job_questions(request: JobQuestionRequest, db: Session = Depends(get_db)):
-    """지원서 기반 직무 맞춤형 면접 질문 생성"""
+    """지원서 기반 직무 맞춤형 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     # POST /api/v1/interview-questions/job-questions
     # Content-Type: application/json
     # {
@@ -727,56 +779,36 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
         # 직무 매칭 분석
         job_matching_info = analyze_job_matching(resume_text, job_info)
         
-        # LangGraph 기반 직무 질문 생성
-        from agent.agents.interview_question_node import generate_job_question_bundle
+        # LangGraph 워크플로우를 사용한 종합 질문 생성
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-        from agent.tools.portfolio_tool import portfolio_tool
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
-        # 포트폴리오 링크 수집 및 분석
-        applicant_name = getattr(request, 'name', '') or ''
-        portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, applicant_name)
-        portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
-        
-        # 통합 질문 생성
-        payload = {
-            'resume_text': resume_text,
-            'job_info': job_info,
-            'company_name': actual_company_name,
-            'job_matching_info': job_matching_info
-        }
-        print("[job-questions] payload:", payload)
-        question_bundle = generate_job_question_bundle(
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
             resume_text=resume_text,
             job_info=job_info,
             company_name=actual_company_name,
+            applicant_name=getattr(request, 'name', '') or '',
+            interview_type="general",
             job_matching_info=job_matching_info
         )
-        print("[job-questions] result:", question_bundle)
         
-        # 모든 질문을 하나의 리스트로 통합
-        all_questions = []
-        all_questions.extend(question_bundle.get("기술 역량", []))
-        all_questions.extend(question_bundle.get("직무 경험", []))
-        all_questions.extend(question_bundle.get("프로젝트", []))
-        all_questions.extend(question_bundle.get("문제 해결", []))
-        all_questions.extend(question_bundle.get("팀워크", []))
-        all_questions.extend(question_bundle.get("성장 의지", []))
+        # 결과에서 질문 추출
+        questions = workflow_result.get("questions", [])
+        question_bundle = workflow_result.get("question_bundle", {})
         
         result = {
             "application_id": request.application_id,
             "company_name": actual_company_name,
-            "questions": all_questions,
+            "questions": questions,
             "question_bundle": question_bundle,
             "job_matching_info": job_matching_info
         }
+        
         return result
     except Exception as e:
-        import traceback
-        print("=== [job-questions] Exception ===")
-        print(e)
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -952,6 +984,7 @@ async def generate_analysis_questions(request: IntegratedQuestionRequest, db: Se
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# 공고/직무/회사 기준의 실무진 공통 질문 생성 API
 @router.post("/job-common-questions", response_model=Dict[str, Any])
 async def generate_job_common_questions(
     job_post_id: int,
@@ -987,7 +1020,7 @@ async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Se
         job_info = parse_job_post_data(job_post)
         from agent.agents.interview_question_node import generate_interview_checklist
         checklist_result = generate_interview_checklist(
-            resume_text=None,
+            resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
         )
@@ -1005,7 +1038,7 @@ async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsReque
         job_info = parse_job_post_data(job_post)
         from agent.agents.interview_question_node import analyze_candidate_strengths_weaknesses
         analysis_result = analyze_candidate_strengths_weaknesses(
-            resume_text=None,
+            resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
         )
@@ -1023,7 +1056,7 @@ async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Se
         job_info = parse_job_post_data(job_post)
         from agent.agents.interview_question_node import generate_interview_guideline
         guideline_result = generate_interview_guideline(
-            resume_text=None,
+            resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
         )
@@ -1041,10 +1074,188 @@ async def suggest_job_based_evaluation_criteria(request: JobBasedCriteriaRequest
         job_info = parse_job_post_data(job_post)
         from agent.agents.interview_question_node import suggest_evaluation_criteria
         criteria_result = suggest_evaluation_criteria(
-            resume_text=None,
+            resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
         )
         return criteria_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# === 임원면접 질문 생성 API ===
+class ExecutiveInterviewRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+
+class ExecutiveInterviewResponse(BaseModel):
+    questions: str
+    interview_type: str = "executive"
+
+@router.post("/executive-interview", response_model=ExecutiveInterviewResponse)
+async def generate_executive_interview_questions(request: ExecutiveInterviewRequest, db: Session = Depends(get_db)):
+    """임원면접 질문 생성 (LangGraph 워크플로우 사용)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 워크플로우를 사용한 임원면접 질문 생성
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "회사",
+            applicant_name=request.name or "",
+            interview_type="executive"
+        )
+        
+        # 결과에서 질문 추출
+        questions = workflow_result.get("questions", [])
+        question_text = "\n".join(questions) if questions else "질문을 생성할 수 없습니다."
+        
+        return {
+            "questions": question_text,
+            "interview_type": "executive"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# === 2차 면접 질문 생성 API ===
+class SecondInterviewRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+    first_interview_feedback: Optional[str] = None
+
+class SecondInterviewResponse(BaseModel):
+    questions: str
+    interview_type: str = "second"
+
+@router.post("/second-interview", response_model=SecondInterviewResponse)
+async def generate_second_interview_questions(request: SecondInterviewRequest, db: Session = Depends(get_db)):
+    """2차 면접 질문 생성 (LangGraph 워크플로우 사용)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 워크플로우를 사용한 2차 면접 질문 생성
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "회사",
+            applicant_name=request.name or "",
+            interview_type="second",
+            first_interview_feedback=request.first_interview_feedback or ""
+        )
+        
+        # 결과에서 질문 추출
+        questions = workflow_result.get("questions", [])
+        question_text = "\n".join(questions) if questions else "질문을 생성할 수 없습니다."
+        
+        return {
+            "questions": question_text,
+            "interview_type": "second"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# === 최종 면접 질문 생성 API ===
+class FinalInterviewRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+    previous_feedback: Optional[str] = None
+
+class FinalInterviewResponse(BaseModel):
+    questions: str
+    interview_type: str = "final"
+
+@router.post("/final-interview", response_model=FinalInterviewResponse)
+async def generate_final_interview_questions(request: FinalInterviewRequest, db: Session = Depends(get_db)):
+    """최종 면접 질문 생성 (LangGraph 워크플로우 사용)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 워크플로우를 사용한 최종 면접 질문 생성
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "회사",
+            applicant_name=request.name or "",
+            interview_type="final",
+            previous_feedback=request.previous_feedback or ""
+        )
+        
+        # 결과에서 질문 추출
+        questions = workflow_result.get("questions", [])
+        question_text = "\n".join(questions) if questions else "질문을 생성할 수 없습니다."
+        
+        return {
+            "questions": question_text,
+            "interview_type": "final"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

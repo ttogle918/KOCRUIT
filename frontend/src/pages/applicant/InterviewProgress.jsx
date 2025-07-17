@@ -101,43 +101,68 @@ function InterviewProgress() {
     if (jobPostId) fetchJobPost();
   }, [jobPostId]);
 
-  const fetchInterviewTools = async (resumeId, applicationId, companyName, applicantName) => {
+  const fetchApplicantQuestions = async (resumeId, companyName, applicantName) => {
+    const requestData = { resume_id: resumeId, company_name: companyName, name: applicantName };
+    try {
+      // LangGraph 워크플로우를 사용한 종합 질문 생성
+      const res = await api.post('/interview-questions/project-questions', requestData);
+      setQuestions(res.data.questions || []);
+    } catch (e) {
+      console.error('면접 질문 생성 오류:', e);
+      setQuestions([]);
+    }
+  };
+
+  // LangGraph 워크플로우를 사용한 면접 도구 생성
+  const fetchInterviewToolsWithWorkflow = async (resumeId, applicationId, companyName, applicantName) => {
     if (!resumeId) return;
     setToolsLoading(true);
-    const requestData = { resume_id: resumeId, application_id: applicationId, company_name: companyName, name: applicantName };
+    
     try {
-      const [
-        checklistRes,
-        strengthsRes,
-        guidelineRes,
-        criteriaRes
-      ] = await Promise.allSettled([
-        api.post('/interview-questions/interview-checklist', requestData),
-        api.post('/interview-questions/strengths-weaknesses', requestData),
-        api.post('/interview-questions/interview-guideline', requestData),
-        api.post('/interview-questions/evaluation-criteria', requestData)
-      ]);
-      setInterviewChecklist(checklistRes.status === 'fulfilled' ? checklistRes.value.data : null);
-      setStrengthsWeaknesses(strengthsRes.status === 'fulfilled' ? strengthsRes.value.data : null);
-      setInterviewGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
-      setEvaluationCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
+      // LangGraph 워크플로우를 사용한 종합 분석
+      const workflowRequest = { 
+        resume_id: resumeId, 
+        application_id: applicationId, 
+        company_name: companyName, 
+        name: applicantName 
+      };
+      
+      // 워크플로우 결과에서 평가 도구 추출
+      const workflowRes = await api.post('/interview-questions/project-questions', workflowRequest);
+      const workflowData = workflowRes.data;
+      
+      // 평가 도구가 포함된 경우 사용
+      if (workflowData.evaluation_tools) {
+        setInterviewChecklist(workflowData.evaluation_tools.checklist || null);
+        setStrengthsWeaknesses(workflowData.evaluation_tools.strengths_weaknesses || null);
+        setInterviewGuideline(workflowData.evaluation_tools.guideline || null);
+        setEvaluationCriteria(workflowData.evaluation_tools.evaluation_criteria || null);
+      } else {
+        // 기존 방식으로 폴백
+        const [
+          checklistRes,
+          strengthsRes,
+          guidelineRes,
+          criteriaRes
+        ] = await Promise.allSettled([
+          api.post('/interview-questions/interview-checklist', workflowRequest),
+          api.post('/interview-questions/strengths-weaknesses', workflowRequest),
+          api.post('/interview-questions/interview-guideline', workflowRequest),
+          api.post('/interview-questions/evaluation-criteria', workflowRequest)
+        ]);
+        setInterviewChecklist(checklistRes.status === 'fulfilled' ? checklistRes.value.data : null);
+        setStrengthsWeaknesses(strengthsRes.status === 'fulfilled' ? strengthsRes.value.data : null);
+        setInterviewGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
+        setEvaluationCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
+      }
     } catch (e) {
+      console.error('면접 도구 생성 오류:', e);
       setInterviewChecklist(null);
       setStrengthsWeaknesses(null);
       setInterviewGuideline(null);
       setEvaluationCriteria(null);
     } finally {
       setToolsLoading(false);
-    }
-  };
-
-  const fetchApplicantQuestions = async (resumeId, companyName, applicantName) => {
-    const requestData = { resume_id: resumeId, company_name: companyName, name: applicantName };
-    try {
-      const res = await api.post('/interview-questions/project-questions', requestData);
-      setQuestions(res.data.questions || []);
-    } catch (e) {
-      setQuestions([]);
     }
   };
 
@@ -174,14 +199,19 @@ function InterviewProgress() {
       const res = await api.get(`/applications/${id}`);
       const mappedResume = mapResumeData(res.data);
       setResume(mappedResume);
-      setSelectedApplicant(applicant);
+      // applicant_id를 id로 설정하여 일관성 유지
+      setSelectedApplicant({
+        ...applicant,
+        id: applicant.applicant_id || applicant.id
+      });
       setMemo('');
       setEvaluation({});
       setExistingEvaluationId(null);
-      // 면접관 도구 fetch
-      await fetchInterviewTools(
+      
+      // LangGraph 워크플로우를 사용한 면접 도구 및 질문 생성
+      await fetchInterviewToolsWithWorkflow(
         mappedResume.id,
-        applicant.id,
+        applicant.applicant_id || applicant.id,
         jobPost?.company?.name,
         applicant.name
       );
@@ -259,12 +289,20 @@ function InterviewProgress() {
     // 실제 interview_id 찾기
     let interviewId = null;
     try {
+      // selectedApplicant.id가 유효한지 확인
+      if (!selectedApplicant.id) {
+        console.warn('selectedApplicant.id가 undefined입니다.');
+        setSaveStatus('지원자 정보가 올바르지 않습니다.');
+        return;
+      }
+      
       // schedule_interview 테이블에서 해당 지원자의 면접 ID 조회
       const scheduleResponse = await api.get(`/interview-evaluations/interview-schedules/applicant/${selectedApplicant.id}`);
       if (scheduleResponse.data && scheduleResponse.data.length > 0) {
         interviewId = scheduleResponse.data[0].id;
       }
     } catch (scheduleError) {
+      console.error('면접 일정 조회 오류:', scheduleError);
       interviewId = null;
     }
     if (!interviewId) {

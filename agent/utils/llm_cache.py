@@ -2,10 +2,22 @@ import redis
 import json
 import hashlib
 from functools import wraps
-
 import os
+
+# Redis 연결 설정 (원래 설정으로 복원)
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
-redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0)
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+
+# Redis 클라이언트 초기화 (연결 실패 시 None)
+redis_client = None
+try:
+    redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=0, socket_connect_timeout=5, socket_timeout=5)
+    # 연결 테스트
+    redis_client.ping()
+    print(f"Redis connected successfully to {REDIS_HOST}:{REDIS_PORT}")
+except Exception as e:
+    print(f"Redis connection failed: {e}")
+    redis_client = None
 
 def redis_cache(expire=60*60*24):
     """
@@ -13,33 +25,51 @@ def redis_cache(expire=60*60*24):
     - 입력값(파라미터) 조합으로 캐시 키 생성
     - 캐시 hit 시 바로 반환, miss 시 함수 실행 후 set
     - expire: 만료(초), 기본 24시간
+    - Redis 연결 실패 시 캐싱 없이 함수 실행
     """
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            # Redis가 연결되지 않은 경우 캐싱 없이 함수 실행
+            if redis_client is None:
+                return func(*args, **kwargs)
+            
             # 입력 파라미터로 캐시 키 생성 (함수명+파라미터 해시)
             try:
                 key_raw = f"{func.__name__}:{json.dumps(args, sort_keys=True, default=str)}:{json.dumps(kwargs, sort_keys=True, default=str)}"
             except Exception:
                 key_raw = f"{func.__name__}:{str(args)}:{str(kwargs)}"
             cache_key = "llm:" + hashlib.sha256(key_raw.encode()).hexdigest()
-            cached = redis_client.get(cache_key)
-            if cached is not None:
-                if isinstance(cached, bytes):
-                    try:
-                        return json.loads(cached.decode('utf-8'))
-                    except Exception:
-                        return cached.decode('utf-8')
-                else:
-                    return cached
+            
+            try:
+                cached = redis_client.get(cache_key)
+                if cached is not None:
+                    if isinstance(cached, bytes):
+                        try:
+                            return json.loads(cached.decode('utf-8'))
+                        except Exception:
+                            return cached.decode('utf-8')
+                    else:
+                        return cached
+            except Exception as e:
+                print(f"Redis get error: {e}")
+                # Redis 오류 시 캐싱 없이 함수 실행
+                pass
+            
             result = func(*args, **kwargs)
-            if isinstance(result, (dict, list)):
-                redis_client.set(cache_key, json.dumps(result), ex=expire)
-            else:
-                redis_client.set(cache_key, result, ex=expire)
+            
+            try:
+                if isinstance(result, (dict, list)):
+                    redis_client.set(cache_key, json.dumps(result), ex=expire)
+                else:
+                    redis_client.set(cache_key, result, ex=expire)
+            except Exception as e:
+                print(f"Redis set error: {e}")
+                # Redis 저장 실패 시 무시하고 결과 반환
+            
             return result
         return wrapper
-    return decorator
+    return decorator 
 
 def clear_function_cache(function_name: str):
     """
@@ -48,6 +78,10 @@ def clear_function_cache(function_name: str):
     Args:
         function_name: 캐시를 제거할 함수명
     """
+    if redis_client is None:
+        print(f"Redis not connected, cannot clear cache for function: {function_name}")
+        return 0
+    
     try:
         # 모든 키를 스캔하여 해당 함수명의 캐시를 찾아 제거
         pattern = f"llm:*"
@@ -75,6 +109,10 @@ def migrate_function_cache(old_function_name: str, new_function_name: str):
         old_function_name: 이전 함수명
         new_function_name: 새로운 함수명
     """
+    if redis_client is None:
+        print(f"Redis not connected, cannot migrate cache from {old_function_name} to {new_function_name}")
+        return 0
+    
     try:
         pattern = f"llm:*"
         keys = redis_client.keys(pattern)

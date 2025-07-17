@@ -124,8 +124,13 @@ def update_evaluation(evaluation_id: int, evaluation: InterviewEvaluationCreate,
 
 @router.get("/interview-schedules/applicant/{applicant_id}")
 def get_interview_schedules_by_applicant(applicant_id: int, db: Session = Depends(get_db)):
-    # Application 테이블에서 applicant_id로 schedule_interview_id 찾기
-    applications = db.query(Application).filter(Application.applicant_id == applicant_id).all()
+    # applicant_id 유효성 검사
+    if applicant_id is None or applicant_id <= 0:
+        raise HTTPException(status_code=422, detail="유효하지 않은 지원자 ID입니다.")
+    
+    # Application 테이블에서 user_id로 schedule_interview_id 찾기
+    # applicant_id는 실제로는 user_id를 의미함
+    applications = db.query(Application).filter(Application.user_id == applicant_id).all()
     if not applications:
         return []
     # 지원자가 여러 면접에 배정된 경우 모두 반환

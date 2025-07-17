@@ -2,7 +2,6 @@ from langgraph.graph import Graph, END
 from langchain_openai import ChatOpenAI
 from tools.job_posting_tool import job_posting_recommend_tool
 from agents.interview_question_node import generate_company_questions, generate_common_question_bundle
-from tools.portfolio_tool import portfolio_tool
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_field_tool import form_field_update_tool, form_status_check_tool
 from tools.spell_check_tool import spell_check_tool, apply_spell_corrections
@@ -276,26 +275,9 @@ def router(state):
             return {"next": "form_fill_tool", **state}  # 폼 관련 요청이므로 기본값을 form_fill_tool로 변경
 
 def portfolio_analyzer(state):
-    """포트폴리오 링크 수집 및 분석 노드"""
-    resume_text = state.get("resume_text", "")
-    name = state.get("name", "")
-    
-    if not resume_text:
-        return {"portfolio_info": "이력서 정보가 없습니다."}
-    
-    try:
-        # 포트폴리오 링크 수집
-        links = portfolio_tool.extract_portfolio_links(resume_text, name)
-        
-        # 포트폴리오 내용 분석
-        portfolio_info = portfolio_tool.analyze_portfolio_content(links)
-        
-        return {
-            "portfolio_info": portfolio_info,
-            "portfolio_links": links
-        }
-    except Exception as e:
-        return {"portfolio_info": f"포트폴리오 분석 중 오류: {str(e)}"}
+    """포트폴리오 링크 수집 및 분석 노드 (단순화됨)"""
+    # 포트폴리오 분석을 건너뛰고 기본 정보만 반환
+    return {"portfolio_info": "포트폴리오 분석이 비활성화되었습니다."}
 
 def project_question_generator(state):
     """프로젝트 기반 면접 질문 생성 노드"""
