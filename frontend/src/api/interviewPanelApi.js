@@ -92,6 +92,44 @@ export const interviewPanelApi = {
       console.error('응답 기록 조회 실패:', error);
       throw error;
     }
+  },
+
+  // Cancel individual interview request (pending only)
+  cancelRequest: async (requestId) => {
+    try {
+      const response = await axiosInstance.delete(`${INTERVIEW_PANEL_API}/request/${requestId}/`);
+      return response.data;
+    } catch (error) {
+      console.error('면접관 요청 취소 실패:', error);
+      throw error;
+    }
+  },
+
+  // Invite new interviewer manually
+  inviteInterviewer: async (assignmentId, userId) => {
+    try {
+      const response = await axiosInstance.post(`${INTERVIEW_PANEL_API}/invite-interviewer/`, {
+        assignment_id: assignmentId,
+        user_id: userId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('면접관 초대 실패:', error);
+      throw error;
+    }
+  },
+
+  // Search company members for interview panel
+  searchCompanyMembers: async (companyId, search = '') => {
+    try {
+      const response = await axiosInstance.get(`/api/v1/companies/${companyId}/members`, {
+        params: { search }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('회사 멤버 검색 실패:', error);
+      throw error;
+    }
   }
 };
 
