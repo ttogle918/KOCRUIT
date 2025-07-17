@@ -12,15 +12,7 @@ langchain-community==0.3.13
 # LangGraph
 langgraph==0.2.60
 typing-extensions>=4.5.0
-
-# RAG and Vector Database
-chromadb==0.4.24
-
-# Memory and State Management
-redis>=4.0.0
-
-# Monitoring and System
-psutil==5.9.5
+mysql-connector-python
 
 # Utilities
 python-dotenv==1.0.1
@@ -35,12 +27,11 @@ requests==2.31.0
 sqlalchemy==2.0.23
 alembic==1.13.1
 pymysql==1.1.0
-mysql-connector-python
 python-multipart==0.0.7
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+redis==5.0.1
 httpx==0.25.2
-
 
 # AI & ML for pattern analysis (CPU 전용으로 최적화)
 --extra-index-url https://download.pytorch.org/whl/cpu
@@ -48,8 +39,11 @@ torch==2.2.0+cpu
 torchvision==0.17.0+cpu
 torchaudio==2.2.0+cpu
 
+# Embedding/AI
 sentence-transformers==2.5.1
+transformers==4.36.2
 scikit-learn==1.5.2
 numpy==1.26.4
 pandas==2.2.2
 hdbscan==0.8.40
+python-Levenshtein>=0.12.0
