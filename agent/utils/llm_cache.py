@@ -3,7 +3,9 @@ import json
 import hashlib
 from functools import wraps
 
-redis_client = redis.Redis(host='redis', port=6379, db=0)
+import os
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0)
 
 def redis_cache(expire=60*60*24):
     """
@@ -37,4 +39,63 @@ def redis_cache(expire=60*60*24):
                 redis_client.set(cache_key, result, ex=expire)
             return result
         return wrapper
-    return decorator 
+    return decorator
+
+def clear_function_cache(function_name: str):
+    """
+    특정 함수의 모든 캐시를 제거합니다.
+    
+    Args:
+        function_name: 캐시를 제거할 함수명
+    """
+    try:
+        # 모든 키를 스캔하여 해당 함수명의 캐시를 찾아 제거
+        pattern = f"llm:*"
+        keys = redis_client.keys(pattern)
+        removed_count = 0
+        
+        for key in keys:
+            key_str = key.decode('utf-8') if isinstance(key, bytes) else key
+            # 키에서 함수명 추출 (간단한 방법)
+            if function_name in key_str:
+                redis_client.delete(key)
+                removed_count += 1
+        
+        print(f"Removed {removed_count} cache entries for function: {function_name}")
+        return removed_count
+    except Exception as e:
+        print(f"Error clearing cache for {function_name}: {e}")
+        return 0
+
+def migrate_function_cache(old_function_name: str, new_function_name: str):
+    """
+    함수명 변경 시 캐시를 마이그레이션합니다.
+    
+    Args:
+        old_function_name: 이전 함수명
+        new_function_name: 새로운 함수명
+    """
+    try:
+        pattern = f"llm:*"
+        keys = redis_client.keys(pattern)
+        migrated_count = 0
+        
+        for key in keys:
+            key_str = key.decode('utf-8') if isinstance(key, bytes) else key
+            if old_function_name in key_str:
+                # 기존 데이터 가져오기
+                cached_data = redis_client.get(key)
+                if cached_data:
+                    # 새로운 키 생성
+                    new_key = key_str.replace(old_function_name, new_function_name)
+                    # 새로운 키로 데이터 저장
+                    redis_client.set(new_key, cached_data, ex=60*60*24)  # 24시간
+                    # 기존 키 삭제
+                    redis_client.delete(key)
+                    migrated_count += 1
+        
+        print(f"Migrated {migrated_count} cache entries from {old_function_name} to {new_function_name}")
+        return migrated_count
+    except Exception as e:
+        print(f"Error migrating cache from {old_function_name} to {new_function_name}: {e}")
+        return 0 
