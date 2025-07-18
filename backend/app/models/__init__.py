@@ -1,27 +1,36 @@
-from app.core.database import Base
 from .user import User, CompanyUser, AdminUser
-from .company import Company, Department
-from .job import JobPost
-from .application import Application, FieldNameScore
-from .resume import Resume, ResumeMemo, Spec
-from .notification import Notification
-from .schedule import Schedule, ScheduleInterview
-from .weight import Weight
-from .interview_evaluation import InterviewEvaluation, EvaluationDetail, InterviewEvaluationItem
+from .company import Company
+from .job import JobPost, JobPostRole
+from .application import Application
+from .resume import Resume
+from .schedule import ScheduleInterview
+from .interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationDetail
+from .interviewer_profile import InterviewerProfile, InterviewerProfileHistory
 from .interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember, AssignmentType, AssignmentStatus, RequestStatus, PanelRole
+from .interview_question import InterviewQuestion
+from .notification import Notification
+from .weight import Weight
 from .high_performers import HighPerformer
+from .written_test_question import WrittenTestQuestion
+from .EmailVerificationToken import EmailVerificationToken
+from app.core.database import Base
 
 __all__ = [
     "Base",
     "User", "CompanyUser", "AdminUser",
-    "Company", "Department",
-    "JobPost",
-    "Application", "FieldNameScore",
-    "Resume", "ResumeMemo", "Spec",
-    "Notification",
-    "Schedule", "ScheduleInterview",
-    "Weight",
-    "InterviewEvaluation", "EvaluationDetail", "InterviewEvaluationItem",
+    "Company",
+    "JobPost", "JobPostRole",
+    "Application",
+    "Resume",
+    "ScheduleInterview",
+    "InterviewEvaluation", "InterviewEvaluationItem", "EvaluationDetail",
+    "InterviewerProfile", "InterviewerProfileHistory",
     "InterviewPanelAssignment", "InterviewPanelRequest", "InterviewPanelMember",
-    "AssignmentType", "AssignmentStatus", "RequestStatus", "PanelRole"
+    "AssignmentType", "AssignmentStatus", "RequestStatus", "PanelRole",
+    "InterviewQuestion",
+    "Notification",
+    "Weight",
+    "HighPerformer",
+    "WrittenTestQuestion",
+    "EmailVerificationToken"
 ] 

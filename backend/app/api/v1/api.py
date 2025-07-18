@@ -17,7 +17,7 @@ api_router.include_router(companies.router, prefix="/companies", tags=["companie
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(schedules.router, prefix="/schedules", tags=["schedules"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
-api_router.include_router(interview_evaluation.router, prefix="/interview-evaluations", tags=["interview-evaluations"])
+api_router.include_router(interview_evaluation.router, prefix="/interview-evaluation", tags=["interview-evaluation"])
 api_router.include_router(interview_question.router, prefix="/interview-questions", tags=["interview-questions"])
 api_router.include_router(interview_panel.router, prefix="/interview-panel", tags=["interview-panel"])
 #api_router.include_router(ai_evaluate_router, prefix="/api/v1")

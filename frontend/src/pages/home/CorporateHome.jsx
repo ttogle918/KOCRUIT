@@ -110,6 +110,7 @@ export default function CorpHome() {
                 <button className="px-4 py-2 rounded bg-gray-100 text-gray-700 font-semibold">+공고 등록</button>
               </Link>
             </div>
+
             <div className="space-y-4">
               {loading ? (
                 <div className="text-center py-4">로딩 중...</div>

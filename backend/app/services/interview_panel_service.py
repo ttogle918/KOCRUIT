@@ -12,19 +12,23 @@ from app.models.job import JobPost
 from app.models.notification import Notification
 from app.schemas.interview_panel import InterviewerSelectionCriteria, InterviewerResponse
 from app.models.schedule import Schedule
+from app.services.interviewer_profile_service import InterviewerProfileService
 import random
 
 
 class InterviewPanelService:
     
     @staticmethod
-    def select_interviewers(db: Session, criteria: InterviewerSelectionCriteria) -> dict:
+    def select_interviewers(db: Session, criteria: InterviewerSelectionCriteria, use_ai_balance: bool = True) -> dict:
         """
         Select interviewers based on criteria:
         - 2 from same department as job post
         - 1 from HR department
         
         Excludes users who are already assigned to any interview panel for this job post
+        
+        Args:
+            use_ai_balance: AI 기반 밸런스 편성 사용 여부 (기본값: True)
         """
         # Get job post details
         job_post = db.query(JobPost).filter(JobPost.id == criteria.job_post_id).first()
@@ -73,7 +77,7 @@ class InterviewPanelService:
         excluded_user_ids = list(set(assigned_user_ids + panel_member_ids))
         
         # Select same department interviewers (excluding already assigned users)
-        same_dept_candidates = db.query(CompanyUser).filter(
+        same_dept_all_candidates = db.query(CompanyUser).filter(
             and_(
                 CompanyUser.company_id == company_id,
                 CompanyUser.department_id == department_id,
@@ -82,19 +86,9 @@ class InterviewPanelService:
                 ~CompanyUser.id.in_(excluded_user_ids)  # Exclude already assigned users for this schedule
             )
         ).all()
-        # 공고별 고정 시드로 셔플
-        same_dept_seed = int(str(company_id) + str(department_id) + str(criteria.job_post_id))
-        rng = random.Random(same_dept_seed)
-        rng.shuffle(same_dept_candidates)
-        # 후보가 부족하면 순환(rotate)
-        if len(same_dept_candidates) < criteria.same_department_count:
-            times = (criteria.same_department_count + len(same_dept_candidates) - 1) // max(1, len(same_dept_candidates))
-            same_dept_candidates = (same_dept_candidates * times)[:criteria.same_department_count]
-        else:
-            same_dept_candidates = same_dept_candidates[:criteria.same_department_count]
-
+        
         # Select HR department interviewers (excluding already assigned users)
-        hr_candidates = db.query(CompanyUser).filter(
+        hr_all_candidates = db.query(CompanyUser).filter(
             and_(
                 CompanyUser.company_id == company_id,
                 CompanyUser.department_id == hr_department.id,
@@ -102,14 +96,53 @@ class InterviewPanelService:
                 ~CompanyUser.id.in_(excluded_user_ids)  # Exclude already assigned users for this schedule
             )
         ).all()
-        hr_seed = int(str(company_id) + str(hr_department.id) + str(criteria.job_post_id))
-        rng_hr = random.Random(hr_seed)
-        rng_hr.shuffle(hr_candidates)
-        if len(hr_candidates) < criteria.hr_department_count:
-            times = (criteria.hr_department_count + len(hr_candidates) - 1) // max(1, len(hr_candidates))
-            hr_candidates = (hr_candidates * times)[:criteria.hr_department_count]
+        
+        # AI 기반 밸런스 편성 사용
+        if use_ai_balance and len(same_dept_all_candidates) >= criteria.same_department_count and len(hr_all_candidates) >= criteria.hr_department_count:
+            try:
+                # 같은 부서에서 AI 추천
+                same_dept_ids = [u.id for u in same_dept_all_candidates]
+                recommended_same_dept_ids, same_dept_balance_score = InterviewerProfileService.get_balanced_panel_recommendation(
+                    db, same_dept_ids, criteria.same_department_count
+                )
+                same_dept_candidates = [u for u in same_dept_all_candidates if u.id in recommended_same_dept_ids]
+                
+                # HR 부서에서 AI 추천 (단일 선택이므로 경험치 우선)
+                hr_ids = [u.id for u in hr_all_candidates]
+                recommended_hr_ids, hr_balance_score = InterviewerProfileService.get_balanced_panel_recommendation(
+                    db, hr_ids, criteria.hr_department_count
+                )
+                hr_candidates = [u for u in hr_all_candidates if u.id in recommended_hr_ids]
+                
+                print(f"[AI Panel Selection] Same dept balance score: {same_dept_balance_score}, HR balance score: {hr_balance_score}")
+                
+            except Exception as e:
+                print(f"[AI Panel Selection] AI 추천 실패, 기존 방식 사용: {str(e)}")
+                use_ai_balance = False
         else:
-            hr_candidates = hr_candidates[:criteria.hr_department_count]
+            use_ai_balance = False
+        
+        # AI 추천 실패 시 기존 랜덤 방식 사용
+        if not use_ai_balance:
+            # 공고별 고정 시드로 셔플
+            same_dept_seed = int(str(company_id) + str(department_id) + str(criteria.job_post_id))
+            rng = random.Random(same_dept_seed)
+            rng.shuffle(same_dept_all_candidates)
+            # 후보가 부족하면 순환(rotate)
+            if len(same_dept_all_candidates) < criteria.same_department_count:
+                times = (criteria.same_department_count + len(same_dept_all_candidates) - 1) // max(1, len(same_dept_all_candidates))
+                same_dept_candidates = (same_dept_all_candidates * times)[:criteria.same_department_count]
+            else:
+                same_dept_candidates = same_dept_all_candidates[:criteria.same_department_count]
+
+            hr_seed = int(str(company_id) + str(hr_department.id) + str(criteria.job_post_id))
+            rng_hr = random.Random(hr_seed)
+            rng_hr.shuffle(hr_all_candidates)
+            if len(hr_all_candidates) < criteria.hr_department_count:
+                times = (criteria.hr_department_count + len(hr_all_candidates) - 1) // max(1, len(hr_all_candidates))
+                hr_candidates = (hr_all_candidates * times)[:criteria.hr_department_count]
+            else:
+                hr_candidates = hr_all_candidates[:criteria.hr_department_count]
 
         return {
             'same_department': same_dept_candidates,
