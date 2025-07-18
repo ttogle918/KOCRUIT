@@ -106,7 +106,6 @@ news_prompt = PromptTemplate.from_template(
     각 질문은 한 줄로 명확하게 작성해 주세요.
     """
 )
-# TODO: 직무 기반 질문 생성 프롬프트 ( 지원자의 이력서와 관계 X )
 # 직무 기반 질문 생성 프롬프트 ( 지원자의 이력서와 관계 O )
 job_prompt = PromptTemplate.from_template(
     """

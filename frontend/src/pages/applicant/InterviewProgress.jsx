@@ -16,8 +16,30 @@ import Button from '@mui/material/Button';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 
 function InterviewProgress() {
-  const { jobPostId } = useParams();
+  const { jobPostId, interviewStage = 'first' } = useParams(); // interviewStage 파라미터 추가
   const { user } = useAuth();
+  
+  // 면접 단계별 설정
+  const isFirstInterview = interviewStage === 'first'; // 1차 면접 (실무진)
+  const isSecondInterview = interviewStage === 'second'; // 2차 면접 (임원)
+  
+  // 면접 단계별 제목 및 설정
+  const interviewConfig = {
+    first: {
+      title: '1차 면접 (실무진)',
+      subtitle: '실무 역량 및 기술 검증',
+      evaluatorType: 'PRACTICAL',
+      color: 'blue'
+    },
+    second: {
+      title: '2차 면접 (임원)',
+      subtitle: '리더십 및 문화 적합성 검증',
+      evaluatorType: 'EXECUTIVE',
+      color: 'purple'
+    }
+  };
+  
+  const currentConfig = interviewConfig[interviewStage] || interviewConfig.first;
   const [applicants, setApplicants] = useState([]);
   const [selectedApplicant, setSelectedApplicant] = useState(null);
   const [selectedApplicantIndex, setSelectedApplicantIndex] = useState(null);
@@ -68,7 +90,12 @@ function InterviewProgress() {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.get(`/applications/job/${jobPostId}/applicants-with-interview`);
+        // 면접 단계에 따라 다른 API 호출
+        const endpoint = isFirstInterview 
+          ? `/applications/job/${jobPostId}/applicants-with-interview`
+          : `/applications/job/${jobPostId}/applicants-with-second-interview`;
+        
+        const res = await api.get(endpoint);
         setApplicants(res.data);
 
         // 1. 면접시간 기준 정렬
@@ -84,7 +111,7 @@ function InterviewProgress() {
       }
     };
     if (jobPostId) fetchApplicants();
-  }, [jobPostId]);
+  }, [jobPostId, isFirstInterview]);
 
   useEffect(() => {
     const fetchJobPost = async () => {
@@ -102,10 +129,20 @@ function InterviewProgress() {
   }, [jobPostId]);
 
   const fetchApplicantQuestions = async (resumeId, companyName, applicantName) => {
-    const requestData = { resume_id: resumeId, company_name: companyName, name: applicantName };
+    const requestData = { 
+      resume_id: resumeId, 
+      company_name: companyName, 
+      name: applicantName,
+      interview_stage: interviewStage, // 면접 단계 추가
+      evaluator_type: currentConfig.evaluatorType // 평가자 유형 추가
+    };
     try {
-      // LangGraph 워크플로우를 사용한 종합 질문 생성
-      const res = await api.post('/interview-questions/project-questions', requestData);
+      // 면접 단계에 따라 다른 엔드포인트 사용
+      const endpoint = isFirstInterview 
+        ? '/interview-questions/project-questions'
+        : '/interview-questions/executive-questions';
+      
+      const res = await api.post(endpoint, requestData);
       setQuestions(res.data.questions || []);
     } catch (e) {
       console.error('면접 질문 생성 오류:', e);
@@ -124,11 +161,18 @@ function InterviewProgress() {
         resume_id: resumeId, 
         application_id: applicationId, 
         company_name: companyName, 
-        name: applicantName 
+        name: applicantName,
+        interview_stage: interviewStage, // 면접 단계 추가
+        evaluator_type: currentConfig.evaluatorType // 평가자 유형 추가
       };
       
+      // 면접 단계에 따라 다른 엔드포인트 사용
+      const endpoint = isFirstInterview 
+        ? '/interview-questions/project-questions'
+        : '/interview-questions/executive-tools';
+      
       // 워크플로우 결과에서 평가 도구 추출
-      const workflowRes = await api.post('/interview-questions/project-questions', workflowRequest);
+      const workflowRes = await api.post(endpoint, workflowRequest);
       const workflowData = workflowRes.data;
       
       // 평가 도구가 포함된 경우 사용
@@ -332,7 +376,9 @@ function InterviewProgress() {
       summary: memo,
       status: 'SUBMITTED', // 평가 완료 상태
       details,  // 기존 호환성
-      evaluation_items: evaluationItems  // 새로운 구조
+      evaluation_items: evaluationItems,  // 새로운 구조
+      interview_stage: interviewStage, // 면접 단계 추가
+      evaluator_type: currentConfig.evaluatorType // 평가자 유형 추가
     };
     
     try {
@@ -436,10 +482,34 @@ function InterviewProgress() {
     <div className="relative min-h-screen bg-[#f7faff] dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <Navbar />
       <ViewPostSidebar jobPost={jobPost} />
+      
+      {/* 면접 단계별 헤더 */}
+      <div className={`fixed top-[64px] left-[90px] right-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600 px-6 py-3 shadow-sm`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className={`text-2xl font-bold text-${currentConfig.color}-600 dark:text-${currentConfig.color}-400`}>
+              {currentConfig.title}
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {currentConfig.subtitle}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className={`px-3 py-1 rounded-full text-sm font-semibold bg-${currentConfig.color}-100 text-${currentConfig.color}-800 dark:bg-${currentConfig.color}-900 dark:text-${currentConfig.color}-200`}>
+              {isFirstInterview ? '실무진' : '임원진'}
+            </span>
+          </div>
+        </div>
+      </div>
       {/* 좌측 지원자 리스트: fixed */}
       <div
-        className="fixed left-[90px] top-[64px] bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col"
-        style={{ width: isLeftOpen ? leftWidth : 16, height: 'calc(100vh - 64px)', zIndex: 1000 }}
+        className="fixed left-[90px] bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col"
+        style={{ 
+          width: isLeftOpen ? leftWidth : 16, 
+          top: '120px', // 헤더 높이 반영 (64px + 56px)
+          height: 'calc(100vh - 120px)', 
+          zIndex: 1000 
+        }}
       >
         {/* 닫기/열기 버튼 */}
         <button
@@ -509,9 +579,9 @@ function InterviewProgress() {
       <div
         className="flex flex-row"
         style={{
-          paddingTop: 64,
+          paddingTop: 120, // 헤더 높이 반영 (64px + 56px)
           marginLeft: (isLeftOpen ? leftWidth : 16) + 90,
-          height: 'calc(100vh - 64px)'
+          height: 'calc(100vh - 120px)'
         }}
       >
         {/* 조건부: 이력서가 없으면 공통질문 패널이 넓게, 있으면 기존 레이아웃 */}
