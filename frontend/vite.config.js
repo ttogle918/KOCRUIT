@@ -40,8 +40,15 @@ export default defineConfig({
       '/auth': 'http://localhost:8000',
       '/admin': 'http://localhost:8000',
     },
-
-
+    // WebSocket 프록시 설정
+    ws: {
+      proxy: {
+        '/api': {
+          target: 'ws://localhost:8000',
+          ws: true
+        }
+      }
+    }
   },
 })
 

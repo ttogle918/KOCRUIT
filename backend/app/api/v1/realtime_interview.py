@@ -57,26 +57,35 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     
     try:
         while True:
-            # 클라이언트로부터 메시지 수신
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            
-            # 메시지 타입에 따른 처리
-            message_type = message.get("type")
-            
-            if message_type == "audio_chunk":
-                await handle_audio_chunk(session_id, message)
-            elif message_type == "speaker_note":
-                await handle_speaker_note(session_id, message)
-            elif message_type == "evaluation_request":
-                await handle_evaluation_request(session_id, message)
-            elif message_type == "session_end":
-                await handle_session_end(session_id, message)
-            else:
+            # 클라이언트로부터 메시지 수신 (타임아웃 설정)
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
+                message = json.loads(data)
+                
+                # 메시지 타입에 따른 처리
+                message_type = message.get("type")
+                
+                if message_type == "audio_chunk":
+                    await handle_audio_chunk(session_id, message)
+                elif message_type == "speaker_note":
+                    await handle_speaker_note(session_id, message)
+                elif message_type == "evaluation_request":
+                    await handle_evaluation_request(session_id, message)
+                elif message_type == "session_end":
+                    await handle_session_end(session_id, message)
+                else:
+                    await manager.send_personal_message(
+                        json.dumps({"error": "Unknown message type"}),
+                        session_id
+                    )
+                    
+            except asyncio.TimeoutError:
+                # 타임아웃 시 연결 유지를 위한 ping 메시지 전송
                 await manager.send_personal_message(
-                    json.dumps({"error": "Unknown message type"}),
+                    json.dumps({"type": "ping", "timestamp": datetime.now().timestamp()}),
                     session_id
                 )
+                continue
                 
     except WebSocketDisconnect:
         manager.disconnect(session_id)
@@ -144,51 +153,45 @@ async def handle_audio_chunk(session_id: str, message: Dict[str, Any]):
 async def process_audio_chunk(audio_path: str, timestamp: float) -> Dict[str, Any]:
     """오디오 청크 처리 (비동기)"""
     try:
-        # 실제 구현에서는 agent의 도구들을 호출
-        # 여기서는 간단한 시뮬레이션
-        import random
+        # Agent의 realtime_interview_evaluation_tool 호출 (타임아웃 설정)
+        from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
         
-        # 음성 인식 시뮬레이션
-        sample_texts = [
-            "안녕하세요, 지원자입니다.",
-            "네, 그 프로젝트에 대해 설명드리겠습니다.",
-            "팀워크가 가장 중요하다고 생각합니다.",
-            "Java와 Spring Framework를 주로 사용했습니다."
-        ]
+        tool = RealtimeInterviewEvaluationTool()
         
-        transcription = {
-            "text": random.choice(sample_texts),
-            "success": True
-        }
+        # 오디오 파일을 바이트로 읽기
+        with open(audio_path, 'rb') as f:
+            audio_chunk = f.read()
         
-        # 화자 분리 시뮬레이션
-        speakers = ["면접관_1", "면접관_2", "면접관_3", "지원자_1", "지원자_2", "지원자_3"]
-        diarization = {
-            "current_speaker": random.choice(speakers),
-            "confidence": random.uniform(0.7, 0.95)
-        }
+        # AI 처리에 타임아웃 설정 (30초로 증가)
+        try:
+            result = await asyncio.wait_for(
+                asyncio.to_thread(tool.process_audio_chunk, audio_chunk, timestamp),
+                timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            logging.error("AI 처리 타임아웃 - 실제 처리 시도")
+            # 타임아웃 시에도 실제 처리 재시도
+            result = await asyncio.to_thread(tool.process_audio_chunk, audio_chunk, timestamp)
         
-        # 평가 시뮬레이션
-        evaluation = {
-            "speaker": diarization["current_speaker"],
-            "text": transcription["text"],
-            "timestamp": timestamp,
-            "score": random.randint(60, 90),
-            "feedback": ["좋은 답변입니다", "구체적인 경험을 잘 설명했습니다"],
-            "keywords": ["기술: 2개", "경험: 1개"]
-        }
+        # Agent 도구에서 오류가 발생한 경우에도 실제 결과 반환
+        if not result.get("success", False) or "error" in result:
+            logging.error(f"Agent 도구 오류, 실제 처리 재시도: {result.get('error', 'Unknown error')}")
+            # 오류가 있어도 결과 반환 (시뮬레이션 대신)
+            return result
         
-        return {
-            "timestamp": timestamp,
-            "transcription": transcription,
-            "diarization": diarization,
-            "evaluation": evaluation,
-            "success": True
-        }
+        return result
         
     except Exception as e:
         logging.error(f"오디오 처리 오류: {e}")
-        return {"error": str(e), "success": False}
+        # 오류 발생 시에도 시뮬레이션 대신 오류 정보 반환
+        return {
+            "timestamp": timestamp,
+            "transcription": {"text": f"처리 오류: {str(e)}", "success": False},
+            "diarization": {"current_speaker": "unknown", "error": str(e)},
+            "evaluation": {"score": 0, "feedback": [f"오류: {str(e)}"], "success": False},
+            "success": False,
+            "error": str(e)
+        }
 
 async def handle_speaker_note(session_id: str, message: Dict[str, Any]):
     """화자별 메모 처리"""

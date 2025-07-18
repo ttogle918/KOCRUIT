@@ -47,31 +47,79 @@ const InterviewPanel = () => {
 
   // WebSocket 연결
   const connectWebSocket = useCallback(() => {
-    const wsUrl = `ws://localhost:8000/api/v1/ws/interview/${sessionId}`;
-    websocketRef.current = new WebSocket(wsUrl);
+    if (!sessionId) {
+      console.log('세션 ID가 없습니다');
+      return;
+    }
+
+    // 이미 연결된 경우 중복 연결 방지
+    if (websocketRef.current?.readyState === WebSocket.OPEN) {
+      console.log('이미 WebSocket이 연결되어 있습니다');
+      return;
+    }
+
+    // 직접 localhost:8000으로 연결 (프록시 우회)
+    const wsUrl = `ws://localhost:8000/api/v1/realtime-interview/ws/interview/${sessionId}`;
+    console.log('WebSocket 연결 시도:', wsUrl);
     
-    websocketRef.current.onopen = () => {
-      console.log('WebSocket 연결됨');
-      setIsConnected(true);
-      console.log('실시간 면접 시스템에 연결되었습니다');
-    };
-    
-    websocketRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      handleWebSocketMessage(data);
-    };
-    
-    websocketRef.current.onclose = () => {
-      console.log('WebSocket 연결 해제');
+    try {
+      websocketRef.current = new WebSocket(wsUrl);
+      
+      // 연결 타임아웃 설정 (10초)
+      const connectionTimeout = setTimeout(() => {
+        if (websocketRef.current?.readyState === WebSocket.CONNECTING) {
+          console.error('WebSocket 연결 타임아웃');
+          websocketRef.current.close();
+          setIsConnected(false);
+        }
+      }, 10000);
+      
+      websocketRef.current.onopen = () => {
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket 연결됨');
+        setIsConnected(true);
+        console.log('실시간 면접 시스템에 연결되었습니다');
+      };
+      
+      websocketRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket 메시지 수신:', data.type);
+          handleWebSocketMessage(data);
+        } catch (error) {
+          console.error('메시지 파싱 오류:', error);
+        }
+      };
+      
+      websocketRef.current.onclose = (event) => {
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket 연결 해제:', event.code, event.reason);
+        setIsConnected(false);
+        console.log('실시간 연결이 끊어졌습니다');
+        
+        // 정상적인 종료가 아닌 경우에만 재연결 시도
+        if (event.code !== 1000) {
+          console.log('비정상 종료로 인한 재연결 시도...');
+          setTimeout(() => {
+            if (!isConnected) {
+              console.log('WebSocket 재연결 시도...');
+              connectWebSocket();
+            }
+          }, 3000); // 3초 후 재연결
+        }
+      };
+      
+      websocketRef.current.onerror = (error) => {
+        clearTimeout(connectionTimeout);
+        console.error('WebSocket 오류:', error);
+        console.log('연결 오류가 발생했습니다');
+        setIsConnected(false);
+      };
+    } catch (error) {
+      console.error('WebSocket 생성 오류:', error);
       setIsConnected(false);
-      console.log('실시간 연결이 끊어졌습니다');
-    };
-    
-    websocketRef.current.onerror = (error) => {
-      console.error('WebSocket 오류:', error);
-      console.log('연결 오류가 발생했습니다');
-    };
-  }, [sessionId]);
+    }
+  }, [sessionId, isConnected]);
 
   // WebSocket 메시지 처리
   const handleWebSocketMessage = (data) => {
@@ -87,6 +135,10 @@ const InterviewPanel = () => {
         break;
       case 'session_ended':
         handleSessionEnded(data.final_result);
+        break;
+      case 'ping':
+        // 서버로부터의 ping 메시지 - 연결 상태 확인
+        console.log('서버 ping 수신:', data.timestamp);
         break;
       default:
         console.log('알 수 없는 메시지 타입:', data.type);
@@ -171,7 +223,17 @@ const InterviewPanel = () => {
 
   // 오디오 청크 전송
   const sendAudioChunk = () => {
-    if (websocketRef.current?.readyState === WebSocket.OPEN && audioChunksRef.current.length > 0) {
+    if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('WebSocket이 연결되지 않았습니다. 오디오 청크 전송을 건너뜁니다.');
+      return;
+    }
+    
+    if (audioChunksRef.current.length === 0) {
+      console.log('전송할 오디오 청크가 없습니다.');
+      return;
+    }
+    
+    try {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       const reader = new FileReader();
       
@@ -183,11 +245,23 @@ const InterviewPanel = () => {
           timestamp: Date.now() / 1000
         };
         
-        websocketRef.current.send(JSON.stringify(message));
-        audioChunksRef.current = [];
+        // 연결 상태 재확인 후 전송
+        if (websocketRef.current?.readyState === WebSocket.OPEN) {
+          websocketRef.current.send(JSON.stringify(message));
+          console.log('오디오 청크 전송 완료');
+          audioChunksRef.current = [];
+        } else {
+          console.error('전송 중 WebSocket 연결이 끊어졌습니다.');
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error('오디오 데이터 읽기 오류:', error);
       };
       
       reader.readAsDataURL(audioBlob);
+    } catch (error) {
+      console.error('오디오 청크 전송 오류:', error);
     }
   };
 
@@ -239,8 +313,12 @@ const InterviewPanel = () => {
 
   // 컴포넌트 마운트 시 세션 초기화
   useEffect(() => {
-    const newSessionId = `interview_${jobId}_${applicantId}_${Date.now()}`;
+    // jobId와 applicantId가 undefined인 경우 기본값 사용
+    const safeJobId = jobId || 'default_job';
+    const safeApplicantId = applicantId || 'default_applicant';
+    const newSessionId = `interview_${safeJobId}_${safeApplicantId}_${Date.now()}`;
     setSessionId(newSessionId);
+    console.log('세션 ID 생성:', newSessionId);
   }, [jobId, applicantId]);
 
   // WebSocket 연결
@@ -250,7 +328,9 @@ const InterviewPanel = () => {
     }
     
     return () => {
-      websocketRef.current?.close();
+      if (websocketRef.current) {
+        websocketRef.current.close();
+      }
     };
   }, [sessionId, connectWebSocket]);
 
@@ -258,7 +338,9 @@ const InterviewPanel = () => {
   useEffect(() => {
     return () => {
       stopRecording();
-      websocketRef.current?.close();
+      if (websocketRef.current) {
+        websocketRef.current.close();
+      }
     };
   }, []);
 

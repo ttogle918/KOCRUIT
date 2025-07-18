@@ -163,6 +163,17 @@ app.add_middleware(
 #app.include_router(api_router)
 app.include_router(api_router, prefix="/api/v1")
 
+# 헬스체크 엔드포인트
+@app.get("/health")
+async def health_check():
+    """서버 상태 확인 엔드포인트"""
+    return {"status": "healthy", "message": "Kocruit API is running"}
+
+@app.get("/")
+async def root():
+    """루트 엔드포인트"""
+    return {"message": "Welcome to Kocruit API"}
+
 def run_auto_process():
     print("run_auto_process called") 
     """자동 처리 함수"""

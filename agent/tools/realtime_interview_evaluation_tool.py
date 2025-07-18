@@ -51,31 +51,58 @@ class RealtimeInterviewEvaluationTool:
         Args:
             audio_chunk: 오디오 데이터
             timestamp: 타임스탬프
-            
+        
         Returns:
             실시간 처리 결과
         """
         try:
             if not self.current_session:
-                return {"error": "세션이 초기화되지 않았습니다", "success": False}
+                # 세션이 초기화되지 않은 경우 기본 세션 생성
+                self.current_session = {
+                    "session_id": f"default_session_{timestamp}",
+                    "participants": ["면접관_1", "면접관_2", "면접관_3", "지원자_1", "지원자_2", "지원자_3"],
+                    "start_time": datetime.now(),
+                    "evaluations": [],
+                    "speaker_notes": {},
+                    "real_time_transcript": []
+                }
+                logging.info("기본 세션 자동 생성")
             
             # 임시 파일에 오디오 저장
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
                 temp_file.write(audio_chunk)
                 temp_audio_path = temp_file.name
             
-            # 음성 인식
-            transcription_result = self.speech_tool.transcribe_audio(temp_audio_path)
+            # 음성 인식 (실제 Whisper 모델 사용)
+            try:
+                logging.info(f"음성 인식 시작: {temp_audio_path}")
+                transcription_result = self.speech_tool.transcribe_audio(temp_audio_path)
+                logging.info(f"음성 인식 결과: {transcription_result.get('text', '')}")
+            except Exception as e:
+                logging.error(f"음성 인식 실패: {e}")
+                transcription_result = {"text": f"음성 인식 오류: {str(e)}", "success": False}
             
             # 화자 분리 (실시간 버전)
-            diarization_result = self._process_realtime_diarization(temp_audio_path, timestamp)
+            try:
+                logging.info("화자 분리 시작")
+                diarization_result = self._process_realtime_diarization(temp_audio_path, timestamp)
+                logging.info(f"화자 분리 결과: {diarization_result.get('current_speaker', 'unknown')}")
+            except Exception as e:
+                logging.error(f"화자 분리 실패: {e}")
+                diarization_result = {"current_speaker": "unknown", "confidence": 0.0, "error": str(e)}
             
             # 실시간 평가
-            evaluation_result = self._evaluate_realtime_content(
-                transcription_result.get("text", ""),
-                diarization_result.get("current_speaker", "unknown"),
-                timestamp
-            )
+            try:
+                logging.info("실시간 평가 시작")
+                evaluation_result = self._evaluate_realtime_content(
+                    transcription_result.get("text", ""),
+                    diarization_result.get("current_speaker", "unknown"),
+                    timestamp
+                )
+                logging.info(f"평가 결과: {evaluation_result.get('score', 0)}점")
+            except Exception as e:
+                logging.error(f"평가 실패: {e}")
+                evaluation_result = {"score": 0, "feedback": [f"평가 오류: {str(e)}"], "success": False}
             
             # 결과 저장
             result = {
@@ -89,8 +116,12 @@ class RealtimeInterviewEvaluationTool:
             self._update_session_data(result)
             
             # 임시 파일 삭제
-            os.unlink(temp_audio_path)
+            try:
+                os.unlink(temp_audio_path)
+            except Exception as e:
+                logging.warning(f"임시 파일 삭제 실패: {e}")
             
+            logging.info("오디오 청크 처리 완료")
             return result
             
         except Exception as e:
@@ -110,7 +141,7 @@ class RealtimeInterviewEvaluationTool:
             
             # 화자 구분 (간단한 휴리스틱)
             current_speaker = self._identify_speaker(volume, pitch, timestamp)
-            
+    
             return {
                 "current_speaker": current_speaker,
                 "volume": float(volume),

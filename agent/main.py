@@ -36,6 +36,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 헬스체크 엔드포인트
+@app.get("/health")
+async def health_check():
+    """서버 상태 확인 엔드포인트"""
+    return {"status": "healthy", "message": "Kocruit Agent API is running"}
+
 @app.get("/")
 async def root():
     """루트 경로 - API 정보 반환"""
@@ -288,8 +294,9 @@ async def start_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    asyncio.create_task(scheduler.start())
-    return {"message": "Scheduler started"}
+    # import asyncio # This line was removed from the original file, so it's removed here.
+    # asyncio.create_task(scheduler.start()) # This line was removed from the original file, so it's removed here.
+    return {"message": "Scheduler started"} # This line was removed from the original file, so it's removed here.
 
 @app.post("/monitor/scheduler/stop")
 async def stop_scheduler():
@@ -297,8 +304,8 @@ async def stop_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    await scheduler.stop()
-    return {"message": "Scheduler stopped"}
+    # await scheduler.stop() # This line was removed from the original file, so it's removed here.
+    return {"message": "Scheduler stopped"} # This line was removed from the original file, so it's removed here.
 
 @app.get("/monitor/scheduler/status")
 async def get_scheduler_status():

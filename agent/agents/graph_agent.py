@@ -7,6 +7,8 @@ from tools.form_field_tool import form_field_update_tool, form_status_check_tool
 from tools.spell_check_tool import spell_check_tool, apply_spell_corrections
 import json
 import re
+import logging
+from typing import Dict, Any
 
 def analyze_complex_command(message):
     """복합 명령을 분석하여 필요한 작업들을 추출"""
@@ -422,3 +424,17 @@ def build_form_graph():
     graph.add_edge("form_field_update_tool", "spell_check_tool")
     graph.set_finish_point("spell_check_tool")
     return graph.compile()
+
+async def process_audio_chunk(audio_path: str, timestamp: float) -> Dict[str, Any]:
+    try:
+        # Agent의 realtime_interview_evaluation_tool 호출
+        from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
+        
+        tool = RealtimeInterviewEvaluationTool()
+        result = await tool.process_audio(audio_path, timestamp)
+        
+        return result
+        
+    except Exception as e:
+        logging.error(f"오디오 처리 오류: {e}")
+        return {"error": str(e), "success": False}
