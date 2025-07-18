@@ -11,7 +11,7 @@ from tools.form_field_tool import form_field_update_tool, form_status_check_tool
 from tools.form_field_improve_tool import form_field_improve_tool
 from agents.application_evaluation_agent import evaluate_application
 from tools.speech_recognition_tool import speech_recognition_tool
-from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool
+# from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool, RealtimeInterviewEvaluationTool
 from dotenv import load_dotenv
 import uuid
 import os
@@ -696,6 +696,8 @@ async def realtime_interview_evaluation_api(request: Request):
             "current_time": current_time
         }
         
+        # 실시간 평가 도구를 동적으로 import
+        from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool
         result = realtime_interview_evaluation_tool(state)
         
         return {

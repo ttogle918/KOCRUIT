@@ -1,233 +1,331 @@
-from langchain_openai import ChatOpenAI
+import whisper
+import torch
+import numpy as np
 from typing import Dict, List, Any, Optional
 import json
+import tempfile
+import os
 from datetime import datetime
+import logging
+from .speech_recognition_tool import SpeechRecognitionTool
+from .speaker_diarization_tool import SpeakerDiarizationTool
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+class RealtimeInterviewEvaluationTool:
+    def __init__(self):
+        """실시간 면접 평가 도구 초기화"""
+        self.speech_tool = SpeechRecognitionTool()
+        self.diarization_tool = SpeakerDiarizationTool()
+        self.evaluation_history = []
+        self.current_session = None
+        
+    def initialize_session(self, session_id: str, participants: List[Dict]) -> bool:
+        """면접 세션 초기화
+        
+        Args:
+            session_id: 세션 ID
+            participants: 참가자 목록 (면접관, 지원자)
+        """
+        try:
+            self.current_session = {
+                "session_id": session_id,
+                "participants": participants,
+                "start_time": datetime.now(),
+                "evaluations": [],
+                "speaker_notes": {},
+                "real_time_transcript": []
+            }
+            
+            # 화자 분리 파이프라인 초기화
+            self.diarization_tool.initialize_pipeline()
+            
+            logging.info(f"면접 세션 초기화 완료: {session_id}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"세션 초기화 실패: {e}")
+            return False
+    
+    def process_audio_chunk(self, audio_chunk: bytes, timestamp: float) -> Dict[str, Any]:
+        """실시간 오디오 청크 처리
+        
+        Args:
+            audio_chunk: 오디오 데이터
+            timestamp: 타임스탬프
+            
+        Returns:
+            실시간 처리 결과
+        """
+        try:
+            if not self.current_session:
+                return {"error": "세션이 초기화되지 않았습니다", "success": False}
+            
+            # 임시 파일에 오디오 저장
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                temp_file.write(audio_chunk)
+                temp_audio_path = temp_file.name
+            
+            # 음성 인식
+            transcription_result = self.speech_tool.transcribe_audio(temp_audio_path)
+            
+            # 화자 분리 (실시간 버전)
+            diarization_result = self._process_realtime_diarization(temp_audio_path, timestamp)
+            
+            # 실시간 평가
+            evaluation_result = self._evaluate_realtime_content(
+                transcription_result.get("text", ""),
+                diarization_result.get("current_speaker", "unknown"),
+                timestamp
+            )
+            
+            # 결과 저장
+            result = {
+                "timestamp": timestamp,
+                "transcription": transcription_result,
+                "diarization": diarization_result,
+                "evaluation": evaluation_result,
+                "success": True
+            }
+            
+            self._update_session_data(result)
+            
+            # 임시 파일 삭제
+            os.unlink(temp_audio_path)
+            
+            return result
+            
+        except Exception as e:
+            logging.error(f"실시간 오디오 처리 실패: {e}")
+            return {"error": str(e), "success": False}
+    
+    def _process_realtime_diarization(self, audio_path: str, timestamp: float) -> Dict[str, Any]:
+        """실시간 화자 분리 처리"""
+        try:
+            # 간단한 실시간 화자 분리 (음성 특성 기반)
+            # 실제 구현에서는 더 정교한 방법 사용
+            y, sr = self.speech_tool.model.transcribe(audio_path)
+            
+            # 음성 특성 분석
+            volume = np.mean(np.abs(y))
+            pitch = self._extract_pitch(y, sr)
+            
+            # 화자 구분 (간단한 휴리스틱)
+            current_speaker = self._identify_speaker(volume, pitch, timestamp)
+            
+            return {
+                "current_speaker": current_speaker,
+                "volume": float(volume),
+                "pitch": float(pitch),
+                "confidence": 0.8  # 신뢰도
+            }
+            
+        except Exception as e:
+            logging.error(f"실시간 화자 분리 실패: {e}")
+            return {"current_speaker": "unknown", "error": str(e)}
+    
+    def _extract_pitch(self, audio: np.ndarray, sr: int) -> float:
+        """음성에서 피치 추출"""
+        try:
+            # 간단한 피치 추출 (실제로는 더 정교한 방법 사용)
+            fft = np.fft.fft(audio)
+            freqs = np.fft.fftfreq(len(audio), 1/sr)
+            
+            # 주요 주파수 찾기
+            magnitude = np.abs(fft)
+            peak_freq_idx = np.argmax(magnitude[1:len(magnitude)//2]) + 1
+            pitch = freqs[peak_freq_idx]
+            
+            return abs(pitch)
+            
+        except Exception:
+            return 0.0
+    
+    def _identify_speaker(self, volume: float, pitch: float, timestamp: float) -> str:
+        """화자 식별 (간단한 휴리스틱)"""
+        # 이전 발화 패턴과 비교하여 화자 구분
+        # 실제 구현에서는 더 정교한 방법 사용
+        
+        if volume > 0.1:
+            if pitch > 200:  # 높은 피치
+                return "지원자_1"
+            else:  # 낮은 피치
+                return "면접관_1"
+        else:
+            return "unknown"
+    
+    def _evaluate_realtime_content(self, text: str, speaker: str, timestamp: float) -> Dict[str, Any]:
+        """실시간 내용 평가"""
+        if not text.strip():
+            return {"score": 0, "feedback": "음성 없음", "success": False}
+        
+        try:
+            # 간단한 평가 기준
+            evaluation = {
+                "speaker": speaker,
+                "text": text,
+                "timestamp": timestamp,
+                "score": 0,
+                "feedback": [],
+                "keywords": [],
+                "sentiment": "neutral"
+            }
+            
+            # 키워드 분석
+            keywords = {
+                "기술": ["프로그래밍", "개발", "코딩", "프로젝트", "기술", "언어", "프레임워크"],
+                "경험": ["경험", "프로젝트", "회사", "업무", "담당", "역할"],
+                "인성": ["팀워크", "협력", "소통", "리더십"],
+                "동기": ["지원", "동기", "목표", "꿈", "미래"]
+            }
+            
+            # 점수 계산
+            total_score = 0
+            for category, words in keywords.items():
+                count = sum(1 for word in words if word in text)
+                if count > 0:
+                    evaluation["keywords"].append(f"{category}: {count}개")
+                    total_score += count * 10
+            
+            evaluation["score"] = min(total_score, 100)
+            
+            # 피드백 생성
+            if evaluation["score"] > 50:
+                evaluation["feedback"].append("좋은 답변입니다")
+            elif evaluation["score"] > 20:
+                evaluation["feedback"].append("보통 수준의 답변입니다")
+            else:
+                evaluation["feedback"].append("더 구체적인 답변이 필요합니다")
+            
+            return evaluation
+            
+        except Exception as e:
+            logging.error(f"실시간 평가 실패: {e}")
+            return {"error": str(e), "success": False}
+    
+    def _update_session_data(self, result: Dict[str, Any]):
+        """세션 데이터 업데이트"""
+        if not self.current_session:
+            return
+        
+        # 실시간 트랜스크립트 업데이트
+        if result.get("transcription", {}).get("text"):
+            self.current_session["real_time_transcript"].append({
+                "timestamp": result["timestamp"],
+                "speaker": result.get("diarization", {}).get("current_speaker", "unknown"),
+                "text": result["transcription"]["text"]
+            })
+        
+        # 평가 히스토리 업데이트
+        if result.get("evaluation", {}).get("score", 0) > 0:
+            self.current_session["evaluations"].append(result["evaluation"])
+        
+        # 화자별 메모 업데이트
+        speaker = result.get("diarization", {}).get("current_speaker", "unknown")
+        if speaker not in self.current_session["speaker_notes"]:
+            self.current_session["speaker_notes"][speaker] = []
+        
+        if result.get("evaluation", {}).get("feedback"):
+            self.current_session["speaker_notes"][speaker].append({
+                "timestamp": result["timestamp"],
+                "feedback": result["evaluation"]["feedback"]
+            })
+    
+    def get_session_summary(self) -> Dict[str, Any]:
+        """세션 요약 정보 반환"""
+        if not self.current_session:
+            return {"error": "세션이 없습니다", "success": False}
+        
+        try:
+            # 화자별 통계
+            speaker_stats = {}
+            for speaker in self.current_session["speaker_notes"]:
+                speaker_stats[speaker] = {
+                    "total_notes": len(self.current_session["speaker_notes"][speaker]),
+                    "avg_score": 0
+                }
+            
+            # 평균 점수 계산
+            if self.current_session["evaluations"]:
+                total_score = sum(eval.get("score", 0) for eval in self.current_session["evaluations"])
+                avg_score = total_score / len(self.current_session["evaluations"])
+            else:
+                avg_score = 0
+            
+            return {
+                "session_id": self.current_session["session_id"],
+                "duration": (datetime.now() - self.current_session["start_time"]).total_seconds(),
+                "total_evaluations": len(self.current_session["evaluations"]),
+                "average_score": avg_score,
+                "speaker_stats": speaker_stats,
+                "transcript_length": len(self.current_session["real_time_transcript"]),
+                "success": True
+            }
+            
+        except Exception as e:
+            logging.error(f"세션 요약 생성 실패: {e}")
+            return {"error": str(e), "success": False}
+    
+    def end_session(self) -> Dict[str, Any]:
+        """세션 종료 및 최종 결과 반환"""
+        if not self.current_session:
+            return {"error": "세션이 없습니다", "success": False}
+        
+        try:
+            summary = self.get_session_summary()
+            final_result = {
+                "session_summary": summary,
+                "full_transcript": self.current_session["real_time_transcript"],
+                "all_evaluations": self.current_session["evaluations"],
+                "speaker_notes": self.current_session["speaker_notes"],
+                "end_time": datetime.now().isoformat()
+            }
+            
+            # 세션 초기화
+            self.current_session = None
+            
+            return final_result
+            
+        except Exception as e:
+            logging.error(f"세션 종료 실패: {e}")
+            return {"error": str(e), "success": False}
 
+# 전역 인스턴스
+realtime_evaluation_tool = RealtimeInterviewEvaluationTool()
+
+# LangGraph 도구로 사용할 함수
 def realtime_interview_evaluation_tool(state: Dict[str, Any]) -> Dict[str, Any]:
-    """실시간 면접 평가 도구
+    """실시간 면접 평가 도구 함수
     
     Args:
-        state: 현재 상태 (transcription, speakers, job_info, resume_info 포함)
+        state: 현재 상태 (audio_chunk, timestamp, session_id 등 포함)
         
     Returns:
         실시간 평가 결과가 포함된 상태
     """
-    transcription = state.get("transcription", "")
-    speakers = state.get("speakers", [])
-    job_info = state.get("job_info", "")
-    resume_info = state.get("resume_info", "")
-    current_time = state.get("current_time", 0)
+    action = state.get("action", "process_chunk")
     
-    if not transcription:
-        return {**state, "realtime_evaluation": {"error": "No transcription provided"}}
+    if action == "initialize":
+        session_id = state.get("session_id")
+        participants = state.get("participants", [])
+        success = realtime_evaluation_tool.initialize_session(session_id, participants)
+        return {**state, "initialization": {"success": success}}
     
-    # 면접 진행 상황 분석
-    interview_progress = _analyze_interview_progress(transcription, speakers, current_time)
+    elif action == "process_chunk":
+        audio_chunk = state.get("audio_chunk")
+        timestamp = state.get("timestamp", datetime.now().timestamp())
+        
+        if not audio_chunk:
+            return {**state, "realtime_evaluation": {"error": "No audio chunk provided"}}
+        
+        result = realtime_evaluation_tool.process_audio_chunk(audio_chunk, timestamp)
+        return {**state, "realtime_evaluation": result}
     
-    # 실시간 평가 생성
-    evaluation = _generate_realtime_evaluation(
-        transcription, speakers, job_info, resume_info, interview_progress
-    )
+    elif action == "get_summary":
+        summary = realtime_evaluation_tool.get_session_summary()
+        return {**state, "session_summary": summary}
     
-    # 메모 자동 생성
-    auto_memo = _generate_auto_memo(evaluation, transcription, speakers)
+    elif action == "end_session":
+        final_result = realtime_evaluation_tool.end_session()
+        return {**state, "final_result": final_result}
     
-    return {
-        **state,
-        "realtime_evaluation": {
-            "evaluation": evaluation,
-            "auto_memo": auto_memo,
-            "interview_progress": interview_progress,
-            "timestamp": datetime.now().isoformat()
-        }
-    }
-
-def _analyze_interview_progress(transcription: str, speakers: List[Dict], current_time: float) -> Dict[str, Any]:
-    """면접 진행 상황 분석"""
-    
-    # 화자별 발화 시간 계산
-    speaker_times = {}
-    for speaker in speakers:
-        speaker_id = speaker.get("speaker", "unknown")
-        duration = speaker.get("end", 0) - speaker.get("start", 0)
-        speaker_times[speaker_id] = speaker_times.get(speaker_id, 0) + duration
-    
-    # 면접 단계 추정
-    total_duration = current_time
-    interview_stage = "introduction"
-    if total_duration > 300:  # 5분 이상
-        interview_stage = "main_questions"
-    if total_duration > 600:  # 10분 이상
-        interview_stage = "detailed_discussion"
-    if total_duration > 900:  # 15분 이상
-        interview_stage = "closing"
-    
-    return {
-        "total_duration": total_duration,
-        "speaker_times": speaker_times,
-        "interview_stage": interview_stage,
-        "transcription_length": len(transcription)
-    }
-
-def _generate_realtime_evaluation(
-    transcription: str, 
-    speakers: List[Dict], 
-    job_info: str, 
-    resume_info: str, 
-    progress: Dict[str, Any]
-) -> Dict[str, Any]:
-    """실시간 평가 생성"""
-    
-    prompt = f"""
-    다음은 진행 중인 면접의 음성 인식 결과입니다:
-    
-    면접 내용:
-    {transcription}
-    
-    화자 정보:
-    {json.dumps(speakers, ensure_ascii=False, indent=2)}
-    
-    채용공고 정보:
-    {job_info}
-    
-    지원자 이력서 정보:
-    {resume_info}
-    
-    면접 진행 상황:
-    - 총 시간: {progress['total_duration']}초
-    - 현재 단계: {progress['interview_stage']}
-    - 화자별 발화 시간: {progress['speaker_times']}
-    
-    위 정보를 바탕으로 실시간 면접 평가를 해주세요.
-    
-    평가 기준:
-    1. 기술력 (0-5점): 기술적 지식과 경험
-    2. 의사소통능력 (0-5점): 명확한 설명과 소통
-    3. 인성 (0-5점): 태도와 협력성
-    4. 적극성 (0-5점): 적극적인 참여와 관심
-    5. 직무 적합성 (0-5점): 채용공고와의 매칭도
-    
-    JSON 형식으로 응답해주세요:
-    {{
-        "scores": {{
-            "technical_skills": 4,
-            "communication": 3,
-            "personality": 4,
-            "proactiveness": 3,
-            "job_fit": 4
-        }},
-        "strengths": ["강점1", "강점2"],
-        "weaknesses": ["개선점1", "개선점2"],
-        "suggested_questions": ["추천질문1", "추천질문2"],
-        "overall_impression": "전체적인 인상",
-        "next_focus": "다음에 집중할 영역"
-    }}
-    """
-    
-    try:
-        response = llm.invoke(prompt)
-        if isinstance(response.content, str):
-            evaluation = json.loads(response.content)
-        else:
-            # response.content가 이미 dict인 경우
-            evaluation = response.content if isinstance(response.content, dict) else {}
-        return evaluation
-    except Exception as e:
-        return {
-            "scores": {"technical_skills": 0, "communication": 0, "personality": 0, "proactiveness": 0, "job_fit": 0},
-            "strengths": [],
-            "weaknesses": [],
-            "suggested_questions": [],
-            "overall_impression": "평가 생성 중 오류 발생",
-            "next_focus": "기본 질문 계속",
-            "error": str(e)
-        }
-
-def _generate_auto_memo(evaluation: Dict[str, Any], transcription: str, speakers: List[Dict]) -> str:
-    """자동 메모 생성"""
-    memo_parts = []
-    
-    # 시간 정보
-    if speakers:
-        last_speaker = speakers[-1]
-        memo_parts.append(f"[{last_speaker.get('end', 0):.1f}초]")
-    
-    # 평가 점수 요약
-    scores = evaluation.get("scores", {})
-    if scores:
-        avg_score = sum(scores.values()) / len(scores)
-        memo_parts.append(f"평균점수: {avg_score:.1f}/5.0")
-    
-    # 강점
-    strengths = evaluation.get("strengths", [])
-    if strengths:
-        memo_parts.append(f"강점: {', '.join(strengths[:2])}")
-    
-    # 개선점
-    weaknesses = evaluation.get("weaknesses", [])
-    if weaknesses:
-        memo_parts.append(f"개선점: {', '.join(weaknesses[:2])}")
-    
-    # 전체 인상
-    impression = evaluation.get("overall_impression", "")
-    if impression:
-        memo_parts.append(f"인상: {impression}")
-    
-    # 다음 집중 영역
-    next_focus = evaluation.get("next_focus", "")
-    if next_focus:
-        memo_parts.append(f"다음: {next_focus}")
-    
-    return " | ".join(memo_parts)
-
-def continuous_evaluation_tool(state: Dict[str, Any]) -> Dict[str, Any]:
-    """연속적인 면접 평가 (실시간 업데이트용)"""
-    
-    # 이전 평가 결과 가져오기
-    previous_evaluation = state.get("realtime_evaluation", {})
-    
-    # 새로운 평가 수행
-    new_evaluation = realtime_interview_evaluation_tool(state)
-    
-    # 평가 변화 분석
-    if previous_evaluation and "evaluation" in previous_evaluation:
-        changes = _analyze_evaluation_changes(
-            previous_evaluation["evaluation"],
-            new_evaluation["realtime_evaluation"]["evaluation"]
-        )
-        new_evaluation["realtime_evaluation"]["changes"] = changes
-    
-    return new_evaluation
-
-def _analyze_evaluation_changes(previous: Dict[str, Any], current: Dict[str, Any]) -> Dict[str, Any]:
-    """평가 변화 분석"""
-    changes = {
-        "score_changes": {},
-        "new_strengths": [],
-        "new_weaknesses": [],
-        "improvements": [],
-        "concerns": []
-    }
-    
-    # 점수 변화
-    prev_scores = previous.get("scores", {})
-    curr_scores = current.get("scores", {})
-    
-    for key in curr_scores:
-        if key in prev_scores:
-            change = curr_scores[key] - prev_scores[key]
-            if abs(change) >= 0.5:  # 0.5점 이상 변화만 기록
-                changes["score_changes"][key] = change
-    
-    # 새로운 강점/약점
-    prev_strengths = set(previous.get("strengths", []))
-    curr_strengths = set(current.get("strengths", []))
-    changes["new_strengths"] = list(curr_strengths - prev_strengths)
-    
-    prev_weaknesses = set(previous.get("weaknesses", []))
-    curr_weaknesses = set(current.get("weaknesses", []))
-    changes["new_weaknesses"] = list(curr_weaknesses - prev_weaknesses)
-    
-    return changes 
+    else:
+        return {**state, "error": f"Unknown action: {action}"} 

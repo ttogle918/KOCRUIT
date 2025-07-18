@@ -5,6 +5,10 @@ WORKDIR /app
 # 시스템 패키지 업데이트 및 필요한 패키지 설치
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
+    libsndfile1 \
+    libportaudio2 \
+    portaudio19-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
