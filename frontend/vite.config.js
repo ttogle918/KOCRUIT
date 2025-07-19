@@ -9,28 +9,57 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'MyApp',
-        short_name: 'MyApp',
+        name: 'Kocruit - AI 면접 시스템',
+        short_name: 'Kocruit',
+        description: 'AI 기반 스마트 면접 관리 시스템',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#42a5f5',
+        orientation: 'portrait-primary',
+        scope: '/',
+        lang: 'ko',
         icons: [
           {
             src: '/Logo.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
             src: '/Logo.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ],
+        categories: ['business', 'productivity'],
+        shortcuts: [
+          {
+            name: '면접 진행',
+            short_name: '면접',
+            description: '면접 진행 페이지로 이동',
+            url: '/interview-progress',
+            icons: [
+              {
+                src: '/Logo.png',
+                sizes: '192x192'
+              }
+            ]
           }
         ]
       },
       devOptions: {
-        enabled: true,
+        enabled: false, // 개발 중에는 PWA 비활성화
         type: 'module'
+      },
+      workbox: {
+        // Workbox 로그 레벨 조정
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
+        // 개발 중 로그 최소화
+        verbose: false
       }
     })
   ],

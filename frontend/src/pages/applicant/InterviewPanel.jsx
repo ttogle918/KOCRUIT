@@ -15,7 +15,27 @@ import {
   FaExclamationCircle
 } from 'react-icons/fa';
 
-const InterviewPanel = () => {
+const InterviewPanel = ({
+  questions = [],
+  interviewChecklist,
+  strengthsWeaknesses,
+  interviewGuideline,
+  evaluationCriteria,
+  toolsLoading = false,
+  memo = '',
+  onMemoChange,
+  evaluation = {},
+  onEvaluationChange,
+  isAutoSaving = false,
+  resumeId,
+  applicationId,
+  companyName,
+  applicantName,
+  audioFile,
+  jobInfo,
+  resumeInfo,
+  jobPostId
+}) => {
   const { jobId, applicantId } = useParams();
   const navigate = useNavigate();
   
@@ -478,6 +498,48 @@ const InterviewPanel = () => {
                 </div>
               </div>
             </div>
+
+          {/* 지원자 강점/약점 분석 */}
+          {strengthsWeaknesses && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-4 flex items-center">
+                <FaStar className="w-5 h-5 mr-2" />
+                지원자 강점/약점 분석
+              </h2>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <h4 className="font-semibold text-green-700">주요 강점</h4>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {strengthsWeaknesses.strengths?.map((strength, i) => (
+                      <li key={i} className="mb-1">
+                        <span className="font-medium">{strength.area}:</span>
+                        <span className="ml-2">{strength.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-red-700">개선 가능한 영역</h4>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {strengthsWeaknesses.weaknesses?.map((weakness, i) => (
+                      <li key={i} className="mb-1">
+                        <span className="font-medium">{weakness.area}:</span>
+                        <span className="ml-2">{weakness.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-blue-700">면접 시 중점 확인 사항</h4>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {strengthsWeaknesses.interview_focus_points?.map((point, i) => (
+                      <li key={i}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 실시간 평가 */}
           <div className="bg-white p-6 rounded-lg shadow-md">

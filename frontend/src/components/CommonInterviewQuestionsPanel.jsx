@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Paper,
   List,
   ListItem,
   ListItemText,
@@ -41,15 +40,15 @@ const CommonInterviewQuestionsPanel = ({
   onChange,
   fullWidth = false,
   resumeId,
-  jobPostId, // 추가된 jobPostId prop
+  jobPostId,
   applicationId,
   companyName,
   applicantName,
   interviewChecklist,
-  strengthsWeaknesses,
   interviewGuideline,
   evaluationCriteria,
-  toolsLoading
+  toolsLoading,
+  error = null
 }) => {
   const [questions, setQuestions] = useState(initialQuestions);
   const [editingIndex, setEditingIndex] = useState(null);
@@ -103,21 +102,11 @@ const CommonInterviewQuestionsPanel = ({
     onChange && onChange(updated);
   };
 
-  // 질문 탭 클릭 시 공고 기반 질문 fetch (중복 호출 방지)
-  const handleLoadJobCommonQuestions = async () => {
-    if (!companyName || !jobPostId) return;
-    if (questions && questions.length > 0) return; // 이미 있으면 fetch하지 않음
-    try {
-      const res = await api.post('/interview-questions/job-common-questions', null, {
-        params: { job_post_id: jobPostId, company_name: companyName }
-      });
-      const bundle = res.data.question_bundle;
-      const allQuestions = Object.values(bundle).flat();
-      setQuestions(allQuestions);
-      onChange && onChange(allQuestions);
-    } catch (e) {
-      console.error('공고 기반 질문 에러:', e);
-    }
+  // 질문 탭 클릭 시 (API 호출은 상위 컴포넌트에서 처리)
+  const handleLoadJobCommonQuestions = () => {
+    console.log('🔍 공통 질문 탭 클릭됨');
+    // API 호출은 InterviewProgress에서 이미 처리됨
+    // 여기서는 탭 전환만 처리
   };
 
   // interviewChecklist 등 프롭스가 바뀌면 내부 상태도 동기화 (질문 제외)
@@ -126,7 +115,7 @@ const CommonInterviewQuestionsPanel = ({
   }, [initialQuestions]);
 
   return (
-    <Paper sx={{ p: 2, height: '100%', width: fullWidth ? '100%' : undefined, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+    <Box sx={{ p: 2, height: '100%', width: fullWidth ? '100%' : undefined, display: 'flex', flexDirection: 'column', boxSizing: 'border-box', bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
       <Box sx={{ fontWeight: 'bold', fontSize: 20, mb: 2 }}>공통 면접 질문</Box>
       {/* 탭 네비게이션 */}
       <div className="flex border-b border-gray-300 dark:border-gray-600 mb-2">
@@ -157,15 +146,23 @@ const CommonInterviewQuestionsPanel = ({
         >
           평가 기준
         </button>
+
       </div>
       {/* 탭 컨텐츠 */}
       <div className="flex-1 overflow-y-auto mb-4">
         {activeTab === 'questions' && (
-          <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="questions-list">
-              {(provided) => (
-                <List ref={provided.innerRef} {...provided.droppableProps} sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-                  {questions.map((q, idx) => (
+          <>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                <div className="font-semibold">오류 발생</div>
+                <div className="text-sm">{error}</div>
+              </div>
+            )}
+            <DragDropContext onDragEnd={onDragEnd}>
+              <Droppable droppableId="questions-list">
+                {(provided) => (
+                  <List ref={provided.innerRef} {...provided.droppableProps} sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                    {questions.map((q, idx) => (
                     <React.Fragment key={idx}>
                       <Draggable draggableId={q + '-' + idx} index={idx}>
                         {(provided, snapshot) => (
@@ -246,17 +243,18 @@ const CommonInterviewQuestionsPanel = ({
                   ))}
                   {provided.placeholder}
                 </List>
-              )}
-            </Droppable>
-          </DragDropContext>
-        )}
+                              )}
+              </Droppable>
+            </DragDropContext>
+          </>
+          )}
         {activeTab === 'checklist' && (
           <div>
             <div className="mb-2 font-bold text-lg">면접 체크리스트</div>
             {toolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">체크리스트 생성 중...</span>
+                <span className="ml-2">체크리스트 분석 중입니다...</span>
               </div>
             ) : interviewChecklist ? (
               <div className="space-y-4 text-sm">
@@ -296,7 +294,7 @@ const CommonInterviewQuestionsPanel = ({
             {toolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">가이드라인 생성 중...</span>
+                <span className="ml-2">가이드라인 분석 중입니다...</span>
               </div>
             ) : interviewGuideline ? (
               <div className="space-y-4 text-sm">
@@ -333,7 +331,7 @@ const CommonInterviewQuestionsPanel = ({
             {toolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">평가 기준 생성 중...</span>
+                <span className="ml-2">평가 기준 분석 중입니다...</span>
               </div>
             ) : evaluationCriteria ? (
               <div className="space-y-4 text-sm">
@@ -363,6 +361,7 @@ const CommonInterviewQuestionsPanel = ({
             )}
           </div>
         )}
+
       </div>
       {/* 메모 입력 */}
       <div>
@@ -374,7 +373,7 @@ const CommonInterviewQuestionsPanel = ({
           placeholder="면접 중 메모를 입력하세요..."
         />
       </div>
-    </Paper>
+    </Box>
   );
 };
 

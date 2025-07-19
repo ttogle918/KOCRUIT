@@ -3,14 +3,23 @@ import { useParams } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import InterviewApplicantList from './InterviewApplicantList';
-import ResumePage from '../resume/ResumePage';
 import InterviewPanel from './InterviewPanel';
+import InterviewPanelSelector from '../../components/InterviewPanelSelector';
+import InterviewerEvaluationPanel from '../../components/InterviewerEvaluationPanel';
+import DraggableResumeWindow from '../../components/DraggableResumeWindow';
 import api from '../../api/api';
-import { FiChevronLeft, FiChevronRight, FiSave } from 'react-icons/fi';
-import { MdOutlineAutoAwesome } from 'react-icons/md';
+import { FiChevronLeft, FiChevronRight, FiSave, FiPlus } from 'react-icons/fi';
+import { MdOutlineAutoAwesome, MdOutlineOpenInNew } from 'react-icons/md';
+import { FaUsers } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { mapResumeData } from '../../utils/resumeUtils';
 import CommonInterviewQuestionsPanel from '../../components/CommonInterviewQuestionsPanel';
+import ApplicantQuestionsPanel from '../../components/ApplicantQuestionsPanel';
+import DraggablePanel from '../../components/DraggablePanel';
+import PanelLayoutManager from '../../components/PanelLayoutManager';
+import RecommendedApplicantList from '../../components/RecommendedApplicantList';
+import ResumeGrid from '../../components/ResumeGrid';
+import ResumePage from '../resume/ResumePage';
 import Drawer from '@mui/material/Drawer';
 import Button from '@mui/material/Button';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
@@ -84,7 +93,26 @@ function InterviewProgress() {
   const [commonStrengths, setCommonStrengths] = useState(null);
   const [commonToolsLoading, setCommonToolsLoading] = useState(false);
   const [commonQuestionsLoading, setCommonQuestionsLoading] = useState(false);
+  const [commonQuestionsError, setCommonQuestionsError] = useState(null);
   const [preloadingStatus, setPreloadingStatus] = useState('idle'); // 'idle', 'loading', 'completed'
+
+  // 새로운 UI 시스템 상태
+  const [activePanel, setActivePanel] = useState('common-questions'); // 'interviewer', 'ai', or 'common-questions'
+  
+  // 패널 변경 핸들러 (모달 표시)
+  const handlePanelChange = (panelId) => {
+    setActivePanel(panelId);
+    setShowPanelModal(true);
+  };
+  const [panelSelectorCollapsed, setPanelSelectorCollapsed] = useState(true); // 첫 화면에서 접힌 상태로 시작
+  const [resumeWindows, setResumeWindows] = useState([]); // 다중 이력서 창 관리
+  const [activeResumeWindow, setActiveResumeWindow] = useState(null);
+  const [resumeWindowCounter, setResumeWindowCounter] = useState(0);
+  const [currentApplicantsDrawerOpen, setCurrentApplicantsDrawerOpen] = useState(false); // 현재 면접자들 Drawer
+  const [draggablePanels, setDraggablePanels] = useState([]); // 드래그 가능한 패널들
+  const [useDraggableLayout, setUseDraggableLayout] = useState(false); // 드래그 가능한 레이아웃 사용 여부
+  const [useRecommendedLayout, setUseRecommendedLayout] = useState(false); // 권장 레이아웃 사용 여부
+  const [showPanelModal, setShowPanelModal] = useState(false); // 패널 모달 표시 여부
 
   // 백그라운드 이력서 및 면접 도구 프리로딩 함수
   const preloadResumes = async (applicants) => {
@@ -212,7 +240,7 @@ function InterviewProgress() {
       // 면접 단계에 따라 다른 엔드포인트 사용
       const endpoint = isFirstInterview 
         ? '/interview-questions/project-questions'
-        : '/interview-questions/executive-questions';
+        : '/interview-questions/executive-interview';
       
       const res = await api.post(endpoint, requestData);
       setQuestions(res.data.questions || []);
@@ -323,6 +351,9 @@ function InterviewProgress() {
       setMemo('');
       setEvaluation({});
       setExistingEvaluationId(null);
+      
+      // 지원자 클릭 시 자동으로 이력서 창 열기
+      openResumeWindow(applicant, mappedResume);
       
       // LangGraph 워크플로우를 사용한 면접 도구 및 질문 생성
       await fetchInterviewToolsWithWorkflow(
@@ -484,6 +515,199 @@ function InterviewProgress() {
   // 자동저장 토글 핸들러
   const handleToggleAutoSave = () => setAutoSaveEnabled((prev) => !prev);
 
+  // 권장 레이아웃 토글 핸들러
+  const handleToggleRecommendedLayout = () => {
+    setUseRecommendedLayout(prev => !prev);
+    if (!useRecommendedLayout) {
+      setUseDraggableLayout(false); // 권장 레이아웃 활성화 시 드래그 레이아웃 비활성화
+    }
+  };
+
+  // 패널 모달 렌더링 함수
+  const renderPanelModal = () => {
+    if (!showPanelModal) return null;
+
+    const modalContent = () => {
+      switch (activePanel) {
+        case 'common-questions':
+          return (
+            <CommonInterviewQuestionsPanel
+              questions={commonQuestions}
+              onChange={setCommonQuestions}
+              fullWidth={true}
+              resumeId={resume?.id}
+              jobPostId={jobPostId}
+              applicationId={selectedApplicant?.id}
+              companyName={jobPost?.company?.name}
+              applicantName={selectedApplicant?.name}
+              interviewChecklist={commonChecklist}
+              strengthsWeaknesses={commonStrengths}
+              interviewGuideline={commonGuideline}
+              evaluationCriteria={commonCriteria}
+              toolsLoading={commonToolsLoading || commonQuestionsLoading}
+              error={commonQuestionsError}
+            />
+          );
+        case 'applicant-questions':
+          return (
+            <ApplicantQuestionsPanel
+              questions={questions}
+              onChange={setQuestions}
+              fullWidth={true}
+              applicantName={selectedApplicant?.name}
+              toolsLoading={toolsLoading}
+            />
+          );
+        case 'interviewer':
+          return (
+            <InterviewerEvaluationPanel
+              selectedApplicant={selectedApplicant}
+              onEvaluationSubmit={handleEvaluationSubmit}
+              isConnected={true}
+            />
+          );
+        case 'ai':
+          return (
+            <InterviewPanel
+              questions={questions}
+              interviewChecklist={interviewChecklist}
+              strengthsWeaknesses={strengthsWeaknesses}
+              interviewGuideline={interviewGuideline}
+              evaluationCriteria={evaluationCriteria}
+              toolsLoading={toolsLoading}
+              memo={memo}
+              onMemoChange={setMemo}
+              evaluation={evaluation}
+              onEvaluationChange={setEvaluation}
+              isAutoSaving={isAutoSaving}
+              resumeId={resume?.id}
+              applicationId={selectedApplicant?.id}
+              companyName={jobPost?.company?.name}
+              applicantName={selectedApplicant?.name}
+              audioFile={selectedApplicant?.audio_file || null}
+              jobInfo={jobPost ? JSON.stringify(jobPost) : null}
+              resumeInfo={resume ? JSON.stringify(resume) : null}
+              jobPostId={jobPostId}
+            />
+          );
+        default:
+          return <div>패널을 선택해주세요.</div>;
+      }
+    };
+
+    return (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4"
+        onClick={() => setShowPanelModal(false)}
+      >
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* 모달 헤더 */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              {activePanel === 'common-questions' && '공통 질문'}
+              {activePanel === 'applicant-questions' && '지원자 질문'}
+              {activePanel === 'interviewer' && '면접관 평가'}
+              {activePanel === 'ai' && 'AI 평가'}
+            </h3>
+            <button
+              onClick={() => setShowPanelModal(false)}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              ✕
+            </button>
+          </div>
+          
+          {/* 모달 컨텐츠 */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {modalContent()}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 다중 이력서 창 관리 함수들
+  const openResumeWindow = (applicant, resumeData) => {
+    console.log('🪟 이력서 창 열기 시도:', { applicant, resumeData });
+    
+    // 현재 시간대의 모든 지원자 찾기 (시간미정 제외)
+    const currentTime = applicant.schedule_date;
+    const sameTimeApplicants = applicants.filter(a => 
+      a.schedule_date === currentTime && 
+      a.schedule_date !== '시간 미정' && 
+      a.schedule_date !== null
+    );
+    
+    if (sameTimeApplicants.length === 0) {
+      console.log('🪟 해당 시간대에 지원자가 없습니다');
+      return;
+    }
+    
+    // 기존 창들 제거
+    setResumeWindows([]);
+    
+    // 같은 시간대의 모든 지원자에 대해 이력서 창 생성
+    const newWindows = sameTimeApplicants.map((app, index) => {
+      const windowId = `resume-group-${currentTime}-${index}`;
+      return {
+        id: windowId,
+        applicant: app,
+        resume: null, // 나중에 로드
+        position: { 
+          x: 100 + (index * 50), 
+          y: 100 + (index * 50) 
+        },
+        size: { 
+          width: 600, 
+          height: Math.floor(800 / sameTimeApplicants.length) // 세로 분할
+        }
+      };
+    });
+    
+    console.log('🪟 그룹 창 정보:', newWindows);
+    
+    setResumeWindows(newWindows);
+    setActiveResumeWindow(newWindows[0]?.id || null);
+    setResumeWindowCounter(prev => prev + 1);
+    
+    // 각 지원자의 이력서 데이터 로드
+    newWindows.forEach(async (window, index) => {
+      try {
+        const res = await api.get(`/applications/${window.applicant.applicant_id || window.applicant.id}`);
+        const mappedResume = mapResumeData(res.data);
+        
+        setResumeWindows(prev => 
+          prev.map(w => 
+            w.id === window.id 
+              ? { ...w, resume: mappedResume }
+              : w
+          )
+        );
+      } catch (error) {
+        console.error('이력서 로드 실패:', error);
+      }
+    });
+  };
+
+  const closeResumeWindow = (windowId) => {
+    setResumeWindows(prev => prev.filter(w => w.id !== windowId));
+    if (activeResumeWindow === windowId) {
+      setActiveResumeWindow(null);
+    }
+  };
+
+  const focusResumeWindow = (windowId) => {
+    setActiveResumeWindow(windowId);
+  };
+
+  const handleEvaluationSubmit = (evaluationData) => {
+    console.log('면접관 평가 제출:', evaluationData);
+    // TODO: API로 평가 데이터 전송
+  };
+
   // 자동 저장 useEffect (10초마다)
   useEffect(() => {
     if (!selectedApplicant || !autoSaveEnabled) {
@@ -502,12 +726,70 @@ function InterviewProgress() {
     };
   }, [evaluation, memo, selectedApplicant, user, autoSaveEnabled]);
 
+  // 면접 시간별 지원자 그룹화
+  const groupedApplicants = applicants.reduce((groups, applicant) => {
+    const time = applicant.schedule_date || '시간 미정';
+    if (!groups[time]) {
+      groups[time] = [];
+    }
+    groups[time].push(applicant);
+    return groups;
+  }, {});
+
+  // 나이 계산 함수
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return '';
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // 공통 질문 API 호출 함수
+  const fetchCommonQuestions = async () => {
+    if (!jobPostId || !jobPost?.company?.name) {
+      console.warn('❌ 공통 질문 API 호출 실패: 필수 파라미터 누락');
+      return;
+    }
+    
+    setCommonQuestionsLoading(true);
+    setCommonQuestionsError(null);
+    
+    try {
+      console.log('📡 공통 질문 API 호출 시작');
+      const res = await api.post('/interview-questions/job-common-questions', null, {
+        params: { job_post_id: jobPostId, company_name: jobPost.company.name }
+      });
+      
+      console.log('✅ 공통 질문 API 응답 성공:', res.data);
+      
+      if (res.data && res.data.question_bundle) {
+        const bundle = res.data.question_bundle;
+        const allQuestions = Object.values(bundle).flat();
+        setCommonQuestions(allQuestions);
+        console.log('📝 공통 질문 설정 완료:', allQuestions);
+      } else {
+        console.warn('⚠️ 응답에 question_bundle이 없음');
+        setCommonQuestionsError('질문 번들을 찾을 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 공통 질문 API 호출 실패:', error);
+      setCommonQuestionsError(error.message || '공통 질문을 불러오는데 실패했습니다.');
+    } finally {
+      setCommonQuestionsLoading(false);
+    }
+  };
+
   // 공고 기반 면접 도구 fetch (이력서가 없을 때만)
   useEffect(() => {
-    if (resume == null && jobPostId && jobPost?.companyName) {
+    if (resume == null && jobPostId && jobPost?.company?.name) {
       setCommonToolsLoading(true);
-      setCommonQuestionsLoading(true);
-      const requestData = { job_post_id: jobPostId, company_name: jobPost.companyName };
+      const requestData = { job_post_id: jobPostId, company_name: jobPost.company.name };
+      
       // 면접 도구 fetch
       Promise.allSettled([
         api.post('/interview-questions/interview-checklist/job-based', requestData),
@@ -520,15 +802,11 @@ function InterviewProgress() {
         setCommonGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
         setCommonCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
       }).finally(() => setCommonToolsLoading(false));
+      
       // 공통 질문 fetch
-      api.post('/interview-questions/job-common-questions', null, {
-        params: { job_post_id: jobPostId, company_name: jobPost.companyName }
-      }).then(res => {
-        const bundle = res.data.question_bundle;
-        setCommonQuestions(Object.values(bundle).flat());
-      }).finally(() => setCommonQuestionsLoading(false));
+      fetchCommonQuestions();
     }
-  }, [resume, jobPostId, jobPost?.companyName]);
+  }, [resume, jobPostId, jobPost?.company?.name]);
 
   if (loading || jobPostLoading) {
     return (
@@ -561,8 +839,7 @@ function InterviewProgress() {
           <div>
             <h1 className={`text-2xl font-bold text-${currentConfig.color}-600 dark:text-${currentConfig.color}-400`}>
               {currentConfig.title}
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            </h1><p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {currentConfig.subtitle}
             </p>
           </div>
@@ -634,7 +911,7 @@ function InterviewProgress() {
         anchor="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        PaperProps={{ sx: { width: 480, maxWidth: '100vw' } }}
+        sx={{ '& .MuiDrawer-paper': { width: 480, maxWidth: '100vw' } }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #e0e0e0' }}>
@@ -656,181 +933,406 @@ function InterviewProgress() {
               interviewGuideline={commonGuideline}
               evaluationCriteria={commonCriteria}
               toolsLoading={commonToolsLoading || commonQuestionsLoading}
+              error={commonQuestionsError}
             />
           </div>
         </div>
       </Drawer>
-      {/* 중앙/우측 패널: 좌측 패널 width만큼 margin-left */}
+
+      {/* Drawer: 현재 면접자들 목록 */}
+      <Drawer
+        anchor="left"
+        open={currentApplicantsDrawerOpen}
+        onClose={() => setCurrentApplicantsDrawerOpen(false)}
+        sx={{ '& .MuiDrawer-paper': { width: 400, maxWidth: '100vw' } }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottom: '1px solid #e0e0e0' }}>
+            <span style={{ fontWeight: 700, fontSize: 18 }}>1차 면접 지원자 목록</span>
+            <Button onClick={() => setCurrentApplicantsDrawerOpen(false)} color="primary">닫기</Button>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+            <InterviewApplicantList
+              applicants={applicants}
+              selectedApplicantId={selectedApplicant?.id}
+              selectedApplicantIndex={selectedApplicantIndex}
+              onSelectApplicant={handleApplicantClick}
+              handleApplicantClick={handleApplicantClick}
+              handleCloseDetailedView={() => {}}
+              toggleBookmark={() => {}}
+              bookmarkedList={[]}
+              selectedCardRef={null}
+              calculateAge={() => ''}
+              compact={false}
+              splitMode={false}
+              showAll={true} // Drawer에서는 모든 지원자 표시
+            />
+          </div>
+        </div>
+      </Drawer>
+      {/* 새로운 UI 시스템: 중앙 영역 */}
       <div
         className="flex flex-row"
         style={{
           paddingTop: 120, // 헤더 높이 반영 (64px + 56px)
           marginLeft: (isLeftOpen ? leftWidth : 16) + 90,
+          marginRight: 0, // 오른쪽 공간 완전 활용
           height: 'calc(100vh - 120px)'
         }}
       >
-        {/* 조건부: 이력서가 없으면 공통질문 패널이 넓게, 있으면 기존 레이아웃 */}
-        {resume == null && jobPostId && jobPost?.companyName ? (
-          <div style={{ flex: 1, height: '100%' }}>
-            <CommonInterviewQuestionsPanel
-              questions={commonQuestions}
-              onChange={setCommonQuestions}
-              fullWidth
-              resumeId={resume?.id}
-              jobPostId={jobPostId}
-              applicationId={selectedApplicant?.id}
-              companyName={jobPost?.companyName}
-              applicantName={selectedApplicant?.name}
-              interviewChecklist={commonChecklist}
-              strengthsWeaknesses={commonStrengths}
-              interviewGuideline={commonGuideline}
-              evaluationCriteria={commonCriteria}
-              toolsLoading={commonToolsLoading || commonQuestionsLoading}
-            />
-          </div>
-        ) : (
-          <>
-            {/* 오른쪽 중앙 엣지에 세로 버튼 */}
-            <div
-              style={{
-                position: 'fixed',
-                top: '50%',
-                right: 0,
-                transform: 'translateY(-50%)',
-                zIndex: 1300,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-                pointerEvents: 'none', // 버튼만 클릭 가능하게 아래에서 pointerEvents 복구
-              }}
+        {/* 중앙 메인 영역 */}
+        <div className="flex-1 flex flex-col h-full min-h-0 bg-gray-50 dark:bg-gray-900 relative">
+          {/* 이력서 창 관리 버튼 */}
+          <div className="absolute top-4 left-4 z-10 flex gap-2">
+            {/* 현재 면접자들 보기 버튼 */}
+            <button
+              onClick={() => setCurrentApplicantsDrawerOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-lg transition-colors"
             >
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<QuestionAnswerIcon />}
-                onClick={() => setDrawerOpen(prev => !prev)}
-                sx={{
-                  borderRadius: 2,
-                  fontWeight: 600,
-                  minWidth: '48px',
-                  minHeight: '140px',
-                  writingMode: 'vertical-rl',
-                  textOrientation: 'mixed',
-                  letterSpacing: '0.1em',
-                  fontSize: 18,
-                  boxShadow: 3,
-                  pointerEvents: 'auto',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  px: 1,
-                  py: 2,
-                }}
-              >
-                공통면접질문
-              </Button>
+              <FaUsers size={16} />
+              <span>1차 면접자 보기</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                console.log('🔘 이력서 창 열기 버튼 클릭됨');
+                // 첫 번째 시간 그룹의 첫 번째 지원자로 이력서 창 열기
+                const sortedTimes = Object.keys(grouped).sort();
+                const firstTime = sortedTimes.find(time => time !== '시간 미정');
+                if (firstTime && grouped[firstTime] && grouped[firstTime].length > 0) {
+                  const firstApplicant = grouped[firstTime][0];
+                  openResumeWindow(firstApplicant, null);
+                } else {
+                  console.log('🔘 첫 번째 시간 그룹을 찾을 수 없음');
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg transition-colors"
+            >
+              <MdOutlineOpenInNew size={16} />
+              <span>이력서 창 열기</span>
+            </button>
+
+            {/* 드래그 가능한 레이아웃 토글 버튼 */}
+            <button
+              onClick={() => {
+                setUseDraggableLayout(!useDraggableLayout);
+                if (!useDraggableLayout) {
+                  setUseRecommendedLayout(false); // 드래그 레이아웃 활성화 시 권장 레이아웃 비활성화
+                }
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg transition-colors ${
+                useDraggableLayout 
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+              }`}
+            >
+              <span>{useDraggableLayout ? '고정 레이아웃' : '드래그 레이아웃'}</span>
+            </button>
+
+            {/* 권장 레이아웃 토글 버튼 */}
+            <button
+              onClick={handleToggleRecommendedLayout}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg transition-colors ${
+                useRecommendedLayout 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+              }`}
+            >
+              <span>{useRecommendedLayout ? '기본 레이아웃' : '권장 레이아웃'}</span>
+            </button>
+          </div>
+
+          {/* 이력서 창 개수 표시 */}
+          <div className="absolute top-4 right-4 z-10">
+            <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                열린 창: {resumeWindows.length}개
+              </span>
             </div>
-            {/* 중앙 이력서 */}
-            <div className="flex-1 flex flex-col h-full min-h-0 bg-[#f7faff] dark:bg-gray-900">
-              <div className="flex-1 h-full overflow-y-auto flex flex-col items-stretch justify-start">
-                <ResumePage resume={resume} loading={false} error={null} />
+          </div>
+
+          {/* 메인 콘텐츠 영역 - 동적 패널 */}
+          {useDraggableLayout ? (
+            <PanelLayoutManager
+              panels={[
+                {
+                  id: 'common-questions',
+                  title: '공통 질문',
+                  position: { x: 20, y: 20 },
+                  size: { width: 400, height: 300 },
+                  content: (
+                    <CommonInterviewQuestionsPanel
+                      questions={commonQuestions}
+                      onChange={setCommonQuestions}
+                      fullWidth={true}
+                      resumeId={resume?.id}
+                      jobPostId={jobPostId}
+                      applicationId={selectedApplicant?.id}
+                      companyName={jobPost?.company?.name}
+                      applicantName={selectedApplicant?.name}
+                      interviewChecklist={commonChecklist}
+                      strengthsWeaknesses={commonStrengths}
+                      interviewGuideline={commonGuideline}
+                      evaluationCriteria={commonCriteria}
+                      toolsLoading={commonToolsLoading || commonQuestionsLoading}
+                      error={commonQuestionsError}
+                    />
+                  )
+                },
+                {
+                  id: 'applicant-questions',
+                  title: '지원자 질문',
+                  position: { x: 440, y: 20 },
+                  size: { width: 400, height: 300 },
+                  content: (
+                    <ApplicantQuestionsPanel
+                      questions={questions}
+                      onChange={setQuestions}
+                      fullWidth={true}
+                      applicantName={selectedApplicant?.name}
+                      toolsLoading={toolsLoading}
+                    />
+                  )
+                },
+                {
+                  id: 'interviewer-evaluation',
+                  title: '면접관 평가',
+                  position: { x: 20, y: 340 },
+                  size: { width: 400, height: 300 },
+                  content: (
+                    <InterviewerEvaluationPanel
+                      selectedApplicant={selectedApplicant}
+                      onEvaluationSubmit={handleEvaluationSubmit}
+                      isConnected={true}
+                    />
+                  )
+                },
+                {
+                  id: 'ai-evaluation',
+                  title: 'AI 평가',
+                  position: { x: 440, y: 340 },
+                  size: { width: 400, height: 300 },
+                  content: (
+                    <InterviewPanel
+                      questions={questions}
+                      interviewChecklist={interviewChecklist}
+                      strengthsWeaknesses={strengthsWeaknesses}
+                      interviewGuideline={interviewGuideline}
+                      evaluationCriteria={evaluationCriteria}
+                      toolsLoading={toolsLoading}
+                      memo={memo}
+                      onMemoChange={setMemo}
+                      evaluation={evaluation}
+                      onEvaluationChange={setEvaluation}
+                      isAutoSaving={isAutoSaving}
+                      resumeId={resume?.id}
+                      applicationId={selectedApplicant?.id}
+                      companyName={jobPost?.company?.name}
+                      applicantName={selectedApplicant?.name}
+                      audioFile={selectedApplicant?.audio_file || null}
+                      jobInfo={jobPost ? JSON.stringify(jobPost) : null}
+                      resumeInfo={resume ? JSON.stringify(resume) : null}
+                      jobPostId={jobPostId}
+                    />
+                  )
+                }
+              ]}
+              layoutMode="auto"
+            />
+          ) : useRecommendedLayout ? (
+            // 권장 레이아웃: 3등분 구조
+            <div className="flex h-full">
+              {/* 왼쪽 1/3: ResumePage 상하 3등분 */}
+              <div className="w-1/3 border-r border-gray-300 dark:border-gray-600 flex flex-col">
+                <div className="h-1/3 border-b border-gray-300 dark:border-gray-600">
+                  <ResumePage 
+                    resume={resume} 
+                    loading={false} 
+                    error={null} 
+                  />
+                </div>
+                <div className="h-1/3 border-b border-gray-300 dark:border-gray-600">
+                  <ResumePage 
+                    resume={resume} 
+                    loading={false} 
+                    error={null} 
+                  />
+                </div>
+                <div className="h-1/3">
+                  <ResumePage 
+                    resume={resume} 
+                    loading={false} 
+                    error={null} 
+                  />
+                </div>
+              </div>
+
+              {/* 가운데 1/3: 공통 질문 + 지원자 질문 (상하 구조) */}
+              <div className="w-1/3 border-r border-gray-300 dark:border-gray-600 flex flex-col">
+                <div className="h-1/2 border-b border-gray-300 dark:border-gray-600">
+                  <CommonInterviewQuestionsPanel
+                    questions={commonQuestions}
+                    onChange={setCommonQuestions}
+                    fullWidth={true}
+                    resumeId={resume?.id}
+                    jobPostId={jobPostId}
+                    applicationId={selectedApplicant?.id}
+                    companyName={jobPost?.company?.name}
+                    applicantName={selectedApplicant?.name}
+                    interviewChecklist={commonChecklist}
+                    strengthsWeaknesses={commonStrengths}
+                    interviewGuideline={commonGuideline}
+                    evaluationCriteria={commonCriteria}
+                    toolsLoading={commonToolsLoading || commonQuestionsLoading}
+                    error={commonQuestionsError}
+                  />
+                </div>
+                <div className="h-1/2">
+                  <ApplicantQuestionsPanel
+                    questions={questions}
+                    onChange={setQuestions}
+                    fullWidth={true}
+                    applicantName={selectedApplicant?.name}
+                    toolsLoading={toolsLoading}
+                  />
+                </div>
+              </div>
+
+              {/* 오른쪽 1/3: 면접관 평가 + AI 평가 (상하 구조) */}
+              <div className="w-1/3 flex flex-col">
+                <div className="h-1/2 border-b border-gray-300 dark:border-gray-600">
+                  <InterviewerEvaluationPanel
+                    selectedApplicant={selectedApplicant}
+                    onEvaluationSubmit={handleEvaluationSubmit}
+                    isConnected={true}
+                  />
+                </div>
+                <div className="h-1/2">
+                  <InterviewPanel
+                    questions={questions}
+                    interviewChecklist={interviewChecklist}
+                    strengthsWeaknesses={strengthsWeaknesses}
+                    interviewGuideline={interviewGuideline}
+                    evaluationCriteria={evaluationCriteria}
+                    toolsLoading={toolsLoading}
+                    memo={memo}
+                    onMemoChange={setMemo}
+                    evaluation={evaluation}
+                    onEvaluationChange={setEvaluation}
+                    isAutoSaving={isAutoSaving}
+                    resumeId={resume?.id}
+                    applicationId={selectedApplicant?.id}
+                    companyName={jobPost?.company?.name}
+                    applicantName={selectedApplicant?.name}
+                    audioFile={selectedApplicant?.audio_file || null}
+                    jobInfo={jobPost ? JSON.stringify(jobPost) : null}
+                    resumeInfo={resume ? JSON.stringify(resume) : null}
+                    jobPostId={jobPostId}
+                  />
+                </div>
               </div>
             </div>
-            {/* 우측 면접 질문/메모 */}
-            <div className="w-[400px] border-l border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 h-full min-h-0 flex flex-col">
-              <div className="h-full min-h-0 flex flex-col">
-                {/* 자동저장 토글 버튼 및 상태 메시지 (상단) */}
-                <div className="flex items-center justify-end gap-4 px-4 pt-4 min-h-[40px]">
-                  {/* 자동저장 상태 메시지 */}
-                  {autoSaveEnabled && isAutoSaving && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      자동 저장 중...
-                    </div>
-                  )}
-                  {/* 자동저장 토글 스위치 */}
-                  <button
-                    onClick={handleToggleAutoSave}
-                    className={`flex items-center gap-1 px-2 py-1 rounded font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400
-                      ${autoSaveEnabled
-                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                        : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}
-                    `}
-                    aria-pressed={autoSaveEnabled}
-                    title={autoSaveEnabled ? '자동저장 ON' : '자동저장 OFF'}
-                  >
-                    {autoSaveEnabled ? (
-                      <MdOutlineAutoAwesome size={20} className="text-blue-500" />
-                    ) : (
-                      <FiSave size={18} className="text-gray-500" />
-                    )}
-                    <span className="ml-1 select-none">자동저장</span>
-                    <span
-                      className={`ml-2 w-8 h-4 flex items-center bg-gray-300 rounded-full p-1 transition-colors duration-200 ${autoSaveEnabled ? 'bg-blue-400' : 'bg-gray-300'}`}
-                    >
-                      <span
-                        className={`block w-3 h-3 rounded-full bg-white shadow transform transition-transform duration-200 ${autoSaveEnabled ? 'translate-x-4' : ''}`}
-                      />
-                    </span>
-                  </button>
+          ) : (
+            <div className="flex-1 h-full overflow-y-auto flex flex-col items-stretch justify-start p-4">
+              {activePanel === 'common-questions' ? (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg h-full">
+                  <CommonInterviewQuestionsPanel
+                    questions={commonQuestions}
+                    onChange={setCommonQuestions}
+                    fullWidth={true}
+                    resumeId={resume?.id}
+                    jobPostId={jobPostId}
+                    applicationId={selectedApplicant?.id}
+                    companyName={jobPost?.company?.name}
+                    applicantName={selectedApplicant?.name}
+                    interviewChecklist={commonChecklist}
+                    strengthsWeaknesses={commonStrengths}
+                    interviewGuideline={commonGuideline}
+                    evaluationCriteria={commonCriteria}
+                    toolsLoading={commonToolsLoading || commonQuestionsLoading}
+                    error={commonQuestionsError}
+                  />
                 </div>
-                <InterviewPanel
-                  questions={questions}
-                  interviewChecklist={interviewChecklist}
-                  strengthsWeaknesses={strengthsWeaknesses}
-                  interviewGuideline={interviewGuideline}
-                  evaluationCriteria={evaluationCriteria}
-                  toolsLoading={toolsLoading}
-                  memo={memo}
-                  onMemoChange={setMemo}
-                  evaluation={evaluation}
-                  onEvaluationChange={setEvaluation}
-                  isAutoSaving={isAutoSaving}
-                  resumeId={resume?.id}
-                  applicationId={selectedApplicant?.id}
-                  companyName={jobPost?.company?.name}
-                  applicantName={selectedApplicant?.name}
-                  audioFile={selectedApplicant?.audio_file || null} // 추가: 오디오 파일 경로
-                  jobInfo={jobPost ? JSON.stringify(jobPost) : null} // 추가: 채용공고 정보
-                  resumeInfo={resume ? JSON.stringify(resume) : null} // 추가: 이력서 정보
-                  jobPostId={jobPostId} // 추가: 채용공고 ID
-                />
-                <div className="mt-4 flex flex-col items-end gap-2 px-4 pb-4">
-                  {/* 하단 자동저장 상태 메시지 제거, 저장 버튼만 남김 */}
-                  <button
-                    className={`font-bold py-2 px-6 rounded shadow transition-colors ${
-                      !selectedApplicant || !user?.id || isSaving || isAutoSaving
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }`}
-                    onClick={() => handleSaveEvaluation(false)}
-                    disabled={!selectedApplicant || !user?.id || isSaving || isAutoSaving}
-                  >
-                    {isSaving ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        저장 중...
-                      </div>
-                    ) : (
-                      '평가 저장'
-                    )}
-                  </button>
-                  {/* 저장 결과 메시지는 그대로 유지 */}
-                  {saveStatus && (
-                    <div className={`text-xs ${
-                      saveStatus.includes('실패') 
-                        ? 'text-red-500 dark:text-red-400' 
-                        : saveStatus.includes('자동') 
-                          ? 'text-blue-500 dark:text-blue-400'
-                          : 'text-green-500 dark:text-green-400'
-                    }`}>
-                      {saveStatus}
-                    </div>
-                  )}
+              ) : activePanel === 'applicant-questions' ? (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg h-full">
+                  <ApplicantQuestionsPanel
+                    questions={questions}
+                    onChange={setQuestions}
+                    fullWidth={true}
+                    applicantName={selectedApplicant?.name}
+                    toolsLoading={toolsLoading}
+                  />
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">📋</div>
+                    <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      {activePanel === 'interviewer' ? '면접관 평가 패널' : 'AI 평가 패널'}
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      오른쪽 패널에서 평가를 진행하세요.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          </>
-        )}
+          )}
+        </div>
+
+        
+      </div>
+
+      {/* 오른쪽 패널 선택기 */}
+      <InterviewPanelSelector
+        activePanel={activePanel}
+        onPanelChange={handlePanelChange}
+        isCollapsed={panelSelectorCollapsed}
+        onToggleCollapse={() => setPanelSelectorCollapsed(!panelSelectorCollapsed)}
+      />
+
+      {/* 패널 모달 */}
+      {renderPanelModal()}
+
+      {/* 다중 이력서 창들 */}
+      {console.log('🪟 렌더링할 창 개수:', resumeWindows.length)}
+      {console.log('🪟 창 목록:', resumeWindows)}
+      {resumeWindows.map((window) => {
+        console.log('🪟 창 렌더링:', window);
+        return (
+          <DraggableResumeWindow
+            key={window.id}
+            id={window.id}
+            applicant={window.applicant}
+            resume={window.resume}
+            onClose={closeResumeWindow}
+            onFocus={focusResumeWindow}
+            isActive={activeResumeWindow === window.id}
+            initialPosition={window.position}
+            initialSize={window.size}
+          />
+        );
+      })}
+      
+      {/* 디버깅용 창 상태 표시 */}
+      {resumeWindows.length > 0 && (
+        <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded z-[9999]">
+          <div>창 개수: {resumeWindows.length}</div>
+          <div>활성 창: {activeResumeWindow}</div>
+        </div>
+      )}
+
+      {/* 공통 면접 질문 버튼 */}
+      <div
+        style={{
+          position: 'fixed',
+          top: '50%',
+          right: panelSelectorCollapsed ? 80 : 220,
+          transform: 'translateY(-50%)',
+          zIndex: 1300,
+        }}
+      >
+
       </div>
     </div>
   );

@@ -674,7 +674,7 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
-        workflow_result = generate_comprehensive_interview_questions(
+        workflow_result = await generate_comprehensive_interview_questions(
             resume_text=resume_text,
             company_name=request.company_name,
             applicant_name=request.name,
@@ -788,7 +788,7 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
-        workflow_result = generate_comprehensive_interview_questions(
+        workflow_result = await generate_comprehensive_interview_questions(
             resume_text=resume_text,
             job_info=job_info,
             company_name=actual_company_name,
@@ -1004,7 +1004,7 @@ async def generate_job_common_questions(
     job_info = parse_job_post_data(job_post)
     from agent.agents.interview_question_node import generate_job_question_bundle
     # resume_text 없이(공통 질문)
-    question_bundle = generate_job_question_bundle(
+    question_bundle = await generate_job_question_bundle(
         resume_text="",
         job_info=job_info,
         company_name=company_name,
@@ -1023,7 +1023,7 @@ async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Se
             raise HTTPException(status_code=404, detail="Job post not found")
         job_info = parse_job_post_data(job_post)
         from agent.agents.interview_question_node import generate_interview_checklist
-        checklist_result = generate_interview_checklist(
+        checklist_result = await generate_interview_checklist(
             resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
@@ -1042,7 +1042,7 @@ async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsReque
             raise HTTPException(status_code=404, detail="Job post not found")
         job_info = parse_job_post_data(job_post)
         from agent.agents.interview_question_node import analyze_candidate_strengths_weaknesses
-        analysis_result = analyze_candidate_strengths_weaknesses(
+        analysis_result = await analyze_candidate_strengths_weaknesses(
             resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
