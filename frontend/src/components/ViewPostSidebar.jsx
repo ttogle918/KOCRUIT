@@ -92,6 +92,18 @@ export default function ViewPostSidebar({ jobPost }) {
       {/* 보고서 버튼들 (jobPost 있을 때만) */}
       {jobPost && (
         <div className="flex flex-col gap-1 w-full mb-6">
+          {/* 서류 보고서 버튼 추가 */}
+          <button
+            className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm
+              ${isHovered ? 'justify-start' : 'justify-center'}
+              bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-800'
+            `}
+            onClick={() => navigate(`/report/document?job_post_id=${effectiveJobPostId}`)}
+          >
+            <MdCheckCircle size={18} />
+            {isHovered && <span className="ml-2 text-sm">서류 보고서</span>}
+          </button>
+          {/* 기존 면접/최종 보고서 버튼 */}
           <button
             className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm
               ${isHovered ? 'justify-start' : 'justify-center'}
