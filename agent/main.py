@@ -294,9 +294,7 @@ async def start_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    # import asyncio # This line was removed from the original file, so it's removed here.
-    # asyncio.create_task(scheduler.start()) # This line was removed from the original file, so it's removed here.
-    return {"message": "Scheduler started"} # This line was removed from the original file, so it's removed here.
+    return {"message": "Scheduler started"}
 
 @app.post("/monitor/scheduler/stop")
 async def stop_scheduler():
@@ -304,8 +302,7 @@ async def stop_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    # await scheduler.stop() # This line was removed from the original file, so it's removed here.
-    return {"message": "Scheduler stopped"} # This line was removed from the original file, so it's removed here.
+    return {"message": "Scheduler stopped"}
 
 @app.get("/monitor/scheduler/status")
 async def get_scheduler_status():

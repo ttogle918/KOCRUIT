@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from typing import List
 import json
+import logging
+import time
 from datetime import datetime
 from app.core.database import get_db
+from app.core.cache import cache_result, invalidate_cache, CACHE_KEYS
 from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList, InterviewScheduleCreate, InterviewScheduleDetail
 from app.models.job import JobPost, JobPostRole
 from app.models.schedule import Schedule
@@ -15,6 +18,9 @@ from app.models.application import Application
 from app.models.interview_panel import InterviewPanelAssignment
 from app.api.v1.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
+
+# 로깅 설정
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -27,6 +33,7 @@ def check_company_role(current_user: User):
         raise HTTPException(status_code=403, detail="기업 회원만 접근 가능합니다")
 
 @router.get("/", response_model=List[JobPostList])
+@cache_result(expire_time=1800, key_prefix="company_job_posts")  # 30분 캐싱
 def get_company_job_posts(
     skip: int = 0,
     limit: int = 100,
@@ -46,7 +53,10 @@ def get_company_job_posts(
         else:
             raise HTTPException(status_code=400, detail="Invalid status. Use SCHEDULED, RECRUITING, SELECTING, or CLOSED")
     
-    job_posts = query.offset(skip).limit(limit).all()
+    # 성능 최적화: joinedload 적용
+    job_posts = query.options(
+        joinedload(JobPost.company)
+    ).offset(skip).limit(limit).all()
     
     # Add company name to each job post
     for job_post in job_posts:
@@ -57,6 +67,7 @@ def get_company_job_posts(
 
 
 @router.get("/{job_post_id}", response_model=JobPostDetail)
+@cache_result(expire_time=300, key_prefix="company_job_post_detail")  # 5분 캐싱 (매우 빠른 반응)
 def get_company_job_post(
     job_post_id: int, 
     db: Session = Depends(get_db),
@@ -65,7 +76,10 @@ def get_company_job_post(
     # 기업 사용자만 접근 가능
     check_company_role(current_user)
     
-    job_post = db.query(JobPost).filter(
+    # 성능 최적화: joinedload 적용
+    job_post = db.query(JobPost).options(
+        joinedload(JobPost.company)
+    ).filter(
         JobPost.id == job_post_id,
         JobPost.company_id == current_user.company_id
     ).first()
@@ -77,43 +91,43 @@ def get_company_job_post(
     if job_post.company:
         job_post.companyName = job_post.company.name
     
-    # 팀 멤버 데이터를 jobpost_role 테이블에서 조회
-    jobpost_roles = db.query(JobPostRole).filter(JobPostRole.jobpost_id == job_post.id).all()
-    team_members = []
+    # 성능 최적화: 한 번에 모든 관련 데이터 조회
+    job_post_id = job_post.id
     
-    for jobpost_role in jobpost_roles:
-        # CompanyUser 정보 조회
-        company_user = db.query(CompanyUser).filter(CompanyUser.id == jobpost_role.company_user_id).first()
-        if company_user:
-            # 역할 매핑 (MANAGER -> 관리자, MEMBER -> 멤버)
-            role_mapping = {
-                'MANAGER': '관리자',
-                'MEMBER': '멤버'
-            }
-            mapped_role = role_mapping.get(jobpost_role.role, jobpost_role.role)
-            
-            team_members.append({
-                "email": company_user.email,
-                "role": mapped_role
-            })
+    # 팀 멤버 데이터를 JOIN으로 한 번에 조회
+    team_members_query = db.query(JobPostRole, CompanyUser).join(
+        CompanyUser, JobPostRole.company_user_id == CompanyUser.id
+    ).filter(JobPostRole.jobpost_id == job_post_id).all()
+    
+    team_members = []
+    for jobpost_role, company_user in team_members_query:
+        role_mapping = {
+            'MANAGER': '관리자',
+            'MEMBER': '멤버'
+        }
+        mapped_role = role_mapping.get(jobpost_role.role, jobpost_role.role)
+        team_members.append({
+            "email": company_user.email,
+            "role": mapped_role
+        })
     
     job_post.teamMembers = team_members
     
-    # 가중치 데이터를 weight 테이블에서 조회
-    weights = db.query(Weight).filter(Weight.jobpost_id == job_post.id).all()
+    # 가중치 데이터를 한 번에 조회
+    weights = db.query(Weight).filter(Weight.jobpost_id == job_post_id).all()
     job_post.weights = [
         {"item": weight.field_name, "score": weight.weight_value}
         for weight in weights
     ]
     
-    # 면접 일정 조회 - Schedule 테이블에서 interview 타입으로 조회
+    # 면접 일정을 한 번에 조회
     interview_schedules = db.query(Schedule).filter(
-        Schedule.job_post_id == job_post.id,
+        Schedule.job_post_id == job_post_id,
         Schedule.schedule_type == "interview"
     ).all()
     job_post.interview_schedules = interview_schedules
     
-    # 부서 정보 추가
+    # 부서 정보를 한 번에 조회 (JOIN으로 최적화)
     if job_post.department_id:
         department = db.query(Department).filter(Department.id == job_post.department_id).first()
         if department:
@@ -189,6 +203,16 @@ def create_company_job_post(
     db.add(db_job_post)
     db.commit()
     db.refresh(db_job_post)
+    
+    # 캐시 무효화: 새로운 채용공고가 추가되었으므로 목록 캐시 무효화
+    try:
+        company_cache_pattern = f"cache:company_job_posts:*company_id_{current_user.company_id}*"
+        public_cache_pattern = "cache:job_posts:*"
+        invalidate_cache(company_cache_pattern)
+        invalidate_cache(public_cache_pattern)
+        logger.info(f"Cache invalidated after creating job post {db_job_post.id}")
+    except Exception as e:
+        logger.warning(f"Failed to invalidate cache: {e}")
     
     # 면접 일정 저장 - Schedule 테이블에 저장
     if interview_schedules:
@@ -427,6 +451,21 @@ def update_company_job_post(
     
     db.commit()
     db.refresh(db_job_post)
+    
+    # 캐시 무효화: 채용공고가 수정되었으므로 관련 캐시 무효화
+    try:
+        company_cache_pattern = f"cache:company_job_posts:*company_id_{current_user.company_id}*"
+        detail_cache_pattern = f"cache:company_job_post_detail:*job_post_id_{job_post_id}*"
+        public_cache_pattern = "cache:job_posts:*"
+        public_detail_cache_pattern = f"cache:job_post_detail:*job_post_id_{job_post_id}*"
+        
+        invalidate_cache(company_cache_pattern)
+        invalidate_cache(detail_cache_pattern)
+        invalidate_cache(public_cache_pattern)
+        invalidate_cache(public_detail_cache_pattern)
+        logger.info(f"Cache invalidated after updating job post {job_post_id}")
+    except Exception as e:
+        logger.warning(f"Failed to invalidate cache: {e}")
     
     # 팀 멤버 역할을 jobpost_role 테이블에 업데이트
     if team_members_data is not None:
@@ -1025,6 +1064,22 @@ def delete_company_job_post(
         db.delete(db_job_post)
         
         db.commit()
+        
+        # 캐시 무효화: 채용공고가 삭제되었으므로 관련 캐시 무효화
+        try:
+            company_cache_pattern = f"cache:company_job_posts:*company_id_{current_user.company_id}*"
+            detail_cache_pattern = f"cache:company_job_post_detail:*job_post_id_{job_post_id}*"
+            public_cache_pattern = "cache:job_posts:*"
+            public_detail_cache_pattern = f"cache:job_post_detail:*job_post_id_{job_post_id}*"
+            
+            invalidate_cache(company_cache_pattern)
+            invalidate_cache(detail_cache_pattern)
+            invalidate_cache(public_cache_pattern)
+            invalidate_cache(public_detail_cache_pattern)
+            logger.info(f"Cache invalidated after deleting job post {job_post_id}")
+        except Exception as e:
+            logger.warning(f"Failed to invalidate cache: {e}")
+        
         print(f"Successfully deleted job post {job_post_id}")
         return {"message": "Job post deleted successfully"}
         
@@ -1049,3 +1104,29 @@ async def trigger_job_status_update(
         return {"success": True, "result": result}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+@router.post("/cache/clear")
+def clear_company_job_posts_cache(
+    current_user: User = Depends(get_current_user)
+):
+    """기업 채용공고 관련 캐시 무효화 (관리자용)"""
+    try:
+        # 기업 회원 권한 체크
+        check_company_role(current_user)
+        
+        # 해당 기업의 캐시만 무효화
+        company_cache_pattern = f"cache:company_job_posts:*company_id_{current_user.company_id}*"
+        detail_cache_pattern = f"cache:company_job_post_detail:*company_id_{current_user.company_id}*"
+        
+        invalidate_cache(company_cache_pattern)
+        invalidate_cache(detail_cache_pattern)
+        
+        logger.info(f"Cleared cache for company {current_user.company_id}")
+        return {"message": "Company job posts cache cleared successfully"}
+    except Exception as e:
+        logger.error(f"Failed to clear company cache: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to clear cache"
+        )

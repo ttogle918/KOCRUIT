@@ -3,12 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 import asyncio
+import time
 
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.database import engine
 from app.models import Base
-from apscheduler.schedulers.background import BackgroundScheduler
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+except ImportError:
+    print("⚠️ APScheduler not available, using fallback")
+    BackgroundScheduler = None
 from app.core.database import SessionLocal
 from app.models.interview_evaluation import auto_process_applications
 from sqlalchemy import text, inspect
@@ -140,7 +145,17 @@ app = FastAPI(
 async def print_routes():
     print("=== FastAPI 등록된 경로 목록 ===")
     for route in app.routes:
-        print(route.path, route.methods)
+        try:
+            # 타입 안전한 방식으로 라우트 정보 출력
+            route_info = str(route)
+            if hasattr(route, 'path'):
+                path = getattr(route, 'path', 'N/A')
+                methods = getattr(route, 'methods', set())
+                print(f"{path} - {methods}")
+            else:
+                print(f"Route: {type(route).__name__}")
+        except Exception as e:
+            print(f"Route info error: {e}")
 
 # CORS 설정
 app.add_middleware(
@@ -174,6 +189,25 @@ async def root():
     """루트 엔드포인트"""
     return {"message": "Welcome to Kocruit API"}
 
+# 성능 모니터링 엔드포인트
+@app.get("/performance")
+async def performance_info():
+    """성능 정보 엔드포인트"""
+    from app.core.database import get_connection_info
+    from app.core.cache import get_cache_stats
+    
+    try:
+        db_info = get_connection_info()
+        cache_info = get_cache_stats()
+        
+        return {
+            "database": db_info,
+            "cache": cache_info,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 def run_auto_process():
     print("run_auto_process called") 
     """자동 처리 함수"""
@@ -192,9 +226,13 @@ def run_auto_process():
         db.close()
 
 # APScheduler 등록 (예: 10분마다 실행)
-scheduler = BackgroundScheduler()
-scheduler.add_job(run_auto_process, 'interval', minutes=10)
-scheduler.start()
+if BackgroundScheduler:
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_auto_process, 'interval', minutes=10)
+    scheduler.start()
+    print("✅ APScheduler started successfully")
+else:
+    print("⚠️ APScheduler not available, skipping scheduled jobs")
 
 
 if __name__ == "__main__":
