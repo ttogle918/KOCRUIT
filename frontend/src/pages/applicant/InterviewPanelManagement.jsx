@@ -4,13 +4,14 @@ import Navbar from '../../components/Navbar';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import { interviewPanelApi } from '../../api/interviewPanelApi';
 import api from '../../api/api';
-import { FiUsers, FiClock, FiCheck, FiX, FiTrash2, FiPlus, FiSearch, FiUserPlus } from 'react-icons/fi';
+import { FiUsers, FiClock, FiCheck, FiX, FiTrash2, FiPlus, FiSearch, FiUserPlus, FiChevronDown, FiChevronUp, FiStar, FiTarget, FiTrendingUp, FiEye, FiInfo } from 'react-icons/fi';
 
 export default function InterviewPanelManagement() {
   const { jobPostId } = useParams();
   const [jobPost, setJobPost] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [assignmentDetails, setAssignmentDetails] = useState({});
+  const [matchingDetails, setMatchingDetails] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -21,6 +22,12 @@ export default function InterviewPanelManagement() {
   const [companyMembers, setCompanyMembers] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Matching analysis states
+  const [expandedMatchingAnalysis, setExpandedMatchingAnalysis] = useState({});
+  const [showInterviewerModal, setShowInterviewerModal] = useState(false);
+  const [selectedInterviewer, setSelectedInterviewer] = useState(null);
+  const [interviewerProfile, setInterviewerProfile] = useState(null);
 
   // Load job post information
   useEffect(() => {
@@ -70,6 +77,21 @@ export default function InterviewPanelManagement() {
         const detailsResults = await Promise.all(detailsPromises);
         const detailsMap = detailsResults.reduce((acc, detail) => ({ ...acc, ...detail }), {});
         setAssignmentDetails(detailsMap);
+
+        // Load matching details for each assignment
+        const matchingPromises = assignmentsData.map(async (assignment) => {
+          try {
+            const matchingInfo = await interviewPanelApi.getMatchingDetails(assignment.assignment_id);
+            return { [assignment.assignment_id]: matchingInfo };
+          } catch (error) {
+            console.error(`매칭 정보 로드 실패 (assignment ${assignment.assignment_id}):`, error);
+            return { [assignment.assignment_id]: null };
+          }
+        });
+
+        const matchingResults = await Promise.all(matchingPromises);
+        const matchingMap = matchingResults.reduce((acc, detail) => ({ ...acc, ...detail }), {});
+        setMatchingDetails(matchingMap);
       } catch (error) {
         console.error('면접관 배정 정보 로드 실패:', error);
         setError('면접관 배정 정보를 불러올 수 없습니다.');
@@ -82,6 +104,55 @@ export default function InterviewPanelManagement() {
       loadAssignments();
     }
   }, [jobPostId]);
+
+  // Load matching details for a specific assignment
+  const loadMatchingDetails = async (assignmentId) => {
+    try {
+      const matchingInfo = await interviewPanelApi.getMatchingDetails(assignmentId);
+      setMatchingDetails(prev => ({
+        ...prev,
+        [assignmentId]: matchingInfo
+      }));
+    } catch (error) {
+      console.error('매칭 상세 정보 로드 실패:', error);
+    }
+  };
+
+  // Show interviewer profile modal
+  const showInterviewerProfileModal = async (userId, userName) => {
+    try {
+      setSelectedInterviewer({ id: userId, name: userName });
+      setShowInterviewerModal(true);
+      const profileData = await interviewPanelApi.getInterviewerProfile(userId);
+      setInterviewerProfile(profileData);
+    } catch (error) {
+      console.error('면접관 프로필 로드 실패:', error);
+      setInterviewerProfile(null);
+    }
+  };
+
+  // Get confidence level display text
+  const getConfidenceDisplay = (confidence) => {
+    const confValue = Math.round(confidence || 0);
+    
+    if (confValue === 0) {
+      return { text: "분석 데이터 없음", color: "text-gray-500 dark:text-gray-400", bgColor: "bg-gray-100 dark:bg-gray-700" };
+    } else if (confValue <= 30) {
+      return { text: "분석 데이터 부족", color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-50 dark:bg-orange-900/20" };
+    } else if (confValue <= 70) {
+      return { text: "분석 데이터 보통", color: "text-yellow-600 dark:text-yellow-400", bgColor: "bg-yellow-50 dark:bg-yellow-900/20" };
+    } else {
+      return { text: "분석 데이터 충분", color: "text-green-600 dark:text-green-400", bgColor: "bg-green-50 dark:bg-green-900/20" };
+    }
+  };
+
+  // Toggle matching analysis section
+  const toggleMatchingAnalysis = (scheduleDate) => {
+    setExpandedMatchingAnalysis(prev => ({
+      ...prev,
+      [scheduleDate]: !prev[scheduleDate]
+    }));
+  };
 
   // Load company members for search
   const loadCompanyMembers = async (search = '') => {
@@ -323,6 +394,142 @@ export default function InterviewPanelManagement() {
     });
   };
 
+  // Render matching analysis for a specific schedule date
+  const renderMatchingAnalysis = (assignmentGroup) => {
+    const matchingInfo = matchingDetails[assignmentGroup[0].assignment_id]; // Assuming all assignments in group have the same matching info
+    if (!matchingInfo) {
+      return <p className="text-gray-500 dark:text-gray-400">매칭 분석 정보를 불러올 수 없습니다.</p>;
+    }
+
+    const { matching_info } = matchingInfo;
+    if (!matching_info) {
+      return <p className="text-gray-500 dark:text-gray-400">매칭 정보가 없습니다.</p>;
+    }
+
+    // Progress bar component
+    const ProgressBar = ({ value, label, color = "blue" }) => {
+      const colorMap = {
+        blue: '#3B82F6',
+        purple: '#8B5CF6', 
+        green: '#10B981',
+        orange: '#F59E0B',
+        indigo: '#6366F1'
+      };
+      
+      return (
+        <div className="mb-3">
+          <div className="flex justify-between text-sm mb-1">
+            <span className="text-gray-700 dark:text-gray-300">{label}</span>
+            <span className="text-gray-600 dark:text-gray-400">{value}%</span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div
+              className="h-2 rounded-full transition-all duration-300"
+              style={{ 
+                width: `${Math.min(100, Math.max(0, value))}%`,
+                backgroundColor: colorMap[color] || colorMap.blue
+              }}
+            ></div>
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Overall Matching Score */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+              전체 매칭 점수
+            </h5>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {matching_info.balance_score || 0}
+              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">/100</span>
+            </div>
+          </div>
+          <ProgressBar 
+            value={matching_info.balance_score || 0} 
+            label="매칭 밸런스" 
+            color="blue" 
+          />
+          <div className="flex items-center space-x-2 mt-2">
+            <span className={`px-2 py-1 rounded text-xs ${
+              matching_info.algorithm_used === 'AI_BASED' 
+                ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-200'
+                : 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-200'
+            }`}>
+              {matching_info.algorithm_used === 'AI_BASED' ? 'AI 기반 매칭' : '랜덤 매칭'}
+            </span>
+            {matching_info.ai_recommendation_available && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                • 프로필 데이터 활용
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Balance Factors */}
+        {matching_info.balance_factors && Object.keys(matching_info.balance_factors).length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+            <h5 className="text-md font-semibold text-blue-900 dark:text-blue-100 mb-3">
+              밸런스 세부 요인
+            </h5>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {matching_info.balance_factors.strictness_balance && (
+                <ProgressBar 
+                  value={matching_info.balance_factors.strictness_balance} 
+                  label="엄격도 밸런스" 
+                  color="purple" 
+                />
+              )}
+              {matching_info.balance_factors.tech_coverage && (
+                <ProgressBar 
+                  value={matching_info.balance_factors.tech_coverage} 
+                  label="기술 커버리지" 
+                  color="green" 
+                />
+              )}
+              {matching_info.balance_factors.experience_avg && (
+                <ProgressBar 
+                  value={matching_info.balance_factors.experience_avg} 
+                  label="평균 경험치" 
+                  color="orange" 
+                />
+              )}
+              {matching_info.balance_factors.consistency_avg && (
+                <ProgressBar 
+                  value={matching_info.balance_factors.consistency_avg} 
+                  label="평균 일관성" 
+                  color="indigo" 
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Team Composition Reason */}
+        {matching_info.team_composition_reason && (
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+            <div className="flex items-start space-x-2">
+              <FiInfo className="text-blue-500 mt-1" size={16} />
+              <div>
+                <h6 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                  팀 구성 특징
+                </h6>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  {matching_info.team_composition_reason}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="relative min-h-screen bg-[#f7faff] dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -425,10 +632,12 @@ export default function InterviewPanelManagement() {
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {groupedRequests.accepted.map((request) => (
-                              <div key={request.request_id} className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                              <div key={request.request_id} className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer"
+                                   onClick={() => showInterviewerProfileModal(request.user_id, request.user_name)}>
                                 <div className="flex items-center justify-between mb-1">
-                                  <div className="font-medium text-green-900 dark:text-green-100">
-                                    {request.user_name}
+                                  <div className="font-medium text-green-900 dark:text-green-100 flex items-center space-x-2">
+                                    <span>{request.user_name}</span>
+                                    <FiEye className="text-green-600 dark:text-green-400" size={14} title="프로필 보기" />
                                   </div>
                                   <span className="text-xs bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 px-2 py-1 rounded">
                                     {formatAssignmentType(request.assignment_type)}
@@ -443,11 +652,43 @@ export default function InterviewPanelManagement() {
                                 <div className="text-xs text-green-600 dark:text-green-400">
                                   응답일: {new Date(request.response_at).toLocaleDateString('ko-KR')}
                                 </div>
+                                {/* Interviewer characteristics */}
+                                <div className="flex items-center space-x-1 mt-2">
+                                  <FiStar className="text-green-500" size={12} title="엄격도" />
+                                  <FiTarget className="text-green-500" size={12} title="기술 중심도" />
+                                  <FiTrendingUp className="text-green-500" size={12} title="경험치" />
+                                  <span className="text-xs text-green-600 dark:text-green-400">프로필 보기</span>
+                                </div>
                               </div>
                             ))}
                           </div>
                         )}
                       </div>
+
+                      {/* Matching Analysis Section */}
+                      {groupedRequests.accepted.length > 0 && (
+                        <div className="mb-6">
+                          <button
+                            onClick={() => toggleMatchingAnalysis(scheduleDate)}
+                            className="flex items-center space-x-2 w-full px-4 py-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                          >
+                            <FiInfo className="text-blue-600 dark:text-blue-400" size={18} />
+                            <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                              매칭 분석
+                            </h4>
+                            {expandedMatchingAnalysis[scheduleDate] ? 
+                              <FiChevronUp className="text-blue-600 dark:text-blue-400" size={18} /> :
+                              <FiChevronDown className="text-blue-600 dark:text-blue-400" size={18} />
+                            }
+                          </button>
+                          
+                          {expandedMatchingAnalysis[scheduleDate] && (
+                            <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+                              {renderMatchingAnalysis(assignmentGroup)}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Pending and Rejected - Bottom Section */}
                       <div className="grid md:grid-cols-2 gap-6">
@@ -682,6 +923,167 @@ export default function InterviewPanelManagement() {
               <div className="flex justify-end">
                 <button
                   onClick={() => setShowInviteModal(false)}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interviewer Profile Modal */}
+      {showInterviewerModal && interviewerProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                    {interviewerProfile.name} 면접관 프로필
+                  </h3>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    {interviewerProfile.email}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowInterviewerModal(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6">
+              <div className="space-y-4">
+                {/* Data Confidence Section */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                    분석 데이터 신뢰도
+                  </h4>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getConfidenceDisplay(interviewerProfile.profile?.confidence).bgColor} ${getConfidenceDisplay(interviewerProfile.profile?.confidence).color}`}>
+                        {getConfidenceDisplay(interviewerProfile.profile?.confidence).text}
+                      </span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        (면접 {interviewerProfile.profile?.total_interviews || 0}회 기준)
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-gray-700 dark:text-gray-300">
+                        {Math.round(interviewerProfile.profile?.confidence || 0)}%
+                      </div>
+                    </div>
+                  </div>
+                  {(interviewerProfile.profile?.confidence || 0) < 50 && (
+                    <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-400">
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        💡 면접 평가 데이터가 부족하여 특성 분석의 정확도가 낮을 수 있습니다. 
+                        더 많은 면접 경험이 쌓이면 분석이 정확해집니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Statistics */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                    프로필 특성 점수
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {Math.round(interviewerProfile.profile?.strictness_score || 50)}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">엄격도</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {Math.round(interviewerProfile.profile?.tech_focus_score || 50)}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">기술 중심도</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                        {Math.round(interviewerProfile.profile?.experience_score || 50)}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">경험치</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {Math.round(interviewerProfile.profile?.consistency_score || 50)}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">일관성</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detailed Information */}
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      기본 정보
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <p className="text-gray-700 dark:text-gray-300">
+                        <strong>직급:</strong> {interviewerProfile.user_ranks || '정보 없음'}
+                      </p>
+                      <p className="text-gray-700 dark:text-gray-300">
+                        <strong>총 면접 횟수:</strong> {interviewerProfile.profile?.total_interviews || 0}회
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Characteristics */}
+                  {interviewerProfile.profile?.characteristics && interviewerProfile.profile.characteristics.length > 0 && (
+                    <div>
+                      <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        특성
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {interviewerProfile.profile.characteristics.map((characteristic, index) => (
+                          <span
+                            key={index}
+                            className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 rounded"
+                          >
+                            {characteristic}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  {interviewerProfile.profile?.summary && (
+                    <div>
+                      <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        프로필 요약
+                      </h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded p-3">
+                        {interviewerProfile.profile.summary}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 space-y-1">
+                <p>• <span className="text-purple-600 dark:text-purple-400">엄격도</span>: 다른 면접관 대비 점수를 낮게 주는 정도</p>
+                <p>• <span className="text-green-600 dark:text-green-400">기술 중심도</span>: 기술적 역량을 중시하는 정도</p>
+                <p>• <span className="text-orange-600 dark:text-orange-400">경험치</span>: 면접 경험 및 숙련도</p>
+                <p>• <span className="text-blue-600 dark:text-blue-400">일관성</span>: 평가 기준의 일관성 정도</p>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowInterviewerModal(false)}
                   className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                 >
                   닫기

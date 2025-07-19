@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from typing import List, Optional
+from typing import List, Optional, Dict, Tuple
 from datetime import datetime
 from app.models.interview_panel import (
     InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember,
@@ -29,6 +29,9 @@ class InterviewPanelService:
         
         Args:
             use_ai_balance: AI 기반 밸런스 편성 사용 여부 (기본값: True)
+        
+        Returns:
+            Dictionary containing selected interviewers and detailed matching information
         """
         # Get job post details
         job_post = db.query(JobPost).filter(JobPost.id == criteria.job_post_id).first()
@@ -97,6 +100,16 @@ class InterviewPanelService:
             )
         ).all()
         
+        # Initialize matching info
+        matching_info = {
+            'algorithm_used': 'RANDOM',
+            'balance_score': 0.0,
+            'balance_factors': {},
+            'individual_profiles': {},
+            'team_composition_reason': '기본 랜덤 선택',
+            'ai_recommendation_available': False
+        }
+        
         # AI 기반 밸런스 편성 사용
         if use_ai_balance and len(same_dept_all_candidates) >= criteria.same_department_count and len(hr_all_candidates) >= criteria.hr_department_count:
             try:
@@ -115,6 +128,72 @@ class InterviewPanelService:
                 hr_candidates = [u for u in hr_all_candidates if u.id in recommended_hr_ids]
                 
                 print(f"[AI Panel Selection] Same dept balance score: {same_dept_balance_score}, HR balance score: {hr_balance_score}")
+                
+                # AI 매칭 정보 업데이트
+                matching_info.update({
+                    'algorithm_used': 'AI_BASED',
+                    'balance_score': round((same_dept_balance_score + hr_balance_score) / 2, 2),
+                    'ai_recommendation_available': True
+                })
+                
+                # 개별 면접관 프로필 정보 수집
+                all_selected_candidates = same_dept_candidates + hr_candidates
+                for candidate in all_selected_candidates:
+                    profile_info = InterviewerProfileService.get_interviewer_characteristics(db, candidate.id)
+                    matching_info['individual_profiles'][str(candidate.id)] = {
+                        'user_name': candidate.name,
+                        'user_email': candidate.email,
+                        'strictness_score': profile_info.get('strictness_score', 50),
+                        'consistency_score': profile_info.get('consistency_score', 50),
+                        'tech_focus_score': profile_info.get('tech_focus_score', 50),
+                        'personality_focus_score': profile_info.get('personality_focus_score', 50),
+                        'experience_score': profile_info.get('experience_score', 50),
+                        'confidence': profile_info.get('confidence', 0),
+                        'characteristics': profile_info.get('characteristics', [])
+                    }
+                
+                # 밸런스 요인 계산
+                if len(all_selected_candidates) > 1:
+                    strictness_scores = [matching_info['individual_profiles'][str(c.id)]['strictness_score'] for c in all_selected_candidates]
+                    tech_scores = [matching_info['individual_profiles'][str(c.id)]['tech_focus_score'] for c in all_selected_candidates]
+                    experience_scores = [matching_info['individual_profiles'][str(c.id)]['experience_score'] for c in all_selected_candidates]
+                    consistency_scores = [matching_info['individual_profiles'][str(c.id)]['consistency_score'] for c in all_selected_candidates]
+                    
+                    import statistics
+                    matching_info['balance_factors'] = {
+                        'strictness_balance': round(100 - statistics.variance(strictness_scores) if len(strictness_scores) > 1 else 100, 1),
+                        'tech_coverage': round(max(tech_scores), 1),
+                        'experience_avg': round(statistics.mean(experience_scores), 1),
+                        'consistency_avg': round(statistics.mean(consistency_scores), 1)
+                    }
+                    
+                    # 팀 구성 이유 생성
+                    avg_strictness = statistics.mean(strictness_scores)
+                    avg_tech = statistics.mean(tech_scores) 
+                    avg_experience = statistics.mean(experience_scores)
+                    
+                    if avg_strictness > 70:
+                        strictness_desc = "높은 엄격도"
+                    elif avg_strictness < 30:
+                        strictness_desc = "관대한 평가"
+                    else:
+                        strictness_desc = "균형잡힌 엄격도"
+                    
+                    if avg_tech > 70:
+                        tech_desc = "기술 중심"
+                    elif avg_tech < 30:
+                        tech_desc = "인성 중심"
+                    else:
+                        tech_desc = "기술-인성 균형"
+                    
+                    if avg_experience > 70:
+                        experience_desc = "풍부한 경험"
+                    elif avg_experience < 30:
+                        experience_desc = "신규 면접관"
+                    else:
+                        experience_desc = "적절한 경험"
+                    
+                    matching_info['team_composition_reason'] = f"{strictness_desc}, {tech_desc}, {experience_desc}의 조합"
                 
             except Exception as e:
                 print(f"[AI Panel Selection] AI 추천 실패, 기존 방식 사용: {str(e)}")
@@ -143,12 +222,45 @@ class InterviewPanelService:
                 hr_candidates = (hr_all_candidates * times)[:criteria.hr_department_count]
             else:
                 hr_candidates = hr_all_candidates[:criteria.hr_department_count]
+            
+            # 랜덤 선택 시에도 기본 프로필 정보 수집
+            all_selected_candidates = same_dept_candidates + hr_candidates
+            for candidate in all_selected_candidates:
+                try:
+                    profile_info = InterviewerProfileService.get_interviewer_characteristics(db, candidate.id)
+                    matching_info['individual_profiles'][str(candidate.id)] = {
+                        'user_name': candidate.name,
+                        'user_email': candidate.email,
+                        'strictness_score': profile_info.get('strictness_score', 50),
+                        'consistency_score': profile_info.get('consistency_score', 50),
+                        'tech_focus_score': profile_info.get('tech_focus_score', 50),
+                        'personality_focus_score': profile_info.get('personality_focus_score', 50),
+                        'experience_score': profile_info.get('experience_score', 50),
+                        'confidence': profile_info.get('confidence', 0),
+                        'characteristics': profile_info.get('characteristics', [])
+                    }
+                except:
+                    # 프로필 정보가 없으면 기본값 사용
+                    matching_info['individual_profiles'][str(candidate.id)] = {
+                        'user_name': candidate.name,
+                        'user_email': candidate.email,
+                        'strictness_score': 50,
+                        'consistency_score': 50,
+                        'tech_focus_score': 50,
+                        'personality_focus_score': 50,
+                        'experience_score': 50,
+                        'confidence': 0,
+                        'characteristics': ['신규 면접관']
+                    }
+            
+            matching_info['team_composition_reason'] = '랜덤 선택 (프로필 데이터 부족)'
 
         return {
             'same_department': same_dept_candidates,
             'hr_department': hr_candidates,
             'job_post': job_post,
-            'hr_department_info': hr_department
+            'hr_department_info': hr_department,
+            'matching_info': matching_info
         }
     
     @staticmethod

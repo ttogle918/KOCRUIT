@@ -97,7 +97,7 @@ export const interviewPanelApi = {
   // Cancel individual interview request (pending only)
   cancelRequest: async (requestId) => {
     try {
-      const response = await axiosInstance.delete(`${INTERVIEW_PANEL_API}/request/${requestId}/`);
+      const response = await axiosInstance.post(`${INTERVIEW_PANEL_API}/request/${requestId}/cancel/`);
       return response.data;
     } catch (error) {
       console.error('면접관 요청 취소 실패:', error);
@@ -108,9 +108,8 @@ export const interviewPanelApi = {
   // Invite new interviewer manually
   inviteInterviewer: async (assignmentId, userId) => {
     try {
-      const response = await axiosInstance.post(`${INTERVIEW_PANEL_API}/invite-interviewer/`, {
-        assignment_id: assignmentId,
-        user_id: userId
+      const response = await axiosInstance.post(`${INTERVIEW_PANEL_API}/assignment/${assignmentId}/invite/`, {}, {
+        params: { user_id: userId }
       });
       return response.data;
     } catch (error) {
@@ -122,12 +121,34 @@ export const interviewPanelApi = {
   // Search company members for interview panel
   searchCompanyMembers: async (companyId, search = '') => {
     try {
-      const response = await axiosInstance.get(`/api/v1/companies/${companyId}/members`, {
-        params: { search }
+      const response = await axiosInstance.get(`${INTERVIEW_PANEL_API}/company/${companyId}/members/search/`, {
+        params: { q: search }
       });
       return response.data;
     } catch (error) {
       console.error('회사 멤버 검색 실패:', error);
+      throw error;
+    }
+  },
+
+  // Get matching details for an assignment
+  getMatchingDetails: async (assignmentId) => {
+    try {
+      const response = await axiosInstance.get(`${INTERVIEW_PANEL_API}/assignment/${assignmentId}/matching-details/`);
+      return response.data;
+    } catch (error) {
+      console.error('매칭 상세 정보 조회 실패:', error);
+      throw error;
+    }
+  },
+
+  // Get interviewer profile details
+  getInterviewerProfile: async (userId) => {
+    try {
+      const response = await axiosInstance.get(`${INTERVIEW_PANEL_API}/interviewer-profile/${userId}/`);
+      return response.data;
+    } catch (error) {
+      console.error('면접관 프로필 조회 실패:', error);
       throw error;
     }
   }

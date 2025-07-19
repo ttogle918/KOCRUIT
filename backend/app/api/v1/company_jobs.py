@@ -952,6 +952,47 @@ def delete_company_job_post(
                 )
             ).all()
             if interview_evaluations:
+                # 면접관 프로필 관련 정리 (InterviewEvaluation 삭제 전에 수행)
+                evaluation_ids = [ev.id for ev in interview_evaluations]
+                
+                # InterviewerProfileHistory에서 해당 evaluation_id를 참조하는 기록들 정리
+                try:
+                    from app.models.interviewer_profile import InterviewerProfileHistory
+                    profile_histories = db.query(InterviewerProfileHistory).filter(
+                        InterviewerProfileHistory.evaluation_id.in_(evaluation_ids)
+                    ).all()
+                    if profile_histories:
+                        for history in profile_histories:
+                            history.evaluation_id = None  # 히스토리는 보존하되 참조만 제거
+                            history.change_reason = f"관련 평가 삭제됨 - {history.change_reason or ''}"
+                        print(f"Updated {len(profile_histories)} profile history records to remove evaluation references")
+                except Exception as e:
+                    print(f"Profile history cleanup failed: {e}")
+                
+                # InterviewerProfile에서 latest_evaluation_id가 삭제될 evaluation을 참조하는 경우 정리
+                try:
+                    from app.models.interviewer_profile import InterviewerProfile
+                    affected_profiles = db.query(InterviewerProfile).filter(
+                        InterviewerProfile.latest_evaluation_id.in_(evaluation_ids)
+                    ).all()
+                    if affected_profiles:
+                        for profile in affected_profiles:
+                            # 해당 면접관의 다른 평가 중 가장 최근 것을 찾아서 설정
+                            other_evaluation = db.query(InterviewEvaluation).filter(
+                                InterviewEvaluation.evaluator_id == profile.evaluator_id,
+                                ~InterviewEvaluation.id.in_(evaluation_ids)  # 삭제될 evaluation 제외
+                            ).order_by(InterviewEvaluation.created_at.desc()).first()
+                            
+                            if other_evaluation:
+                                profile.latest_evaluation_id = other_evaluation.id
+                            else:
+                                profile.latest_evaluation_id = None
+                                print(f"Interviewer {profile.evaluator_id} has no remaining evaluations")
+                        print(f"Updated {len(affected_profiles)} interviewer profiles to fix evaluation references")
+                except Exception as e:
+                    print(f"Profile evaluation reference cleanup failed: {e}")
+                
+                # 이제 InterviewEvaluation 삭제
                 db.query(InterviewEvaluation).filter(
                     InterviewEvaluation.interview_id.in_(
                         db.query(ScheduleInterview.id).filter(
@@ -964,6 +1005,34 @@ def delete_company_job_post(
                 print(f"Deleted {len(interview_evaluations)} interview evaluations for job post {job_post_id}")
         except Exception as e:
             print(f"Interview evaluations deletion failed: {e}")
+
+        # 6-2. 면접관 프로필 완전 정리 (평가가 없는 면접관 프로필 삭제)
+        try:
+            from app.models.interviewer_profile import InterviewerProfile, InterviewerProfileHistory
+            
+            # 더 이상 평가가 없는 면접관 프로필들 찾기
+            profiles_without_evaluations = db.query(InterviewerProfile).filter(
+                ~db.query(InterviewEvaluation).filter(
+                    InterviewEvaluation.evaluator_id == InterviewerProfile.evaluator_id
+                ).exists()
+            ).all()
+            
+            if profiles_without_evaluations:
+                profile_ids = [p.id for p in profiles_without_evaluations]
+                
+                # 해당 프로필들의 히스토리 삭제
+                deleted_histories = db.query(InterviewerProfileHistory).filter(
+                    InterviewerProfileHistory.interviewer_profile_id.in_(profile_ids)
+                ).delete()
+                
+                # 프로필 자체 삭제
+                deleted_profiles = db.query(InterviewerProfile).filter(
+                    InterviewerProfile.id.in_(profile_ids)
+                ).delete()
+                
+                print(f"Cleaned up {deleted_profiles} empty interviewer profiles and {deleted_histories} related histories")
+        except Exception as e:
+            print(f"Empty interviewer profiles cleanup failed: {e}")
         
         # 6. 관련된 지원서(Application) 삭제
         applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()

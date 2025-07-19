@@ -35,10 +35,10 @@ httpx==0.25.2
 
 
 # AI & ML for pattern analysis (CPU 전용으로 최적화)
-# --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.0
-torchvision==0.17.0
-torchaudio==2.2.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.0+cpu
+torchvision==0.17.0+cpu
+torchaudio==2.2.0+cpu
 
 sentence-transformers==2.5.1
 scikit-learn==1.5.2

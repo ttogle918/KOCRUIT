@@ -264,4 +264,359 @@ def cancel_assignment(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to cancel assignment: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to cancel assignment: {str(e)}")
+
+
+@router.get("/assignment/{assignment_id}/matching-details/", response_model=dict)
+def get_assignment_matching_details(
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get matching details for a specific assignment including balance scores and reasoning
+    """
+    from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+    from app.models.user import CompanyUser
+    from app.services.interviewer_profile_service import InterviewerProfileService
+    import statistics
+    
+    try:
+        assignment = db.query(InterviewPanelAssignment).filter(
+            InterviewPanelAssignment.id == assignment_id
+        ).first()
+        
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Assignment not found")
+        
+        # Get all accepted members for this assignment
+        members = db.query(InterviewPanelMember).filter(
+            InterviewPanelMember.assignment_id == assignment_id
+        ).all()
+        
+        if not members:
+            return {
+                "assignment_id": assignment_id,
+                "matching_info": {
+                    "algorithm_used": "NONE",
+                    "balance_score": 0.0,
+                    "balance_factors": {},
+                    "individual_profiles": {},
+                    "team_composition_reason": "아직 확정된 면접관이 없습니다",
+                    "ai_recommendation_available": False
+                }
+            }
+        
+        # Get interviewer profiles
+        matching_info = {
+            "algorithm_used": "HISTORICAL_DATA",
+            "balance_score": 0.0,
+            "balance_factors": {},
+            "individual_profiles": {},
+            "team_composition_reason": "",
+            "ai_recommendation_available": True
+        }
+        
+        # Collect individual profiles
+        interviewer_ids = [member.company_user_id for member in members]
+        strictness_scores = []
+        tech_scores = []
+        experience_scores = []
+        consistency_scores = []
+        
+        for member in members:
+            company_user = db.query(CompanyUser).filter(CompanyUser.id == member.company_user_id).first()
+            if company_user:
+                try:
+                    profile_info = InterviewerProfileService.get_interviewer_characteristics(db, member.company_user_id)
+                    matching_info['individual_profiles'][str(member.company_user_id)] = {
+                        'user_name': company_user.name,
+                        'user_email': company_user.email,
+                        'strictness_score': profile_info.get('strictness_score', 50),
+                        'consistency_score': profile_info.get('consistency_score', 50),
+                        'tech_focus_score': profile_info.get('tech_focus_score', 50),
+                        'personality_focus_score': profile_info.get('personality_focus_score', 50),
+                        'experience_score': profile_info.get('experience_score', 50),
+                        'confidence': profile_info.get('confidence', 0),
+                        'characteristics': profile_info.get('characteristics', [])
+                    }
+                    
+                    strictness_scores.append(profile_info.get('strictness_score', 50))
+                    tech_scores.append(profile_info.get('tech_focus_score', 50))
+                    experience_scores.append(profile_info.get('experience_score', 50))
+                    consistency_scores.append(profile_info.get('consistency_score', 50))
+                except:
+                    # Fallback to default values
+                    matching_info['individual_profiles'][str(member.company_user_id)] = {
+                        'user_name': company_user.name,
+                        'user_email': company_user.email,
+                        'strictness_score': 50,
+                        'consistency_score': 50,
+                        'tech_focus_score': 50,
+                        'personality_focus_score': 50,
+                        'experience_score': 50,
+                        'confidence': 0,
+                        'characteristics': ['신규 면접관']
+                    }
+                    
+                    strictness_scores.append(50)
+                    tech_scores.append(50)
+                    experience_scores.append(50)
+                    consistency_scores.append(50)
+        
+        # Calculate balance factors
+        if len(strictness_scores) > 1:
+            matching_info['balance_factors'] = {
+                'strictness_balance': round(100 - statistics.variance(strictness_scores), 1),
+                'tech_coverage': round(max(tech_scores), 1),
+                'experience_avg': round(statistics.mean(experience_scores), 1),
+                'consistency_avg': round(statistics.mean(consistency_scores), 1)
+            }
+            
+            # Calculate overall balance score
+            balance_factors = matching_info['balance_factors']
+            matching_info['balance_score'] = round(
+                (balance_factors['strictness_balance'] * 0.3 + 
+                 balance_factors['tech_coverage'] * 0.3 + 
+                 balance_factors['experience_avg'] * 0.2 + 
+                 balance_factors['consistency_avg'] * 0.2), 2
+            )
+            
+            # Generate team composition reason
+            avg_strictness = statistics.mean(strictness_scores)
+            avg_tech = statistics.mean(tech_scores)
+            avg_experience = statistics.mean(experience_scores)
+            
+            if avg_strictness > 70:
+                strictness_desc = "높은 엄격도"
+            elif avg_strictness < 30:
+                strictness_desc = "관대한 평가"
+            else:
+                strictness_desc = "균형잡힌 엄격도"
+            
+            if avg_tech > 70:
+                tech_desc = "기술 중심"
+            elif avg_tech < 30:
+                tech_desc = "인성 중심"
+            else:
+                tech_desc = "기술-인성 균형"
+            
+            if avg_experience > 70:
+                experience_desc = "풍부한 경험"
+            elif avg_experience < 30:
+                experience_desc = "신규 면접관"
+            else:
+                experience_desc = "적절한 경험"
+            
+            matching_info['team_composition_reason'] = f"{strictness_desc}, {tech_desc}, {experience_desc}의 조합"
+        else:
+            matching_info['balance_factors'] = {
+                'strictness_balance': 100.0,
+                'tech_coverage': tech_scores[0] if tech_scores else 50,
+                'experience_avg': experience_scores[0] if experience_scores else 50,
+                'consistency_avg': consistency_scores[0] if consistency_scores else 50
+            }
+            matching_info['balance_score'] = 75.0
+            matching_info['team_composition_reason'] = "단일 면접관"
+        
+        return {
+            "assignment_id": assignment_id,
+            "assignment_type": assignment.assignment_type.value,
+            "total_members": len(members),
+            "matching_info": matching_info
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get matching details: {str(e)}")
+
+
+@router.get("/interviewer-profile/{user_id}/", response_model=dict)
+def get_interviewer_profile(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get detailed profile information for a specific interviewer
+    """
+    from app.models.user import CompanyUser
+    from app.services.interviewer_profile_service import InterviewerProfileService
+    
+    try:
+        company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
+        if not company_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        profile_info = InterviewerProfileService.get_interviewer_characteristics(db, user_id)
+        
+        return {
+            "user_id": user_id,
+            "user_name": company_user.name,
+            "user_email": company_user.email,
+            "user_ranks": company_user.ranks,
+            "profile": {
+                "strictness_score": profile_info.get('strictness_score', 50),
+                "consistency_score": profile_info.get('consistency_score', 50),
+                "tech_focus_score": profile_info.get('tech_focus_score', 50),
+                "personality_focus_score": profile_info.get('personality_focus_score', 50),
+                "experience_score": profile_info.get('experience_score', 50),
+                "confidence": profile_info.get('confidence', 0),
+                "total_interviews": profile_info.get('total_interviews', 0),
+                "characteristics": profile_info.get('characteristics', []),
+                "summary": profile_info.get('summary', '프로필 정보가 부족합니다')
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get interviewer profile: {str(e)}")
+
+
+@router.post("/request/{request_id}/cancel/", response_model=dict)
+def cancel_interview_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Cancel a specific interview panel request
+    """
+    from app.models.interview_panel import InterviewPanelRequest, RequestStatus
+    
+    try:
+        request = db.query(InterviewPanelRequest).filter(
+            InterviewPanelRequest.id == request_id
+        ).first()
+        
+        if not request:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        if request.status != RequestStatus.PENDING:
+            raise HTTPException(status_code=400, detail="Can only cancel pending requests")
+        
+        # Remove the request
+        db.delete(request)
+        db.commit()
+        
+        return {"message": "Request cancelled successfully", "request_id": request_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to cancel request: {str(e)}")
+
+
+@router.post("/assignment/{assignment_id}/invite/", response_model=dict)
+def invite_interviewer_to_assignment(
+    assignment_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Invite a specific user to an interview panel assignment
+    """
+    from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, RequestStatus
+    from app.models.user import CompanyUser
+    from app.models.notification import Notification
+    
+    try:
+        assignment = db.query(InterviewPanelAssignment).filter(
+            InterviewPanelAssignment.id == assignment_id
+        ).first()
+        
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Assignment not found")
+        
+        company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
+        if not company_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Check if already invited
+        existing_request = db.query(InterviewPanelRequest).filter(
+            InterviewPanelRequest.assignment_id == assignment_id,
+            InterviewPanelRequest.company_user_id == user_id
+        ).first()
+        
+        if existing_request:
+            raise HTTPException(status_code=400, detail="User already invited to this assignment")
+        
+        # Create notification
+        notification = Notification(
+            message=f"[면접관 요청] 면접관으로 초대되었습니다. ({assignment.assignment_type.value})",
+            user_id=user_id,
+            type="INTERVIEW_PANEL_REQUEST",
+            is_read=False
+        )
+        db.add(notification)
+        db.flush()
+        
+        # Create request
+        request = InterviewPanelRequest(
+            assignment_id=assignment_id,
+            company_user_id=user_id,
+            notification_id=notification.id,
+            status=RequestStatus.PENDING
+        )
+        db.add(request)
+        db.commit()
+        
+        return {
+            "message": "Invitation sent successfully",
+            "request_id": request.id,
+            "user_name": company_user.name
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to invite interviewer: {str(e)}")
+
+
+@router.get("/company/{company_id}/members/search/", response_model=List[dict])
+def search_company_members(
+    company_id: int,
+    q: str = "",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Search company members for interviewer invitation
+    """
+    from app.models.user import CompanyUser
+    from app.models.company import Department
+    
+    try:
+        query = db.query(CompanyUser).filter(CompanyUser.company_id == company_id)
+        
+        if q:
+            query = query.filter(
+                (CompanyUser.name.ilike(f"%{q}%")) |
+                (CompanyUser.email.ilike(f"%{q}%"))
+            )
+        
+        # Only include users with valid ranks for interviewers
+        valid_ranks = ['senior_associate', 'team_lead', 'manager', 'senior_manager']
+        query = query.filter(CompanyUser.ranks.in_(valid_ranks))
+        
+        members = query.limit(20).all()
+        
+        result = []
+        for member in members:
+            department = db.query(Department).filter(Department.id == member.department_id).first()
+            result.append({
+                "id": member.id,
+                "name": member.name,
+                "email": member.email,
+                "ranks": member.ranks,
+                "department": department.name if department else None,
+                "department_id": member.department_id
+            })
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to search company members: {str(e)}") 
