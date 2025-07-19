@@ -7,6 +7,7 @@ from app.schemas.interview_evaluation import InterviewEvaluation as InterviewEva
 from datetime import datetime
 from decimal import Decimal
 from app.models.application import Application
+from app.utils.llm_cache import invalidate_cache
 import os
 import uuid
 
@@ -53,6 +54,21 @@ def create_evaluation(evaluation: InterviewEvaluationCreate, db: Session = Depen
         
         db.commit()
         db.refresh(db_evaluation)
+        
+        # 캐시 무효화: 새로운 평가가 생성되었으므로 관련 캐시 무효화
+        try:
+            # 면접 평가 관련 캐시 무효화
+            evaluation_cache_pattern = f"api_cache:get_evaluation_by_interview_and_evaluator:*interview_id_{evaluation.interview_id}*"
+            invalidate_cache(evaluation_cache_pattern)
+            
+            # 면접 일정 관련 캐시도 무효화 (평가자가 변경될 수 있음)
+            schedule_cache_pattern = f"api_cache:get_interview_schedules_by_applicant:*"
+            invalidate_cache(schedule_cache_pattern)
+            
+            print(f"Cache invalidated after creating evaluation {db_evaluation.id}")
+        except Exception as e:
+            print(f"Failed to invalidate cache: {e}")
+        
         return db_evaluation
     except Exception as e:
         db.rollback()
@@ -119,6 +135,21 @@ def update_evaluation(evaluation_id: int, evaluation: InterviewEvaluationCreate,
         
         db.commit()
         db.refresh(db_evaluation)
+        
+        # 캐시 무효화: 평가가 업데이트되었으므로 관련 캐시 무효화
+        try:
+            # 면접 평가 관련 캐시 무효화
+            evaluation_cache_pattern = f"api_cache:get_evaluation_by_interview_and_evaluator:*interview_id_{db_evaluation.interview_id}*"
+            invalidate_cache(evaluation_cache_pattern)
+            
+            # 면접 일정 관련 캐시도 무효화
+            schedule_cache_pattern = f"api_cache:get_interview_schedules_by_applicant:*"
+            invalidate_cache(schedule_cache_pattern)
+            
+            print(f"Cache invalidated after updating evaluation {evaluation_id}")
+        except Exception as e:
+            print(f"Failed to invalidate cache: {e}")
+        
         return db_evaluation
     except Exception as e:
         db.rollback()

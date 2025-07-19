@@ -84,6 +84,72 @@ function InterviewProgress() {
   const [commonStrengths, setCommonStrengths] = useState(null);
   const [commonToolsLoading, setCommonToolsLoading] = useState(false);
   const [commonQuestionsLoading, setCommonQuestionsLoading] = useState(false);
+  const [preloadingStatus, setPreloadingStatus] = useState('idle'); // 'idle', 'loading', 'completed'
+
+  // 백그라운드 이력서 및 면접 도구 프리로딩 함수
+  const preloadResumes = async (applicants) => {
+    if (!applicants || applicants.length === 0) return;
+    
+    setPreloadingStatus('loading');
+    console.log('🔄 백그라운드 프리로딩 시작...');
+    
+    try {
+      // 1단계: 모든 지원자의 이력서를 병렬로 프리로딩
+      const resumePromises = applicants.map(async (applicant) => {
+        const id = applicant.applicant_id || applicant.id;
+        try {
+          // 백그라운드에서 이력서 데이터를 캐시에 저장
+          const resumeRes = await api.get(`/applications/${id}`);
+          return { success: true, applicantId: id, resumeData: resumeRes.data };
+        } catch (error) {
+          console.warn(`이력서 프리로딩 실패 (${id}):`, error);
+          return { success: false, applicantId: id, error };
+        }
+      });
+      
+      const resumeResults = await Promise.allSettled(resumePromises);
+      const successfulResumes = resumeResults
+        .filter(r => r.status === 'fulfilled' && r.value.success)
+        .map(r => r.value);
+      
+      console.log(`✅ 이력서 프리로딩 완료: ${successfulResumes.length}/${applicants.length} 성공`);
+      
+      // 2단계: 성공한 이력서에 대해 면접 도구 프리로딩 (선택적)
+      if (successfulResumes.length > 0 && jobPost?.company?.name) {
+        console.log('🔄 면접 도구 프리로딩 시작...');
+        
+        // 첫 번째 지원자에 대해서만 면접 도구 프리로딩 (비용 절약)
+        const firstResume = successfulResumes[0];
+        const workflowRequest = {
+          resume_id: firstResume.resumeData.resume_id,
+          application_id: firstResume.applicantId,
+          company_name: jobPost.company.name,
+          name: applicants.find(a => (a.applicant_id || a.id) === firstResume.applicantId)?.name || '',
+          interview_stage: interviewStage,
+          evaluator_type: currentConfig.evaluatorType
+        };
+        
+        try {
+          // 면접 도구들을 병렬로 프리로딩
+          await Promise.allSettled([
+            api.post('/interview-questions/interview-checklist', workflowRequest),
+            api.post('/interview-questions/strengths-weaknesses', workflowRequest),
+            api.post('/interview-questions/interview-guideline', workflowRequest),
+            api.post('/interview-questions/evaluation-criteria', workflowRequest)
+          ]);
+          console.log('✅ 면접 도구 프리로딩 완료');
+        } catch (error) {
+          console.warn('면접 도구 프리로딩 실패:', error);
+        }
+      }
+      
+      console.log(`🎉 전체 프리로딩 완료: ${successfulResumes.length}/${applicants.length} 지원자`);
+      setPreloadingStatus('completed');
+    } catch (error) {
+      console.error('백그라운드 프리로딩 오류:', error);
+      setPreloadingStatus('completed');
+    }
+  };
 
   useEffect(() => {
     const fetchApplicants = async () => {
@@ -104,6 +170,12 @@ function InterviewProgress() {
           // 2. 첫 지원자만 상세 fetch
           handleApplicantClick(sorted[0], 0);
         }
+        
+        // 3. 백그라운드에서 나머지 지원자 이력서 프리로딩
+        setTimeout(() => {
+          preloadResumes(res.data);
+        }, 1000); // 1초 후 백그라운드 프리로딩 시작
+        
       } catch (err) {
         setError('지원자 목록을 불러오지 못했습니다.');
       } finally {
@@ -495,6 +567,19 @@ function InterviewProgress() {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            {/* 프리로딩 상태 표시 */}
+            {preloadingStatus === 'loading' && (
+              <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                이력서 프리로딩 중...
+              </div>
+            )}
+            {preloadingStatus === 'completed' && (
+              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                <span>✅</span>
+                캐시 준비 완료
+              </div>
+            )}
             <span className={`px-3 py-1 rounded-full text-sm font-semibold bg-${currentConfig.color}-100 text-${currentConfig.color}-800 dark:bg-${currentConfig.color}-900 dark:text-${currentConfig.color}-200`}>
               {isFirstInterview ? '실무진' : '임원진'}
             </span>

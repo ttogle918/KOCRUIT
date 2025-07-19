@@ -9,10 +9,7 @@ from app.models.application import Application
 from pydantic import BaseModel
 
 from app.api.v1.company_question_rag import generate_questions
-# import redis.asyncio as aioredis
-# import hashlib
-# import json
-# from app.core.config import REDIS_CACHE_TTL
+from app.utils.llm_cache import redis_cache
 
 import redis
 import json
@@ -490,6 +487,7 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/interview-checklist", response_model=InterviewChecklistResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_interview_checklist(request: InterviewChecklistRequest, db: Session = Depends(get_db)):
     """면접 체크리스트 생성 API"""
     try:
@@ -523,6 +521,7 @@ async def generate_interview_checklist(request: InterviewChecklistRequest, db: S
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/strengths-weaknesses", response_model=StrengthsWeaknessesResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def analyze_strengths_weaknesses(request: StrengthsWeaknessesRequest, db: Session = Depends(get_db)):
     """지원자 강점/약점 분석 API"""
     try:
@@ -556,6 +555,7 @@ async def analyze_strengths_weaknesses(request: StrengthsWeaknessesRequest, db: 
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/interview-guideline", response_model=InterviewGuidelineResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_interview_guideline(request: InterviewGuidelineRequest, db: Session = Depends(get_db)):
     """면접 가이드라인 생성 API"""
     try:
@@ -589,6 +589,7 @@ async def generate_interview_guideline(request: InterviewGuidelineRequest, db: S
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/evaluation-criteria", response_model=EvaluationCriteriaResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Session = Depends(get_db)):
     """평가 기준 자동 제안 API"""
     try:
@@ -644,6 +645,7 @@ async def generate_company_questions(request: CompanyQuestionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/project-questions", response_model=ProjectQuestionResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_project_questions(request: ProjectQuestionRequest, db: Session = Depends(get_db)):
     """자기소개서/이력서 기반 프로젝트 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     # POST /api/v1/interview-questions/project-questions
@@ -986,6 +988,7 @@ async def generate_analysis_questions(request: IntegratedQuestionRequest, db: Se
 
 # 공고/직무/회사 기준의 실무진 공통 질문 생성 API
 @router.post("/job-common-questions", response_model=Dict[str, Any])
+@redis_cache(expire=3600)  # 1시간 캐시 (공통 질문)
 async def generate_job_common_questions(
     job_post_id: int,
     company_name: str = "",
@@ -1012,6 +1015,7 @@ async def generate_job_common_questions(
 
 # --- 공고 기반 체크리스트 ---
 @router.post("/interview-checklist/job-based", response_model=JobBasedChecklistResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Session = Depends(get_db)):
     try:
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
@@ -1030,6 +1034,7 @@ async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Se
 
 # --- 공고 기반 강점/약점 ---
 @router.post("/strengths-weaknesses/job-based", response_model=JobBasedStrengthsResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsRequest, db: Session = Depends(get_db)):
     try:
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()

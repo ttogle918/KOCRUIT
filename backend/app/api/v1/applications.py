@@ -17,6 +17,7 @@ from app.models.applicant_user import ApplicantUser
 from app.models.schedule import ScheduleInterview
 from app.models.job import JobPost
 from app.models.weight import Weight
+from app.utils.llm_cache import redis_cache
 
 router = APIRouter()
 
@@ -33,6 +34,7 @@ def get_applications(
 
 
 @router.get("/{application_id}", response_model=ApplicationDetail)
+@redis_cache(expire=300)  # 5분 캐시
 def get_application(
     application_id: int,
     db: Session = Depends(get_db),
@@ -277,6 +279,26 @@ def update_application_status(
         application.document_status = status_update.document_status.value
     
     db.commit()
+    
+    # 캐시 무효화: 지원자 상태가 변경되었으므로 관련 캐시 무효화
+    try:
+        from app.utils.llm_cache import invalidate_cache
+        
+        # 지원자 상세 캐시 무효화
+        application_cache_pattern = f"api_cache:get_application:*application_id_{application_id}*"
+        invalidate_cache(application_cache_pattern)
+        
+        # 지원자 목록 캐시 무효화 (해당 공고의 모든 지원자 목록)
+        job_post_id = application.job_post_id
+        applicants_cache_pattern = f"api_cache:get_applicants_by_job:*job_post_id_{job_post_id}*"
+        applicants_with_interview_cache_pattern = f"api_cache:get_applicants_with_interview:*job_post_id_{job_post_id}*"
+        invalidate_cache(applicants_cache_pattern)
+        invalidate_cache(applicants_with_interview_cache_pattern)
+        
+        print(f"Cache invalidated after updating application {application_id} status")
+    except Exception as e:
+        print(f"Failed to invalidate cache: {e}")
+    
     return {"message": "Application status updated successfully"}
 
 
@@ -549,6 +571,7 @@ def reset_ai_scores_for_job(
 
 
 @router.get("/job/{job_post_id}/applicants")
+@redis_cache(expire=300)  # 5분 캐시
 def get_applicants_by_job(
     job_post_id: int,
     db: Session = Depends(get_db)
@@ -659,6 +682,7 @@ def get_applicants_by_job(
         applicants.append(applicant_data)
     return applicants
 @router.get("/job/{job_post_id}/applicants-with-interview")
+@redis_cache(expire=300)  # 5분 캐시
 def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db)):
     # 지원자 + 면접일정 포함 API : "지원자 면접시간 그룹핑"과 "첫 지원자만 미리 상세 fetch"
     meta = MetaData()

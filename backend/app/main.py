@@ -1,9 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 import asyncio
 import time
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.api.v1.api import api_router
@@ -157,6 +158,34 @@ async def print_routes():
         except Exception as e:
             print(f"Route info error: {e}")
 
+# 브라우저 캐싱 미들웨어
+class CacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # GET 요청에 대해서만 캐싱 적용
+        if request.method == "GET":
+            # API 엔드포인트별 캐시 설정
+            path = request.url.path
+            
+            if "/api/v1/applications/" in path:
+                # 지원자 관련 API: 5분 캐시
+                response.headers["Cache-Control"] = "public, max-age=300"
+            elif "/api/v1/resumes/" in path:
+                # 이력서 관련 API: 5분 캐시
+                response.headers["Cache-Control"] = "public, max-age=300"
+            elif "/api/v1/company/jobposts/" in path:
+                # 채용공고 관련 API: 5분 캐시
+                response.headers["Cache-Control"] = "public, max-age=300"
+            elif "/api/v1/interview-questions/" in path:
+                # 면접 질문 API: 30분 캐시 (LLM 결과)
+                response.headers["Cache-Control"] = "public, max-age=1800"
+            else:
+                # 기본: 1분 캐시
+                response.headers["Cache-Control"] = "public, max-age=60"
+        
+        return response
+
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
@@ -173,6 +202,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+# 브라우저 캐싱 미들웨어 추가
+app.add_middleware(CacheMiddleware)
 
 # API 라우터 등록
 #app.include_router(api_router)
@@ -195,9 +227,17 @@ async def performance_info():
     """성능 정보 엔드포인트"""
     from app.core.database import get_connection_info
     from app.core.cache import get_cache_stats
+    from app.utils.llm_cache import get_cache_stats as llm_cache_stats
     
     try:
         db_info = get_connection_info()
+        cache_stats = llm_cache_stats()
+        
+        return {
+            "database": db_info,
+            "cache": cache_stats,
+            "timestamp": time.time()
+        }
         cache_info = get_cache_stats()
         
         return {
