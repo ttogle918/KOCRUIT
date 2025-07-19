@@ -1,16 +1,35 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
-from typing import List, Optional, Dict, Tuple
-from datetime import datetime
+from sqlalchemy import and_, or_, func
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
+import logging
+
 from app.models.interview_panel import (
-    InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember,
-    AssignmentType, AssignmentStatus, RequestStatus, PanelRole
+    InterviewPanelAssignment, 
+    InterviewPanelMember, 
+    InterviewPanelRequest,
+    AssignmentStatus, 
+    RequestStatus
 )
-from app.models.user import CompanyUser
+from app.models.application import Application, DocumentStatus, InterviewStatus
+from app.models.schedule import Schedule
+from app.models.interview_question import InterviewQuestion
+from app.models.job import JobPost
+from app.models.resume import Resume
+from app.models.user import User, CompanyUser
+from app.schemas.interview_panel import (
+    InterviewPanelAssignmentCreate,
+    InterviewPanelRequestCreate,
+    InterviewerResponse,
+    InterviewPanelAssignmentResponse,
+    InterviewPanelRequestResponse,
+    InterviewPanelMemberResponse,
+    InterviewerSelectionCriteria
+
+)
 from app.models.company import Department
 from app.models.job import JobPost
 from app.models.notification import Notification
-from app.schemas.interview_panel import InterviewerSelectionCriteria, InterviewerResponse
 from app.models.schedule import Schedule
 from app.services.interviewer_profile_service import InterviewerProfileService
 import random
@@ -497,6 +516,43 @@ class InterviewPanelService:
         db.flush()
         
         print(f"✅ 면접 일정 자동 생성 완료: {len(applications)}명의 지원자, {len(panel_members)}명의 면접관")
+        
+        # 🆕 면접 일정 생성 완료 후 자동으로 개별 질문 생성
+        try:
+            from app.services.interview_question_service import InterviewQuestionService
+            
+            # 공고 정보 조회
+            job_post = db.query(JobPost).filter(JobPost.id == assignment.job_post_id).first()
+            if job_post:
+                company_name = job_post.company.name if job_post.company else ""
+                job_info = f"{job_post.title} - {job_post.description}"
+                
+                # 각 지원자에 대해 개별 질문 생성
+                for application in applications:
+                    try:
+                        # 이미 질문이 생성되어 있는지 확인
+                        existing_questions = db.query(InterviewQuestion).filter(
+                            InterviewQuestion.application_id == application.id
+                        ).count()
+                        
+                        if existing_questions == 0:
+                            # 개별 질문 생성
+                            questions = InterviewQuestionService.generate_individual_questions_for_applicant(
+                                db=db,
+                                application_id=application.id,
+                                job_info=job_info,
+                                company_name=company_name
+                            )
+                            print(f"✅ 지원자 {application.id}에 대해 {len(questions)}개 질문 생성 완료")
+                        else:
+                            print(f"ℹ️ 지원자 {application.id}는 이미 질문이 생성되어 있음")
+                            
+                    except Exception as e:
+                        print(f"❌ 지원자 {application.id} 질문 생성 실패: {e}")
+                        
+        except Exception as e:
+            print(f"❌ 자동 질문 생성 중 오류: {e}")
+            # 질문 생성 실패해도 면접 일정 생성은 성공으로 처리
     
     @staticmethod
     def _link_applicants_to_existing_schedules(db: Session, job_post_id: int, applications: List[Application]):

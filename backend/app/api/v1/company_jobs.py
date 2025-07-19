@@ -128,12 +128,36 @@ def get_company_job_post(
     job_post.interview_schedules = interview_schedules
     
     # 부서 정보를 한 번에 조회 (JOIN으로 최적화)
+    department_name = None
     if job_post.department_id:
         department = db.query(Department).filter(Department.id == job_post.department_id).first()
         if department:
-            job_post.department = department.name
+            department_name = department.name
     
-    return job_post
+    # Pydantic 응답 모델을 위해 department 이름을 별도로 설정
+    job_post_dict = {
+        "id": job_post.id,
+        "company_id": job_post.company_id,
+        "department_id": job_post.department_id,
+        "title": job_post.title,
+        "department": department_name,  # 문자열로 설정
+        "qualifications": job_post.qualifications,
+        "conditions": job_post.conditions,
+        "job_details": job_post.job_details,
+        "procedures": job_post.procedures,
+        "headcount": job_post.headcount,
+        "start_date": job_post.start_date,
+        "end_date": job_post.end_date,
+        "location": job_post.location,
+        "employment_type": job_post.employment_type,
+        "deadline": job_post.deadline,
+        "status": job_post.status,
+        "companyName": job_post.company.name if job_post.company else None,
+        "created_at": job_post.created_at,
+        "updated_at": job_post.updated_at
+    }
+    
+    return job_post_dict
 
 
 @router.post("/", response_model=JobPostDetail, status_code=201)

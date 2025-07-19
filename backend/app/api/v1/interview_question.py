@@ -1,11 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from app.core.database import get_db
-from app.schemas.interview_question import InterviewQuestion, InterviewQuestionCreate
-from app.models.resume import Resume, Spec
+from app.api.v1.auth import get_current_user
+from app.models.user import User
+from app.models.application import Application, DocumentStatus, InterviewStatus
+from app.models.interview_question import InterviewQuestion, QuestionType
 from app.models.job import JobPost
-from app.models.application import Application
+from app.models.resume import Resume, Spec
+from app.services.interview_question_service import InterviewQuestionService
+from app.schemas.interview_question import (
+    InterviewQuestionCreate, 
+    InterviewQuestionResponse, 
+    InterviewQuestionBulkCreate
+)
 from pydantic import BaseModel
 
 from app.api.v1.company_question_rag import generate_questions
@@ -13,6 +21,8 @@ from app.utils.llm_cache import redis_cache
 
 import redis
 import json
+
+from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)
 
@@ -295,7 +305,7 @@ def analyze_job_matching(resume_text: str, job_info: str) -> str:
     else:
         return "직접적인 매칭 키워드가 발견되지 않았습니다."
 
-@router.post("/", response_model=InterviewQuestion)
+@router.post("/", response_model=InterviewQuestionResponse)
 def create_question(question: InterviewQuestionCreate, db: Session = Depends(get_db)):
     db_question = InterviewQuestion(**question.dict())
     db.add(db_question)
@@ -303,9 +313,20 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
     db.refresh(db_question)
     return db_question
 
-@router.get("/application/{application_id}", response_model=List[InterviewQuestion])
+@router.get("/application/{application_id}", response_model=List[InterviewQuestionResponse])
 def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
+    from app.models.interview_question import InterviewQuestion
     return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
+
+@router.get("/application/{application_id}/by-type", response_model=InterviewQuestionResponse)
+def get_questions_by_type(application_id: int, db: Session = Depends(get_db)):
+    """지원서별 질문을 유형별로 분류하여 조회"""
+    return InterviewQuestionService.get_questions_by_type(db, application_id)
+
+@router.post("/bulk-create", response_model=List[InterviewQuestionResponse])
+def create_questions_bulk(bulk_data: InterviewQuestionBulkCreate, db: Session = Depends(get_db)):
+    """대량 질문 생성"""
+    return InterviewQuestionService.create_questions_bulk(db, bulk_data)
 
 
 @router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
@@ -335,21 +356,13 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
             specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
             resume_text = combine_resume_and_specs(resume, specs)
             
-            # 자기소개서 요약 생성
-            from agent.agents.interview_question_node import generate_common_question_bundle
-            import sys
-            import os
-            sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-            from agent.tools.portfolio_tool import portfolio_tool
-            
-            # 자기소개서 요약 생성
-            from agent.agents.interview_question_node import generate_resume_summary
-            resume_summary_result = generate_resume_summary.invoke({"resume_text": resume_text})
-            resume_summary = resume_summary_result.get("text", "")
-            
-            # 포트폴리오 정보 수집
-            portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
-            portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
+                    # 자기소개서 요약 생성
+        from agent.agents.interview_question_node import generate_common_question_bundle, generate_resume_summary
+        resume_summary_result = generate_resume_summary.invoke({"resume_text": resume_text})
+        resume_summary = resume_summary_result.get("text", "")
+        
+        # 포트폴리오 정보 수집 (임시로 빈 문자열)
+        portfolio_info = ""
         
         # 2. 공고 정보 수집
         if request.application_id:
@@ -438,6 +451,19 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
             "question_bundle": question_bundle,
             "summary_info": summary_info
         }
+        
+        # DB에 질문 저장 (application_id가 있는 경우에만)
+        if request.application_id:
+            try:
+                InterviewQuestionService.save_langgraph_questions(
+                    db=db,
+                    application_id=request.application_id,
+                    questions_data=question_bundle
+                )
+            except Exception as e:
+                # DB 저장 실패해도 API 응답은 계속 진행
+                print(f"질문 DB 저장 실패: {str(e)}")
+        
         redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
         return result
         
@@ -465,15 +491,8 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
                 if job_post:
                     job_info = parse_job_post_data(job_post)
                     job_matching_info = analyze_job_matching(resume_text, job_info)
-        # 포트폴리오 정보 수집
+        # 포트폴리오 정보 수집 (임시로 빈 문자열)
         portfolio_info = ""
-        if request.name:
-            import sys
-            import os
-            sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-            from agent.tools.portfolio_tool import portfolio_tool
-            portfolio_links = portfolio_tool.extract_portfolio_links(resume_text, request.name)
-            portfolio_info = portfolio_tool.analyze_portfolio_content(portfolio_links)
         # LangGraph 기반 이력서 분석 (항상 직접 수행)
         from agent.agents.interview_question_node import generate_resume_analysis_report
         analysis_result = generate_resume_analysis_report(
@@ -1264,3 +1283,211 @@ async def generate_final_interview_questions(request: FinalInterviewRequest, db:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/job/{job_post_id}/common-questions")
+def get_common_questions_for_job_post(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """공고별 공통 질문 조회"""
+    try:
+        # 해당 공고의 첫 번째 지원자에게 생성된 공통 질문 조회
+        first_application = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.document_status == DocumentStatus.PASSED.value
+        ).first()
+        
+        if not first_application:
+            return {"common_questions": []}
+        
+        common_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.application_id == first_application.id,
+            InterviewQuestion.type == QuestionType.COMMON
+        ).all()
+        
+        return {
+            "common_questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "category": q.category,
+                    "difficulty": q.difficulty,
+                    "created_at": q.created_at.isoformat() if q.created_at else None
+                }
+                for q in common_questions
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"공통 질문 조회 실패: {str(e)}")
+
+@router.get("/application/{application_id}/questions")
+def get_questions_for_application(
+    application_id: int,
+    question_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """지원자별 면접 질문 조회"""
+    try:
+        # 지원자 정보 확인
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="지원자를 찾을 수 없습니다.")
+        
+        # 질문 조회
+        query = db.query(InterviewQuestion).filter(
+            InterviewQuestion.application_id == application_id
+        )
+        
+        if question_type:
+            query = query.filter(InterviewQuestion.type == QuestionType(question_type))
+        
+        questions = query.all()
+        
+        # 타입별로 그룹화
+        grouped_questions = {}
+        for question in questions:
+            question_type_key = question.type.value
+            if question_type_key not in grouped_questions:
+                grouped_questions[question_type_key] = []
+            
+            grouped_questions[question_type_key].append({
+                "id": question.id,
+                "question_text": question.question_text,
+                "category": question.category,
+                "difficulty": question.difficulty,
+                "created_at": question.created_at.isoformat() if question.created_at else None
+            })
+        
+        return {
+            "application_id": application_id,
+            "questions": grouped_questions,
+            "total_count": len(questions)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"질문 조회 실패: {str(e)}")
+
+@router.post("/job/{job_post_id}/generate-common-questions")
+def generate_common_questions_for_job_post(
+    job_post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """공고별 공통 질문 수동 생성"""
+    try:
+        # 공고 정보 조회
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+        
+        company_name = job_post.company.name if job_post.company else ""
+        job_info = f"{job_post.title} - {job_post.description}"
+        
+        # 공통 질문 생성
+        questions = InterviewQuestionService.generate_common_questions_for_job_post(
+            db=db,
+            job_post_id=job_post_id,
+            company_name=company_name,
+            job_info=job_info
+        )
+        
+        return {
+            "message": f"공통 질문 생성 완료: {len(questions)}개",
+            "questions_count": len(questions)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"공통 질문 생성 실패: {str(e)}")
+
+@router.post("/application/{application_id}/generate-individual-questions")
+def generate_individual_questions_for_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """지원자별 개별 질문 수동 생성"""
+    try:
+        # 지원자 정보 확인
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="지원자를 찾을 수 없습니다.")
+        
+        # 공고 정보 조회
+        job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+        
+        company_name = job_post.company.name if job_post.company else ""
+        job_info = f"{job_post.title} - {job_post.description}"
+        
+        # 개별 질문 생성
+        questions = InterviewQuestionService.generate_individual_questions_for_applicant(
+            db=db,
+            application_id=application_id,
+            job_info=job_info,
+            company_name=company_name
+        )
+        
+        return {
+            "message": f"개별 질문 생성 완료: {len(questions)}개",
+            "questions_count": len(questions)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"개별 질문 생성 실패: {str(e)}")
+
+@router.get("/job/{job_post_id}/questions-status")
+def get_questions_generation_status(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """공고별 질문 생성 상태 조회"""
+    try:
+        # 해당 공고의 지원자들 조회
+        applications = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.document_status == DocumentStatus.PASSED.value
+        ).all()
+        
+        if not applications:
+            return {
+                "job_post_id": job_post_id,
+                "total_applications": 0,
+                "common_questions_generated": False,
+                "individual_questions_generated": 0,
+                "total_questions": 0
+            }
+        
+        # 공통 질문 생성 여부 확인
+        first_app = applications[0]
+        common_questions_count = db.query(InterviewQuestion).filter(
+            InterviewQuestion.application_id == first_app.id,
+            InterviewQuestion.type == QuestionType.COMMON
+        ).count()
+        
+        # 개별 질문 생성된 지원자 수 확인
+        individual_questions_count = 0
+        total_questions = 0
+        
+        for app in applications:
+            app_questions = db.query(InterviewQuestion).filter(
+                InterviewQuestion.application_id == app.id,
+                InterviewQuestion.type != QuestionType.COMMON
+            ).count()
+            
+            if app_questions > 0:
+                individual_questions_count += 1
+                total_questions += app_questions
+        
+        return {
+            "job_post_id": job_post_id,
+            "total_applications": len(applications),
+            "common_questions_generated": common_questions_count > 0,
+            "common_questions_count": common_questions_count,
+            "individual_questions_generated": individual_questions_count,
+            "total_questions": total_questions + common_questions_count
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"질문 상태 조회 실패: {str(e)}")

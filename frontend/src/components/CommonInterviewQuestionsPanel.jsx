@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   List,
   ListItem,
@@ -6,13 +6,18 @@ import {
   IconButton,
   TextField,
   Box,
-  Tooltip
+  Tooltip,
+  Button,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import api from '../api/api';
+import InterviewQuestionApi from '../api/interviewQuestionApi';
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 
 const muiTheme = createTheme({
@@ -57,6 +62,77 @@ const CommonInterviewQuestionsPanel = ({
   const [addValue, setAddValue] = useState('');
   const [activeTab, setActiveTab] = useState('questions');
   const [memo, setMemo] = useState('');
+  
+  // 🆕 DB에서 조회한 질문들 상태
+  const [dbQuestions, setDbQuestions] = useState([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [questionsError, setQuestionsError] = useState(null);
+  const [questionsStatus, setQuestionsStatus] = useState(null);
+
+  // 🆕 DB에서 공통 질문 조회
+  const loadCommonQuestionsFromDB = async () => {
+    if (!jobPostId) return;
+    
+    setLoadingQuestions(true);
+    setQuestionsError(null);
+    
+    try {
+      // 질문 생성 상태 확인
+      const statusResponse = await InterviewQuestionApi.getQuestionsStatus(jobPostId);
+      setQuestionsStatus(statusResponse);
+      
+      // 공통 질문 조회
+      const response = await InterviewQuestionApi.getCommonQuestions(jobPostId);
+      const commonQuestions = response.common_questions || [];
+      
+      // 질문 텍스트만 추출하여 배열로 변환
+      const questionTexts = commonQuestions.map(q => q.question_text);
+      setDbQuestions(questionTexts);
+      
+      // 기존 questions가 비어있으면 DB 질문으로 설정
+      if (questions.length === 0) {
+        setQuestions(questionTexts);
+        onChange && onChange(questionTexts);
+      }
+      
+      console.log('✅ DB에서 공통 질문 로드 완료:', questionTexts.length, '개');
+      
+    } catch (error) {
+      console.error('❌ 공통 질문 조회 실패:', error);
+      setQuestionsError('공통 질문을 불러오는데 실패했습니다.');
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  // 🆕 공통 질문 수동 생성
+  const generateCommonQuestions = async () => {
+    if (!jobPostId) return;
+    
+    setLoadingQuestions(true);
+    setQuestionsError(null);
+    
+    try {
+      const response = await InterviewQuestionApi.generateCommonQuestions(jobPostId);
+      console.log('✅ 공통 질문 생성 완료:', response);
+      
+      // 생성 후 다시 조회
+      await loadCommonQuestionsFromDB();
+      
+    } catch (error) {
+      console.error('❌ 공통 질문 생성 실패:', error);
+      setQuestionsError('공통 질문 생성에 실패했습니다.');
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  // 🆕 컴포넌트 마운트 시 자동으로 DB 질문 로드
+  useEffect(() => {
+    if (jobPostId && activeTab === 'questions') {
+      loadCommonQuestionsFromDB();
+    }
+  }, [jobPostId, activeTab]);
 
   // Drag & Drop
   const onDragEnd = (result) => {
@@ -102,15 +178,16 @@ const CommonInterviewQuestionsPanel = ({
     onChange && onChange(updated);
   };
 
-  // 질문 탭 클릭 시 (API 호출은 상위 컴포넌트에서 처리)
+  // 질문 탭 클릭 시
   const handleLoadJobCommonQuestions = () => {
     console.log('🔍 공통 질문 탭 클릭됨');
-    // API 호출은 InterviewProgress에서 이미 처리됨
-    // 여기서는 탭 전환만 처리
+    if (jobPostId) {
+      loadCommonQuestionsFromDB();
+    }
   };
 
   // interviewChecklist 등 프롭스가 바뀌면 내부 상태도 동기화 (질문 제외)
-  React.useEffect(() => {
+  useEffect(() => {
     setQuestions(initialQuestions);
   }, [initialQuestions]);
 
@@ -146,7 +223,7 @@ const CommonInterviewQuestionsPanel = ({
         >
           평가 기준
         </button>
-
+        {/* 개별 분석 탭 제거 - 공통 질문 패널에서는 지원자별 강점/약점 분석을 표시하지 않음 */}
       </div>
       {/* 탭 컨텐츠 */}
       <div className="flex-1 overflow-y-auto mb-4">
@@ -162,92 +239,126 @@ const CommonInterviewQuestionsPanel = ({
               <Droppable droppableId="questions-list">
                 {(provided) => (
                   <List ref={provided.innerRef} {...provided.droppableProps} sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-                    {questions.map((q, idx) => (
-                    <React.Fragment key={idx}>
-                      <Draggable draggableId={q + '-' + idx} index={idx}>
-                        {(provided, snapshot) => (
-                          <ListItem
-                            ref={provided.innerRef}
-                            sx={{ bgcolor: snapshot.isDragging ? 'grey.100' : 'inherit', borderRadius: 1, mb: 1 }}
-                            secondaryAction={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Tooltip title="질문 추가">
-                                  <IconButton edge="end" size="small" onClick={() => handleAdd(idx)}>
-                                    <AddIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="삭제">
-                                  <IconButton edge="end" size="small" onClick={() => handleDelete(idx)}>
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                            }
-                          >
-                            {/* Drag handle: dragHandleProps는 여기만 */}
-                            <Box
-                              {...provided.dragHandleProps}
-                              sx={{ mr: 1, cursor: 'grab', color: 'grey.500', display: 'flex', alignItems: 'center' }}
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <DragIndicatorIcon />
-                            </Box>
-                            {/* 인라인 수정 or 텍스트 */}
-                            {editingIndex === idx ? (
+                    {loadingQuestions ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+                        <CircularProgress size={24} sx={{ mr: 2 }} />
+                        <span>공통 질문을 불러오는 중입니다...</span>
+                      </Box>
+                    ) : questionsError ? (
+                      <Alert severity="error" sx={{ mb: 2 }}>
+                        {questionsError}
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          onClick={generateCommonQuestions}
+                          startIcon={<RefreshIcon />}
+                          sx={{ ml: 2 }}
+                        >
+                          다시 생성
+                        </Button>
+                      </Alert>
+                    ) : questions.length === 0 ? (
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8 }}>
+                        <span style={{ marginBottom: '16px', color: '#666' }}>
+                          아직 공통 질문이 생성되지 않았습니다.
+                        </span>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={generateCommonQuestions}
+                          startIcon={<AddIcon />}
+                        >
+                          공통 질문 생성
+                        </Button>
+                      </Box>
+                    ) : (
+                      questions.map((q, idx) => (
+                        <React.Fragment key={idx}>
+                          <Draggable draggableId={q + '-' + idx} index={idx}>
+                            {(provided, snapshot) => (
+                              <ListItem
+                                ref={provided.innerRef}
+                                sx={{ bgcolor: snapshot.isDragging ? 'grey.100' : 'inherit', borderRadius: 1, mb: 1 }}
+                                secondaryAction={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Tooltip title="질문 추가">
+                                      <IconButton edge="end" size="small" onClick={() => handleAdd(idx)}>
+                                        <AddIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="삭제">
+                                      <IconButton edge="end" size="small" onClick={() => handleDelete(idx)}>
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </Box>
+                                }
+                              >
+                                {/* Drag handle: dragHandleProps는 여기만 */}
+                                <Box
+                                  {...provided.dragHandleProps}
+                                  sx={{ mr: 1, cursor: 'grab', color: 'grey.500', display: 'flex', alignItems: 'center' }}
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <DragIndicatorIcon />
+                                </Box>
+                                {/* 인라인 수정 or 텍스트 */}
+                                {editingIndex === idx ? (
+                                  <TextField
+                                    value={editValue}
+                                    onChange={e => setEditValue(e.target.value)}
+                                    onBlur={() => handleEditSave(idx)}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') handleEditSave(idx);
+                                    }}
+                                    size="small"
+                                    autoFocus
+                                    fullWidth
+                                  />
+                                ) : (
+                                  <ListItemText
+                                    primary={q}
+                                    onDoubleClick={() => handleEdit(idx)}
+                                    onTouchStart={e => {
+                                      // 모바일 롱프레스 지원
+                                      const timeout = setTimeout(() => handleEdit(idx), 600);
+                                      const cancel = () => clearTimeout(timeout);
+                                      e.target.addEventListener('touchend', cancel, { once: true });
+                                      e.target.addEventListener('touchmove', cancel, { once: true });
+                                    }}
+                                    sx={{ cursor: 'pointer', userSelect: 'none' }}
+                                  />
+                                )}
+                              </ListItem>
+                            )}
+                          </Draggable>
+                          {/* +를 누른 질문 바로 아래에 입력창 */}
+                          {addingIndex === idx && (
+                            <ListItem sx={{ bgcolor: 'grey.50', borderRadius: 1, mb: 1 }}>
                               <TextField
-                                value={editValue}
-                                onChange={e => setEditValue(e.target.value)}
-                                onBlur={() => handleEditSave(idx)}
+                                value={addValue}
+                                onChange={e => setAddValue(e.target.value)}
+                                onBlur={() => handleAddSave(addingIndex)}
                                 onKeyDown={e => {
-                                  if (e.key === 'Enter') handleEditSave(idx);
+                                  if (e.key === 'Enter') handleAddSave(addingIndex);
                                 }}
                                 size="small"
                                 autoFocus
                                 fullWidth
+                                placeholder="새 질문 입력..."
                               />
-                            ) : (
-                              <ListItemText
-                                primary={q}
-                                onDoubleClick={() => handleEdit(idx)}
-                                onTouchStart={e => {
-                                  // 모바일 롱프레스 지원
-                                  const timeout = setTimeout(() => handleEdit(idx), 600);
-                                  const cancel = () => clearTimeout(timeout);
-                                  e.target.addEventListener('touchend', cancel, { once: true });
-                                  e.target.addEventListener('touchmove', cancel, { once: true });
-                                }}
-                                sx={{ cursor: 'pointer', userSelect: 'none' }}
-                              />
-                            )}
-                          </ListItem>
-                        )}
-                      </Draggable>
-                      {/* +를 누른 질문 바로 아래에 입력창 */}
-                      {addingIndex === idx && (
-                        <ListItem sx={{ bgcolor: 'grey.50', borderRadius: 1, mb: 1 }}>
-                          <TextField
-                            value={addValue}
-                            onChange={e => setAddValue(e.target.value)}
-                            onBlur={() => handleAddSave(addingIndex)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') handleAddSave(addingIndex);
-                            }}
-                            size="small"
-                            autoFocus
-                            fullWidth
-                            placeholder="새 질문 입력..."
-                          />
-                        </ListItem>
-                      )}
-                    </React.Fragment>
-                  ))}
-                  {provided.placeholder}
-                </List>
-                              )}
+                            </ListItem>
+                          )}
+                        </React.Fragment>
+                      ))
+                    )}
+                    {provided.placeholder}
+                  </List>
+                )}
               </Droppable>
             </DragDropContext>
           </>
-          )}
+        )}
         {activeTab === 'checklist' && (
           <div>
             <div className="mb-2 font-bold text-lg">면접 체크리스트</div>

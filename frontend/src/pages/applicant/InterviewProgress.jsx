@@ -541,7 +541,7 @@ function InterviewProgress() {
               companyName={jobPost?.company?.name}
               applicantName={selectedApplicant?.name}
               interviewChecklist={commonChecklist}
-              strengthsWeaknesses={commonStrengths}
+              strengthsWeaknesses={null} // ❌ 개별 분석 데이터 제거
               interviewGuideline={commonGuideline}
               evaluationCriteria={commonCriteria}
               toolsLoading={commonToolsLoading || commonQuestionsLoading}
@@ -929,7 +929,7 @@ function InterviewProgress() {
               companyName={jobPost?.companyName}
               applicantName={selectedApplicant?.name}
               interviewChecklist={commonChecklist}
-              strengthsWeaknesses={commonStrengths}
+              strengthsWeaknesses={null}
               interviewGuideline={commonGuideline}
               evaluationCriteria={commonCriteria}
               toolsLoading={commonToolsLoading || commonQuestionsLoading}
@@ -997,10 +997,10 @@ function InterviewProgress() {
               onClick={() => {
                 console.log('🔘 이력서 창 열기 버튼 클릭됨');
                 // 첫 번째 시간 그룹의 첫 번째 지원자로 이력서 창 열기
-                const sortedTimes = Object.keys(grouped).sort();
+                const sortedTimes = Object.keys(groupedApplicants).sort();
                 const firstTime = sortedTimes.find(time => time !== '시간 미정');
-                if (firstTime && grouped[firstTime] && grouped[firstTime].length > 0) {
-                  const firstApplicant = grouped[firstTime][0];
+                if (firstTime && groupedApplicants[firstTime] && groupedApplicants[firstTime].length > 0) {
+                  const firstApplicant = groupedApplicants[firstTime][0];
                   openResumeWindow(firstApplicant, null);
                 } else {
                   console.log('🔘 첫 번째 시간 그룹을 찾을 수 없음');
@@ -1071,7 +1071,7 @@ function InterviewProgress() {
                       companyName={jobPost?.company?.name}
                       applicantName={selectedApplicant?.name}
                       interviewChecklist={commonChecklist}
-                      strengthsWeaknesses={commonStrengths}
+                      strengthsWeaknesses={null} // ❌ 개별 분석 데이터 제거
                       interviewGuideline={commonGuideline}
                       evaluationCriteria={commonCriteria}
                       toolsLoading={commonToolsLoading || commonQuestionsLoading}
@@ -1180,7 +1180,7 @@ function InterviewProgress() {
                     companyName={jobPost?.company?.name}
                     applicantName={selectedApplicant?.name}
                     interviewChecklist={commonChecklist}
-                    strengthsWeaknesses={commonStrengths}
+                    strengthsWeaknesses={null} // ❌ 개별 분석 데이터 제거
                     interviewGuideline={commonGuideline}
                     evaluationCriteria={commonCriteria}
                     toolsLoading={commonToolsLoading || commonQuestionsLoading}
@@ -1246,7 +1246,7 @@ function InterviewProgress() {
                     companyName={jobPost?.company?.name}
                     applicantName={selectedApplicant?.name}
                     interviewChecklist={commonChecklist}
-                    strengthsWeaknesses={commonStrengths}
+                    strengthsWeaknesses={null} // ❌ 개별 분석 데이터 제거
                     interviewGuideline={commonGuideline}
                     evaluationCriteria={commonCriteria}
                     toolsLoading={commonToolsLoading || commonQuestionsLoading}
