@@ -16,12 +16,36 @@ services:
       DB_NAME: kocruit
       DB_USER: admin
       DB_PASSWORD: kocruit1234!
+      # t3.small 최적화 설정 (비용 효율적 + 성능 향상)
+      MYSQL_CONNECT_TIMEOUT: 15
+      MYSQL_READ_TIMEOUT: 15
+      MYSQL_WRITE_TIMEOUT: 15
+      MYSQL_MAX_CONNECTIONS: 15  # t3.small 최적화
+      MYSQL_WAIT_TIMEOUT: 28800
+      MYSQL_INTERACTIVE_TIMEOUT: 28800
+      # Redis 캐싱 설정 (t3.small용 적극적 캐싱)
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      # 애플리케이션 성능 설정 (t3.small용)
+      WORKERS: 3  # t3.small에 적합한 워커 수
+      WORKER_CONNECTIONS: 750
     networks:
       - app-net
     volumes:
       - ./backend:/app
       - ./agent:/app/agent
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 3
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   agent:
     build:
@@ -34,8 +58,10 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     volumes:
       - ./agent:/app/agent
       - ./backend:/app/backend
@@ -43,6 +69,7 @@ services:
     networks:
       - app-net
     command: uvicorn agent.main:app --host 0.0.0.0 --port 8001 --reload
+    restart: unless-stopped
 
   frontend:
     image: node:18-alpine
@@ -58,11 +85,15 @@ services:
     command: sh -c "npm install && npm run dev -- --host"
     networks:
       - app-net
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - agent
 
   redis:
     image: redis:7.2-alpine
     container_name: kosa-redis
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000 --tcp-keepalive 300
     ports:
       - "6379:6379"
     volumes:

@@ -10,6 +10,8 @@ from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_field_tool import form_field_update_tool, form_status_check_tool
 from tools.form_field_improve_tool import form_field_improve_tool
 from agents.application_evaluation_agent import evaluate_application
+from tools.speech_recognition_tool import speech_recognition_tool
+# from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool, RealtimeInterviewEvaluationTool
 from dotenv import load_dotenv
 import uuid
 import os
@@ -34,6 +36,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 헬스체크 엔드포인트
+@app.get("/health")
+async def health_check():
+    """서버 상태 확인 엔드포인트"""
+    return {"status": "healthy", "message": "Kocruit Agent API is running"}
+
 @app.get("/")
 async def root():
     """루트 경로 - API 정보 반환"""
@@ -45,6 +53,8 @@ async def root():
             "chat_session": "/chat/session/new",
             "monitor_health": "/monitor/health",
             "monitor_sessions": "/monitor/sessions",
+            "speech_recognition": "/agent/speech-recognition",
+            "realtime_evaluation": "/agent/realtime-interview-evaluation",
             "docs": "/docs"
         }
     }
@@ -284,7 +294,6 @@ async def start_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    asyncio.create_task(scheduler.start())
     return {"message": "Scheduler started"}
 
 @app.post("/monitor/scheduler/stop")
@@ -293,7 +302,6 @@ async def stop_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
-    await scheduler.stop()
     return {"message": "Scheduler stopped"}
 
 @app.get("/monitor/scheduler/status")
@@ -642,6 +650,69 @@ async def suggest_questions(request: Request):
         return {"suggestions": suggestions}
     except Exception as e:
         return {"suggestions": ["지원자 목록 보여줘", "폼 개선 제안", "면접 일정 추천해줘", "채용공고 작성 방법"]}
+
+@app.post("/agent/speech-recognition")
+async def speech_recognition_api(request: Request):
+    """인식 API"""
+    data = await request.json()
+    audio_file_path = data.get("audio_file_path", "") 
+    if not audio_file_path:
+        return {"error": "audio_file_path is required"}
+    
+    try:
+        # 음성 인식 도구 실행
+        state = {
+            "audio_file_path": audio_file_path
+        }
+        
+        result = speech_recognition_tool(state)
+        
+        return {
+            "success": True,
+            "speech_analysis": result.get("speech_analysis", {})
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/agent/realtime-interview-evaluation")
+async def realtime_interview_evaluation_api(request: Request):
+    """실시간 면접 평가 API"""
+    data = await request.json()
+    transcription = data.get("transcription", "")
+    speakers = data.get("speakers", [])
+    job_info = data.get("job_info", {})
+    resume_info = data.get("resume_info", {})
+    current_time = data.get("current_time", 0)
+    
+    if not transcription:
+        return {"error": "transcription is required"}
+    
+    try:
+        # 실시간 평가 도구 실행
+        state = {
+            "transcription": transcription,
+            "speakers": speakers,
+            "job_info": job_info,
+            "resume_info": resume_info,
+            "current_time": current_time
+        }
+        
+        # 실시간 평가 도구를 동적으로 import
+        from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool
+        result = realtime_interview_evaluation_tool(state)
+        
+        return {
+            "success": True,
+            "realtime_evaluation": result.get("realtime_evaluation", {})
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn

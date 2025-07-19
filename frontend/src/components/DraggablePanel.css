@@ -1,0 +1,80 @@
+/* 리사이즈 핸들 스타일 */
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  z-index: 10;
+}
+
+.resize-handle-right {
+  right: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+.resize-handle-right:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.resize-handle-bottom {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  cursor: ns-resize;
+}
+
+.resize-handle-bottom:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.resize-handle-corner {
+  right: 0;
+  bottom: 0;
+  width: 8px;
+  height: 8px;
+  cursor: nw-resize;
+  background: rgba(59, 130, 246, 0.5);
+  border-radius: 50%;
+}
+
+.resize-handle-corner:hover {
+  background: rgba(59, 130, 246, 0.8);
+  transform: scale(1.2);
+}
+
+/* 드래그 중일 때 스타일 */
+.draggable-panel-dragging {
+  opacity: 0.8;
+  transform: rotate(1deg);
+  transition: none;
+}
+
+/* 리사이즈 중일 때 스타일 */
+.draggable-panel-resizing {
+  transition: none;
+}
+
+/* 패널 액션 버튼 스타일 */
+.panel-actions button {
+  transition: all 0.2s ease;
+}
+
+.panel-actions button:hover {
+  transform: scale(1.1);
+}
+
+/* 다크 모드 지원 */
+.dark .resize-handle-right:hover,
+.dark .resize-handle-bottom:hover {
+  background: rgba(147, 197, 253, 0.3);
+}
+
+.dark .resize-handle-corner {
+  background: rgba(147, 197, 253, 0.5);
+}
+
+.dark .resize-handle-corner:hover {
+  background: rgba(147, 197, 253, 0.8);
+} 

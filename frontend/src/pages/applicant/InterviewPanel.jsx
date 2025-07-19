@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
-import Rating from '@mui/material/Rating';
-import api from '../../api/api';
-import Accordion from '@mui/material/Accordion';
-import AccordionSummary from '@mui/material/AccordionSummary';
-import AccordionDetails from '@mui/material/AccordionDetails';
-import Typography from '@mui/material/Typography';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ApplicantCard from '../../components/ApplicantCard';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  FaMicrophone, 
+  FaMicrophoneSlash, 
+  FaSquare, 
+  FaPlay, 
+  FaPause, 
+  FaSave, 
+  FaUsers, 
+  FaComment,
+  FaClock,
+  FaStar,
+  FaFileAlt,
+  FaExclamationCircle
+} from 'react-icons/fa';
 
-
-function InterviewPanel({
+const InterviewPanel = ({
   questions = [],
+  interviewChecklist,
+  strengthsWeaknesses,
+  interviewGuideline,
+  evaluationCriteria,
+  toolsLoading = false,
   memo = '',
   onMemoChange,
   evaluation = {},
@@ -20,235 +31,576 @@ function InterviewPanel({
   applicationId,
   companyName,
   applicantName,
-  interviewChecklist = null,
-  strengthsWeaknesses = null,
-  interviewGuideline = null,
-  evaluationCriteria = null,
-  toolsLoading = false
-}) {
-  // 면접관 지원 도구 상태 제거 (useState, useEffect, loadInterviewTools 등 모두 삭제)
-  const [activeTab, setActiveTab] = useState('questions'); // 'questions', 'analysis', 'checklist', 'guideline', 'criteria'
+  audioFile,
+  jobInfo,
+  resumeInfo,
+  jobPostId
+}) => {
+  const { jobId, applicantId } = useParams();
+  const navigate = useNavigate();
+  
+  // 상태 관리
+  const [isRecording, setIsRecording] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [currentSpeaker, setCurrentSpeaker] = useState('unknown');
+  const [transcripts, setTranscripts] = useState([]);
+  const [evaluations, setEvaluations] = useState([]);
+  const [speakerNotes, setSpeakerNotes] = useState({});
+  const [sessionSummary, setSessionSummary] = useState(null);
+  const [manualNote, setManualNote] = useState('');
+  const [selectedSpeaker, setSelectedSpeaker] = useState('');
+  
+  // 실시간 오디오 관련
+  const mediaRecorderRef = useRef(null);
+  const websocketRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const streamRef = useRef(null);
+  
+  // 면접 정보
+  const [interviewInfo, setInterviewInfo] = useState({
+    jobTitle: '백엔드 개발자',
+    applicantName: '김지원',
+    interviewers: ['면접관_1', '면접관_2', '면접관_3'],
+    applicants: ['지원자_1', '지원자_2', '지원자_3']
+  });
 
-  // 예시: 카테고리별 평가 항목(실제 항목 구조에 맞게 수정)
-  const categories = [
-    {
-      name: '인성',
-      items: ['예의', '성실성', '적극성']
-    },
-    {
-      name: '역량',
-      items: ['기술력', '문제해결', '커뮤니케이션']
+  // WebSocket 연결
+  const connectWebSocket = useCallback(() => {
+    if (!sessionId) {
+      console.log('세션 ID가 없습니다');
+      return;
     }
-  ];
 
-  // 평가 점수 입력 핸들러
-  const handleScoreChange = (category, item, score) => {
-    onEvaluationChange(prev => ({
-      ...prev,
-      [category]: {
-        ...(prev[category] || {}),
-        [item]: score
-      }
-    }));
+    // 이미 연결된 경우 중복 연결 방지
+    if (websocketRef.current?.readyState === WebSocket.OPEN) {
+      console.log('이미 WebSocket이 연결되어 있습니다');
+      return;
+    }
+
+    // 직접 localhost:8000으로 연결 (프록시 우회)
+    const wsUrl = `ws://localhost:8000/api/v1/realtime-interview/ws/interview/${sessionId}`;
+    console.log('WebSocket 연결 시도:', wsUrl);
+    
+    try {
+      websocketRef.current = new WebSocket(wsUrl);
+      
+      // 연결 타임아웃 설정 (10초)
+      const connectionTimeout = setTimeout(() => {
+        if (websocketRef.current?.readyState === WebSocket.CONNECTING) {
+          console.error('WebSocket 연결 타임아웃');
+          websocketRef.current.close();
+          setIsConnected(false);
+        }
+      }, 10000);
+      
+      websocketRef.current.onopen = () => {
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket 연결됨');
+        setIsConnected(true);
+        console.log('실시간 면접 시스템에 연결되었습니다');
+      };
+      
+      websocketRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket 메시지 수신:', data.type);
+          handleWebSocketMessage(data);
+        } catch (error) {
+          console.error('메시지 파싱 오류:', error);
+        }
+      };
+      
+      websocketRef.current.onclose = (event) => {
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket 연결 해제:', event.code, event.reason);
+        setIsConnected(false);
+        console.log('실시간 연결이 끊어졌습니다');
+        
+        // 정상적인 종료가 아닌 경우에만 재연결 시도
+        if (event.code !== 1000) {
+          console.log('비정상 종료로 인한 재연결 시도...');
+          setTimeout(() => {
+            if (!isConnected) {
+              console.log('WebSocket 재연결 시도...');
+              connectWebSocket();
+            }
+          }, 3000); // 3초 후 재연결
+        }
+      };
+      
+      websocketRef.current.onerror = (error) => {
+        clearTimeout(connectionTimeout);
+        console.error('WebSocket 오류:', error);
+        console.log('연결 오류가 발생했습니다');
+        setIsConnected(false);
+      };
+    } catch (error) {
+      console.error('WebSocket 생성 오류:', error);
+      setIsConnected(false);
+    }
+  }, [sessionId, isConnected]);
+
+  // WebSocket 메시지 처리
+  const handleWebSocketMessage = (data) => {
+    switch (data.type) {
+      case 'audio_processed':
+        handleAudioProcessed(data.result);
+        break;
+      case 'note_saved':
+        console.log('메모가 저장되었습니다');
+        break;
+      case 'evaluation_summary':
+        setSessionSummary(data.summary);
+        break;
+      case 'session_ended':
+        handleSessionEnded(data.final_result);
+        break;
+      case 'ping':
+        // 서버로부터의 ping 메시지 - 연결 상태 확인
+        console.log('서버 ping 수신:', data.timestamp);
+        break;
+      default:
+        console.log('알 수 없는 메시지 타입:', data.type);
+    }
   };
 
+  // 오디오 처리 결과 처리
+  const handleAudioProcessed = (result) => {
+    if (result.transcription?.text) {
+      setTranscripts(prev => [...prev, {
+        timestamp: result.timestamp,
+        speaker: result.diarization?.current_speaker || 'unknown',
+        text: result.transcription.text
+      }]);
+    }
+    
+    if (result.evaluation?.score > 0) {
+      setEvaluations(prev => [...prev, result.evaluation]);
+    }
+    
+    if (result.diarization?.current_speaker) {
+      setCurrentSpeaker(result.diarization.current_speaker);
+    }
+  };
+
+  // 세션 종료 처리
+  const handleSessionEnded = (finalResult) => {
+    console.log('면접이 종료되었습니다');
+    setSessionSummary(finalResult);
+    // 결과 페이지로 이동하거나 결과 표시
+  };
+
+  // 오디오 녹음 시작
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000
+        } 
+      });
+      
+      streamRef.current = stream;
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        sendAudioChunk();
+      };
+      
+      // 3초마다 오디오 청크 전송
+      mediaRecorder.start(3000);
+      setIsRecording(true);
+      console.log('녹음이 시작되었습니다');
+      
+    } catch (error) {
+      console.error('녹음 시작 실패:', error);
+      console.log('마이크 권한이 필요합니다');
+    }
+  };
+
+  // 오디오 녹음 중지
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      console.log('녹음이 중지되었습니다');
+    }
+  };
+
+  // 오디오 청크 전송
+  const sendAudioChunk = () => {
+    if (!websocketRef.current || websocketRef.current.readyState !== WebSocket.OPEN) {
+      console.warn('WebSocket이 연결되지 않았습니다. 오디오 청크 전송을 건너뜁니다.');
+      return;
+    }
+    
+    if (audioChunksRef.current.length === 0) {
+      console.log('전송할 오디오 청크가 없습니다.');
+      return;
+    }
+    
+    try {
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const reader = new FileReader();
+      
+      reader.onload = () => {
+        const base64Audio = reader.result.split(',')[1];
+        const message = {
+          type: 'audio_chunk',
+          audio_data: base64Audio,
+          timestamp: Date.now() / 1000
+        };
+        
+        // 연결 상태 재확인 후 전송
+        if (websocketRef.current?.readyState === WebSocket.OPEN) {
+          websocketRef.current.send(JSON.stringify(message));
+          console.log('오디오 청크 전송 완료');
+          audioChunksRef.current = [];
+        } else {
+          console.error('전송 중 WebSocket 연결이 끊어졌습니다.');
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error('오디오 데이터 읽기 오류:', error);
+      };
+      
+      reader.readAsDataURL(audioBlob);
+    } catch (error) {
+      console.error('오디오 청크 전송 오류:', error);
+    }
+  };
+
+  // 수동 메모 추가
+  const addManualNote = () => {
+    if (!selectedSpeaker || !manualNote.trim()) {
+      console.log('화자와 메모를 입력해주세요');
+      return;
+    }
+    
+    const message = {
+      type: 'speaker_note',
+      speaker: selectedSpeaker,
+      note: manualNote,
+      timestamp: Date.now() / 1000
+    };
+    
+    websocketRef.current?.send(JSON.stringify(message));
+    
+    setSpeakerNotes(prev => ({
+      ...prev,
+      [selectedSpeaker]: [...(prev[selectedSpeaker] || []), {
+        timestamp: Date.now() / 1000,
+        note: manualNote
+      }]
+    }));
+    
+    setManualNote('');
+    console.log('메모가 추가되었습니다');
+  };
+
+  // 평가 요청
+  const requestEvaluation = () => {
+    const message = {
+      type: 'evaluation_request'
+    };
+    
+    websocketRef.current?.send(JSON.stringify(message));
+  };
+
+  // 세션 종료
+  const endSession = () => {
+    const message = {
+      type: 'session_end'
+    };
+    
+    websocketRef.current?.send(JSON.stringify(message));
+  };
+
+  // 컴포넌트 마운트 시 세션 초기화
+  useEffect(() => {
+    // jobId와 applicantId가 undefined인 경우 기본값 사용
+    const safeJobId = jobId || 'default_job';
+    const safeApplicantId = applicantId || 'default_applicant';
+    const newSessionId = `interview_${safeJobId}_${safeApplicantId}_${Date.now()}`;
+    setSessionId(newSessionId);
+    console.log('세션 ID 생성:', newSessionId);
+  }, [jobId, applicantId]);
+
+  // WebSocket 연결
+  useEffect(() => {
+    if (sessionId) {
+      connectWebSocket();
+    }
+    
+    return () => {
+      if (websocketRef.current) {
+        websocketRef.current.close();
+      }
+    };
+  }, [sessionId, connectWebSocket]);
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      stopRecording();
+      if (websocketRef.current) {
+        websocketRef.current.close();
+      }
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col gap-4 p-4 h-full">
-      {/* 자동 저장 상태 표시 */}
-      {isAutoSaving && (
-        <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          자동 저장 중...
+    <div className="container mx-auto p-6 space-y-6">
+      {/* 헤더 */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">실시간 면접 패널</h1>
+          <p className="text-gray-600">
+            {interviewInfo.jobTitle} - {interviewInfo.applicantName}
+          </p>
         </div>
-      )}
-      {/* 탭 네비게이션 */}
-      <div className="flex border-b border-gray-300 dark:border-gray-600">
-        <button
-          className={`px-4 py-2 text-sm font-medium ${activeTab === 'questions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => setActiveTab('questions')}
-        >
-          면접 질문
-        </button>
-        <button
-          className={`px-4 py-2 text-sm font-medium ${activeTab === 'checklist' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => setActiveTab('checklist')}
-        >
-          체크리스트
-        </button>
-        <button
-          className={`px-4 py-2 text-sm font-medium ${activeTab === 'guideline' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => setActiveTab('guideline')}
-        >
-          가이드라인
-        </button>
-        <button
-          className={`px-4 py-2 text-sm font-medium ${activeTab === 'criteria' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          onClick={() => setActiveTab('criteria')}
-        >
-          평가 기준
-        </button>
-      </div>
-      {/* 탭 컨텐츠 */}
-      <div className="flex-1 overflow-y-auto">
-        {activeTab === 'questions' && (
-          <div>
-            <div className="mb-2 font-bold text-lg">면접 질문</div>
-            <ul className="mb-4 list-disc list-inside text-sm text-gray-700 dark:text-gray-200">
-              {questions.map((q, i) => <li key={i}>{q}</li>)}
-            </ul>
-          </div>
-        )}
-        {activeTab === 'checklist' && (
-          <div>
-            <div className="mb-2 font-bold text-lg">면접 체크리스트</div>
-            {toolsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">체크리스트 생성 중...</span>
-              </div>
-            ) : interviewChecklist ? (
-              <div className="space-y-4 text-sm">
-                <div>
-                  <h4 className="font-semibold text-green-700 dark:text-green-300">면접 전 체크리스트</h4>
-                  <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.pre_interview_checklist?.map((item, i) => <li key={i}>{item}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">면접 중 체크리스트</h4>
-                  <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.during_interview_checklist?.map((item, i) => <li key={i}>{item}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-red-700 dark:text-red-300">주의할 레드플래그</h4>
-                  <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.red_flags_to_watch?.map((flag, i) => <li key={i}>{flag}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-green-700 dark:text-green-300">확인할 그린플래그</h4>
-                  <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.green_flags_to_confirm?.map((flag, i) => <li key={i}>{flag}</li>)}
-                  </ul>
-                </div>
-              </div>
+        
+        <div className="flex items-center space-x-4">
+          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {isConnected ? "연결됨" : "연결 안됨"}
+          </span>
+          
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${isRecording ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+            disabled={!isConnected}
+          >
+            {isRecording ? (
+              <FaSquare className="w-4 h-4 mr-2" />
             ) : (
-              <div className="text-gray-500 text-center py-8">체크리스트를 생성할 수 없습니다.</div>
+              <FaMicrophone className="w-4 h-4 mr-2" />
+            )}
+            {isRecording ? "녹음 중지" : "녹음 시작"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 실시간 트랜스크립트 */}
+        <div className="lg:col-span-2">
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-4 flex items-center">
+              <FaFileAlt className="w-5 h-5 mr-2" />
+              실시간 음성 인식
+            </h2>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {transcripts.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  음성 인식 결과가 여기에 표시됩니다
+                </p>
+              ) : (
+                transcripts.map((transcript, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
+                      {transcript.speaker}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-sm">{transcript.text}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(transcript.timestamp * 1000).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            {currentSpeaker !== 'unknown' && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium">
+                  현재 발화자: <span className="px-2 py-1 bg-blue-200 text-blue-800 rounded-full text-xs font-semibold">{currentSpeaker}</span>
+                </p>
+              </div>
             )}
           </div>
-        )}
-        {activeTab === 'guideline' && (
-          <div>
-            <div className="mb-2 font-bold text-lg">면접 가이드라인</div>
-            {toolsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">가이드라인 생성 중...</span>
+        </div>
+
+        {/* 사이드바 */}
+        <div className="space-y-6">
+          {/* 화자별 메모 */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-4 flex items-center">
+              <FaComment className="w-5 h-5 mr-2" />
+              화자별 메모
+            </h2>
+            <div className="space-y-4">
+                {/* 수동 메모 추가 */}
+                <div className="space-y-2">
+                  <label htmlFor="speakerSelect" className="block text-sm font-medium text-gray-700">화자 선택</label>
+                  <select
+                    id="speakerSelect"
+                    value={selectedSpeaker}
+                    onChange={(e) => setSelectedSpeaker(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">화자 선택</option>
+                    {interviewInfo.interviewers.map(speaker => (
+                      <option key={speaker} value={speaker}>{speaker}</option>
+                    ))}
+                    {interviewInfo.applicants.map(speaker => (
+                      <option key={speaker} value={speaker}>{speaker}</option>
+                    ))}
+                  </select>
+                  
+                  <textarea
+                    placeholder="메모를 입력하세요..."
+                    value={manualNote}
+                    onChange={(e) => setManualNote(e.target.value)}
+                    rows={3}
+                    className="w-full p-2 border rounded"
+                  />
+                  
+                  <button
+                    onClick={addManualNote}
+                    className="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm font-medium"
+                  >
+                    메모 추가
+                  </button>
+                </div>
+                
+                <hr className="my-4" />
+                
+                {/* 화자별 메모 목록 */}
+                <div className="space-y-3 max-h-48 overflow-y-auto">
+                  {Object.entries(speakerNotes).map(([speaker, notes]) => (
+                    <div key={speaker} className="space-y-2">
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">{speaker}</span>
+                      {notes.map((note, index) => (
+                        <div key={index} className="text-sm p-2 bg-gray-50 rounded">
+                          <p>{note.note}</p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(note.timestamp * 1000).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ) : interviewGuideline ? (
+            </div>
+
+          {/* 지원자 강점/약점 분석 */}
+          {strengthsWeaknesses && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-4 flex items-center">
+                <FaStar className="w-5 h-5 mr-2" />
+                지원자 강점/약점 분석
+              </h2>
               <div className="space-y-4 text-sm">
                 <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">면접 접근 방식</h4>
-                  <p className="text-gray-700 dark:text-gray-200">{interviewGuideline.interview_approach}</p>
+                  <h4 className="font-semibold text-green-700">주요 강점</h4>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {strengthsWeaknesses.strengths?.map((strength, i) => (
+                      <li key={i} className="mb-1">
+                        <span className="font-medium">{strength.area}:</span>
+                        <span className="ml-2">{strength.description}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">시간 배분</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(interviewGuideline.time_allocation || {}).map(([area, time]) => (
-                      <div key={area} className="flex justify-between">
-                        <span className="text-gray-700 dark:text-gray-200">{area}:</span>
-                        <span className="font-medium">{time}</span>
+                  <h4 className="font-semibold text-red-700">개선 가능한 영역</h4>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {strengthsWeaknesses.weaknesses?.map((weakness, i) => (
+                      <li key={i} className="mb-1">
+                        <span className="font-medium">{weakness.area}:</span>
+                        <span className="ml-2">{weakness.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-blue-700">면접 시 중점 확인 사항</h4>
+                  <ul className="list-disc list-inside text-gray-700">
+                    {strengthsWeaknesses.interview_focus_points?.map((point, i) => (
+                      <li key={i}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 실시간 평가 */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-4 flex items-center">
+              <FaStar className="w-5 h-5 mr-2" />
+              실시간 평가
+            </h2>
+            <div className="space-y-4">
+                {evaluations.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">최근 평가</p>
+                    {evaluations.slice(-3).map((evaluation, index) => (
+                      <div key={index} className="p-2 bg-green-50 rounded">
+                        <div className="flex justify-between items-center">
+                          <span className="px-2 py-1 bg-green-200 text-green-800 rounded-full text-xs font-semibold">{evaluation.speaker}</span>
+                          <span className="text-sm font-medium">{evaluation.score}점</span>
+                        </div>
+                        <p className="text-xs mt-1">{evaluation.text}</p>
                       </div>
                     ))}
                   </div>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">후속 질문</h4>
-                  <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewGuideline.follow_up_questions?.map((question, i) => <li key={i}>{question}</li>)}
-                  </ul>
-                </div>
+                )}
+                
+                <button
+                  onClick={requestEvaluation}
+                  className="w-full px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 text-sm font-medium"
+                >
+                  평가 요청
+                </button>
               </div>
-            ) : (
-              <div className="text-gray-500 text-center py-8">가이드라인을 생성할 수 없습니다.</div>
-            )}
-          </div>
-        )}
-        {activeTab === 'criteria' && (
-          <div>
-            <div className="mb-2 font-bold text-lg">평가 기준 제안</div>
-            {toolsLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2">평가 기준 생성 중...</span>
-              </div>
-            ) : evaluationCriteria ? (
-              <div className="space-y-4 text-sm">
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">제안 평가 기준</h4>
-                  {evaluationCriteria.suggested_criteria?.map((criteria, i) => (
-                    <div key={i} className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                      <div className="font-medium">{criteria.criterion}</div>
-                      <div className="text-gray-600 dark:text-gray-400">{criteria.description}</div>
-                      <div className="text-xs text-gray-500">최대 점수: {criteria.max_score}점</div>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">가중치 권장사항</h4>
-                  {evaluationCriteria.weight_recommendations?.map((weight, i) => (
-                    <div key={i} className="mb-1">
-                      <span className="font-medium">{weight.criterion}:</span>
-                      <span className="ml-2">{(weight.weight * 100).toFixed(0)}%</span>
-                      <div className="text-xs text-gray-500 ml-4">{weight.reason}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-gray-500 text-center py-8">평가 기준을 생성할 수 없습니다.</div>
-            )}
-          </div>
-        )}
-      </div>
-      {/* 평가 항목 (항상 표시) */}
-      <div className="border-t border-gray-300 dark:border-gray-600 pt-4">
-        <div className="mb-2 font-bold text-lg">평가 항목</div>
-        <div className="flex flex-col gap-2">
-          {categories.map(cat => (
-            <div key={cat.name} className="mb-2">
-              <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">{cat.name}</div>
-              {cat.items.map(item => (
-                <div key={item} className="flex items-center gap-2 mb-1">
-                  <span className="w-24 text-sm">{item}</span>
-                  <Rating
-                    name={`${cat.name}-${item}`}
-                    value={evaluation[cat.name]?.[item] || 0}
-                    onChange={(event, newValue) => handleScoreChange(cat.name, item, newValue)}
-                    max={5}
-                    size="medium"
-                    disabled={isAutoSaving}
-                  />
-                </div>
-              ))}
             </div>
-          ))}
+
+          {/* 세션 요약 */}
+          {sessionSummary && (
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-4 flex items-center">
+                <FaClock className="w-5 h-5 mr-2" />
+                세션 요약
+              </h2>
+              <div className="space-y-2 text-sm">
+                <p>총 시간: {Math.round(sessionSummary.duration)}초</p>
+                <p>음성 인식: {sessionSummary.total_transcripts}개</p>
+                <p>평가: {sessionSummary.total_evaluations}개</p>
+                {sessionSummary.average_score && (
+                  <p>평균 점수: {sessionSummary.average_score.toFixed(1)}점</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 세션 종료 */}
+          <button
+            onClick={endSession}
+            className="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm font-medium"
+          >
+            면접 종료
+          </button>
         </div>
-      </div>
-      {/* 메모 입력 */}
-      <div>
-        <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">면접 메모</h3>
-        <textarea
-          value={memo}
-          onChange={(e) => onMemoChange(e.target.value)}
-          className="w-full h-24 p-2 border border-gray-300 dark:border-gray-600 rounded resize-none text-sm"
-          placeholder="면접 중 메모를 입력하세요..."
-          disabled={isAutoSaving}
-        />
       </div>
     </div>
   );
-}
+};
 
 export default InterviewPanel;

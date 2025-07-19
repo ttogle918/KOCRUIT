@@ -106,7 +106,6 @@ news_prompt = PromptTemplate.from_template(
     각 질문은 한 줄로 명확하게 작성해 주세요.
     """
 )
-# TODO: 직무 기반 질문 생성 프롬프트 ( 지원자의 이력서와 관계 X )
 # 직무 기반 질문 생성 프롬프트 ( 지원자의 이력서와 관계 O )
 job_prompt = PromptTemplate.from_template(
     """
@@ -148,9 +147,9 @@ generate_job_questions = LLMChain(llm=llm, prompt=job_prompt)
 
 # 3. 전체 질문 통합 함수
 @redis_cache()
-def generate_common_question_bundle(resume_text: str, company_name: Optional[str] = None, portfolio_info: str = ""):
-    personality_questions = FIXED_QUESTIONS["personality"]
-
+def generate_personal_questions(resume_text: str, company_name: Optional[str] = None, portfolio_info: str = ""):
+    """개인별 맞춤형 질문 생성 (이력서 기반) - 인성/동기 질문은 공통질문으로 이동"""
+    
     # 자기소개서 요약
     resume_summary_result = generate_resume_summary.invoke({"resume_text": resume_text})
     resume_summary = resume_summary_result.get("text", "")
@@ -176,12 +175,65 @@ def generate_common_question_bundle(resume_text: str, company_name: Optional[str
     ]
 
     return {
-        "인성/동기": personality_questions,
         "프로젝트 경험": project_questions,
         "회사 관련": company_questions,
         "상황 대처": scenario_questions,
         "자기소개서 요약": resume_summary
     }
+
+@redis_cache()
+def generate_common_questions(company_name: Optional[str] = None, job_info: str = ""):
+    """모든 지원자에게 공통으로 적용할 수 있는 질문 생성"""
+    
+    # 기본 인성/동기 질문 (모든 지원자 공통)
+    common_personality_questions = [
+        "자기소개 해주세요.",
+        "우리 회사에 지원한 이유는 무엇인가요?",
+        "이 직무를 선택한 이유는 무엇인가요?",
+        "본인의 강점과 약점은 무엇인가요?",
+        "팀워크 경험을 말해보세요.",
+        "갈등을 겪었을 때 어떻게 해결하시나요?",
+        "스트레스를 어떻게 관리하나요?",
+        "스스로를 어떻게 동기부여하나요?",
+        "리더십을 발휘한 경험이 있나요?",
+        "실패를 경험한 적이 있나요? 어떻게 극복하셨나요?"
+    ]
+    
+    # 회사 관련 공통 질문
+    common_company_questions = []
+    if company_name:
+        common_company_questions = generate_company_questions(company_name)
+    
+    # 직무 관련 공통 질문 (공고 정보 기반)
+    common_job_questions = []
+    if job_info:
+        # 공고 정보에서 추출한 공통 질문들
+        common_job_questions = [
+            "이 직무에 대한 본인의 이해도를 설명해주세요.",
+            "이 직무에서 가장 중요하다고 생각하는 역량은 무엇인가요?",
+            "이 직무에서 예상되는 어려움은 무엇이고, 어떻게 대응하시겠나요?",
+            "이 직무를 통해 회사에 어떤 기여를 할 수 있다고 생각하시나요?"
+        ]
+    
+    # 일반적인 상황 대처 질문
+    common_scenario_questions = [
+        "업무 중 예기치 못한 문제를 마주쳤을 때 어떻게 해결하시나요?",
+        "일정이 지연됐을 때 어떻게 대응하시나요?",
+        "의사결정이 어려웠던 상황을 경험한 적이 있나요?",
+        "실무 중 커뮤니케이션이 꼬였던 사례가 있나요? 어떻게 풀었나요?",
+        "새로운 기술이나 도구를 배워야 할 때 어떻게 접근하시나요?",
+        "팀원과 의견이 다를 때 어떻게 해결하시나요?"
+    ]
+
+    return {
+        "인성/동기": common_personality_questions,
+        "회사 관련": common_company_questions,
+        "직무 이해": common_job_questions,
+        "상황 대처": common_scenario_questions
+    }
+
+# 하위 호환성을 위한 별칭
+generate_common_question_bundle = generate_personal_questions
 
 @redis_cache()
 def generate_company_questions(company_name: str):
@@ -917,3 +969,161 @@ def generate_advanced_competency_questions(resume_text: str, job_info: str = "")
         "도메인적합성": [q.strip() for q in domain.get("text", "").split("\n") if q.strip()],
         "기술실무이해도": [q.strip() for q in technical.get("text", "").split("\n") if q.strip()],
     }
+
+# === 임원면접 질문 생성 ===
+executive_interview_prompt = PromptTemplate.from_template(
+    """
+    다음은 1차 면접을 통과한 지원자의 이력서 정보입니다:
+    ---
+    {resume_text}
+    ---
+    
+    공고 정보:
+    ---
+    {job_info}
+    ---
+    
+    회사명: {company_name}
+    
+    위 정보를 바탕으로 임원면접에서 사용할 수 있는 질문을 생성해 주세요.
+    임원면접은 1차 면접과 차별화되어야 하며, 다음 특징을 가져야 합니다:
+    
+    1. **전략적 사고와 비전** (3개): 회사의 미래 방향성과 지원자의 전략적 사고
+    2. **조직 문화 적합성** (3개): 회사 문화와 가치관의 일치도
+    3. **리더십과 의사결정** (3개): 고위직으로서의 리더십 역량
+    4. **비즈니스 임팩트** (2개): 조직에 미칠 수 있는 영향력과 기여도
+    5. **장기적 성장 가능성** (2개): 회사와 함께 성장할 수 있는 잠재력
+    6. **윤리적 판단력** (2개): 어려운 상황에서의 윤리적 의사결정
+    
+    임원면접 질문의 특징:
+    - 1차 면접보다 더 높은 수준의 추상적 사고를 요구
+    - 조직 전체의 관점에서 접근
+    - 장기적 관점과 전략적 사고를 중점적으로 평가
+    - 리더십과 의사결정 능력을 집중적으로 확인
+    
+    각 질문은 구체적이고 실제 임원면접에서 사용할 수 있는 수준으로 작성해 주세요.
+    """
+)
+
+executive_interview_chain = LLMChain(llm=llm, prompt=executive_interview_prompt)
+
+@redis_cache()
+def generate_executive_interview_questions(resume_text: str, job_info: str = "", company_name: str = ""):
+    """임원면접 질문 생성 (1차 면접 합격자 대상)"""
+    result = executive_interview_chain.invoke({
+        "resume_text": resume_text,
+        "job_info": job_info,
+        "company_name": company_name
+    })
+    
+    return result.get("text", "")
+
+# === 2차 면접 질문 생성 ===
+second_interview_prompt = PromptTemplate.from_template(
+    """
+    다음은 1차 면접을 통과한 지원자의 정보입니다:
+    ---
+    이력서 정보:
+    {resume_text}
+    ---
+    
+    공고 정보:
+    ---
+    {job_info}
+    ---
+    
+    회사명: {company_name}
+    
+    1차 면접 피드백:
+    ---
+    {first_interview_feedback}
+    ---
+    
+    위 정보를 바탕으로 2차 면접에서 사용할 수 있는 질문을 생성해 주세요.
+    2차 면접은 1차 면접의 피드백을 바탕으로 더 깊이 있는 평가를 진행해야 합니다:
+    
+    1. **1차 면접 보완 질문** (3개): 1차에서 부족했던 부분을 보완하는 질문
+    2. **심화 기술 질문** (3개): 1차보다 더 깊이 있는 기술적 역량 확인
+    3. **실무 시나리오** (3개): 실제 업무 상황을 가정한 문제 해결 능력
+    4. **팀 적응력** (2개): 조직 내 협업과 적응 능력
+    5. **성장 동기와 계획** (2개): 회사에서의 성장 계획과 동기
+    6. **최종 적합성** (2개): 최종 채용 결정을 위한 종합적 평가
+    
+    2차 면접 질문의 특징:
+    - 1차 면접 피드백을 반영한 맞춤형 질문
+    - 더 구체적이고 실무적인 시나리오
+    - 지원자의 약점이나 보완점을 집중적으로 확인
+    - 최종 채용 결정을 위한 결정적 요소 평가
+    
+    각 질문은 구체적이고 실제 2차 면접에서 사용할 수 있는 수준으로 작성해 주세요.
+    """
+)
+
+second_interview_chain = LLMChain(llm=llm, prompt=second_interview_prompt)
+
+@redis_cache()
+def generate_second_interview_questions(resume_text: str, job_info: str = "", company_name: str = "", first_interview_feedback: str = ""):
+    """2차 면접 질문 생성 (1차 면접 피드백 기반)"""
+    result = second_interview_chain.invoke({
+        "resume_text": resume_text,
+        "job_info": job_info,
+        "company_name": company_name,
+        "first_interview_feedback": first_interview_feedback or "1차 면접 피드백이 없습니다."
+    })
+    
+    return result.get("text", "")
+
+# === 최종 면접 질문 생성 ===
+final_interview_prompt = PromptTemplate.from_template(
+    """
+    다음은 최종 면접 대상 지원자의 정보입니다:
+    ---
+    이력서 정보:
+    {resume_text}
+    ---
+    
+    공고 정보:
+    ---
+    {job_info}
+    ---
+    
+    회사명: {company_name}
+    
+    이전 면접 피드백:
+    ---
+    {previous_feedback}
+    ---
+    
+    위 정보를 바탕으로 최종 면접에서 사용할 수 있는 질문을 생성해 주세요.
+    최종 면접은 최종 채용 결정을 위한 마지막 평가 단계입니다:
+    
+    1. **최종 적합성 확인** (3개): 회사와 직무에 대한 최종 적합성
+    2. **조직 기여도** (3개): 조직에 미칠 수 있는 구체적 기여도
+    3. **장기적 비전** (2개): 회사에서의 장기적 성장 계획
+    4. **조직 문화 적응** (2개): 조직 문화와의 최종 적합성
+    5. **최종 의사 확인** (2개): 지원자의 최종 입사 의사와 동기
+    6. **기대사항 조율** (2개): 서로의 기대사항과 조건 조율
+    
+    최종 면접 질문의 특징:
+    - 최종 채용 결정을 위한 결정적 요소 평가
+    - 조직과 지원자 간의 기대사항 조율
+    - 장기적 관점에서의 적합성 확인
+    - 실질적인 입사 후 계획과 비전 확인
+    
+    각 질문은 구체적이고 실제 최종 면접에서 사용할 수 있는 수준으로 작성해 주세요.
+    """
+)
+
+final_interview_chain = LLMChain(llm=llm, prompt=final_interview_prompt)
+
+@redis_cache()
+def generate_final_interview_questions(resume_text: str, job_info: str = "", company_name: str = "", previous_feedback: str = ""):
+    """최종 면접 질문 생성 (최종 채용 결정용)"""
+    result = final_interview_chain.invoke({
+        "resume_text": resume_text,
+        "job_info": job_info,
+        "company_name": company_name,
+        "previous_feedback": previous_feedback or "이전 면접 피드백이 없습니다."
+    })
+    
+    return result.get("text", "")

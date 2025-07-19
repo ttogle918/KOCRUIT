@@ -8,7 +8,9 @@ from app.schemas.resume import (
 )
 from app.models.resume import Resume, ResumeMemo
 from app.models.user import User
+from app.models.application import Application
 from app.api.v1.auth import get_current_user
+from app.utils.llm_cache import redis_cache
 
 router = APIRouter()
 
@@ -25,6 +27,7 @@ def get_resumes(
 
 
 @router.get("/{resume_id}", response_model=ResumeDetail)
+@redis_cache(expire=300)  # 5분 캐시
 def get_resume(
     resume_id: int,
     db: Session = Depends(get_db),
@@ -65,6 +68,31 @@ def update_resume(
     
     db.commit()
     db.refresh(db_resume)
+    
+    # 캐시 무효화: 이력서가 수정되었으므로 관련 캐시 무효화
+    try:
+        from app.utils.llm_cache import invalidate_cache
+        
+        # 이력서 상세 캐시 무효화
+        resume_cache_pattern = f"api_cache:get_resume:*resume_id_{resume_id}*"
+        invalidate_cache(resume_cache_pattern)
+        
+        # 해당 이력서를 사용하는 지원자들의 캐시도 무효화
+        applications = db.query(Application).filter(Application.resume_id == resume_id).all()
+        for app in applications:
+            application_cache_pattern = f"api_cache:get_application:*application_id_{app.id}*"
+            invalidate_cache(application_cache_pattern)
+            
+            # 지원자 목록 캐시도 무효화
+            job_applicants_cache_pattern = f"api_cache:get_applicants_by_job:*job_post_id_{app.job_post_id}*"
+            job_applicants_with_interview_cache_pattern = f"api_cache:get_applicants_with_interview:*job_post_id_{app.job_post_id}*"
+            invalidate_cache(job_applicants_cache_pattern)
+            invalidate_cache(job_applicants_with_interview_cache_pattern)
+        
+        print(f"Cache invalidated after updating resume {resume_id}")
+    except Exception as e:
+        print(f"Failed to invalidate cache: {e}")
+    
     return db_resume
 
 

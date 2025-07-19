@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
+from typing import List, Optional
+
 from app.core.database import get_db
 from app.models.interview_evaluation import InterviewEvaluation, EvaluationDetail, InterviewEvaluationItem
 from app.schemas.interview_evaluation import InterviewEvaluation as InterviewEvaluationSchema, InterviewEvaluationCreate
@@ -9,6 +10,9 @@ from datetime import datetime
 from decimal import Decimal
 from app.models.application import Application
 from app.services.interviewer_profile_service import InterviewerProfileService
+from app.utils.llm_cache import invalidate_cache
+import os
+import uuid
 
 router = APIRouter()
 
@@ -48,6 +52,20 @@ def create_evaluation(evaluation: InterviewEvaluationCreate, db: Session = Depen
         
         db.commit()
         db.refresh(db_evaluation)
+        
+        # 캐시 무효화: 새로운 평가가 생성되었으므로 관련 캐시 무효화
+        try:
+            # 면접 평가 관련 캐시 무효화
+            evaluation_cache_pattern = f"api_cache:get_evaluation_by_interview_and_evaluator:*interview_id_{evaluation.interview_id}*"
+            invalidate_cache(evaluation_cache_pattern)
+            
+            # 면접 일정 관련 캐시도 무효화 (평가자가 변경될 수 있음)
+            schedule_cache_pattern = f"api_cache:get_interview_schedules_by_applicant:*"
+            invalidate_cache(schedule_cache_pattern)
+            
+            print(f"Cache invalidated after creating evaluation {db_evaluation.id}")
+        except Exception as e:
+            print(f"Failed to invalidate cache: {e}")
         
         return db_evaluation
     except Exception as e:
@@ -122,6 +140,21 @@ def update_evaluation(evaluation_id: int, evaluation: InterviewEvaluationCreate,
             db.refresh(db_evaluation)
         except Exception as e:
             print(f"[Profile Update] 면접관 프로필 업데이트 실패: {str(e)}")
+        db.refresh(db_evaluation)
+        
+        # 캐시 무효화: 평가가 업데이트되었으므로 관련 캐시 무효화
+        try:
+            # 면접 평가 관련 캐시 무효화
+            evaluation_cache_pattern = f"api_cache:get_evaluation_by_interview_and_evaluator:*interview_id_{db_evaluation.interview_id}*"
+            invalidate_cache(evaluation_cache_pattern)
+            
+            # 면접 일정 관련 캐시도 무효화
+            schedule_cache_pattern = f"api_cache:get_interview_schedules_by_applicant:*"
+            invalidate_cache(schedule_cache_pattern)
+            
+            print(f"Cache invalidated after updating evaluation {evaluation_id}")
+        except Exception as e:
+            print(f"Failed to invalidate cache: {e}")
         
         return db_evaluation
     except Exception as e:
@@ -130,8 +163,13 @@ def update_evaluation(evaluation_id: int, evaluation: InterviewEvaluationCreate,
 
 @router.get("/interview-schedules/applicant/{applicant_id}")
 def get_interview_schedules_by_applicant(applicant_id: int, db: Session = Depends(get_db)):
-    # Application 테이블에서 applicant_id로 schedule_interview_id 찾기
-    applications = db.query(Application).filter(Application.applicant_id == applicant_id).all()
+    # applicant_id 유효성 검사
+    if applicant_id is None or applicant_id <= 0:
+        raise HTTPException(status_code=422, detail="유효하지 않은 지원자 ID입니다.")
+    
+    # Application 테이블에서 user_id로 schedule_interview_id 찾기
+    # applicant_id는 실제로는 user_id를 의미함
+    applications = db.query(Application).filter(Application.user_id == applicant_id).all()
     if not applications:
         return []
     # 지원자가 여러 면접에 배정된 경우 모두 반환
@@ -261,3 +299,69 @@ def get_interviewer_profiles(db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"면접관 프로필 조회 중 오류가 발생했습니다: {str(e)}") 
+
+    return result 
+
+@router.post("/upload-audio")
+async def upload_interview_audio(
+    audio_file: UploadFile = File(...),
+    application_id: int = Form(...),
+    job_post_id: Optional[int] = Form(None),
+    company_name: Optional[str] = Form(None),
+    applicant_name: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """면접 녹음 파일 업로드 API"""
+    try:
+        # 파일 유효성 검사
+        if not audio_file.filename:
+            raise HTTPException(status_code=400, detail="파일이 선택되지 않았습니다.")
+        
+        # 지원자 정보 확인
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="지원자 정보를 찾을 수 없습니다.")
+        
+        # 파일 확장자 검사
+        allowed_extensions = ['.webm', '.mp3', '.wav', '.m4a']
+        file_extension = os.path.splitext(audio_file.filename)[1].lower()
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"지원하지 않는 파일 형식입니다. 지원 형식: {', '.join(allowed_extensions)}"
+            )
+        
+        # 파일 크기 검사 (50MB 제한)
+        max_size = 50 * 1024 * 1024  # 50MB
+        if audio_file.size and audio_file.size > max_size:
+            raise HTTPException(status_code=400, detail="파일 크기가 너무 큽니다. (최대 50MB)")
+        
+        # 고유한 파일명 생성
+        unique_filename = f"interview_{application_id}_{uuid.uuid4().hex}{file_extension}"
+        
+        # 업로드 디렉토리 생성
+        upload_dir = "uploads/interview_audio"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 파일 저장
+        file_path = os.path.join(upload_dir, unique_filename)
+        with open(file_path, "wb") as buffer:
+            content = await audio_file.read()
+            buffer.write(content)
+        
+        # 데이터베이스에 녹음 파일 정보 저장 (필요시)
+        # 여기서는 파일 경로를 application 테이블에 저장하거나 별도 테이블에 저장할 수 있습니다.
+        
+        return {
+            "message": "녹음 파일이 성공적으로 업로드되었습니다.",
+            "filename": unique_filename,
+            "file_path": file_path,
+            "file_size": len(content),
+            "application_id": application_id,
+            "uploaded_at": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"파일 업로드 중 오류가 발생했습니다: {str(e)}") 
