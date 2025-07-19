@@ -29,7 +29,7 @@ def application_decision_tool(state):
     
     응답 형식 (JSON):
     {{
-        "status": "PASSED",
+        "document_status": "PASSED",
         "decision_reason": "70점 이상의 높은 점수로 합격 기준을 충족합니다.",
         "confidence": 0.95
     }}
@@ -50,19 +50,19 @@ def application_decision_tool(state):
             response_text = response_text[start:end].strip()
         
         decision_result = json.loads(response_text)
-        status = decision_result.get("status", "REJECTED")
+        document_status = decision_result.get("document_status", "REJECTED")
         decision_reason = decision_result.get("decision_reason", "")
         confidence = decision_result.get("confidence", 0.0)
         
         # 점수 기반으로 최종 검증
         if ai_score >= PASS_THRESHOLD:
-            final_status = "PASSED"
+            final_document_status = "PASSED"
         else:
-            final_status = "REJECTED"
+            final_document_status = "REJECTED"
         
         return {
             **state, 
-            "status": final_status,
+            "document_status": final_document_status,
             "decision_reason": decision_reason,
             "confidence": confidence
         }
@@ -71,13 +71,13 @@ def application_decision_tool(state):
         print(f"합격 판별 중 오류 발생: {e}")
         # 기본 판별 로직
         if ai_score >= PASS_THRESHOLD:
-            final_status = "PASSED"
+            final_document_status = "PASSED"
         else:
-            final_status = "REJECTED"
+            final_document_status = "REJECTED"
         
         return {
             **state, 
-            "status": final_status,
+            "document_status": final_document_status,
             "decision_reason": f"점수 {ai_score}점으로 합격 기준 {PASS_THRESHOLD}점 {'충족' if ai_score >= PASS_THRESHOLD else '미충족'}",
             "confidence": 0.8
         } 

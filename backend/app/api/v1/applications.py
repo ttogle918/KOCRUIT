@@ -9,7 +9,7 @@ from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
     ApplicationList
 )
-from app.models.application import Application, ApplyStatus, ApplicationStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
@@ -272,11 +272,19 @@ def update_application_status(
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
     
-    # 일반적인 상태 업데이트 (AI 평가는 이미 완료된 상태)
-    if status_update.status:
-        application.status = status_update.status.value 
+    # 서류 상태 업데이트
     if status_update.document_status:
         application.document_status = status_update.document_status.value
+        
+        # 서류 상태에 따른 메인 상태 업데이트
+        if status_update.document_status == DocumentStatus.PASSED:
+            application.status = ApplyStatus.IN_PROGRESS.value  # 서류 합격 시 진행 중
+        elif status_update.document_status == DocumentStatus.REJECTED:
+            application.status = ApplyStatus.REJECTED.value  # 서류 불합격 시 최종 불합격
+    
+    # 메인 상태 직접 업데이트 (면접 결과 등)
+    if status_update.status:
+        application.status = status_update.status.value
     
     db.commit()
     
@@ -484,10 +492,14 @@ def ai_evaluate_application(
         application.pass_reason = result.get("pass_reason", "")
         application.fail_reason = result.get("fail_reason", "")
         
-        # AI가 제안한 상태로 업데이트
-        ai_suggested_status = result.get("status", "REJECTED")
-        if ai_suggested_status in ["PASSED", "REJECTED"]:
-            application.status = ai_suggested_status
+        # AI가 제안한 서류 상태로 업데이트
+        ai_suggested_document_status = result.get("document_status", "REJECTED")
+        if ai_suggested_document_status == "PASSED":
+            application.document_status = DocumentStatus.PASSED.value
+            application.status = ApplyStatus.IN_PROGRESS.value  # 서류 합격 시 진행 중으로 변경
+        elif ai_suggested_document_status == "REJECTED":
+            application.document_status = DocumentStatus.REJECTED.value
+            application.status = ApplyStatus.REJECTED.value  # 서류 불합격 시 최종 불합격
         
         db.commit()
         
@@ -664,6 +676,8 @@ def get_applicants_by_job(
             "email": app.user.email,
             "application_id": app.id,
             "status": app.status,
+            "document_status": app.document_status,  # 서류 상태 추가
+            "interview_status": app.interview_status,  # 면접 상태 추가
             "applied_at": app.applied_at,
             "score": app.score,
             "ai_score": app.ai_score,  # AI 점수 추가
@@ -805,6 +819,8 @@ def get_passed_applicants(
             "email": app.user.email,
             "application_id": app.id,
             "status": app.status,
+            "document_status": app.document_status,  # 서류 상태 추가
+            "interview_status": app.interview_status,  # 면접 상태 추가
             "applied_at": app.applied_at,
             "score": app.score,
             "ai_score": app.ai_score,

@@ -97,7 +97,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
     if (!window.confirm('정말로 이 지원자를 서류 불합격 처리하시겠습니까?')) return;
     setRejecting(true);
     try {
-      await api.put(`/applications/${applicant.id}/status`, { status: 'REJECTED' });
+      await api.put(`/applications/${applicant.id}/status`, { document_status: 'REJECTED' });
       alert('서류 불합격 처리되었습니다.');
       if (onStatusChange) onStatusChange('REJECTED');
       onBack();
@@ -111,7 +111,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
     if (!window.confirm('정말로 이 지원자를 서류 합격 처리하시겠습니까?')) return;
     setRejecting(true);
     try {
-      await api.put(`/applications/${applicant.id}/status`, { status: 'PASSED' });
+      await api.put(`/applications/${applicant.id}/status`, { document_status: 'PASSED' });
       alert('서류 합격 처리되었습니다.');
       if (onStatusChange) onStatusChange('PASSED');
       onBack();

@@ -32,7 +32,7 @@ class JobPost(Base):
     
     # Relationships with back_populates
     company = relationship("Company", back_populates="job_posts")
-    department_rel = relationship("Department", back_populates="job_posts")
+    department = relationship("Department", back_populates="job_posts")
     user = relationship("User", back_populates="job_posts")
     applications = relationship("Application", back_populates="job_post")
     interview_schedules = relationship("Schedule", back_populates="job_post", cascade="all, delete-orphan")

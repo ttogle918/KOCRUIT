@@ -394,7 +394,7 @@ async def evaluate_application_api(request: Request):
         
         return {
             "ai_score": result.get("ai_score", 0.0),
-            "status": result.get("status", "REJECTED"),
+            "document_status": result.get("document_status", "REJECTED"),
             "pass_reason": result.get("pass_reason", ""),
             "fail_reason": result.get("fail_reason", ""),
             "scoring_details": result.get("scoring_details", {}),
@@ -406,7 +406,7 @@ async def evaluate_application_api(request: Request):
         return {
             "error": f"Failed to evaluate application: {str(e)}",
             "ai_score": 0.0,
-            "status": "REJECTED",
+            "document_status": "REJECTED",
             "pass_reason": "",
             "fail_reason": "",
             "scoring_details": {},

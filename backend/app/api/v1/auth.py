@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import LoginRequest, LoginResponse, SignupRequest, RefreshTokenRequest, UserDetail
-from app.models.user import User, CompanyUser, Role
+from app.models.user import User, CompanyUser, UserType, UserRole
 from app.core import security
 from app.core.config import settings
 from jose import JWTError
@@ -69,7 +69,7 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
             email=request.email,
             name=request.name,
             password=security.get_password_hash(request.password),
-            role=Role.MANAGER,
+            role=UserRole.MANAGER,
             address=request.address,
             gender=request.gender,
             phone=request.phone,
@@ -149,12 +149,12 @@ def get_current_user_info(current_user: User = Depends(get_current_user), db: Se
     
     # Ensure role is properly converted to enum
     try:
-        # If role is a string, try to convert it to Role enum
+        # If role is a string, try to convert it to UserRole enum
         if isinstance(current_user.role, str):
-            current_user.role = Role(current_user.role)
+            current_user.role = UserRole(current_user.role)
     except ValueError:
         # If the role string doesn't match any enum value, default to USER
-        current_user.role = Role.USER
+        current_user.role = UserRole.USER
     
     return current_user
 

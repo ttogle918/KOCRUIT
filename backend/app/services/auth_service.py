@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.user import User, CompanyUser, ApplicantUser
 from app.core import security
-from app.models.user import Role
+from app.models.user import UserType, UserRole
 from fastapi import HTTPException
 
 
@@ -17,7 +17,7 @@ class AuthService:
             email=email,
             name=name,
             password=hashed_password,
-            role=Role.USER,
+            role=UserRole.USER,
             **kwargs
         )
         db.add(user)

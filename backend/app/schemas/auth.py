@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal, Optional
 from datetime import datetime, date
-from app.models.user import Role
+from app.models.user import UserType, UserRole
 
 
 class LoginRequest(BaseModel):
@@ -38,7 +38,7 @@ class UserDetail(BaseModel):
     address: Optional[str] = None
     gender: Optional[str] = None  # GenderType 대신 str로 변경하여 하위 호환성 유지
     phone: Optional[str] = None
-    role: Role
+    role: UserRole
     created_at: datetime
     updated_at: datetime
     birth_date: Optional[date] = None

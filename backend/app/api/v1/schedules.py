@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.models.schedule import Schedule, ScheduleInterview
 from app.models.user import User
 from app.api.v1.auth import get_current_user
-from app.models.application import Application, ApplyStatus, ApplicationStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus
 from app.schemas.application import ApplicationUpdate, ApplicationBulkStatusUpdate
 
 router = APIRouter()
@@ -184,6 +184,18 @@ def create_interview_schedule(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # 지원자 정보 확인 및 서류 합격 여부 검증
+    application = db.query(Application).filter(Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    # 서류 합격자만 면접 일정 생성 가능
+    if application.document_status != DocumentStatus.PASSED.value:
+        raise HTTPException(
+            status_code=400, 
+            detail="서류 합격자만 면접 일정을 생성할 수 있습니다."
+        )
+    
     db_interview = ScheduleInterview(
         application_id=application_id,
         interviewer_id=interviewer_id,
@@ -191,6 +203,10 @@ def create_interview_schedule(
         notes=notes
     )
     db.add(db_interview)
+    
+    # 면접 일정 생성 시 interview_status를 SCHEDULED로 변경
+    application.interview_status = InterviewStatus.SCHEDULED.value
+    
     db.commit()
     db.refresh(db_interview)
     
@@ -201,7 +217,8 @@ def create_interview_schedule(
         "schedule_id": db_interview.schedule_id,
         "status": db_interview.status,
         "notes": db_interview.notes,
-        "created_at": db_interview.created_at
+        "created_at": db_interview.created_at,
+        "interview_status": application.interview_status
     } 
 
 
@@ -215,12 +232,70 @@ def update_application_status(
     application = db.query(Application).filter(Application.id == application_id).first()
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
-    if status_update.status:
-        application.status = str(status_update.status)
+    
+    # 서류 상태 업데이트
     if status_update.document_status:
         application.document_status = str(status_update.document_status)
+        
+        # 서류 상태에 따른 메인 상태 업데이트
+        if status_update.document_status == DocumentStatus.PASSED:
+            application.status = ApplyStatus.IN_PROGRESS.value
+        elif status_update.document_status == DocumentStatus.REJECTED:
+            application.status = ApplyStatus.REJECTED.value
+    
+    # 메인 상태 직접 업데이트
+    if status_update.status:
+        application.status = str(status_update.status)
+    
+    # 면접 상태 업데이트
+    if status_update.interview_status:
+        application.interview_status = str(status_update.interview_status)
+    
     db.commit()
     return {"message": "Application status updated successfully"}
+
+
+@router.put("/{application_id}/interview-status")
+def update_interview_status(
+    application_id: int,
+    interview_status: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """면접 상태만 업데이트하는 전용 API"""
+    application = db.query(Application).filter(Application.id == application_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    # 서류 합격자만 면접 상태 변경 가능
+    if application.document_status != DocumentStatus.PASSED.value:
+        raise HTTPException(
+            status_code=400, 
+            detail="서류 합격자만 면접 상태를 변경할 수 있습니다."
+        )
+    
+    # 유효한 면접 상태인지 확인
+    valid_statuses = [status.value for status in InterviewStatus]
+    if interview_status not in valid_statuses:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"유효하지 않은 면접 상태입니다. 가능한 상태: {valid_statuses}"
+        )
+    
+    application.interview_status = interview_status
+    
+    # 면접 완료 시 최종 상태 결정 로직
+    if interview_status == InterviewStatus.COMPLETED.value:
+        # 여기서 면접 평가 결과에 따라 최종 합격/불합격 결정
+        # 실제로는 면접 평가 점수를 확인해야 함
+        application.status = ApplyStatus.IN_PROGRESS.value  # 임시로 진행 중으로 설정
+    
+    db.commit()
+    return {
+        "message": "Interview status updated successfully",
+        "interview_status": application.interview_status,
+        "application_status": application.status
+    }
 
 
 @router.put("/bulk-status")

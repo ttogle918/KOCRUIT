@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from app.models.application import Application, ApplyStatus, ApplicationStatus, ApplicationViewAction
+from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus, ApplicationViewAction
 
 def to_camel(string: str) -> str:
     parts = string.split('_')
@@ -11,7 +11,7 @@ class ApplicationBase(BaseModel):
     job_post_id: int
     resume_id: int
     status: ApplyStatus = ApplyStatus.WAITING
-    document_status: ApplicationStatus = ApplicationStatus.DOCUMENT_WAITING
+    document_status: DocumentStatus = DocumentStatus.PENDING
     score: Optional[float] = None
     ai_score: Optional[float] = None
     human_score: Optional[float] = None
@@ -31,7 +31,8 @@ class ApplicationCreate(ApplicationBase):
 
 class ApplicationUpdate(BaseModel):
     status: Optional[ApplyStatus] = None
-    document_status: Optional[ApplicationStatus] = None
+    document_status: Optional[DocumentStatus] = None
+    interview_status: Optional[InterviewStatus] = None
     class Config:
         alias_generator = to_camel
         populate_by_name = True
@@ -67,7 +68,7 @@ class ApplicationList(BaseModel):
     job_post_id: int
     user_id: int
     status: ApplyStatus
-    document_status: ApplicationStatus
+    document_status: DocumentStatus
     created_at: datetime
     score: Optional[float] = None
     ai_score: Optional[float] = None
@@ -155,4 +156,4 @@ class ApplicationViewLogDetail(ApplicationViewLogBase):
 class ApplicationBulkStatusUpdate(BaseModel):
     application_ids: List[int]
     status: Optional[ApplyStatus] = None
-    document_status: Optional[ApplicationStatus] = None 
+    document_status: Optional[DocumentStatus] = None 

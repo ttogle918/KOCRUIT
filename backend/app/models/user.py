@@ -5,11 +5,14 @@ from datetime import datetime
 from app.core.database import Base
 import enum
 
-class Role(str, enum.Enum):
-    INDIVIDUAL = "individual"
-    ADMIN = "admin"
-    COMPANY = "company"
-    USER = "USER"  # 일반 사용자 권한
+class UserType(str, enum.Enum):
+    INDIVIDUAL = "individual"  # 개인 사용자
+    ADMIN = "admin"           # 관리자
+    COMPANY = "company"       # 기업 사용자
+
+
+class UserRole(str, enum.Enum):
+    USER = "USER"      # 일반 사용자 권한
     MEMBER = "MEMBER"  # 기업회원(채용담당자로 초대된)권한
     MANAGER = "MANAGER"  # 기업회원 공고 생성자 권한
     EMPLOYEE = "EMPLOYEE"  # 기업회원 권한

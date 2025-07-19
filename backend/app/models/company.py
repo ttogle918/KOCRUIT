@@ -37,4 +37,4 @@ class Department(Base):
     # Relationships
     company_users = relationship("CompanyUser", back_populates="department")
     company = relationship("Company", back_populates="departments")
-    job_posts = relationship("JobPost", back_populates="department_rel") 
+    job_posts = relationship("JobPost", back_populates="department") 

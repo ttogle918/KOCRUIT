@@ -7,9 +7,11 @@ from sqlalchemy import Enum as SqlEnum
 
 
 class ApplyStatus(str, enum.Enum):
-    WAITING = "WAITING"
-    PASSED = "PASSED"
-    REJECTED = "REJECTED"
+    WAITING = "WAITING"           # 대기 중
+    IN_PROGRESS = "IN_PROGRESS"   # 진행 중 (서류 합격 후)
+    PASSED = "PASSED"            # 최종 합격
+    REJECTED = "REJECTED"        # 최종 불합격
+    WITHDRAWN = "WITHDRAWN"      # 지원 철회
 
 
 class ApplicationViewAction(str, enum.Enum):
@@ -17,10 +19,19 @@ class ApplicationViewAction(str, enum.Enum):
     DOWNLOAD = "DOWNLOAD"
 
 
-class ApplicationStatus(str, enum.Enum):
-    DOCUMENT_WAITING = "DOCUMENT_WAITING"
-    DOCUMENT_PASSED = "DOCUMENT_PASSED"
-    DOCUMENT_REJECTED = "DOCUMENT_REJECTED"
+class DocumentStatus(str, enum.Enum):
+    PENDING = "PENDING"          # 서류 심사 대기
+    REVIEWING = "REVIEWING"      # 서류 심사 중
+    PASSED = "PASSED"           # 서류 합격
+    REJECTED = "REJECTED"       # 서류 불합격
+
+
+class InterviewStatus(str, enum.Enum):
+    NOT_SCHEDULED = "NOT_SCHEDULED"     # 면접 미일정
+    SCHEDULED = "SCHEDULED"             # 면접 일정 확정
+    IN_PROGRESS = "IN_PROGRESS"         # 면접 진행 중
+    COMPLETED = "COMPLETED"             # 면접 완료
+    CANCELLED = "CANCELLED"             # 면접 취소
 
 
 class Application(Base):
@@ -35,7 +46,8 @@ class Application(Base):
     human_score = Column(Numeric(5, 2))
     final_score = Column(Numeric(5, 2))
     status = Column(SqlEnum(ApplyStatus), default=ApplyStatus.WAITING, nullable=False)
-    document_status = Column(SqlEnum(ApplicationStatus), default=ApplicationStatus.DOCUMENT_WAITING, nullable=False)
+    document_status = Column(SqlEnum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
+    interview_status = Column(SqlEnum(InterviewStatus), default=InterviewStatus.NOT_SCHEDULED, nullable=False)
     applied_at = Column(DateTime, default=datetime.utcnow)
     application_source = Column(String(255))
     pass_reason = Column(Text)

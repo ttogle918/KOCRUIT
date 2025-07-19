@@ -110,7 +110,7 @@ def example_high_score_candidate():
         print(f"신뢰도: {result['confidence']:.2f}")
         print()
         
-        if result['status'] == 'PASSED':
+        if result['document_status'] == 'PASSED':
             print("✅ 합격 이유:")
             print(result['pass_reason'])
         else:

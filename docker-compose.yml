@@ -35,6 +35,7 @@ services:
     volumes:
       - ./backend:/app
       - ./agent:/app/agent
+      - ./initdb:/app/initdb
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 3
     restart: unless-stopped
     depends_on:
