@@ -433,6 +433,222 @@ class InterviewPanelService:
         
         if accepted_count >= assignment.required_count:
             assignment.status = AssignmentStatus.COMPLETED
+            
+            # 🆕 면접관 수락 완료 후 자동으로 면접 일정 생성 및 interview_status 변경
+            InterviewPanelService._create_interview_schedules(db, assignment)
+    
+    @staticmethod
+    def _create_interview_schedules(db: Session, assignment: InterviewPanelAssignment):
+        """면접관 수락 완료 후 자동으로 면접 일정 생성"""
+        from app.models.schedule import ScheduleInterview, InterviewScheduleStatus
+        from app.models.application import Application, InterviewStatus, DocumentStatus
+        
+        # 해당 공고의 서류 합격자들 조회
+        applications = db.query(Application).filter(
+            Application.job_post_id == assignment.job_post_id,
+            Application.document_status == DocumentStatus.PASSED.value
+        ).all()
+        
+        if not applications:
+            return
+        
+        # 면접관 멤버들 조회
+        panel_members = db.query(InterviewPanelMember).filter(
+            InterviewPanelMember.assignment_id == assignment.id
+        ).all()
+        
+        if not panel_members:
+            return
+        
+        # 면접 일정 정보 조회
+        schedule = db.query(Schedule).filter(Schedule.id == assignment.schedule_id).first()
+        if not schedule or not schedule.scheduled_at:
+            return
+        
+        # 🆕 schedule_interview_applicant 테이블 연결을 위한 로직
+        InterviewPanelService._link_applicants_to_existing_schedules(db, assignment.job_post_id, applications)
+        
+        # 각 지원자에 대해 면접 일정 생성
+        for i, application in enumerate(applications):
+            # 면접관 순환 배정 (라운드 로빈 방식)
+            interviewer_index = i % len(panel_members)
+            interviewer = panel_members[interviewer_index]
+            
+            # 면접 시간 계산 (30분 간격으로 배정)
+            interview_time = schedule.scheduled_at
+            if i > 0:
+                # 30분씩 추가
+                from datetime import timedelta
+                interview_time = interview_time + timedelta(minutes=30 * i)
+            
+            # ScheduleInterview 레코드 생성
+            schedule_interview = ScheduleInterview(
+                schedule_id=assignment.schedule_id,
+                user_id=interviewer.company_user_id,  # 면접관 ID
+                schedule_date=interview_time,
+                status=InterviewScheduleStatus.SCHEDULED
+            )
+            db.add(schedule_interview)
+            
+            # Application의 interview_status를 SCHEDULED로 변경
+            application.interview_status = InterviewStatus.SCHEDULED.value
+        
+        # 변경사항 저장
+        db.flush()
+        
+        print(f"✅ 면접 일정 자동 생성 완료: {len(applications)}명의 지원자, {len(panel_members)}명의 면접관")
+    
+    @staticmethod
+    def _link_applicants_to_existing_schedules(db: Session, job_post_id: int, applications: List[Application]):
+        """33명의 합격자를 기존 면접 일정과 자동으로 연결"""
+        from sqlalchemy import Table, MetaData, text
+        
+        # schedule_interview_applicant 테이블 동적 로드
+        meta = MetaData()
+        schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+        
+        # 해당 공고의 기존 면접 일정 조회
+        existing_schedules = db.query(Schedule).filter(
+            Schedule.job_post_id == job_post_id,
+            Schedule.schedule_type == 'interview'
+        ).order_by(Schedule.scheduled_at).all()
+        
+        # 🆕 3명씩 면접하기 위한 일정 수 계산
+        total_applicants = len(applications)  # 33명
+        applicants_per_interview = 3  # 3명씩
+        required_schedules = (total_applicants + applicants_per_interview - 1) // applicants_per_interview  # 11개 일정 필요
+        
+        print(f"📊 면접 일정 분석:")
+        print(f"   - 총 지원자: {total_applicants}명")
+        print(f"   - 면접당 지원자: {applicants_per_interview}명")
+        print(f"   - 필요 일정: {required_schedules}개")
+        print(f"   - 기존 일정: {len(existing_schedules)}개")
+        
+        # 🆕 추가 일정이 필요한 경우 자동 생성
+        if len(existing_schedules) < required_schedules:
+            additional_schedules_needed = required_schedules - len(existing_schedules)
+            print(f"🆕 추가 일정 {additional_schedules_needed}개를 자동 생성합니다...")
+            
+            # 마지막 기존 일정의 정보를 기반으로 추가 일정 생성
+            if existing_schedules:
+                last_schedule = existing_schedules[-1]
+                base_datetime = last_schedule.scheduled_at
+                base_location = last_schedule.location
+            else:
+                # 기존 일정이 없는 경우 기본값 사용
+                from datetime import datetime, timedelta
+                base_datetime = datetime.now() + timedelta(days=1)
+                base_location = "회의실"
+            
+            # 추가 일정 생성
+            for i in range(additional_schedules_needed):
+                from datetime import timedelta
+                
+                # 다음 날 같은 시간으로 일정 생성
+                new_datetime = base_datetime + timedelta(days=i+1)
+                
+                # 새로운 Schedule 생성
+                new_schedule = Schedule(
+                    schedule_type="interview",
+                    user_id=last_schedule.user_id if existing_schedules else 1,  # 기본값
+                    job_post_id=job_post_id,
+                    title=last_schedule.title if existing_schedules else "면접 일정",
+                    description="",
+                    location=base_location,
+                    scheduled_at=new_datetime,
+                    status=""
+                )
+                db.add(new_schedule)
+                db.flush()  # ID 생성
+                
+                # ScheduleInterview 레코드도 생성
+                new_schedule_interview = ScheduleInterview(
+                    schedule_id=new_schedule.id,
+                    user_id=last_schedule.user_id if existing_schedules else 1,
+                    schedule_date=new_datetime,
+                    status=InterviewScheduleStatus.SCHEDULED
+                )
+                db.add(new_schedule_interview)
+                
+                print(f"   ✅ 추가 일정 생성: {new_datetime.strftime('%Y-%m-%d %H:%M')} - {base_location}")
+            
+            # 기존 일정 목록 업데이트
+            existing_schedules = db.query(Schedule).filter(
+                Schedule.job_post_id == job_post_id,
+                Schedule.schedule_type == 'interview'
+            ).order_by(Schedule.scheduled_at).all()
+        
+        # 지원자들을 면접 일정에 3명씩 배정
+        applicants_per_schedule = applicants_per_interview  # 3명씩
+        applicant_index = 0
+        
+        for schedule_index, schedule in enumerate(existing_schedules):
+            # 이 일정에 배정할 지원자 수 (최대 3명)
+            current_batch_size = min(applicants_per_schedule, len(applications) - applicant_index)
+            
+            if current_batch_size <= 0:
+                break
+            
+            # 해당 일정의 schedule_interview 레코드 조회
+            schedule_interviews = db.query(ScheduleInterview).filter(
+                ScheduleInterview.schedule_id == schedule.id
+            ).all()
+            
+            if not schedule_interviews:
+                print(f"⚠️ 일정 {schedule.id}에 대한 schedule_interview 레코드가 없습니다.")
+                continue
+            
+            # 이 배치의 지원자들을 schedule_interview_applicant에 연결
+            for i in range(current_batch_size):
+                if applicant_index >= len(applications):
+                    break
+                
+                application = applications[applicant_index]
+                
+                # 면접관 순환 배정 (라운드 로빈)
+                interviewer_index = i % len(schedule_interviews)
+                schedule_interview = schedule_interviews[interviewer_index]
+                
+                # schedule_interview_applicant 테이블에 레코드 생성
+                try:
+                    # 🆕 interview_status 필드도 함께 설정
+                    insert_values = {
+                        'schedule_interview_id': schedule_interview.id,
+                        'user_id': application.user_id,
+                        'interview_status': InterviewStatus.SCHEDULED.value  # status 대신 interview_status 사용
+                    }
+                    
+                    db.execute(
+                        schedule_interview_applicant.insert().values(**insert_values)
+                    )
+                    
+                    # Application의 interview_status를 SCHEDULED로 변경
+                    application.interview_status = InterviewStatus.SCHEDULED.value
+                    
+                    print(f"✅ 지원자 {application.user_id}를 면접 일정 {schedule_interview.id}에 연결 (일정 {schedule_index + 1})")
+                    
+                except Exception as e:
+                    print(f"❌ 지원자 {application.user_id} 연결 실패: {e}")
+                    # 필드가 없는 경우 기존 방식으로 시도
+                    try:
+                        db.execute(
+                            schedule_interview_applicant.insert().values(
+                                schedule_interview_id=schedule_interview.id,
+                                user_id=application.user_id
+                            )
+                        )
+                        application.interview_status = InterviewStatus.SCHEDULED.value
+                        print(f"✅ 지원자 {application.user_id} 연결 성공 (기존 방식)")
+                    except Exception as e2:
+                        print(f"❌ 지원자 {application.user_id} 연결 완전 실패: {e2}")
+                
+                applicant_index += 1
+        
+        # 변경사항 저장
+        db.flush()
+        
+        print(f"🎉 {len(applications)}명의 지원자를 {len(existing_schedules)}개 면접 일정에 3명씩 자동 배정 완료!")
+        print(f"📅 면접 일정: {existing_schedules[0].scheduled_at.strftime('%Y-%m-%d')} ~ {existing_schedules[-1].scheduled_at.strftime('%Y-%m-%d')}")
     
     @staticmethod
     def _find_replacement(db: Session, rejected_request: InterviewPanelRequest):
