@@ -27,11 +27,34 @@ class DocumentStatus(str, enum.Enum):
 
 
 class InterviewStatus(str, enum.Enum):
-    NOT_SCHEDULED = "NOT_SCHEDULED"     # 면접 미일정
-    SCHEDULED = "SCHEDULED"             # 면접 일정 확정
-    IN_PROGRESS = "IN_PROGRESS"         # 면접 진행 중
-    COMPLETED = "COMPLETED"             # 면접 완료
-    CANCELLED = "CANCELLED"             # 면접 취소
+    # 기존 값들 (팀원 호환성 유지)
+    NOT_SCHEDULED = "NOT_SCHEDULED"           # 면접 미일정
+    SCHEDULED = "SCHEDULED"                   # 면접 일정 확정
+    IN_PROGRESS = "IN_PROGRESS"               # 면접 진행 중
+    COMPLETED = "COMPLETED"                   # 면접 완료
+    CANCELLED = "CANCELLED"                   # 면접 취소
+    
+    # AI 면접
+    AI_INTERVIEW_NOT_SCHEDULED = "AI_INTERVIEW_NOT_SCHEDULED"     # AI 면접 미일정
+    AI_INTERVIEW_SCHEDULED = "AI_INTERVIEW_SCHEDULED"             # AI 면접 일정 확정
+    AI_INTERVIEW_IN_PROGRESS = "AI_INTERVIEW_IN_PROGRESS"         # AI 면접 진행 중
+    AI_INTERVIEW_COMPLETED = "AI_INTERVIEW_COMPLETED"             # AI 면접 완료
+    AI_INTERVIEW_PASSED = "AI_INTERVIEW_PASSED"                   # AI 면접 합격
+    AI_INTERVIEW_FAILED = "AI_INTERVIEW_FAILED"                   # AI 면접 불합격
+    
+    # 최종 면접
+    FINAL_INTERVIEW_SCHEDULED = "FINAL_INTERVIEW_SCHEDULED"       # 최종 면접 일정 확정
+    FINAL_INTERVIEW_IN_PROGRESS = "FINAL_INTERVIEW_IN_PROGRESS"   # 최종 면접 진행 중
+    FINAL_INTERVIEW_COMPLETED = "FINAL_INTERVIEW_COMPLETED"       # 최종 면접 완료
+    FINAL_INTERVIEW_PASSED = "FINAL_INTERVIEW_PASSED"             # 최종 면접 합격
+    FINAL_INTERVIEW_FAILED = "FINAL_INTERVIEW_FAILED"             # 최종 면접 불합격
+
+
+class InterviewStage(str, enum.Enum):
+    AI_INTERVIEW = "AI_INTERVIEW"       # AI 면접
+    FIRST_INTERVIEW = "FIRST_INTERVIEW" # 1차 면접 (실무진)
+    SECOND_INTERVIEW = "SECOND_INTERVIEW" # 2차 면접 (임원)
+    FINAL_INTERVIEW = "FINAL_INTERVIEW" # 최종 면접
 
 
 class Application(Base):

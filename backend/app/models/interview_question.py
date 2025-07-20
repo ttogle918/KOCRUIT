@@ -11,6 +11,7 @@ class QuestionType(enum.Enum):
     EXECUTIVE = "executive"  # 임원면접 질문
     SECOND = "second"  # 2차 면접 질문
     FINAL = "final"  # 최종 면접 질문
+    AI_INTERVIEW = "ai_interview"  # AI 면접 질문
 
 class InterviewQuestion(Base):
     __tablename__ = 'interview_question'
@@ -18,7 +19,7 @@ class InterviewQuestion(Base):
     application_id = Column(Integer, ForeignKey('application.id'), nullable=False)
     type = Column(Enum(QuestionType), nullable=False)  # 질문 유형
     question_text = Column(Text, nullable=False)  # 질문 내용
-    category = Column(String(50), nullable=True)  # 질문 카테고리 (인성, 기술, 경험 등)
+    category = Column(String(50), nullable=True)  # 질문 카테고리 (ai_interview, practical_interview, 인성, 기술, 경험 등)
     difficulty = Column(String(20), nullable=True)  # 난이도 (easy, medium, hard)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
