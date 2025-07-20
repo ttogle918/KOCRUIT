@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import InterviewApplicantList from './InterviewApplicantList';
@@ -7,8 +7,9 @@ import InterviewPanel from './InterviewPanel';
 import InterviewPanelSelector from '../../components/InterviewPanelSelector';
 import InterviewerEvaluationPanel from '../../components/InterviewerEvaluationPanel';
 import DraggableResumeWindow from '../../components/DraggableResumeWindow';
+import AiInterviewSystem from './AiInterviewSystem';
 import api from '../../api/api';
-import { FiChevronLeft, FiChevronRight, FiSave, FiPlus } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSave, FiPlus, FiPlay } from 'react-icons/fi';
 import { MdOutlineAutoAwesome, MdOutlineOpenInNew } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
@@ -25,13 +26,24 @@ import Button from '@mui/material/Button';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 
 function InterviewProgress() {
-  const { jobPostId, interviewStage = 'first' } = useParams(); // interviewStage 파라미터 추가
+  const { jobPostId, interviewStage = 'first', applicantId } = useParams(); // applicantId 파라미터 추가
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // 디버깅용 로그
+  console.log('🔍 InterviewProgress 파라미터:', { jobPostId, interviewStage, applicantId });
   
   // 면접 단계별 설정
   const isAiInterview = interviewStage === 'ai'; // AI 면접
   const isFirstInterview = interviewStage === 'first'; // 1차 면접 (실무진)
   const isSecondInterview = interviewStage === 'second'; // 2차 면접 (임원)
+  
+  // AI 면접 시스템으로 리다이렉트 (지원자가 선택된 경우)
+  console.log('🔍 AI 면접 리다이렉트 조건 확인:', { isAiInterview, applicantId, condition: isAiInterview && applicantId });
+  if (isAiInterview && applicantId) {
+    console.log('✅ AiInterviewSystem으로 리다이렉트');
+    return <AiInterviewSystem />;
+  }
   
   // 면접 단계별 제목 및 설정
   const interviewConfig = {
@@ -100,7 +112,7 @@ function InterviewProgress() {
   const [preloadingStatus, setPreloadingStatus] = useState('idle'); // 'idle', 'loading', 'completed'
 
   // 새로운 UI 시스템 상태
-  const [activePanel, setActivePanel] = useState('common-questions'); // 'interviewer', 'ai', or 'common-questions'
+  const [activePanel, setActivePanel] = useState(isAiInterview ? 'ai' : 'common-questions'); // AI 면접에서는 AI 패널을 기본으로
   
   // 패널 변경 핸들러 (모달 표시)
   const handlePanelChange = (panelId) => {
@@ -1049,7 +1061,47 @@ function InterviewProgress() {
           </div>
 
           {/* 메인 콘텐츠 영역 - 동적 패널 */}
-          {useDraggableLayout ? (
+          {isAiInterview && !applicantId ? (
+            // AI 면접에서 지원자가 선택되지 않은 경우
+            <div className="flex-1 h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+              <div className="text-center max-w-md mx-auto p-8">
+                <div className="text-6xl mb-6">🤖</div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                  AI 면접 시스템
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  AI 면접을 진행할 지원자를 선택해주세요.
+                </p>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    지원자 목록
+                  </h3>
+                  {applicants.length > 0 ? (
+                    <div className="space-y-2">
+                      {applicants.slice(0, 5).map((applicant, index) => (
+                        <button
+                          key={applicant.applicant_id || applicant.id}
+                          onClick={() => navigate(`/interview-progress/${jobPostId}/ai/${applicant.applicant_id || applicant.id}`)}
+                          className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {applicant.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {applicant.schedule_date || '시간 미정'}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">
+                      AI 면접 대상 지원자가 없습니다.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : useDraggableLayout ? (
             <PanelLayoutManager
               panels={[
                 {
@@ -1136,6 +1188,33 @@ function InterviewProgress() {
               ]}
               layoutMode="auto"
             />
+          ) : isAiInterview && applicantId ? (
+            // AI 면접에서 지원자가 선택된 경우 - AI 면접 전용 UI
+            <div className="flex-1 h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+              <div className="text-center max-w-2xl mx-auto p-8">
+                <div className="text-6xl mb-6">🎯</div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                  AI 면접 준비 완료
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  선택된 지원자: {selectedApplicant?.name || '알 수 없음'}
+                </p>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    AI 면접 시작
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    AI 면접 시스템을 시작하려면 아래 버튼을 클릭하세요.
+                  </p>
+                  <button
+                    onClick={() => navigate(`/interview-progress/${jobPostId}/ai/${applicantId}`)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    AI 면접 시작
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : useRecommendedLayout ? (
             // 권장 레이아웃: 3등분 구조
             <div className="flex h-full">
