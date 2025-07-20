@@ -714,6 +714,44 @@ async def realtime_interview_evaluation_api(request: Request):
             "error": str(e)
         }
 
+@app.post("/agent/ai-interview-evaluation")
+async def ai_interview_evaluation_api(request: Request):
+    """AI 면접 평가 API"""
+    data = await request.json()
+    session_id = data.get("session_id")
+    job_info = data.get("job_info", "")
+    audio_data = data.get("audio_data", {})
+    behavior_data = data.get("behavior_data", {})
+    game_data = data.get("game_data", {})
+    
+    if not session_id:
+        return {"error": "session_id is required"}
+    
+    try:
+        # AI 면접 워크플로우 실행
+        from agents.ai_interview_workflow import run_ai_interview
+        
+        result = run_ai_interview(
+            session_id=session_id,
+            job_info=job_info,
+            audio_data=audio_data,
+            behavior_data=behavior_data,
+            game_data=game_data
+        )
+        
+        return {
+            "success": True,
+            "total_score": result.get("total_score", 0),
+            "evaluation_metrics": result.get("evaluation_metrics", {}),
+            "feedback": result.get("feedback", []),
+            "session_id": session_id
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
