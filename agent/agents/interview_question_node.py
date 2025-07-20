@@ -138,12 +138,12 @@ job_prompt = PromptTemplate.from_template(
     """
 )
 
-# LLM 체인 초기화
-generate_resume_summary = LLMChain(llm=llm, prompt=resume_summary_prompt)
-generate_project_questions = LLMChain(llm=llm, prompt=project_prompt)
-generate_values_questions = LLMChain(llm=llm, prompt=values_prompt)
-generate_news_questions = LLMChain(llm=llm, prompt=news_prompt)
-generate_job_questions = LLMChain(llm=llm, prompt=job_prompt)
+# LLM 체인 초기화 (RunnableSequence로 변경)
+generate_resume_summary = resume_summary_prompt | llm
+generate_project_questions = project_prompt | llm
+generate_values_questions = values_prompt | llm
+generate_news_questions = news_prompt | llm
+generate_job_questions = job_prompt | llm
 
 # 3. 전체 질문 통합 함수
 @redis_cache()
@@ -152,14 +152,14 @@ def generate_personal_questions(resume_text: str, company_name: Optional[str] = 
     
     # 자기소개서 요약
     resume_summary_result = generate_resume_summary.invoke({"resume_text": resume_text})
-    resume_summary = resume_summary_result.get("text", "")
+    resume_summary = resume_summary_result.content if hasattr(resume_summary_result, 'content') else str(resume_summary_result)
 
     # 프로젝트 질문 생성 (포트폴리오 정보 포함)
     project_result = generate_project_questions.invoke({
         "resume_summary": resume_summary,
         "portfolio_info": portfolio_info or "포트폴리오 정보가 없습니다."
     })
-    project_questions = [q.strip() for q in project_result.get("text", "").split("\n") if q.strip()]
+    project_questions = [q.strip() for q in (project_result.content if hasattr(project_result, 'content') else str(project_result)).split("\n") if q.strip()]
 
     # 회사 관련 질문 (인재상 + 뉴스 기반)
     company_questions = []
@@ -284,7 +284,7 @@ def generate_company_questions(company_name: str):
             "company_name": company_name,
             "company_values": values_summary
         })
-        values_text = values_result.get("text", "")
+        values_text = values_result.content if hasattr(values_result, 'content') else str(values_result)
         values_questions = [q.strip() for q in values_text.split("\n") if q.strip()]
 
         # 4. 뉴스 기반 질문 생성
@@ -292,7 +292,7 @@ def generate_company_questions(company_name: str):
             "company_name": company_name,
             "company_news": news_summary
         })
-        news_text = news_result.get("text", "")
+        news_text = news_result.content if hasattr(news_result, 'content') else str(news_result)
         news_questions = [q.strip() for q in news_text.split("\n") if q.strip()]
 
         # 5. 결과 통합
@@ -339,7 +339,7 @@ def generate_job_question_bundle(resume_text: str, job_info: str, company_name: 
         "job_matching_info": job_matching_info
     })
     
-    job_questions_text = job_result.get("text", "")
+    job_questions_text = job_result.content if hasattr(job_result, 'content') else str(job_result)
     
     # 질문을 카테고리별로 분류
     questions_by_category = {
@@ -744,9 +744,23 @@ def analyze_candidate_strengths_weaknesses(resume_text: str, job_info: str = "",
         
         # JSON 파싱
         import json
-        analysis_data = json.loads(result.get("text", "{}"))
+        response_text = result.get("text", "")
+        print(f"강점/약점 분석 응답: {response_text[:200]}...")
         
-        return analysis_data
+        try:
+            # JSON 블록 추출 시도
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                if json_end != -1:
+                    response_text = response_text[json_start:json_end].strip()
+            
+            analysis_data = json.loads(response_text)
+            return analysis_data
+        except json.JSONDecodeError as e:
+            print(f"JSON 파싱 실패: {e}")
+            print(f"응답 내용: {response_text}")
+            raise e
     except Exception as e:
         print(f"강점/약점 분석 오류: {str(e)}")
         # 기본 응답 반환
@@ -773,9 +787,23 @@ def generate_interview_guideline(resume_text: str, job_info: str = "", company_n
         
         # JSON 파싱
         import json
-        guideline_data = json.loads(result.get("text", "{}"))
+        response_text = result.get("text", "")
+        print(f"가이드라인 생성 응답: {response_text[:200]}...")
         
-        return guideline_data
+        try:
+            # JSON 블록 추출 시도
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                if json_end != -1:
+                    response_text = response_text[json_start:json_end].strip()
+            
+            guideline_data = json.loads(response_text)
+            return guideline_data
+        except json.JSONDecodeError as e:
+            print(f"JSON 파싱 실패: {e}")
+            print(f"응답 내용: {response_text}")
+            raise e
     except Exception as e:
         print(f"가이드라인 생성 오류: {str(e)}")
         # 기본 응답 반환
@@ -812,9 +840,23 @@ def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_na
         
         # JSON 파싱
         import json
-        criteria_data = json.loads(result.get("text", "{}"))
+        response_text = result.get("text", "")
+        print(f"평가 기준 제안 응답: {response_text[:200]}...")
         
-        return criteria_data
+        try:
+            # JSON 블록 추출 시도
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                if json_end != -1:
+                    response_text = response_text[json_start:json_end].strip()
+            
+            criteria_data = json.loads(response_text)
+            return criteria_data
+        except json.JSONDecodeError as e:
+            print(f"JSON 파싱 실패: {e}")
+            print(f"응답 내용: {response_text}")
+            raise e
     except Exception as e:
         print(f"평가 기준 제안 오류: {str(e)}")
         # 기본 응답 반환
