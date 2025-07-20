@@ -114,15 +114,17 @@ async def get_document_report_data(
             }
         
         # 점수 통계
-        scores = [float(app.final_score) for app in applications if app.final_score is not None]
+        scores = [float(app.ai_score) for app in applications if app.ai_score is not None]
         avg_score = sum(scores) / len(scores) if scores else 0
         max_score = max(scores) if scores else 0
         min_score = min(scores) if scores else 0   
+        # 서류 합격자 인원수
+        passed_applicants_count = sum(1 for app in applications if app.status == ApplyStatus.PASSED)
         
         # 탈락 사유 분석
         rejection_reasons = []
         for app in applications:
-            if app.status == "REJECTED" and app.fail_reason:
+            if app.status == ApplyStatus.REJECTED and app.fail_reason:
                 rejection_reasons.append(app.fail_reason)
 
         # LLM을 이용한 TOP3 추출
@@ -142,19 +144,27 @@ async def get_document_report_data(
                 education = next((s.spec_title for s in resume.specs if s.spec_type == "학력"), "")
                 experience = sum(1 for s in resume.specs if s.spec_type == "경력")
                 certificates = sum(1 for s in resume.specs if s.spec_type == "자격증")
-                if app.status == "PASSED" and app.pass_reason:
+                if app.status == ApplyStatus.PASSED and app.pass_reason:
                     passed_reasons.append(app.pass_reason)
+                if app.status == ApplyStatus.REJECTED and app.fail_reason:
+                    rejection_reasons.append(app.fail_reason)
+                if app.status == ApplyStatus.PASSED:
+                    evaluation_comment = app.pass_reason or ""
+                elif app.status == ApplyStatus.REJECTED:
+                    evaluation_comment = app.fail_reason or ""
+                else:
+                    evaluation_comment = ""
                 applicants_data.append({
                     "name": user.name,
-                    "education": education,
-                    "experience": experience,
-                    "certificates": certificates,
-                    "essay_score": getattr(app, 'essay_score', 0) or 0,
+                    "ai_score": float(app.ai_score) if app.ai_score is not None else 0,
                     "total_score": float(app.final_score) if app.final_score is not None else 0,
-                    "status": app.status,
-                    "evaluation_comment": app.pass_reason if app.status == ApplyStatus.PASSED else app.fail_reason or ""
+                    "status": app.status.value if hasattr(app.status, 'value') else str(app.status),
+                    "evaluation_comment": evaluation_comment
                 })
         passed_summary = extract_passed_summary_llm(passed_reasons)
+        # 합격/불합격자 분리
+        passed_applicants = [a for a in applicants_data if a['status'] == 'PASSED']
+        rejected_applicants = [a for a in applicants_data if a['status'] == 'REJECTED']
         return {
             "job_post": {
                 "title": job_post.title,
@@ -169,9 +179,12 @@ async def get_document_report_data(
                 "avg_score": round(avg_score, 1),
                 "max_score": max_score,
                 "min_score": min_score,
+                "passed_applicants_count": passed_applicants_count,
                 "top_rejection_reasons": top_reasons,
                 "passed_summary": passed_summary,
-                "applicants": applicants_data
+                "applicants": applicants_data,
+                "passed_applicants": passed_applicants,
+                "rejected_applicants": rejected_applicants
             }
         }
     except Exception as e:
@@ -213,17 +226,21 @@ async def download_document_report_pdf(
         </head>
         <body>
             <div class="header">
-                <h1>{{ job_post.title }} - 서류 전형 보고서</h1>
+                <h1 style="white-space:pre-line;">{{ job_post.title }}\n서류 전형 보고서</h1>
                 <p>모집 기간: {{ job_post.start_date }} ~ {{ job_post.end_date }}</p>
                 <p>모집 부서: {{ job_post.department }} | 직무: {{ job_post.position }} | 채용 인원: {{ job_post.recruit_count }}명</p>
             </div>
             
             <div class="section">
                 <h2>📊 지원자 통계</h2>
-                <div class="stats-grid">
+                <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr);">
                     <div class="stat-box">
                         <div class="stat-number">{{ stats.total_applicants }}</div>
                         <div class="stat-label">전체 지원자</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-number">{{ stats.passed_applicants_count }}</div>
+                        <div class="stat-label">서류 합격자</div>
                     </div>
                     <div class="stat-box">
                         <div class="stat-number">{{ stats.avg_score }}</div>
@@ -240,6 +257,14 @@ async def download_document_report_pdf(
                 </div>
             </div>
             
+            {% if stats.passed_summary %}
+            <div class="section">
+                <h2>✅ 합격자 요약</h2>
+                <div style="background:#e0e7ff;padding:16px 24px;border-radius:8px;font-size:18px;font-weight:600;color:#2563eb;">
+                    {{ stats.passed_summary }}
+                </div>
+            </div>
+            {% endif %}
             {% if stats.top_rejection_reasons %}
             <div class="section">
                 <h2>🧾 탈락 사유 요약</h2>
@@ -252,31 +277,46 @@ async def download_document_report_pdf(
             {% endif %}
             
             <div class="section">
-                <h2>🧑‍💼 지원자 목록</h2>
+                <h2>🟦 합격자 목록</h2>
                 <table>
                     <thead>
                         <tr>
-                            <th>성명</th>
-                            <th>학력</th>
-                            <th>경력(년)</th>
-                            <th>자격증</th>
-                            <th>자소서</th>
-                            <th>총점</th>
-                            <th>최종 상태</th>
-                            <th>평가 코멘트</th>
+                            <th style="min-width:60px">성명</th>
+                            <th style="min-width:60px">총점</th>
+                            <th style="min-width:60px">결과</th>
+                            <th style="min-width:140px">평가 코멘트</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for applicant in stats.applicants %}
+                        {% for applicant in stats.passed_applicants %}
                         <tr>
-                            <td>{{ applicant.name }}</td>
-                            <td>{{ applicant.education }}</td>
-                            <td>{{ applicant.experience }}</td>
-                            <td>{{ applicant.certificates }}</td>
-                            <td>{{ applicant.essay_score }}</td>
-                            <td>{{ applicant.total_score }}</td>
-                            <td>{{ applicant.status }}</td>
-                            <td>{{ applicant.evaluation_comment }}</td>
+                            <td style="min-width:60px">{{ applicant.name }}</td>
+                            <td style="min-width:60px">{{ (applicant.ai_score if applicant.ai_score is not none and applicant.ai_score != 0 else applicant.total_score)|round|int }}</td>
+                            <td style="min-width:60px">합격</td>
+                            <td style="min-width:140px">{{ applicant.evaluation_comment }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="section">
+                <h2>🟥 불합격자 목록</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="min-width:60px">성명</th>
+                            <th style="min-width:60px">총점</th>
+                            <th style="min-width:60px">결과</th>
+                            <th style="min-width:140px">평가 코멘트</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for applicant in stats.rejected_applicants %}
+                        <tr>
+                            <td style="min-width:60px">{{ applicant.name }}</td>
+                            <td style="min-width:60px">{{ (applicant.ai_score if applicant.ai_score is not none and applicant.ai_score != 0 else applicant.total_score)|round|int }}</td>
+                            <td style="min-width:60px">불합격</td>
+                            <td style="min-width:140px">{{ applicant.evaluation_comment }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
