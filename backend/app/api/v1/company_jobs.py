@@ -18,6 +18,7 @@ from app.models.application import Application
 from app.models.interview_panel import InterviewPanelAssignment
 from app.api.v1.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
+from app.models.application import ApplyStatus, InterviewStatus
 
 # 로깅 설정
 logger = logging.getLogger(__name__)

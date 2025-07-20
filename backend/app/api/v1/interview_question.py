@@ -693,7 +693,7 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
-        workflow_result = await generate_comprehensive_interview_questions(
+        workflow_result = generate_comprehensive_interview_questions(
             resume_text=resume_text,
             company_name=request.company_name,
             applicant_name=request.name,
@@ -807,7 +807,7 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
-        workflow_result = await generate_comprehensive_interview_questions(
+        workflow_result = generate_comprehensive_interview_questions(
             resume_text=resume_text,
             job_info=job_info,
             company_name=actual_company_name,
@@ -1117,128 +1117,33 @@ class ExecutiveInterviewResponse(BaseModel):
     questions: str
     interview_type: str = "executive"
 
-@router.post("/executive-interview", response_model=ExecutiveInterviewResponse)
-async def generate_executive_interview_questions(request: ExecutiveInterviewRequest, db: Session = Depends(get_db)):
-    """임원면접 질문 생성 (LangGraph 워크플로우 사용)"""
-    try:
-        # 이력서 정보 수집
-        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
-        if not resume:
-            raise HTTPException(status_code=404, detail="Resume not found")
-        
-        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
-        resume_text = combine_resume_and_specs(resume, specs)
-        
-        # 직무 정보 수집
-        job_info = ""
-        if request.application_id:
-            application = db.query(Application).filter(Application.id == request.application_id).first()
-            if application:
-                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
-                if job_post:
-                    job_info = parse_job_post_data(job_post)
-        
-        # LangGraph 워크플로우를 사용한 임원면접 질문 생성
-        import sys
-        import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
-        
-        # 워크플로우 실행
-        workflow_result = generate_comprehensive_interview_questions(
-            resume_text=resume_text,
-            job_info=job_info,
-            company_name=request.company_name or "회사",
-            applicant_name=request.name or "",
-            interview_type="executive"
-        )
-        
-        # 결과에서 질문 추출
-        questions = workflow_result.get("questions", [])
-        question_text = "\n".join(questions) if questions else "질문을 생성할 수 없습니다."
-        
-        return {
-            "questions": question_text,
-            "interview_type": "executive"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# === 2차 면접 질문 생성 API ===
-class SecondInterviewRequest(BaseModel):
+# === AI 면접 질문 생성 API ===
+class AiInterviewRequest(BaseModel):
     resume_id: int
     application_id: Optional[int] = None
     company_name: Optional[str] = None
     name: Optional[str] = None
-    first_interview_feedback: Optional[str] = None
 
-class SecondInterviewResponse(BaseModel):
+class AiInterviewResponse(BaseModel):
     questions: str
-    interview_type: str = "second"
+    interview_type: str = "ai"
 
-@router.post("/second-interview", response_model=SecondInterviewResponse)
-async def generate_second_interview_questions(request: SecondInterviewRequest, db: Session = Depends(get_db)):
-    """2차 면접 질문 생성 (LangGraph 워크플로우 사용)"""
-    try:
-        # 이력서 정보 수집
-        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
-        if not resume:
-            raise HTTPException(status_code=404, detail="Resume not found")
-        
-        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
-        resume_text = combine_resume_and_specs(resume, specs)
-        
-        # 직무 정보 수집
-        job_info = ""
-        if request.application_id:
-            application = db.query(Application).filter(Application.id == request.application_id).first()
-            if application:
-                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
-                if job_post:
-                    job_info = parse_job_post_data(job_post)
-        
-        # LangGraph 워크플로우를 사용한 2차 면접 질문 생성
-        import sys
-        import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
-        
-        # 워크플로우 실행
-        workflow_result = generate_comprehensive_interview_questions(
-            resume_text=resume_text,
-            job_info=job_info,
-            company_name=request.company_name or "회사",
-            applicant_name=request.name or "",
-            interview_type="second",
-            first_interview_feedback=request.first_interview_feedback or ""
-        )
-        
-        # 결과에서 질문 추출
-        questions = workflow_result.get("questions", [])
-        question_text = "\n".join(questions) if questions else "질문을 생성할 수 없습니다."
-        
-        return {
-            "questions": question_text,
-            "interview_type": "second"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# === 최종 면접 질문 생성 API ===
-class FinalInterviewRequest(BaseModel):
+class AiInterviewSaveRequest(BaseModel):
     resume_id: int
     application_id: Optional[int] = None
     company_name: Optional[str] = None
     name: Optional[str] = None
-    previous_feedback: Optional[str] = None
+    save_to_db: bool = True  # DB에 저장할지 여부
 
-class FinalInterviewResponse(BaseModel):
+class AiInterviewSaveResponse(BaseModel):
     questions: str
-    interview_type: str = "final"
+    interview_type: str = "ai"
+    saved_questions_count: int
+    message: str
 
-@router.post("/final-interview", response_model=FinalInterviewResponse)
-async def generate_final_interview_questions(request: FinalInterviewRequest, db: Session = Depends(get_db)):
-    """최종 면접 질문 생성 (LangGraph 워크플로우 사용)"""
+@router.post("/ai-interview", response_model=AiInterviewResponse)
+async def generate_ai_interview_questions(request: AiInterviewRequest, db: Session = Depends(get_db)):
+    """AI 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -1257,7 +1162,7 @@ async def generate_final_interview_questions(request: FinalInterviewRequest, db:
                 if job_post:
                     job_info = parse_job_post_data(job_post)
         
-        # LangGraph 워크플로우를 사용한 최종 면접 질문 생성
+        # LangGraph 워크플로우를 사용한 AI 면접 질문 생성
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
@@ -1269,8 +1174,7 @@ async def generate_final_interview_questions(request: FinalInterviewRequest, db:
             job_info=job_info,
             company_name=request.company_name or "회사",
             applicant_name=request.name or "",
-            interview_type="final",
-            previous_feedback=request.previous_feedback or ""
+            interview_type="ai"
         )
         
         # 결과에서 질문 추출
@@ -1279,7 +1183,138 @@ async def generate_final_interview_questions(request: FinalInterviewRequest, db:
         
         return {
             "questions": question_text,
-            "interview_type": "final"
+            "interview_type": "ai"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/ai-interview-save", response_model=AiInterviewSaveResponse)
+async def generate_and_save_ai_interview_questions(request: AiInterviewSaveRequest, db: Session = Depends(get_db)):
+    """AI 면접 질문 생성 및 DB 저장"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 워크플로우를 사용한 AI 면접 질문 생성
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "회사",
+            applicant_name=request.name or "",
+            interview_type="ai"
+        )
+        
+        # 결과에서 질문 추출
+        generated_questions = workflow_result.get("generated_questions", {})
+        ai_questions = generated_questions.get("ai", {})
+        
+        # 질문을 텍스트로 변환
+        all_questions = []
+        for category, questions in ai_questions.items():
+            if isinstance(questions, list):
+                all_questions.extend(questions)
+            elif isinstance(questions, dict) and "questions" in questions:
+                all_questions.extend(questions["questions"])
+        
+        question_text = "\n".join(all_questions) if all_questions else "질문을 생성할 수 없습니다."
+        
+        # DB에 저장
+        saved_count = 0
+        if request.save_to_db and request.application_id and all_questions:
+            from app.models.interview_question import InterviewQuestion, QuestionType
+            
+            # 기존 AI 면접 질문 삭제 (중복 방지)
+            db.query(InterviewQuestion).filter(
+                InterviewQuestion.application_id == request.application_id,
+                InterviewQuestion.type == QuestionType.AI_INTERVIEW
+            ).delete()
+            
+            # 새로운 질문들 저장
+            for i, question in enumerate(all_questions):
+                # 질문 카테고리 결정
+                category = "common"
+                if i < len(ai_questions.get("common", [])):
+                    category = "common"
+                elif i < len(ai_questions.get("common", [])) + len(ai_questions.get("personal", [])):
+                    category = "personal"
+                elif i < len(ai_questions.get("common", [])) + len(ai_questions.get("personal", [])) + len(ai_questions.get("company", [])):
+                    category = "company"
+                else:
+                    category = "job"
+                
+                # DB에 저장 (AI 면접은 type을 AI_INTERVIEW로, category로 세부 분류)
+                interview_question = InterviewQuestion(
+                    application_id=request.application_id,
+                    type=QuestionType.AI_INTERVIEW,
+                    question_text=question,
+                    category=category,
+                    difficulty="medium"  # AI 면접은 기본적으로 medium
+                )
+                db.add(interview_question)
+                saved_count += 1
+            
+            db.commit()
+        
+        return {
+            "questions": question_text,
+            "interview_type": "ai",
+            "saved_questions_count": saved_count,
+            "message": f"AI 면접 질문 {saved_count}개가 성공적으로 저장되었습니다." if saved_count > 0 else "질문이 저장되지 않았습니다."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/application/{application_id}/ai-questions")
+def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db)):
+    """특정 지원자의 AI 면접 질문 조회"""
+    try:
+        from app.models.interview_question import InterviewQuestion, QuestionType
+        
+        questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.application_id == application_id,
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW
+        ).order_by(InterviewQuestion.category, InterviewQuestion.id).all()
+        
+        # 카테고리별로 그룹화
+        grouped_questions = {}
+        for question in questions:
+            category = question.category or "common"
+            if category not in grouped_questions:
+                grouped_questions[category] = []
+            grouped_questions[category].append({
+                "id": question.id,
+                "question_text": question.question_text,
+                "type": question.type.value,
+                "category": question.category,
+                "difficulty": question.difficulty,
+                "created_at": question.created_at
+            })
+        
+        return {
+            "application_id": application_id,
+            "interview_stage": "ai",
+            "questions": grouped_questions,
+            "total_count": len(questions)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1382,7 +1417,7 @@ def generate_common_questions_for_job_post(
             raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
         
         company_name = job_post.company.name if job_post.company else ""
-        job_info = f"{job_post.title} - {job_post.description}"
+        job_info = parse_job_post_data(job_post)
         
         # 공통 질문 생성
         questions = InterviewQuestionService.generate_common_questions_for_job_post(
@@ -1419,7 +1454,7 @@ def generate_individual_questions_for_application(
             raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
         
         company_name = job_post.company.name if job_post.company else ""
-        job_info = f"{job_post.title} - {job_post.description}"
+        job_info = parse_job_post_data(job_post)
         
         # 개별 질문 생성
         questions = InterviewQuestionService.generate_individual_questions_for_applicant(
@@ -1491,3 +1526,158 @@ def get_questions_generation_status(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"질문 상태 조회 실패: {str(e)}")
+
+# AI 도구 통합 API 엔드포인트 추가
+class AiToolsRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_name: Optional[str] = None
+    name: Optional[str] = None
+    interview_stage: Optional[str] = None
+    evaluator_type: Optional[str] = None
+
+class AiToolsResponse(BaseModel):
+    evaluation_tools: dict
+    questions: Optional[str] = None
+
+@router.post("/ai-tools", response_model=AiToolsResponse)
+async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_db)):
+    """AI 면접을 위한 통합 도구 생성 (체크리스트, 강점/약점, 가이드라인, 평가 기준)"""
+    try:
+        # 이력서 정보 조회
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="이력서를 찾을 수 없습니다.")
+        
+        # Spec 정보 조회
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        
+        # 통합 이력서 텍스트 생성
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # AI 면접 도구 생성 프롬프트
+        ai_tools_prompt = f"""
+다음 지원자의 이력서를 바탕으로 AI 면접을 위한 종합적인 평가 도구를 생성해주세요.
+
+지원자 정보:
+- 이름: {request.name or "알 수 없음"}
+- 회사: {request.company_name or "알 수 없음"}
+- 면접 단계: {request.interview_stage or "AI 면접"}
+
+이력서 내용:
+{resume_text}
+
+다음 4가지 도구를 JSON 형식으로 생성해주세요:
+
+1. 면접 체크리스트 (pre_interview_checklist, during_interview_checklist, post_interview_checklist, red_flags_to_watch, green_flags_to_confirm)
+2. 강점/약점 분석 (strengths, weaknesses, development_areas, competitive_advantages)
+3. 면접 가이드라인 (interview_approach, key_questions_by_category, evaluation_criteria, time_allocation, follow_up_questions)
+4. 평가 기준 (suggested_criteria, weight_recommendations, evaluation_questions, scoring_guidelines)
+
+응답 형식:
+{{
+    "evaluation_tools": {{
+        "checklist": {{
+            "pre_interview_checklist": ["항목1", "항목2"],
+            "during_interview_checklist": ["항목1", "항목2"],
+            "post_interview_checklist": ["항목1", "항목2"],
+            "red_flags_to_watch": ["주의사항1", "주의사항2"],
+            "green_flags_to_confirm": ["긍정신호1", "긍정신호2"]
+        }},
+        "strengths_weaknesses": {{
+            "strengths": [{{"area": "기술역량", "description": "설명", "evidence": "근거"}}],
+            "weaknesses": [{{"area": "경험부족", "description": "설명", "suggestion": "개선방안"}}],
+            "development_areas": ["개발영역1", "개발영역2"],
+            "competitive_advantages": ["경쟁우위1", "경쟁우위2"]
+        }},
+        "guideline": {{
+            "interview_approach": "면접 접근 방식",
+            "key_questions_by_category": {{
+                "기술역량": ["질문1", "질문2"],
+                "프로젝트경험": ["질문1", "질문2"]
+            }},
+            "evaluation_criteria": [{{"criterion": "기준", "description": "설명", "weight": 0.3}}],
+            "time_allocation": {{"기술질문": 0.4, "경험질문": 0.3, "소프트스킬": 0.3}},
+            "follow_up_questions": ["후속질문1", "후속질문2"]
+        }},
+        "evaluation_criteria": {{
+            "suggested_criteria": [{{"criterion": "기준", "description": "설명", "weight": 0.3}}],
+            "weight_recommendations": [{{"category": "카테고리", "weight": 0.3, "reason": "이유"}}],
+            "evaluation_questions": ["평가질문1", "평가질문2"],
+            "scoring_guidelines": {{"A": "90-100점", "B": "80-89점", "C": "70-79점", "D": "60-69점", "F": "60점 미만"}}
+        }}
+    }}
+}}
+"""
+        
+        # OpenAI API 호출
+        import openai
+        import os
+        api_key = os.getenv("OPENAI_API_KEY")  # 환경변수에서 가져오기
+        client = openai.OpenAI(api_key=api_key)
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": ai_tools_prompt}],
+            temperature=0.7,
+            max_tokens=3000
+        )
+        
+        # 응답 파싱
+        try:
+            content = response.choices[0].message.content.strip()
+            print(f"OpenAI 응답: {content}")
+            
+            # JSON 블록 추출 시도
+            if "```json" in content:
+                json_start = content.find("```json") + 7
+                json_end = content.find("```", json_start)
+                if json_end != -1:
+                    content = content[json_start:json_end].strip()
+            
+            tools_data = json.loads(content)
+            return AiToolsResponse(
+                evaluation_tools=tools_data.get("evaluation_tools", {}),
+                questions=None
+            )
+        except json.JSONDecodeError as e:
+            print(f"JSON 파싱 오류: {e}")
+            print(f"응답 내용: {response.choices[0].message.content}")
+            # 기본 구조 반환
+            return AiToolsResponse(
+                evaluation_tools={
+                    "checklist": {
+                        "pre_interview_checklist": ["이력서 검토", "기술 스택 확인"],
+                        "during_interview_checklist": ["기술 질문", "경험 확인"],
+                        "post_interview_checklist": ["평가 기록", "결과 정리"],
+                        "red_flags_to_watch": ["기술 부족", "경험 부족"],
+                        "green_flags_to_confirm": ["기술 우수", "경험 풍부"]
+                    },
+                    "strengths_weaknesses": {
+                        "strengths": [{"area": "기술역량", "description": "기술 스택이 다양함", "evidence": "이력서 기반"}],
+                        "weaknesses": [{"area": "경험부족", "description": "실무 경험 부족", "suggestion": "프로젝트 경험 확대"}],
+                        "development_areas": ["실무 경험", "팀워크"],
+                        "competitive_advantages": ["기술 다양성", "학습 능력"]
+                    },
+                    "guideline": {
+                        "interview_approach": "기술 중심 면접",
+                        "key_questions_by_category": {
+                            "기술역량": ["주요 기술 스택은?", "프로젝트에서 어떻게 활용했나?"],
+                            "프로젝트경험": ["가장 어려웠던 프로젝트는?", "팀에서의 역할은?"]
+                        },
+                        "evaluation_criteria": [{"criterion": "기술역량", "description": "기술 스택 숙련도", "weight": 0.4}],
+                        "time_allocation": {"기술질문": 0.5, "경험질문": 0.3, "소프트스킬": 0.2},
+                        "follow_up_questions": ["구체적인 기술 활용 사례는?", "문제 해결 과정은?"]
+                    },
+                    "evaluation_criteria": {
+                        "suggested_criteria": [{"criterion": "기술역량", "description": "기술 스택 숙련도", "weight": 0.4}],
+                        "weight_recommendations": [{"category": "기술역량", "weight": 0.4, "reason": "핵심 역량"}],
+                        "evaluation_questions": ["기술 스택 숙련도는?", "프로젝트 경험은?"],
+                        "scoring_guidelines": {"A": "90-100점", "B": "80-89점", "C": "70-79점", "D": "60-69점", "F": "60점 미만"}
+                    }
+                }
+            )
+        
+    except Exception as e:
+        print(f"AI 도구 생성 오류: {e}")
+        raise HTTPException(status_code=500, detail=f"AI 도구 생성 실패: {str(e)}")

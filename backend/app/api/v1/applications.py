@@ -9,7 +9,7 @@ from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
     ApplicationList
 )
-from app.models.application import Application, ApplyStatus, DocumentStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
@@ -704,6 +704,92 @@ def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db
     applicants = db.query(Application).filter(Application.job_post_id == job_post_id).all()
     result = []
     for app in applicants:
+        sia_row = db.execute(
+            select(
+                schedule_interview_applicant.c.schedule_interview_id
+            ).where(schedule_interview_applicant.c.user_id == app.user_id)
+        ).first()
+        schedule_interview_id = None
+        schedule_date = None
+        if sia_row:
+            schedule_interview_id = sia_row[0]
+            si = db.query(ScheduleInterview).filter(ScheduleInterview.id == schedule_interview_id).first()
+            if si:
+                schedule_date = si.schedule_date
+        user = db.query(User).filter(User.id == app.user_id).first()
+        result.append({
+            "applicant_id": app.user_id,
+            "name": user.name if user else "",
+            "schedule_interview_id": schedule_interview_id,
+            "schedule_date": schedule_date,
+        })
+    return result
+
+
+@router.get("/job/{job_post_id}/applicants-with-ai-interview")
+@redis_cache(expire=300)  # 5분 캐시
+def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """AI 면접 지원자 + 면접일정 포함 API"""
+    # 서류 합격자 중 AI 면접 대상자 필터링
+    meta = MetaData()
+    schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+    
+    # 서류 합격자 중 AI 면접 대상자 조회
+    applicants = db.query(Application).filter(
+        Application.job_post_id == job_post_id,
+        Application.document_status == DocumentStatus.PASSED,  # 서류 합격
+        Application.interview_status.in_([
+            InterviewStatus.AI_INTERVIEW_NOT_SCHEDULED,  # AI 면접 미일정
+            InterviewStatus.AI_INTERVIEW_SCHEDULED,      # AI 면접 일정 확정
+            InterviewStatus.AI_INTERVIEW_IN_PROGRESS     # AI 면접 진행 중
+        ])
+    ).all()
+    
+    result = []
+    for app in applicants:
+        # AI 면접 일정 조회
+        sia_row = db.execute(
+            select(
+                schedule_interview_applicant.c.schedule_interview_id
+            ).where(schedule_interview_applicant.c.user_id == app.user_id)
+        ).first()
+        schedule_interview_id = None
+        schedule_date = None
+        if sia_row:
+            schedule_interview_id = sia_row[0]
+            si = db.query(ScheduleInterview).filter(ScheduleInterview.id == schedule_interview_id).first()
+            if si:
+                schedule_date = si.schedule_date
+        user = db.query(User).filter(User.id == app.user_id).first()
+        result.append({
+            "applicant_id": app.user_id,
+            "name": user.name if user else "",
+            "schedule_interview_id": schedule_interview_id,
+            "schedule_date": schedule_date,
+            "interview_status": app.interview_status,  # AI 면접 상태 추가
+        })
+    return result
+
+
+@router.get("/job/{job_post_id}/applicants-with-second-interview")
+@redis_cache(expire=300)  # 5분 캐시
+def get_applicants_with_second_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """2차 면접(임원면접) 지원자 + 면접일정 포함 API"""
+    # 1차 면접(실무진 면접) 합격자만 필터링
+    meta = MetaData()
+    schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+    
+    # 1차 면접 합격자 조회 (실무진 면접에서 합격한 지원자)
+    # interview_status가 FIRST_INTERVIEW_COMPLETED인 지원자
+    applicants = db.query(Application).filter(
+        Application.job_post_id == job_post_id,
+        Application.interview_status == InterviewStatus.FIRST_INTERVIEW_COMPLETED,
+        Application.status.in_([ApplyStatus.PASSED, ApplyStatus.IN_PROGRESS])
+    ).all()
+    
+    result = []
+    for app in applicants:
+        # 2차 면접 일정 조회
         sia_row = db.execute(
             select(
                 schedule_interview_applicant.c.schedule_interview_id
