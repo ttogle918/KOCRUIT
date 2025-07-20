@@ -4,40 +4,166 @@ import api from '../api/api';
 
 const InterviewStatusCard = ({ applicant, onStatusChange }) => {
   const [updating, setUpdating] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState(applicant?.interview_status || 'NOT_SCHEDULED');
+  const [currentStatus, setCurrentStatus] = useState(applicant?.interview_status || 'AI_INTERVIEW_NOT_SCHEDULED');
 
-  const statusConfig = {
-    NOT_SCHEDULED: {
-      label: '면접 미일정',
-      icon: <FaClock className="text-gray-400" />,
-      color: 'bg-gray-100 text-gray-600',
-      nextStatus: 'SCHEDULED'
-    },
-    SCHEDULED: {
-      label: '면접 일정 확정',
-      icon: <FaCalendarAlt className="text-blue-500" />,
-      color: 'bg-blue-100 text-blue-600',
-      nextStatus: 'IN_PROGRESS'
-    },
-    IN_PROGRESS: {
-      label: '면접 진행 중',
-      icon: <FaPlay className="text-yellow-500" />,
-      color: 'bg-yellow-100 text-yellow-600',
-      nextStatus: 'COMPLETED'
-    },
-    COMPLETED: {
-      label: '면접 완료',
-      icon: <FaCheck className="text-green-500" />,
-      color: 'bg-green-100 text-green-600',
-      nextStatus: null
-    },
-    CANCELLED: {
-      label: '면접 취소',
-      icon: <FaTimes className="text-red-500" />,
-      color: 'bg-red-100 text-red-600',
-      nextStatus: 'SCHEDULED'
+  // 면접 단계별 상태 매핑
+  const getStatusConfig = (status) => {
+    // AI 면접
+    if (status?.includes('AI_INTERVIEW')) {
+      return {
+        AI_INTERVIEW_NOT_SCHEDULED: {
+          label: 'AI 면접 미일정',
+          icon: <FaClock className="text-gray-400" />,
+          color: 'bg-gray-100 text-gray-600',
+          nextStatus: 'AI_INTERVIEW_SCHEDULED'
+        },
+        AI_INTERVIEW_SCHEDULED: {
+          label: 'AI 면접 일정 확정',
+          icon: <FaCalendarAlt className="text-blue-500" />,
+          color: 'bg-blue-100 text-blue-600',
+          nextStatus: 'AI_INTERVIEW_IN_PROGRESS'
+        },
+        AI_INTERVIEW_IN_PROGRESS: {
+          label: 'AI 면접 진행 중',
+          icon: <FaPlay className="text-yellow-500" />,
+          color: 'bg-yellow-100 text-yellow-600',
+          nextStatus: 'AI_INTERVIEW_COMPLETED'
+        },
+        AI_INTERVIEW_COMPLETED: {
+          label: 'AI 면접 완료',
+          icon: <FaCheck className="text-green-500" />,
+          color: 'bg-green-100 text-green-600',
+          nextStatus: 'FIRST_INTERVIEW_NOT_SCHEDULED'
+        },
+        AI_INTERVIEW_CANCELLED: {
+          label: 'AI 면접 취소',
+          icon: <FaTimes className="text-red-500" />,
+          color: 'bg-red-100 text-red-600',
+          nextStatus: 'AI_INTERVIEW_SCHEDULED'
+        }
+      };
     }
+    
+    // 1차 면접
+    if (status?.includes('FIRST_INTERVIEW')) {
+      return {
+        FIRST_INTERVIEW_NOT_SCHEDULED: {
+          label: '1차 면접 미일정',
+          icon: <FaClock className="text-gray-400" />,
+          color: 'bg-gray-100 text-gray-600',
+          nextStatus: 'FIRST_INTERVIEW_SCHEDULED'
+        },
+        FIRST_INTERVIEW_SCHEDULED: {
+          label: '1차 면접 일정 확정',
+          icon: <FaCalendarAlt className="text-blue-500" />,
+          color: 'bg-blue-100 text-blue-600',
+          nextStatus: 'FIRST_INTERVIEW_IN_PROGRESS'
+        },
+        FIRST_INTERVIEW_IN_PROGRESS: {
+          label: '1차 면접 진행 중',
+          icon: <FaPlay className="text-yellow-500" />,
+          color: 'bg-yellow-100 text-yellow-600',
+          nextStatus: 'FIRST_INTERVIEW_COMPLETED'
+        },
+        FIRST_INTERVIEW_COMPLETED: {
+          label: '1차 면접 완료',
+          icon: <FaCheck className="text-green-500" />,
+          color: 'bg-green-100 text-green-600',
+          nextStatus: 'SECOND_INTERVIEW_NOT_SCHEDULED'
+        },
+        FIRST_INTERVIEW_CANCELLED: {
+          label: '1차 면접 취소',
+          icon: <FaTimes className="text-red-500" />,
+          color: 'bg-red-100 text-red-600',
+          nextStatus: 'FIRST_INTERVIEW_SCHEDULED'
+        }
+      };
+    }
+    
+    // 2차 면접
+    if (status?.includes('SECOND_INTERVIEW')) {
+      return {
+        SECOND_INTERVIEW_NOT_SCHEDULED: {
+          label: '2차 면접 미일정',
+          icon: <FaClock className="text-gray-400" />,
+          color: 'bg-gray-100 text-gray-600',
+          nextStatus: 'SECOND_INTERVIEW_SCHEDULED'
+        },
+        SECOND_INTERVIEW_SCHEDULED: {
+          label: '2차 면접 일정 확정',
+          icon: <FaCalendarAlt className="text-blue-500" />,
+          color: 'bg-blue-100 text-blue-600',
+          nextStatus: 'SECOND_INTERVIEW_IN_PROGRESS'
+        },
+        SECOND_INTERVIEW_IN_PROGRESS: {
+          label: '2차 면접 진행 중',
+          icon: <FaPlay className="text-yellow-500" />,
+          color: 'bg-yellow-100 text-yellow-600',
+          nextStatus: 'SECOND_INTERVIEW_COMPLETED'
+        },
+        SECOND_INTERVIEW_COMPLETED: {
+          label: '2차 면접 완료',
+          icon: <FaCheck className="text-green-500" />,
+          color: 'bg-green-100 text-green-600',
+          nextStatus: 'FINAL_INTERVIEW_NOT_SCHEDULED'
+        },
+        SECOND_INTERVIEW_CANCELLED: {
+          label: '2차 면접 취소',
+          icon: <FaTimes className="text-red-500" />,
+          color: 'bg-red-100 text-red-600',
+          nextStatus: 'SECOND_INTERVIEW_SCHEDULED'
+        }
+      };
+    }
+    
+    // 최종 면접
+    if (status?.includes('FINAL_INTERVIEW')) {
+      return {
+        FINAL_INTERVIEW_NOT_SCHEDULED: {
+          label: '최종 면접 미일정',
+          icon: <FaClock className="text-gray-400" />,
+          color: 'bg-gray-100 text-gray-600',
+          nextStatus: 'FINAL_INTERVIEW_SCHEDULED'
+        },
+        FINAL_INTERVIEW_SCHEDULED: {
+          label: '최종 면접 일정 확정',
+          icon: <FaCalendarAlt className="text-blue-500" />,
+          color: 'bg-blue-100 text-blue-600',
+          nextStatus: 'FINAL_INTERVIEW_IN_PROGRESS'
+        },
+        FINAL_INTERVIEW_IN_PROGRESS: {
+          label: '최종 면접 진행 중',
+          icon: <FaPlay className="text-yellow-500" />,
+          color: 'bg-yellow-100 text-yellow-600',
+          nextStatus: 'FINAL_INTERVIEW_COMPLETED'
+        },
+        FINAL_INTERVIEW_COMPLETED: {
+          label: '최종 면접 완료',
+          icon: <FaCheck className="text-green-500" />,
+          color: 'bg-green-100 text-green-600',
+          nextStatus: null
+        },
+        FINAL_INTERVIEW_CANCELLED: {
+          label: '최종 면접 취소',
+          icon: <FaTimes className="text-red-500" />,
+          color: 'bg-red-100 text-red-600',
+          nextStatus: 'FINAL_INTERVIEW_SCHEDULED'
+        }
+      };
+    }
+    
+    // 기본값 (AI 면접)
+    return {
+      AI_INTERVIEW_NOT_SCHEDULED: {
+        label: 'AI 면접 미일정',
+        icon: <FaClock className="text-gray-400" />,
+        color: 'bg-gray-100 text-gray-600',
+        nextStatus: 'AI_INTERVIEW_SCHEDULED'
+      }
+    };
   };
+
+  const statusConfig = getStatusConfig(currentStatus);
 
   const handleStatusUpdate = async (newStatus) => {
     if (!applicant?.application_id) return;
@@ -53,10 +179,22 @@ const InterviewStatusCard = ({ applicant, onStatusChange }) => {
       
       // 상태별 알림 메시지
       const messages = {
-        SCHEDULED: '면접 일정이 확정되었습니다.',
-        IN_PROGRESS: '면접이 시작되었습니다.',
-        COMPLETED: '면접이 완료되었습니다.',
-        CANCELLED: '면접이 취소되었습니다.'
+        AI_INTERVIEW_SCHEDULED: 'AI 면접 일정이 확정되었습니다.',
+        AI_INTERVIEW_IN_PROGRESS: 'AI 면접이 시작되었습니다.',
+        AI_INTERVIEW_COMPLETED: 'AI 면접이 완료되었습니다.',
+        AI_INTERVIEW_CANCELLED: 'AI 면접이 취소되었습니다.',
+        FIRST_INTERVIEW_SCHEDULED: '1차 면접 일정이 확정되었습니다.',
+        FIRST_INTERVIEW_IN_PROGRESS: '1차 면접이 시작되었습니다.',
+        FIRST_INTERVIEW_COMPLETED: '1차 면접이 완료되었습니다.',
+        FIRST_INTERVIEW_CANCELLED: '1차 면접이 취소되었습니다.',
+        SECOND_INTERVIEW_SCHEDULED: '2차 면접 일정이 확정되었습니다.',
+        SECOND_INTERVIEW_IN_PROGRESS: '2차 면접이 시작되었습니다.',
+        SECOND_INTERVIEW_COMPLETED: '2차 면접이 완료되었습니다.',
+        SECOND_INTERVIEW_CANCELLED: '2차 면접이 취소되었습니다.',
+        FINAL_INTERVIEW_SCHEDULED: '최종 면접 일정이 확정되었습니다.',
+        FINAL_INTERVIEW_IN_PROGRESS: '최종 면접이 시작되었습니다.',
+        FINAL_INTERVIEW_COMPLETED: '최종 면접이 완료되었습니다.',
+        FINAL_INTERVIEW_CANCELLED: '최종 면접이 취소되었습니다.'
       };
       
       if (messages[newStatus]) {
@@ -160,11 +298,11 @@ const InterviewStatusCard = ({ applicant, onStatusChange }) => {
       {/* 상태별 안내 메시지 */}
       <div className="mt-4 p-3 bg-blue-50 rounded-lg">
         <div className="text-sm text-blue-700">
-          {currentStatus === 'NOT_SCHEDULED' && '면접 일정을 먼저 생성해주세요.'}
-          {currentStatus === 'SCHEDULED' && '면접 일정이 확정되었습니다. 면접 시작 버튼을 눌러주세요.'}
-          {currentStatus === 'IN_PROGRESS' && '면접이 진행 중입니다. 면접 완료 후 완료 버튼을 눌러주세요.'}
-          {currentStatus === 'COMPLETED' && '면접이 완료되었습니다. 면접 평가를 진행해주세요.'}
-          {currentStatus === 'CANCELLED' && '면접이 취소되었습니다. 필요시 일정을 재조정해주세요.'}
+          {currentStatus?.includes('NOT_SCHEDULED') && '면접 일정을 먼저 생성해주세요.'}
+          {currentStatus?.includes('SCHEDULED') && '면접 일정이 확정되었습니다. 면접 시작 버튼을 눌러주세요.'}
+          {currentStatus?.includes('IN_PROGRESS') && '면접이 진행 중입니다. 면접 완료 후 완료 버튼을 눌러주세요.'}
+          {currentStatus?.includes('COMPLETED') && '면접이 완료되었습니다. 면접 평가를 진행해주세요.'}
+          {currentStatus?.includes('CANCELLED') && '면접이 취소되었습니다. 필요시 일정을 재조정해주세요.'}
         </div>
       </div>
     </div>

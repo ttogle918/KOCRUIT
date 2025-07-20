@@ -129,6 +129,7 @@ function AppRoutes() {
                 <Route path="/memberschedule" element={<ProtectedRoute><MemberSchedule /></ProtectedRoute>} />
                 <Route path="/applicantlist/:jobPostId" element={<ProtectedRoute><ApplicantList /></ProtectedRoute>} />
                 <Route path="/interview-progress/:jobPostId" element={<ProtectedRoute><InterviewProgress /></ProtectedRoute>} />
+                <Route path="/interview-progress/:jobPostId/:interviewStage" element={<ProtectedRoute><InterviewProgress /></ProtectedRoute>} />
                 <Route path="/interview-panel-management/:jobPostId" element={<ProtectedRoute><InterviewPanelManagement /></ProtectedRoute>} />
                 <Route path="/applicant/written-test-generator" element={<ProtectedRoute><WrittenTestGenerator /></ProtectedRoute>} />
                 <Route path="/report/document" element={<ProtectedRoute><DocumentReport /></ProtectedRoute>} />
