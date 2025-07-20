@@ -730,19 +730,13 @@ def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db
 @redis_cache(expire=300)  # 5분 캐시
 def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get_db)):
     """AI 면접 지원자 + 면접일정 포함 API"""
-    # 서류 합격자 중 AI 면접 대상자 필터링
+    # 모든 지원자를 보여주도록 필터링 조건 완화
     meta = MetaData()
     schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
     
-    # 서류 합격자 중 AI 면접 대상자 조회
+    # 모든 지원자 조회 (필터링 조건 제거)
     applicants = db.query(Application).filter(
-        Application.job_post_id == job_post_id,
-        Application.document_status == DocumentStatus.PASSED,  # 서류 합격
-        Application.interview_status.in_([
-            InterviewStatus.AI_INTERVIEW_NOT_SCHEDULED,  # AI 면접 미일정
-            InterviewStatus.AI_INTERVIEW_SCHEDULED,      # AI 면접 일정 확정
-            InterviewStatus.AI_INTERVIEW_IN_PROGRESS     # AI 면접 진행 중
-        ])
+        Application.job_post_id == job_post_id
     ).all()
     
     result = []
@@ -767,6 +761,8 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
             "schedule_interview_id": schedule_interview_id,
             "schedule_date": schedule_date,
             "interview_status": app.interview_status,  # AI 면접 상태 추가
+            "document_status": app.document_status,  # 서류 상태 추가
+            "status": app.status,  # 전체 상태 추가
         })
     return result
 

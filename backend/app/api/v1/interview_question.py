@@ -1209,71 +1209,118 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
                 if job_post:
                     job_info = parse_job_post_data(job_post)
         
-        # LangGraph 워크플로우를 사용한 AI 면접 질문 생성
-        import sys
-        import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
-        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
-        
-        # 워크플로우 실행
-        workflow_result = generate_comprehensive_interview_questions(
-            resume_text=resume_text,
-            job_info=job_info,
-            company_name=request.company_name or "회사",
-            applicant_name=request.name or "",
-            interview_type="ai"
-        )
-        
-        # 결과에서 질문 추출
-        generated_questions = workflow_result.get("generated_questions", {})
-        ai_questions = generated_questions.get("ai", {})
-        
-        # 질문을 텍스트로 변환
-        all_questions = []
-        for category, questions in ai_questions.items():
-            if isinstance(questions, list):
-                all_questions.extend(questions)
-            elif isinstance(questions, dict) and "questions" in questions:
-                all_questions.extend(questions["questions"])
+        # AI 면접 질문 생성 (fallback 사용)
+        try:
+            # LangGraph 워크플로우를 사용한 AI 면접 질문 생성
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+            from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+            
+            # 워크플로우 실행
+            workflow_result = generate_comprehensive_interview_questions(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=request.company_name or "회사",
+                applicant_name=request.name or "",
+                interview_type="ai"
+            )
+            
+            # 결과에서 질문 추출
+            generated_questions = workflow_result.get("generated_questions", {})
+            ai_questions = generated_questions.get("ai", {})
+            
+            # 질문을 텍스트로 변환
+            all_questions = []
+            for category, questions in ai_questions.items():
+                if isinstance(questions, list):
+                    all_questions.extend(questions)
+                elif isinstance(questions, dict) and "questions" in questions:
+                    all_questions.extend(questions["questions"])
+            
+        except Exception as e:
+            print(f"AI 면접 질문 생성 실패, fallback 사용: {e}")
+            # Fallback: 랜덤 기본 질문 사용
+            from app.data.general_interview_questions import get_random_general_questions
+            
+            # 7개의 랜덤 일반 질문 선택
+            random_questions = get_random_general_questions(7)
+            all_questions = [q["question"] for q in random_questions]
+            
+            # 추가로 3개의 기본 질문 추가 (총 10개)
+            additional_questions = [
+                "자기소개를 해주세요.",
+                "이 직무에 지원한 이유는 무엇인가요?",
+                "본인의 강점과 약점은 무엇인가요?"
+            ]
+            all_questions.extend(additional_questions)
         
         question_text = "\n".join(all_questions) if all_questions else "질문을 생성할 수 없습니다."
         
         # DB에 저장
         saved_count = 0
-        if request.save_to_db and request.application_id and all_questions:
+        if request.save_to_db and all_questions:
             from app.models.interview_question import InterviewQuestion, QuestionType
             
-            # 기존 AI 면접 질문 삭제 (중복 방지)
-            db.query(InterviewQuestion).filter(
-                InterviewQuestion.application_id == request.application_id,
-                InterviewQuestion.type == QuestionType.AI_INTERVIEW
-            ).delete()
+            # job_post_id 찾기
+            job_post_id = None
+            if request.application_id:
+                application = db.query(Application).filter(Application.id == request.application_id).first()
+                if application:
+                    job_post_id = application.job_post_id
             
-            # 새로운 질문들 저장
-            for i, question in enumerate(all_questions):
-                # 질문 카테고리 결정
-                category = "common"
-                if i < len(ai_questions.get("common", [])):
-                    category = "common"
-                elif i < len(ai_questions.get("common", [])) + len(ai_questions.get("personal", [])):
-                    category = "personal"
-                elif i < len(ai_questions.get("common", [])) + len(ai_questions.get("personal", [])) + len(ai_questions.get("company", [])):
-                    category = "company"
-                else:
-                    category = "job"
+            if job_post_id:
+                # 기존 AI 면접 질문 삭제 (job_post_id 기반, 중복 방지)
+                db.query(InterviewQuestion).filter(
+                    InterviewQuestion.job_post_id == job_post_id,
+                    InterviewQuestion.type == QuestionType.AI_INTERVIEW
+                ).delete()
                 
-                # DB에 저장 (AI 면접은 type을 AI_INTERVIEW로, category로 세부 분류)
-                interview_question = InterviewQuestion(
-                    application_id=request.application_id,
-                    type=QuestionType.AI_INTERVIEW,
-                    question_text=question,
-                    category=category,
-                    difficulty="medium"  # AI 면접은 기본적으로 medium
-                )
-                db.add(interview_question)
-                saved_count += 1
+                # 새로운 질문들 저장 (job_post_id 기반, application_id는 NULL)
+                for i, question in enumerate(all_questions):
+                    # 질문 카테고리 결정
+                    category = "common"
+                    if i < 3:
+                        category = "common"
+                    elif i < 6:
+                        category = "personal"
+                    elif i < 8:
+                        category = "company"
+                    else:
+                        category = "job"
+                    
+                    # DB에 저장 (AI 면접은 job_post_id 기반, application_id는 NULL)
+                    interview_question = InterviewQuestion(
+                        application_id=None,  # AI 면접은 공고별 공유
+                        job_post_id=job_post_id,
+                        type=QuestionType.AI_INTERVIEW,
+                        question_text=question,
+                        category=category,
+                        difficulty="medium"  # AI 면접은 기본적으로 medium
+                    )
+                    db.add(interview_question)
+                    saved_count += 1
+                
+                db.commit()
             
-            db.commit()
+            # 캐시 무효화
+            try:
+                from app.core.cache import invalidate_cache
+                # 관련 캐시 키들 무효화
+                cache_patterns_to_clear = [
+                    f"cache:applications:job:{request.application_id}:*",
+                    f"cache:interview-questions:application:{request.application_id}:*",
+                    f"cache:interview-questions:job:{request.application_id}:*"
+                ]
+                
+                for cache_pattern in cache_patterns_to_clear:
+                    try:
+                        invalidate_cache(cache_pattern)
+                        print(f"캐시 무효화 완료: {cache_pattern}")
+                    except Exception as cache_error:
+                        print(f"캐시 무효화 실패: {cache_pattern} - {cache_error}")
+            except Exception as cache_error:
+                print(f"캐시 무효화 중 오류: {cache_error}")
         
         return {
             "questions": question_text,
@@ -1286,12 +1333,18 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
 
 @router.get("/application/{application_id}/ai-questions")
 def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db)):
-    """특정 지원자의 AI 면접 질문 조회"""
+    """특정 지원자의 AI 면접 질문 조회 (job_post_id 기반)"""
     try:
         from app.models.interview_question import InterviewQuestion, QuestionType
         
+        # 지원자의 job_post_id 찾기
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        # job_post_id 기반으로 AI 면접 질문 조회
         questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.application_id == application_id,
+            InterviewQuestion.job_post_id == application.job_post_id,
             InterviewQuestion.type == QuestionType.AI_INTERVIEW
         ).order_by(InterviewQuestion.category, InterviewQuestion.id).all()
         
@@ -1312,9 +1365,94 @@ def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db
         
         return {
             "application_id": application_id,
+            "job_post_id": application.job_post_id,
             "interview_stage": "ai",
             "questions": grouped_questions,
             "total_count": len(questions)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/job/{job_post_id}/ai-questions")
+def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(get_db)):
+    """공고별 AI 면접 질문 조회 (공통 + 직무별 + 게임)"""
+    try:
+        from app.models.interview_question import InterviewQuestion, QuestionType
+        from app.models.job import JobPost
+        
+        # 공고 정보 조회
+        job = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        if not job:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        
+        # 1. 직무별 질문 조회 (job_post_id 기반)
+        job_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.job_post_id == job_post_id,
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.category == "job_specific"
+        ).order_by(InterviewQuestion.id).all()
+        
+        # 2. 공통 질문 조회 (company_id 기반)
+        common_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.company_id == job.company_id,
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.category == "common"
+        ).order_by(InterviewQuestion.id).all()
+        
+        # 3. 게임 테스트 조회 (company_id 기반)
+        game_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.company_id == job.company_id,
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.category == "game_test"
+        ).order_by(InterviewQuestion.id).all()
+        
+        # 카테고리별로 그룹화
+        grouped_questions = {
+            "common": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "type": q.type.value,
+                    "category": q.category,
+                    "difficulty": q.difficulty,
+                    "created_at": q.created_at
+                } for q in common_questions
+            ],
+            "job_specific": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "type": q.type.value,
+                    "category": q.category,
+                    "difficulty": q.difficulty,
+                    "created_at": q.created_at
+                } for q in job_questions
+            ],
+            "game_test": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "type": q.type.value,
+                    "category": q.category,
+                    "difficulty": q.difficulty,
+                    "created_at": q.created_at
+                } for q in game_questions
+            ]
+        }
+        
+        total_count = len(common_questions) + len(job_questions) + len(game_questions)
+        
+        return {
+            "job_post_id": job_post_id,
+            "company_id": job.company_id,
+            "interview_stage": "ai",
+            "questions": grouped_questions,
+            "total_count": total_count,
+            "breakdown": {
+                "common": len(common_questions),
+                "job_specific": len(job_questions),
+                "game_test": len(game_questions)
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -153,8 +153,8 @@ async def handle_audio_chunk(session_id: str, message: Dict[str, Any]):
 async def process_audio_chunk(audio_path: str, timestamp: float) -> Dict[str, Any]:
     """오디오 청크 처리 (비동기)"""
     try:
-        # 새로운 AI 면접 워크플로우 사용
-        from agent.agents.ai_interview_workflow import run_ai_interview
+        # AI 에이전트 서비스 호출 (HTTP API 사용)
+        import httpx
         
         # 오디오 파일을 바이트로 읽기
         with open(audio_path, 'rb') as f:
@@ -171,41 +171,49 @@ async def process_audio_chunk(audio_path: str, timestamp: float) -> Dict[str, An
         # 음성 인식 (실제로는 Whisper 사용)
         transcription_result = {"text": "안녕하세요, 자기소개를 해드리겠습니다.", "success": True}
         
-        # AI 면접 워크플로우 실행
+        # AI 에이전트 서비스 호출
         try:
-            result = await asyncio.wait_for(
-                asyncio.to_thread(
-                    run_ai_interview,
-                    session_id=f"session_{timestamp}",
-                    job_info="IT 개발자",
-                    audio_data={
-                        "transcript": transcription_result.get("text", ""),
-                        "audio_features": audio_features
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "http://kocruit_agent:8001/agent/ai-interview-evaluation",
+                    json={
+                        "session_id": f"session_{timestamp}",
+                        "job_info": "IT 개발자",
+                        "audio_data": {
+                            "transcript": transcription_result.get("text", ""),
+                            "audio_features": audio_features
+                        },
+                        "behavior_data": {
+                            "eye_contact": 7,
+                            "facial_expression": 8,
+                            "posture": 6,
+                            "tone": 7,
+                            "extraversion": 6,
+                            "openness": 7,
+                            "conscientiousness": 8,
+                            "agreeableness": 7,
+                            "neuroticism": 4
+                        },
+                        "game_data": {
+                            "focus_score": 7,
+                            "response_time_score": 8,
+                            "memory_score": 6,
+                            "situation_score": 7,
+                            "problem_solving_score": 8
+                        }
                     },
-                    behavior_data={
-                        "eye_contact": 7,
-                        "facial_expression": 8,
-                        "posture": 6,
-                        "tone": 7,
-                        "extraversion": 6,
-                        "openness": 7,
-                        "conscientiousness": 8,
-                        "agreeableness": 7,
-                        "neuroticism": 4
-                    },
-                    game_data={
-                        "focus_score": 7,
-                        "response_time_score": 8,
-                        "memory_score": 6,
-                        "situation_score": 7,
-                        "problem_solving_score": 8
-                    }
-                ),
-                timeout=30.0
-            )
-        except asyncio.TimeoutError:
-            logging.error("AI 면접 처리 타임아웃")
-            result = {"error": "AI 면접 처리 타임아웃", "success": False}
+                    timeout=30.0
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                else:
+                    logging.error(f"AI 에이전트 호출 실패: {response.status_code}")
+                    result = {"error": f"AI 에이전트 호출 실패: {response.status_code}", "success": False}
+                    
+        except Exception as e:
+            logging.error(f"AI 에이전트 호출 오류: {e}")
+            result = {"error": f"AI 에이전트 호출 오류: {str(e)}", "success": False}
         
         # 결과 변환
         if result.get("success", True) and "error" not in result:
@@ -230,8 +238,6 @@ async def process_audio_chunk(audio_path: str, timestamp: float) -> Dict[str, An
                 "success": False,
                 "error": result.get("error", "Unknown error")
             }
-        
-        return result
         
     except Exception as e:
         logging.error(f"오디오 처리 오류: {e}")
