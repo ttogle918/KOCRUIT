@@ -6,7 +6,7 @@ function DocumentReport() {
   const [data, setData] = useState(null);
   const [loadingText, setLoadingText] = useState('');
   const loadingInterval = useRef(null);
-  const fullText = '서류보고서 PDF 생성 중입니다...';
+  const fullText = '서류보고서 생성 중입니다...';
   const [searchParams] = useSearchParams();
   const jobPostId = searchParams.get("job_post_id");
 
