@@ -156,9 +156,37 @@ export default function CorpHome() {
                         </span>
                       )}
                     </div>
-                    {post.end_date && (
+                    {/* 예정 탭: 모집 시작일 및 안내 */}
+                    {activeTab === 'scheduled' && (
+                      <>
+                        {post.start_date && (
+                          <div className="text-sm text-purple-600 mt-1">
+                            모집 시작일: {new Date(post.start_date).toLocaleDateString('ko-KR')}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-1">이 공고는 아직 모집이 시작되지 않았습니다.</div>
+                      </>
+                    )}
+                    {/* 모집중 탭: 모집 마감일 */}
+                    {activeTab === 'recruiting' && post.end_date && (
                       <div className="text-sm text-gray-500 mt-1">
-                        마감일: {new Date(post.end_date).toLocaleDateString('ko-KR')}
+                        모집 마감일: {new Date(post.end_date).toLocaleDateString('ko-KR')}
+                      </div>
+                    )}
+                    {/* 선발중 탭: 지원자/선발인원 */}
+                    {activeTab === 'selecting' && (
+                      <div className="text-sm text-orange-600 mt-1">
+                        지원자 {post.applicant_count ?? '-'}명 / {post.headcount ?? '-'}명 선발
+                      </div>
+                    )}
+                    {/* 마감 탭: 최종 합격자, 마감일, 지원자수 */}
+                    {activeTab === 'closed' && (
+                      <div className="text-sm text-gray-600 mt-1 space-y-1">
+                        <div>최종 합격자: {post.final_selected_count ?? '-' }명</div>
+                        {post.end_date && (
+                          <div>마감일: {new Date(post.end_date).toLocaleDateString('ko-KR')}</div>
+                        )}
+                        <div>지원자 수: {post.applicant_count ?? '-' }명</div>
                       </div>
                     )}
                   </div>

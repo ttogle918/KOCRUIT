@@ -63,7 +63,7 @@ def get_public_job_posts(
         def query_job_posts():
             # t3.small 최적화: 필요한 컬럼만 선택하고 JOIN 최적화
             job_posts = db.query(JobPost).filter(
-                JobPost.status.in_(["SCHEDULED", "RECRUITING"])
+                JobPost.status == "RECRUITING"
             ).options(
                 joinedload(JobPost.company)  # 지연 로딩으로 성능 향상
             ).offset(skip).limit(limit).all()
@@ -98,7 +98,7 @@ def get_public_job_post(
         def query_job_post():
             job_post = db.query(JobPost).filter(
                 JobPost.id == job_post_id,
-                JobPost.status.in_(["SCHEDULED", "RECRUITING"])
+                JobPost.status == "RECRUITING"
             ).first()
             
             if not job_post:
@@ -108,7 +108,20 @@ def get_public_job_post(
             if job_post.company:
                 job_post.companyName = job_post.company.name
             
-            return job_post
+            # department 필드를 문자열(부서명)로 변환
+            department_name = None
+            if hasattr(job_post, 'department_id') and job_post.department_id:
+                from app.models.company import Department
+                department = db.query(Department).filter(Department.id == job_post.department_id).first()
+                if department:
+                    department_name = department.name
+            # dict로 변환하여 department만 문자열로 덮어씀
+            job_post_dict = job_post.__dict__.copy()
+            job_post_dict['department'] = department_name
+            # companyName 등 동적 속성도 dict에 추가
+            if hasattr(job_post, 'companyName'):
+                job_post_dict['companyName'] = job_post.companyName
+            return job_post_dict
         
         return execute_with_retry(db, query_job_post)
         
