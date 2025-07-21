@@ -46,14 +46,14 @@ const ApplicantCard = forwardRef(({
         </div>
 
         {/* 중앙 텍스트 정보 */}
-        <div className="flex flex-col flex-grow">
+        <div className="flex flex-col flex-grow min-w-0">
           <div className={`text-xs text-gray-500 dark:text-gray-400 text-right ${compact ? 'text-[10px]' : ''}`}>
-            {new Date(applicant.appliedAt).toLocaleDateString()}
+            {applicant.appliedAt ? new Date(applicant.appliedAt).toLocaleDateString() : 'Invalid Date'}
           </div>
-          <div className={`font-semibold text-gray-800 dark:text-white ${compact ? 'text-xs' : 'text-lg'}`}>
+          <div className={`font-semibold text-gray-800 dark:text-white truncate ${compact ? 'text-xs' : 'text-base'}`}>
             {applicant.name} ({calculateAge(applicant.birthDate)}세)
           </div>
-          <div className={`text-gray-500 dark:text-gray-400 ${compact ? 'text-[11px]' : 'text-sm'}`}>
+          <div className={`text-gray-500 dark:text-gray-400 truncate ${compact ? 'text-[11px]' : 'text-sm'}`}>
             {applicant.applicationSource || 'DIRECT'}
           </div>
         </div>

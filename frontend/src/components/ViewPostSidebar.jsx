@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Box, VStack, Button, useColorModeValue, Tooltip, Text, Icon } from '@chakra-ui/react';
 import { CiSettings, CiUser, CiCalendar } from 'react-icons/ci';
 import { MdOutlinePlayCircle, MdCheckCircle, MdRadioButtonUnchecked } from 'react-icons/md';
+import { MdOutlineAutoAwesome, MdOutlineGroups, MdOutlineBusiness } from 'react-icons/md';
 
 export default function ViewPostSidebar({ jobPost }) {
   const navigate = useNavigate();
@@ -19,11 +19,21 @@ export default function ViewPostSidebar({ jobPost }) {
   const applicantListPath = `/applicantlist/${effectiveJobPostId}`;
   const passedApplicantsPath = `/passedapplicants/${effectiveJobPostId}`;
   const interviewProgressPath = `/interview-progress/${effectiveJobPostId}`;
+  
+  // 면접 단계별 경로
+  const aiInterviewPath = `/interview-progress/${effectiveJobPostId}/ai`;
+  const firstInterviewPath = `/interview-progress/${effectiveJobPostId}/first`;
+  const secondInterviewPath = `/interview-progress/${effectiveJobPostId}/second`;
 
   // 현재 경로와 비교
   const isApplicantList = location.pathname === applicantListPath;
   const isPassedApplicants = location.pathname === passedApplicantsPath;
   const isInterviewProgress = location.pathname === interviewProgressPath;
+  
+  // 면접 단계별 활성 상태 확인
+  const isAiInterview = location.pathname === aiInterviewPath;
+  const isFirstInterview = location.pathname === firstInterviewPath;
+  const isSecondInterview = location.pathname === secondInterviewPath;
 
   return (
     <div
@@ -76,19 +86,54 @@ export default function ViewPostSidebar({ jobPost }) {
           <MdOutlinePlayCircle size={20} />
           {isHovered && <span className="ml-2">필기 질문 생성</span>}
         </button>
+      </div>
+      
+      {/* 면접 단계별 네비게이션 */}
+      <div className="flex flex-col gap-1 w-full mb-6">
+        <div className={`text-xs font-semibold px-2 mb-1 ${isHovered ? 'block' : 'hidden'}`}>
+          면접 진행
+        </div>
+        {/* AI 면접 */}
         <button
-          className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-bold
+          className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
-            ${isInterviewProgress
+            ${isAiInterview
+              ? 'bg-green-600 text-white hover:bg-green-700'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}
+          `}
+          onClick={() => navigate(aiInterviewPath)}
+        >
+          <MdOutlineAutoAwesome size={20} />
+          {isHovered && <span className="ml-2">AI 면접</span>}
+        </button>
+        {/* 1차 면접 (실무진) */}
+        <button
+          className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm font-semibold
+            ${isHovered ? 'justify-start' : 'justify-center'}
+            ${isFirstInterview
               ? 'bg-blue-600 text-white hover:bg-blue-700'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}
           `}
-          onClick={() => navigate(interviewProgressPath)}
+          onClick={() => navigate(firstInterviewPath)}
         >
-          <MdOutlinePlayCircle size={22} />
-          {isHovered && <span className="ml-2">면접 진행</span>}
+          <MdOutlineGroups size={20} />
+          {isHovered && <span className="ml-2">1차 면접</span>}
+        </button>
+        {/* 2차 면접 (임원) */}
+        <button
+          className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm font-semibold
+            ${isHovered ? 'justify-start' : 'justify-center'}
+            ${isSecondInterview
+              ? 'bg-purple-600 text-white hover:bg-purple-700'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}
+          `}
+          onClick={() => navigate(secondInterviewPath)}
+        >
+          <MdOutlineBusiness size={20} />
+          {isHovered && <span className="ml-2">2차 면접</span>}
         </button>
       </div>
+      
       {/* 보고서 버튼들 (jobPost 있을 때만) */}
       {jobPost && (
         <div className="flex flex-col gap-1 w-full mb-6">

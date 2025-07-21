@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
 question_generation_scheduler.py
-백그라운드에서 면접 질문을 자동 생성하는 스케줄러
+백그라운드에서 면접 질문을 자동 생성하는 스케줄러 (APScheduler 사용)
 """
 
-import schedule
-import time
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -52,7 +50,8 @@ class QuestionGenerationScheduler:
                         if existing_common_questions == 0:
                             # 공통 질문 생성
                             company_name = job_post.company.name if job_post.company else ""
-                            job_info = f"{job_post.title} - {job_post.description}"
+                            from app.api.v1.interview_question import parse_job_post_data
+                            job_info = parse_job_post_data(job_post)
                             
                             questions = InterviewQuestionService.generate_common_questions_for_job_post(
                                 db=db,
@@ -81,9 +80,14 @@ class QuestionGenerationScheduler:
         try:
             db = SessionLocal()
             
-            # 면접 일정이 확정된 지원자들이 있는 공고 조회
+            # 면접 일정이 확정된 지원자들이 있는 공고 조회 (AI 면접 또는 1차 면접)
             scheduled_job_posts = db.query(JobPost).join(Application).filter(
-                Application.interview_status == InterviewStatus.SCHEDULED.value,
+                Application.interview_status.in_([
+                    InterviewStatus.AI_INTERVIEW_SCHEDULED.value,
+                    InterviewStatus.FIRST_INTERVIEW_SCHEDULED.value,
+                    InterviewStatus.SECOND_INTERVIEW_SCHEDULED.value,
+                    InterviewStatus.FINAL_INTERVIEW_SCHEDULED.value
+                ]),
                 Application.document_status == DocumentStatus.PASSED.value
             ).distinct().all()
             
@@ -109,33 +113,45 @@ class QuestionGenerationScheduler:
     
     @staticmethod
     def run_scheduler():
-        """스케줄러 실행"""
+        """스케줄러 실행 (main.py에서 호출됨)"""
         logger.info("면접 질문 생성 스케줄러 시작")
         
-        # 공통 질문 생성: 매일 새벽 2시
-        schedule.every().day.at("02:00").do(
-            QuestionGenerationScheduler.generate_common_questions_for_new_job_posts
-        )
-        
-        # 개별 질문 생성: 매시간
-        schedule.every().hour.do(
-            QuestionGenerationScheduler.generate_individual_questions_for_scheduled_interviews
-        )
-        
-        # 즉시 한 번 실행
-        QuestionGenerationScheduler.generate_common_questions_for_new_job_posts()
-        QuestionGenerationScheduler.generate_individual_questions_for_scheduled_interviews()
-        
-        while True:
-            try:
-                schedule.run_pending()
-                time.sleep(60)  # 1분마다 체크
-            except KeyboardInterrupt:
-                logger.info("스케줄러 종료")
-                break
-            except Exception as e:
-                logger.error(f"스케줄러 실행 중 오류: {str(e)}")
-                time.sleep(60)
+        try:
+            from apscheduler.schedulers.background import BackgroundScheduler
+            from apscheduler.triggers.cron import CronTrigger
+            
+            scheduler = BackgroundScheduler()
+            
+            # 공통 질문 생성: 매일 새벽 2시
+            scheduler.add_job(
+                QuestionGenerationScheduler.generate_common_questions_for_new_job_posts,
+                CronTrigger(hour=2, minute=0),
+                id='generate_common_questions',
+                replace_existing=True
+            )
+            
+            # 개별 질문 생성: 매시간
+            scheduler.add_job(
+                QuestionGenerationScheduler.generate_individual_questions_for_scheduled_interviews,
+                CronTrigger(minute=0),  # 매시간 정각
+                id='generate_individual_questions',
+                replace_existing=True
+            )
+            
+            # 즉시 한 번 실행
+            QuestionGenerationScheduler.generate_common_questions_for_new_job_posts()
+            QuestionGenerationScheduler.generate_individual_questions_for_scheduled_interviews()
+            
+            scheduler.start()
+            logger.info("면접 질문 생성 스케줄러 시작 완료")
+            
+        except ImportError:
+            logger.warning("APScheduler not available, using fallback")
+            # APScheduler가 없으면 즉시 한 번만 실행
+            QuestionGenerationScheduler.generate_common_questions_for_new_job_posts()
+            QuestionGenerationScheduler.generate_individual_questions_for_scheduled_interviews()
+        except Exception as e:
+            logger.error(f"스케줄러 시작 실패: {str(e)}")
 
 if __name__ == "__main__":
     QuestionGenerationScheduler.run_scheduler() 

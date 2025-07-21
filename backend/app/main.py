@@ -26,6 +26,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 from app.scheduler.job_status_scheduler import JobStatusScheduler
+from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
 
 
 def safe_create_tables():
@@ -92,6 +93,20 @@ async def lifespan(app: FastAPI):
     print("🔄 Starting JobPost status scheduler...")
     asyncio.create_task(job_status_scheduler.start())
     print("JobPost 상태 스케줄러 시작 완료")
+    
+    # 면접 질문 생성 스케줄러 시작
+    print("🔄 Starting Question Generation scheduler...")
+    try:
+        # 백그라운드에서 스케줄러 실행
+        import threading
+        scheduler_thread = threading.Thread(
+            target=QuestionGenerationScheduler.run_scheduler,
+            daemon=True
+        )
+        scheduler_thread.start()
+        print("면접 질문 생성 스케줄러 시작 완료")
+    except Exception as e:
+        print(f"면접 질문 생성 스케줄러 시작 실패: {e}")
     
     # 시드 데이터 실행
     try:
