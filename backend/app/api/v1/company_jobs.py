@@ -112,11 +112,9 @@ def get_company_job_post(
             "role": mapped_role
         })
     
-    job_post.teamMembers = team_members
-    
     # 가중치 데이터를 한 번에 조회
     weights = db.query(Weight).filter(Weight.jobpost_id == job_post_id).all()
-    job_post.weights = [
+    weights_list = [
         {"item": weight.field_name, "score": weight.weight_value}
         for weight in weights
     ]
@@ -126,7 +124,6 @@ def get_company_job_post(
         Schedule.job_post_id == job_post_id,
         Schedule.schedule_type == "interview"
     ).all()
-    job_post.interview_schedules = interview_schedules
     
     # 부서 정보를 한 번에 조회 (JOIN으로 최적화)
     department_name = None
@@ -155,7 +152,10 @@ def get_company_job_post(
         "status": job_post.status,
         "companyName": job_post.company.name if job_post.company else None,
         "created_at": job_post.created_at,
-        "updated_at": job_post.updated_at
+        "updated_at": job_post.updated_at,
+        "teamMembers": team_members,
+        "weights": weights_list,
+        "interview_schedules": interview_schedules
     }
     
     return job_post_dict
