@@ -1,0 +1,35 @@
+name: CI/CD - Build and Push to GHCR
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'agent/**'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    env:
+      GHCR_BACKEND: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-backend
+      GHCR_AGENT: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-agent
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u "${{ secrets.GH_USERNAME }}" --password-stdin
+
+      - name: Build and Push Backend Image
+        run: |
+          docker build -t $GHCR_BACKEND:latest -f backend/Dockerfile .
+          docker push $GHCR_BACKEND:latest
+
+      - name: Build and Push Agent Image
+        run: |
+          docker build -t $GHCR_AGENT:latest -f agent/Dockerfile .
+          docker push $GHCR_AGENT:latest

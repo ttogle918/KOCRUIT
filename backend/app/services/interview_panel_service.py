@@ -534,8 +534,8 @@ class InterviewPanelService:
             )
             db.add(schedule_interview)
             
-            # Application의 interview_status를 SCHEDULED로 변경
-            application.interview_status = InterviewStatus.SCHEDULED.value
+            # Application의 interview_status를 AI 면접 일정 확정으로 변경
+            application.interview_status = InterviewStatus.AI_INTERVIEW_SCHEDULED.value
         
         # 변경사항 저장
         db.flush()
@@ -550,7 +550,8 @@ class InterviewPanelService:
             job_post = db.query(JobPost).filter(JobPost.id == assignment.job_post_id).first()
             if job_post:
                 company_name = job_post.company.name if job_post.company else ""
-                job_info = f"{job_post.title} - {job_post.description}"
+                from app.api.v1.interview_question import parse_job_post_data
+                job_info = parse_job_post_data(job_post)
                 
                 # 각 지원자에 대해 개별 질문 생성
                 for application in applications:
@@ -696,15 +697,15 @@ class InterviewPanelService:
                     insert_values = {
                         'schedule_interview_id': schedule_interview.id,
                         'user_id': application.user_id,
-                        'interview_status': InterviewStatus.SCHEDULED.value  # status 대신 interview_status 사용
+                        'interview_status': InterviewStatus.AI_INTERVIEW_SCHEDULED.value  # AI 면접 일정 확정
                     }
                     
                     db.execute(
                         schedule_interview_applicant.insert().values(**insert_values)
                     )
                     
-                    # Application의 interview_status를 SCHEDULED로 변경
-                    application.interview_status = InterviewStatus.SCHEDULED.value
+                    # Application의 interview_status를 AI 면접 일정 확정으로 변경
+                    application.interview_status = InterviewStatus.AI_INTERVIEW_SCHEDULED.value
                     
                     print(f"✅ 지원자 {application.user_id}를 면접 일정 {schedule_interview.id}에 연결 (일정 {schedule_index + 1})")
                     
@@ -718,7 +719,7 @@ class InterviewPanelService:
                                 user_id=application.user_id
                             )
                         )
-                        application.interview_status = InterviewStatus.SCHEDULED.value
+                        application.interview_status = InterviewStatus.AI_INTERVIEW_SCHEDULED.value
                         print(f"✅ 지원자 {application.user_id} 연결 성공 (기존 방식)")
                     except Exception as e2:
                         print(f"❌ 지원자 {application.user_id} 연결 완전 실패: {e2}")

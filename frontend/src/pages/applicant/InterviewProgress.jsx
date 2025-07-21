@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import InterviewApplicantList from './InterviewApplicantList';
@@ -7,8 +7,9 @@ import InterviewPanel from './InterviewPanel';
 import InterviewPanelSelector from '../../components/InterviewPanelSelector';
 import InterviewerEvaluationPanel from '../../components/InterviewerEvaluationPanel';
 import DraggableResumeWindow from '../../components/DraggableResumeWindow';
+import AiInterviewSystem from './AiInterviewSystem';
 import api from '../../api/api';
-import { FiChevronLeft, FiChevronRight, FiSave, FiPlus } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSave, FiPlus, FiPlay } from 'react-icons/fi';
 import { MdOutlineAutoAwesome, MdOutlineOpenInNew } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
@@ -25,15 +26,33 @@ import Button from '@mui/material/Button';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 
 function InterviewProgress() {
-  const { jobPostId, interviewStage = 'first' } = useParams(); // interviewStage 파라미터 추가
+  const { jobPostId, interviewStage = 'first', applicantId } = useParams(); // applicantId 파라미터 추가
   const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // 디버깅용 로그
+  console.log('🔍 InterviewProgress 파라미터:', { jobPostId, interviewStage, applicantId });
   
   // 면접 단계별 설정
+  const isAiInterview = interviewStage === 'ai'; // AI 면접
   const isFirstInterview = interviewStage === 'first'; // 1차 면접 (실무진)
   const isSecondInterview = interviewStage === 'second'; // 2차 면접 (임원)
   
+  // AI 면접 시스템으로 리다이렉트 (지원자가 선택된 경우)
+  console.log('🔍 AI 면접 리다이렉트 조건 확인:', { isAiInterview, applicantId, condition: isAiInterview && applicantId });
+  if (isAiInterview && applicantId) {
+    console.log('✅ AiInterviewSystem으로 리다이렉트');
+    return <AiInterviewSystem />;
+  }
+  
   // 면접 단계별 제목 및 설정
   const interviewConfig = {
+    ai: {
+      title: 'AI 면접',
+      subtitle: 'AI 기반 자동 면접 진행',
+      evaluatorType: 'AI',
+      color: 'green'
+    },
     first: {
       title: '1차 면접 (실무진)',
       subtitle: '실무 역량 및 기술 검증',
@@ -79,12 +98,8 @@ function InterviewProgress() {
   const [isLeftOpen, setIsLeftOpen] = useState(true);
   const isDragging = useRef(false);
 
-  // 공통 면접 질문 상태 (임시, 추후 API 연동)
-  const [commonQuestions, setCommonQuestions] = useState([
-    '자기소개를 해주세요.',
-    '지원 동기는 무엇인가요?',
-    '본인의 강점과 약점은 무엇인가요?'
-  ]);
+  // 공통 면접 질문 상태
+  const [commonQuestions, setCommonQuestions] = useState([]);
 
   // 공고 기반 면접 도구 상태
   const [commonChecklist, setCommonChecklist] = useState(null);
@@ -97,7 +112,7 @@ function InterviewProgress() {
   const [preloadingStatus, setPreloadingStatus] = useState('idle'); // 'idle', 'loading', 'completed'
 
   // 새로운 UI 시스템 상태
-  const [activePanel, setActivePanel] = useState('common-questions'); // 'interviewer', 'ai', or 'common-questions'
+  const [activePanel, setActivePanel] = useState(isAiInterview ? 'ai' : 'common-questions'); // AI 면접에서는 AI 패널을 기본으로
   
   // 패널 변경 핸들러 (모달 표시)
   const handlePanelChange = (panelId) => {
@@ -185,9 +200,14 @@ function InterviewProgress() {
       setError(null);
       try {
         // 면접 단계에 따라 다른 API 호출
-        const endpoint = isFirstInterview 
-          ? `/applications/job/${jobPostId}/applicants-with-interview`
-          : `/applications/job/${jobPostId}/applicants-with-second-interview`;
+        let endpoint;
+        if (isAiInterview) {
+          endpoint = `/applications/job/${jobPostId}/applicants-with-ai-interview`;
+        } else if (isFirstInterview) {
+          endpoint = `/applications/job/${jobPostId}/applicants-with-interview`;
+        } else {
+          endpoint = `/applications/job/${jobPostId}/applicants-with-second-interview`;
+        }
         
         const res = await api.get(endpoint);
         setApplicants(res.data);
@@ -211,7 +231,7 @@ function InterviewProgress() {
       }
     };
     if (jobPostId) fetchApplicants();
-  }, [jobPostId, isFirstInterview]);
+  }, [jobPostId, isAiInterview, isFirstInterview, isSecondInterview]);
 
   useEffect(() => {
     const fetchJobPost = async () => {
@@ -228,22 +248,50 @@ function InterviewProgress() {
     if (jobPostId) fetchJobPost();
   }, [jobPostId]);
 
-  const fetchApplicantQuestions = async (resumeId, companyName, applicantName) => {
+  const fetchApplicantQuestions = async (resumeId, companyName, applicantName, applicationId) => {
     const requestData = { 
       resume_id: resumeId, 
       company_name: companyName, 
       name: applicantName,
+      application_id: applicationId,
       interview_stage: interviewStage, // 면접 단계 추가
       evaluator_type: currentConfig.evaluatorType // 평가자 유형 추가
     };
     try {
       // 면접 단계에 따라 다른 엔드포인트 사용
-      const endpoint = isFirstInterview 
-        ? '/interview-questions/project-questions'
-        : '/interview-questions/executive-interview';
-      
-      const res = await api.post(endpoint, requestData);
-      setQuestions(res.data.questions || []);
+      let endpoint;
+      if (isAiInterview) {
+        // AI 면접: 먼저 DB에서 기존 질문 조회 시도
+        try {
+          const existingQuestionsRes = await api.get(`/interview-questions/application/${applicationId}/ai-questions`);
+          if (existingQuestionsRes.data.total_count > 0) {
+            // 기존 질문이 있으면 사용
+            const allQuestions = [];
+            Object.values(existingQuestionsRes.data.questions).forEach(categoryQuestions => {
+              allQuestions.push(...categoryQuestions.map(q => q.question_text));
+            });
+            setQuestions(allQuestions);
+            console.log(`✅ 기존 AI 면접 질문 ${existingQuestionsRes.data.total_count}개 로드`);
+            return;
+          }
+        } catch (error) {
+          console.log('기존 AI 면접 질문 없음, 새로 생성합니다.');
+        }
+        
+        // 기존 질문이 없으면 새로 생성하고 DB에 저장
+        endpoint = '/interview-questions/ai-interview-save';
+        const res = await api.post(endpoint, { ...requestData, save_to_db: true });
+        setQuestions(res.data.questions ? res.data.questions.split('\n') : []);
+        console.log(`✅ AI 면접 질문 ${res.data.saved_questions_count}개 생성 및 저장 완료`);
+      } else if (isFirstInterview) {
+        endpoint = '/interview-questions/project-questions';
+        const res = await api.post(endpoint, requestData);
+        setQuestions(res.data.questions || []);
+      } else {
+        endpoint = '/interview-questions/executive-interview';
+        const res = await api.post(endpoint, requestData);
+        setQuestions(res.data.questions || []);
+      }
     } catch (e) {
       console.error('면접 질문 생성 오류:', e);
       setQuestions([]);
@@ -267,9 +315,14 @@ function InterviewProgress() {
       };
       
       // 면접 단계에 따라 다른 엔드포인트 사용
-      const endpoint = isFirstInterview 
-        ? '/interview-questions/project-questions'
-        : '/interview-questions/executive-tools';
+      let endpoint;
+      if (isAiInterview) {
+        endpoint = '/interview-questions/ai-tools';
+      } else if (isFirstInterview) {
+        endpoint = '/interview-questions/project-questions';
+      } else {
+        endpoint = '/interview-questions/executive-tools';
+      }
       
       // 워크플로우 결과에서 평가 도구 추출
       const workflowRes = await api.post(endpoint, workflowRequest);
@@ -362,7 +415,7 @@ function InterviewProgress() {
         jobPost?.company?.name,
         applicant.name
       );
-      await fetchApplicantQuestions(mappedResume.id, jobPost?.company?.name, applicant.name);
+      await fetchApplicantQuestions(mappedResume.id, jobPost?.company?.name, applicant.name, applicant.applicant_id || applicant.id);
     } catch (err) {
       console.error('지원자 데이터 로드 실패:', err);
       setResume(null);
@@ -752,7 +805,7 @@ function InterviewProgress() {
   // 공통 질문 API 호출 함수
   const fetchCommonQuestions = async () => {
     if (!jobPostId || !jobPost?.company?.name) {
-      console.warn('❌ 공통 질문 API 호출 실패: 필수 파라미터 누락');
+      console.warn('⚠️ 공통 질문 fetch 조건 불충족');
       return;
     }
     
@@ -772,13 +825,28 @@ function InterviewProgress() {
         const allQuestions = Object.values(bundle).flat();
         setCommonQuestions(allQuestions);
         console.log('📝 공통 질문 설정 완료:', allQuestions);
+      } else if (res.data && res.data.common_questions) {
+        // fallback: common_questions 배열이 있는 경우
+        setCommonQuestions(res.data.common_questions);
+        console.log('📝 공통 질문 설정 완료 (fallback):', res.data.common_questions);
       } else {
-        console.warn('⚠️ 응답에 question_bundle이 없음');
-        setCommonQuestionsError('질문 번들을 찾을 수 없습니다.');
+        console.warn('⚠️ 응답에 질문 데이터가 없음, 기본 질문 사용');
+        // 기본 질문으로 fallback
+        setCommonQuestions([
+          '자기소개를 해주세요.',
+          '지원 동기는 무엇인가요?',
+          '본인의 강점과 약점은 무엇인가요?'
+        ]);
       }
     } catch (error) {
       console.error('❌ 공통 질문 API 호출 실패:', error);
       setCommonQuestionsError(error.message || '공통 질문을 불러오는데 실패했습니다.');
+      // 에러 시에도 기본 질문 사용
+      setCommonQuestions([
+        '자기소개를 해주세요.',
+        '지원 동기는 무엇인가요?',
+        '본인의 강점과 약점은 무엇인가요?'
+      ]);
     } finally {
       setCommonQuestionsLoading(false);
     }
@@ -982,65 +1050,6 @@ function InterviewProgress() {
       >
         {/* 중앙 메인 영역 */}
         <div className="flex-1 flex flex-col h-full min-h-0 bg-gray-50 dark:bg-gray-900 relative">
-          {/* 이력서 창 관리 버튼 */}
-          <div className="absolute top-4 left-4 z-10 flex gap-2">
-            {/* 현재 면접자들 보기 버튼 */}
-            <button
-              onClick={() => setCurrentApplicantsDrawerOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-lg transition-colors"
-            >
-              <FaUsers size={16} />
-              <span>1차 면접자 보기</span>
-            </button>
-            
-            <button
-              onClick={() => {
-                console.log('🔘 이력서 창 열기 버튼 클릭됨');
-                // 첫 번째 시간 그룹의 첫 번째 지원자로 이력서 창 열기
-                const sortedTimes = Object.keys(groupedApplicants).sort();
-                const firstTime = sortedTimes.find(time => time !== '시간 미정');
-                if (firstTime && groupedApplicants[firstTime] && groupedApplicants[firstTime].length > 0) {
-                  const firstApplicant = groupedApplicants[firstTime][0];
-                  openResumeWindow(firstApplicant, null);
-                } else {
-                  console.log('🔘 첫 번째 시간 그룹을 찾을 수 없음');
-                }
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg transition-colors"
-            >
-              <MdOutlineOpenInNew size={16} />
-              <span>이력서 창 열기</span>
-            </button>
-
-            {/* 드래그 가능한 레이아웃 토글 버튼 */}
-            <button
-              onClick={() => {
-                setUseDraggableLayout(!useDraggableLayout);
-                if (!useDraggableLayout) {
-                  setUseRecommendedLayout(false); // 드래그 레이아웃 활성화 시 권장 레이아웃 비활성화
-                }
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg transition-colors ${
-                useDraggableLayout 
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                  : 'bg-gray-600 hover:bg-gray-700 text-white'
-              }`}
-            >
-              <span>{useDraggableLayout ? '고정 레이아웃' : '드래그 레이아웃'}</span>
-            </button>
-
-            {/* 권장 레이아웃 토글 버튼 */}
-            <button
-              onClick={handleToggleRecommendedLayout}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg transition-colors ${
-                useRecommendedLayout 
-                  ? 'bg-green-600 hover:bg-green-700 text-white' 
-                  : 'bg-gray-600 hover:bg-gray-700 text-white'
-              }`}
-            >
-              <span>{useRecommendedLayout ? '기본 레이아웃' : '권장 레이아웃'}</span>
-            </button>
-          </div>
 
           {/* 이력서 창 개수 표시 */}
           <div className="absolute top-4 right-4 z-10">
@@ -1052,7 +1061,47 @@ function InterviewProgress() {
           </div>
 
           {/* 메인 콘텐츠 영역 - 동적 패널 */}
-          {useDraggableLayout ? (
+          {isAiInterview && !applicantId ? (
+            // AI 면접에서 지원자가 선택되지 않은 경우
+            <div className="flex-1 h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+              <div className="text-center max-w-md mx-auto p-8">
+                <div className="text-6xl mb-6">🤖</div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                  AI 면접 시스템
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  AI 면접을 진행할 지원자를 선택해주세요.
+                </p>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    지원자 목록
+                  </h3>
+                  {applicants.length > 0 ? (
+                    <div className="space-y-2">
+                      {applicants.slice(0, 5).map((applicant, index) => (
+                        <button
+                          key={applicant.applicant_id || applicant.id}
+                          onClick={() => navigate(`/interview-progress/${jobPostId}/ai/${applicant.applicant_id || applicant.id}`)}
+                          className="w-full text-left p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {applicant.name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {applicant.schedule_date || '시간 미정'}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-400">
+                      AI 면접 대상 지원자가 없습니다.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : useDraggableLayout ? (
             <PanelLayoutManager
               panels={[
                 {
@@ -1139,6 +1188,33 @@ function InterviewProgress() {
               ]}
               layoutMode="auto"
             />
+          ) : isAiInterview && applicantId ? (
+            // AI 면접에서 지원자가 선택된 경우 - AI 면접 전용 UI
+            <div className="flex-1 h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+              <div className="text-center max-w-2xl mx-auto p-8">
+                <div className="text-6xl mb-6">🎯</div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                  AI 면접 준비 완료
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  선택된 지원자: {selectedApplicant?.name || '알 수 없음'}
+                </p>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    AI 면접 시작
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    AI 면접 시스템을 시작하려면 아래 버튼을 클릭하세요.
+                  </p>
+                  <button
+                    onClick={() => navigate(`/interview-progress/${jobPostId}/ai/${applicantId}`)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                  >
+                    AI 면접 시작
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : useRecommendedLayout ? (
             // 권장 레이아웃: 3등분 구조
             <div className="flex h-full">
