@@ -10,7 +10,8 @@ from app.models.interview_panel import (
     InterviewPanelRequest,
     AssignmentStatus, 
     RequestStatus,
-    PanelRole
+    PanelRole,
+    AssignmentType
 )
 from app.models.application import Application, DocumentStatus, InterviewStatus
 from app.models.schedule import Schedule
