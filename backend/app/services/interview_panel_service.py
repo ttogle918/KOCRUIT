@@ -9,7 +9,8 @@ from app.models.interview_panel import (
     InterviewPanelMember, 
     InterviewPanelRequest,
     AssignmentStatus, 
-    RequestStatus
+    RequestStatus,
+    PanelRole
 )
 from app.models.application import Application, DocumentStatus, InterviewStatus
 from app.models.schedule import Schedule
@@ -297,10 +298,11 @@ class InterviewPanelService:
                 job_post_id=criteria.job_post_id,
                 schedule_id=criteria.schedule_id,
                 assignment_type=AssignmentType.SAME_DEPARTMENT,
-                required_count=len(selection_result['same_department'])
+                required_count=criteria.same_department_count  # 요청된 인원수 (보통 2명)
             )
             db.add(same_dept_assignment)
             db.flush()  # Get the ID
+            print(f"📝 Created SAME_DEPARTMENT assignment {same_dept_assignment.id}: required_count={criteria.same_department_count}, selected={len(selection_result['same_department'])}")
             
             # Create requests for each interviewer
             for interviewer in selection_result['same_department']:
@@ -335,10 +337,11 @@ class InterviewPanelService:
                 job_post_id=criteria.job_post_id,
                 schedule_id=criteria.schedule_id,
                 assignment_type=AssignmentType.HR_DEPARTMENT,
-                required_count=len(selection_result['hr_department'])
+                required_count=criteria.hr_department_count  # 요청된 인원수 (보통 1명)
             )
             db.add(hr_assignment)
             db.flush()  # Get the ID
+            print(f"📝 Created HR_DEPARTMENT assignment {hr_assignment.id}: required_count={criteria.hr_department_count}, selected={len(selection_result['hr_department'])}")
             
             # Create requests for each interviewer
             for interviewer in selection_result['hr_department']:
@@ -409,8 +412,15 @@ class InterviewPanelService:
             raise ValueError("Request has already been responded to")
         
         # Update request status
+        old_status = request.status.value
         request.status = response.status
         request.response_at = datetime.utcnow()
+        
+        print(f"👤 Interviewer response processed:")
+        print(f"  - Request ID: {request_id}")
+        print(f"  - User ID: {request.company_user_id}")
+        print(f"  - Assignment ID: {request.assignment_id}")
+        print(f"  - Status: {old_status} → {response.status.value}")
         
         if response.status == RequestStatus.ACCEPTED:
             # Add to panel members
@@ -420,11 +430,13 @@ class InterviewPanelService:
                 role=PanelRole.INTERVIEWER
             )
             db.add(member)
+            db.flush()  # DB에 즉시 반영하여 count 확인 시 포함되도록 함
+            print(f"✅ Added user {request.company_user_id} to panel members for assignment {request.assignment_id}")
             
             # Check if assignment is complete
             InterviewPanelService._check_assignment_completion(db, request.assignment_id)
-            
         elif response.status == RequestStatus.REJECTED:
+            print(f"❌ User {request.company_user_id} rejected assignment {request.assignment_id}")
             # Find replacement interviewer
             InterviewPanelService._find_replacement(db, request)
         
@@ -444,17 +456,30 @@ class InterviewPanelService:
         ).first()
         
         if not assignment:
+            print(f"❌ Assignment {assignment_id} not found")
             return
         
+        # 현재 수락한 멤버 수 확인
         accepted_count = db.query(InterviewPanelMember).filter(
             InterviewPanelMember.assignment_id == assignment_id
         ).count()
         
+        print(f"📊 Assignment {assignment_id} completion check:")
+        print(f"  - Assignment Type: {assignment.assignment_type.value}")
+        print(f"  - Required Count: {assignment.required_count}")
+        print(f"  - Accepted Count: {accepted_count}")
+        print(f"  - Current Status: {assignment.status.value}")
+        
         if accepted_count >= assignment.required_count:
+            old_status = assignment.status.value
             assignment.status = AssignmentStatus.COMPLETED
+            print(f"✅ Assignment {assignment_id} status updated: {old_status} → COMPLETED")
             
             # 🆕 면접관 수락 완료 후 자동으로 면접 일정 생성 및 interview_status 변경
             InterviewPanelService._create_interview_schedules(db, assignment)
+        else:
+            remaining = assignment.required_count - accepted_count
+            print(f"⏳ Assignment {assignment_id} still needs {remaining} more accepted members")
     
     @staticmethod
     def _create_interview_schedules(db: Session, assignment: InterviewPanelAssignment):

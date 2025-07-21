@@ -12,6 +12,7 @@ export default function MemberSchedule() {
   const [responseHistory, setResponseHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [responding, setResponding] = useState({}); // 응답 중인 요청 ID들을 추적
   const { user } = useAuth();
 
   // Mark all interview notifications as read when page loads
@@ -70,6 +71,13 @@ export default function MemberSchedule() {
 
   // Handle interview panel request response
   const handlePanelResponse = async (requestId, status) => {
+    // 이미 응답 중인 요청인지 확인
+    if (responding[requestId]) {
+      return;
+    }
+
+    setResponding(prev => ({ ...prev, [requestId]: true }));
+    
     try {
       await interviewPanelApi.respondToRequest(requestId, status);
       
@@ -84,7 +92,21 @@ export default function MemberSchedule() {
       alert(status === 'ACCEPTED' ? '면접관 요청을 수락했습니다.' : '면접관 요청을 거절했습니다.');
     } catch (error) {
       console.error('면접관 요청 응답 실패:', error);
-      alert('요청 처리 중 오류가 발생했습니다.');
+      
+      // 이미 응답한 요청인지 확인
+      if (error.response?.data?.detail === 'Request has already been responded to') {
+        alert('이미 응답한 요청입니다. 페이지를 새로고침합니다.');
+        // 페이지 새로고침하여 최신 상태로 업데이트
+        window.location.reload();
+      } else {
+        alert('요청 처리 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setResponding(prev => {
+        const newState = { ...prev };
+        delete newState[requestId];
+        return newState;
+      });
     }
   };
 
@@ -150,16 +172,26 @@ export default function MemberSchedule() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-medium"
+                        className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                          responding[req.request_id] 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-green-500 hover:bg-green-600 text-white'
+                        }`}
                         onClick={() => handlePanelResponse(req.request_id, 'ACCEPTED')}
+                        disabled={responding[req.request_id]}
                       >
-                        수락
+                        {responding[req.request_id] ? '처리 중...' : '수락'}
                       </button>
                       <button
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium"
+                        className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                          responding[req.request_id] 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-red-500 hover:bg-red-600 text-white'
+                        }`}
                         onClick={() => handlePanelResponse(req.request_id, 'REJECTED')}
+                        disabled={responding[req.request_id]}
                       >
-                        거절
+                        {responding[req.request_id] ? '처리 중...' : '거절'}
                       </button>
                     </div>
                   </li>
