@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     # JWT
     SECRET_KEY: str = "your-secret-key-here"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24시간 (24 * 60 = 1440분)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30일로 연장
     
     # Redis
     REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")

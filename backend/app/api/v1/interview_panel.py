@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
 from app.core.database import get_db
 from app.models.user import User
@@ -619,4 +620,81 @@ def search_company_members(
         return result
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to search company members: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to search company members: {str(e)}")
+
+
+@router.get("/my-interview-schedules/", response_model=List[dict])
+def get_my_interview_schedules(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get interview schedules for the current logged-in user
+    현재 로그인된 유저의 면접 일정을 가져옵니다.
+    """
+    try:
+        from app.models.interview_panel import InterviewPanelMember, InterviewPanelAssignment
+        from app.models.schedule import Schedule
+        from app.models.job import JobPost
+        from app.models.user import CompanyUser
+        from app.models.application import Application
+        from sqlalchemy import and_
+        
+        # 현재 유저가 면접관으로 배정된 일정들을 조회
+        schedules_query = db.query(
+            Schedule.id.label('schedule_id'),
+            Schedule.title.label('job_title'),
+            Schedule.scheduled_at,
+            Schedule.location,
+            JobPost.title.label('position'),
+            JobPost.id.label('job_post_id')
+        ).join(
+            InterviewPanelAssignment, Schedule.id == InterviewPanelAssignment.schedule_id
+        ).join(
+            InterviewPanelMember, InterviewPanelAssignment.id == InterviewPanelMember.assignment_id
+        ).join(
+            JobPost, Schedule.job_post_id == JobPost.id
+        ).filter(
+            InterviewPanelMember.company_user_id == current_user.id
+        ).order_by(Schedule.scheduled_at)
+        
+        schedules = schedules_query.all()
+        
+        result = []
+        for schedule in schedules:
+            # 해당 면접 일정에 배정된 지원자들 조회
+            # schedule_interview_applicant 테이블을 통해 지원자 정보 가져오기
+            applicants_query = db.execute(text("""
+                SELECT DISTINCT 
+                    u.name as applicant_name,
+                    a.id as application_id
+                FROM schedule_interview_applicant sia
+                JOIN application a ON sia.user_id = a.user_id 
+                JOIN users u ON a.user_id = u.id
+                JOIN schedule_interview si ON sia.schedule_interview_id = si.id
+                WHERE si.schedule_id = :schedule_id
+                AND a.job_post_id = :job_post_id
+                AND sia.interview_status = 'SCHEDULED'
+            """), {
+                'schedule_id': schedule.schedule_id,
+                'job_post_id': schedule.job_post_id
+            })
+            
+            applicants = applicants_query.fetchall()
+            applicant_names = [applicant.applicant_name for applicant in applicants] if applicants else []
+            
+            result.append({
+                'id': schedule.schedule_id,
+                'title': schedule.job_title or schedule.position,
+                'position': schedule.position,
+                'scheduled_at': schedule.scheduled_at.isoformat() if schedule.scheduled_at else None,
+                'location': schedule.location,
+                'job_post_id': schedule.job_post_id,
+                'applicants': applicant_names,
+                'applicant_count': len(applicant_names)
+            })
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get interview schedules: {str(e)}") 
