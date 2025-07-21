@@ -19,6 +19,7 @@ from app.models.interview_panel import InterviewPanelAssignment
 from app.api.v1.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
 from app.models.application import ApplyStatus, InterviewStatus
+from app.models.schedule import ScheduleInterview
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -581,149 +582,30 @@ def update_company_job_post(
     
     # 면접 일정 업데이트 (기존 일정 삭제 후 새로 생성)
     if interview_schedules is not None:
-        # 기존 면접관 배정 및 관련 데이터 삭제 (순서 중요)
-        try:
+        # 1. 기존 면접 일정 조회
+        existing_schedules = db.query(Schedule).filter(
+            Schedule.job_post_id == job_post_id,
+            Schedule.schedule_type == "interview"
+        ).all()
+        existing_schedule_keys = set((s.scheduled_at.strftime("%Y-%m-%d %H:%M"), s.location) for s in existing_schedules)
+        new_schedule_keys = set((s.get('interview_date') + ' ' + s.get('interview_time'), s.get('location')) for s in interview_schedules)
+
+        # 2. 삭제 대상 일정만 추출
+        schedules_to_delete = [s for s in existing_schedules if (s.scheduled_at.strftime("%Y-%m-%d %H:%M"), s.location) not in new_schedule_keys]
+        for schedule in schedules_to_delete:
+            # 해당 일정에 연결된 assignment, request, member 등만 삭제
             from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
-            
-            # 1. 면접관 배정 관련 데이터 삭제 (CASCADE로 자동 삭제됨)
-            db.query(InterviewPanelAssignment).filter(
-                InterviewPanelAssignment.job_post_id == job_post_id
-            ).delete()
-        except Exception as e:
-            print(f"면접관 배정 데이터 삭제 실패: {str(e)}")
-        
-        # 2. interview_evaluation_item 테이블 데이터 삭제 (interview_evaluation 참조)
-        try:
-            from app.models.interview_evaluation import InterviewEvaluationItem, InterviewEvaluation
-            from app.models.schedule import ScheduleInterview
-            evaluation_items = db.query(InterviewEvaluationItem).filter(
-                InterviewEvaluationItem.evaluation_id.in_(
-                    db.query(InterviewEvaluation.id).filter(
-                        InterviewEvaluation.interview_id.in_(
-                            db.query(ScheduleInterview.id).filter(
-                                ScheduleInterview.schedule_id.in_(
-                                    db.query(Schedule.id).filter(
-                                        Schedule.job_post_id == job_post_id,
-                                        Schedule.schedule_type == "interview"
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            ).all()
-            if evaluation_items:
-                db.query(InterviewEvaluationItem).filter(
-                    InterviewEvaluationItem.evaluation_id.in_(
-                        db.query(InterviewEvaluation.id).filter(
-                            InterviewEvaluation.interview_id.in_(
-                                db.query(ScheduleInterview.id).filter(
-                                    ScheduleInterview.schedule_id.in_(
-                                        db.query(Schedule.id).filter(
-                                            Schedule.job_post_id == job_post_id,
-                                            Schedule.schedule_type == "interview"
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                ).delete()
-                print(f"Deleted {len(evaluation_items)} evaluation items for job post {job_post_id}")
-        except Exception as e:
-            print(f"Evaluation items deletion failed: {e}")
-        
-        # 3. evaluation_detail 테이블 데이터 삭제 (interview_evaluation 참조)
-        try:
-            from app.models.interview_evaluation import EvaluationDetail, InterviewEvaluation
-            from app.models.schedule import ScheduleInterview
-            evaluation_details = db.query(EvaluationDetail).filter(
-                EvaluationDetail.evaluation_id.in_(
-                    db.query(InterviewEvaluation.id).filter(
-                        InterviewEvaluation.interview_id.in_(
-                            db.query(ScheduleInterview.id).filter(
-                                ScheduleInterview.schedule_id.in_(
-                                    db.query(Schedule.id).filter(
-                                        Schedule.job_post_id == job_post_id,
-                                        Schedule.schedule_type == "interview"
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            ).all()
-            if evaluation_details:
-                db.query(EvaluationDetail).filter(
-                    EvaluationDetail.evaluation_id.in_(
-                        db.query(InterviewEvaluation.id).filter(
-                            InterviewEvaluation.interview_id.in_(
-                                db.query(ScheduleInterview.id).filter(
-                                    ScheduleInterview.schedule_id.in_(
-                                        db.query(Schedule.id).filter(
-                                            Schedule.job_post_id == job_post_id,
-                                            Schedule.schedule_type == "interview"
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                ).delete()
-                print(f"Deleted {len(evaluation_details)} evaluation details for job post {job_post_id}")
-        except Exception as e:
-            print(f"Evaluation details deletion failed: {e}")
-        
-        # 4. interview_evaluation 테이블 데이터 삭제 (schedule_interview 참조)
-        try:
-            from app.models.interview_evaluation import InterviewEvaluation
-            interview_evaluations = db.query(InterviewEvaluation).filter(
-                InterviewEvaluation.interview_id.in_(
-                    db.query(ScheduleInterview.id).filter(
-                        ScheduleInterview.schedule_id.in_(
-                            db.query(Schedule.id).filter(
-                                Schedule.job_post_id == job_post_id,
-                                Schedule.schedule_type == "interview"
-                            )
-                        )
-                    )
-                )
-            ).all()
-            if interview_evaluations:
-                db.query(InterviewEvaluation).filter(
-                    InterviewEvaluation.interview_id.in_(
-                        db.query(ScheduleInterview.id).filter(
-                            ScheduleInterview.schedule_id.in_(
-                                db.query(Schedule.id).filter(
-                                    Schedule.job_post_id == job_post_id,
-                                    Schedule.schedule_type == "interview"
-                                )
-                            )
-                        )
-                    )
-                ).delete()
-                print(f"Deleted {len(interview_evaluations)} interview evaluations for job post {job_post_id}")
-        except Exception as e:
-            print(f"Interview evaluations deletion failed: {e}")
-        
-        # 4. schedule_interview 테이블 데이터 삭제
-        try:
-            from app.models.schedule import ScheduleInterview
-            db.query(ScheduleInterview).filter(
-                ScheduleInterview.schedule_id.in_(
-                    db.query(Schedule.id).filter(
-                        Schedule.job_post_id == job_post_id,
-                        Schedule.schedule_type == "interview"
-                    )
-                )
-            ).delete()
-        except Exception as e:
-            print(f"schedule_interview 데이터 삭제 실패: {str(e)}")
-        
-        # 5. 기존 면접 일정 삭제
-        db.query(Schedule).filter(Schedule.job_post_id == job_post_id, Schedule.schedule_type == "interview").delete()
-        
-        # 새로운 면접 일정 추가
+            db.query(InterviewPanelMember).filter(InterviewPanelMember.assignment_id.in_(
+                db.query(InterviewPanelAssignment.id).filter(InterviewPanelAssignment.schedule_id == schedule.id)
+            )).delete()
+            db.query(InterviewPanelRequest).filter(InterviewPanelRequest.assignment_id.in_(
+                db.query(InterviewPanelAssignment.id).filter(InterviewPanelAssignment.schedule_id == schedule.id)
+            )).delete()
+            db.query(InterviewPanelAssignment).filter(InterviewPanelAssignment.schedule_id == schedule.id).delete()
+            db.query(Schedule).filter(Schedule.id == schedule.id).delete()
+        db.commit()
+
+        # 3. 신규 일정 추가 및 배정 로직은 기존대로 유지
         if interview_schedules:
             for schedule_data in interview_schedules:
                 # dict 형태로 전달된 경우 처리
@@ -761,7 +643,6 @@ def update_company_job_post(
                 db.flush()  # Get the ID for interview panel assignment
 
                 # ScheduleInterview 테이블에도 row 생성 (주요 필드 포함)
-                from app.models.schedule import ScheduleInterview, InterviewStatus
                 schedule_interview = ScheduleInterview(
                     schedule_id=interview_schedule.id,
                     user_id=current_user.id,
