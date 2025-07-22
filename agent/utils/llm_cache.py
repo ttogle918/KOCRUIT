@@ -32,7 +32,7 @@ def redis_cache(expire=60*60*24):
     - Redis 연결 실패 시 캐싱 없이 함수 실행
     """
     def decorator(func):
-        @functools.wraps(func)
+        @wraps(func)
         def wrapper(*args, **kwargs):
             # Redis가 연결되지 않은 경우 캐싱 없이 함수 실행
             if redis_client is None:
@@ -163,7 +163,7 @@ def async_redis_cache(ttl: int = 3600):
             db=0,
             timeout=60
         )
-        @functools.wraps(func)
+        @wraps(func)
         async def wrapper(*args, **kwargs):
             return await func(*args, **kwargs)
         return wrapper
