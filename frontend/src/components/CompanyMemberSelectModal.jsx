@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/api';
 
-function CompanyMemberSelectModal({ companyId, onSelect, onClose, selectedMembers = [] }) {
+function CompanyMemberSelectModal({ companyId, onSelect, onClose, selectedMembers = [], defaultTab = 'department' }) {
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [activeTab, setActiveTab] = useState('all'); // 'all', 'department', 'hr'
+  const [activeTab, setActiveTab] = useState(defaultTab); // 'all', 'department', 'hr'
+
+  // If defaultTab changes (shouldn't in normal use), update activeTab
+  useEffect(() => {
+    setActiveTab(defaultTab);
+  }, [defaultTab]);
 
   // 회사 멤버 검색
   useEffect(() => {

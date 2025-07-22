@@ -1063,6 +1063,7 @@ function EditPost() {
             setShowMemberModal(false);
             setSelectedMemberIndex(null);
           }}
+          defaultTab="department"
         />
       )}
     </Layout>

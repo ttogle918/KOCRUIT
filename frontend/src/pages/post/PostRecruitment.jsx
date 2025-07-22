@@ -1113,6 +1113,7 @@ function PostRecruitment() {
             setShowMemberModal(false);
             setSelectedMemberIndex(null);
           }}
+          defaultTab="department"
         />
       )}
     </Layout>
