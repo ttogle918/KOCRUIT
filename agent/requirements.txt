@@ -12,9 +12,9 @@ chromadb==0.4.24
 
 # CPU 전용 PyTorch 및 sentence-transformers
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.0
-torchvision==0.17.0
-torchaudio==2.2.0
+torch==2.2.0+cpu
+torchvision==0.17.0+cpu
+torchaudio==2.2.0+cpu
 sentence-transformers==2.5.1
 
 # Memory and State Management
