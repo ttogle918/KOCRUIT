@@ -16,14 +16,6 @@ export const useAuth = () => {
 // 개발자 전용 테스트 계정 정보
 const DEV_EMAIL = 'dev@test.com';
 const DEV_PASSWORD = 'dev123456';
-const DEV_USER = { 
-  role: ROLES.MANAGER, 
-  id: 1, 
-  email: DEV_EMAIL, 
-  name: '개발자 테스트 계정',
-  company_id: 1,
-  isAuthenticated: true
-};
 
 // 일반 게스트 사용자 (로그인 전)
 const guestUser = { 
@@ -42,13 +34,30 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const userInfo = localStorage.getItem('user');
-    if (token && userInfo) {
-      setUser(JSON.parse(userInfo));
+    
+    if (token) {
+      // 토큰이 있으면 서버에서 최신 사용자 정보를 가져옴
+      console.log('🔐 토큰 발견, 서버에서 최신 사용자 정보 가져오는 중...');
+      api.get('/auth/me')
+        .then(response => {
+          const userData = response.data;
+          console.log('🔐 서버에서 가져온 최신 사용자 정보:', userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+          setUser(userData);
+          setIsLoading(false);
+        })
+        .catch(error => {
+          console.error('🔐 사용자 정보 가져오기 실패:', error);
+          // 토큰이 유효하지 않으면 로그아웃 처리
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(guestUser);
+          setIsLoading(false);
+        });
     } else {
       setUser(guestUser);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (email, password) => {
@@ -57,10 +66,25 @@ export const AuthProvider = ({ children }) => {
     // 개발자 전용 테스트 계정 체크
     if (email === DEV_EMAIL && password === DEV_PASSWORD) {
       console.log('🔐 개발자 테스트 계정으로 로그인');
-      localStorage.setItem('token', 'dev_test_token');
-      localStorage.setItem('user', JSON.stringify(DEV_USER));
-      setUser(DEV_USER);
-      return true;
+      // 개발자 계정도 일반 로그인과 동일하게 처리
+      try {
+        const response = await api.post('/auth/login', { email, password });
+        const { access_token } = response.data;
+        
+        localStorage.setItem('token', access_token);
+        
+        const userResponse = await api.get('/auth/me');
+        const userData = userResponse.data;
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        return true;
+      } catch (err) {
+        setError(err.response?.status === 401 
+          ? '이메일 또는 비밀번호가 올바르지 않습니다.' 
+          : '로그인 실패');
+        return false;
+      }
     }
     
     // 일반 로그인 처리
@@ -95,6 +119,8 @@ export const AuthProvider = ({ children }) => {
       
       const userResponse = await api.get('/auth/me');
       const userData = userResponse.data;
+      
+      console.log('🔐 개발자 로그인 사용자 정보:', userData);
       
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);

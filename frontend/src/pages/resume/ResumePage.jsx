@@ -22,10 +22,9 @@ function ResumeSelfIntroHighlight({ selfIntroText }) {
   );
 }
 
-export default function ResumePage({ resume, loading, error }) {
-  // applicationId는 resume.applicationId 또는 resume.application_id에서 가져와야 함
-  // 실제 데이터 구조에 따라 아래를 조정하세요
-  const applicationId = resume?.applicationId || resume?.application_id;
+export default function ResumePage({ resume, loading, error, jobpostId, applicationId }) {
+  // applicationId를 props로 받거나 resume에서 가져오기
+  const effectiveApplicationId = applicationId || resume?.applicationId || resume?.application_id;
 
   return (
     <div className="flex flex-col items-center w-full max-w-3xl mx-auto p-4">
@@ -36,9 +35,9 @@ export default function ResumePage({ resume, loading, error }) {
       ) : resume ? (
         <>
           <ResumeAnalysisAccordion resumeId={resume.id} />
-          <ResumeCard resume={resume} loading={false} />
+          <ResumeCard resume={resume} loading={false} jobpostId={jobpostId} applicationId={effectiveApplicationId} />
           {/* 성장 가능성 예측 카드 삽입 */}
-          {applicationId && <GrowthPredictionCard applicationId={applicationId} />}
+          {effectiveApplicationId && <GrowthPredictionCard applicationId={effectiveApplicationId} />}
         </>
       ) : (
         <div className="text-gray-500">이력서 정보를 불러올 수 없습니다.</div>

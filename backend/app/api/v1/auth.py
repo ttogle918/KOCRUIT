@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import LoginRequest, LoginResponse, SignupRequest, RefreshTokenRequest, UserDetail
 from app.models.user import User, CompanyUser, UserType, UserRole
+from app.models.company import Company
 from app.core import security
 from app.core.config import settings
 from jose import JWTError
@@ -114,6 +115,31 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=LoginResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
+    # 개발자 테스트 계정 자동 생성
+    if request.email == "dev@test.com" and request.password == "dev123456":
+        # 개발자 계정이 이미 존재하는지 확인
+        user = db.query(User).filter(User.email == request.email).first()
+        if not user:
+            # 개발자 계정이 없으면 자동 생성
+            from app.models.user import CompanyUser, UserRole
+            
+            # 기본 회사 ID (첫 번째 회사 또는 1)
+            company = db.query(Company).first()
+            company_id = company.id if company else 1
+            
+            hashed_password = security.get_password_hash("dev123456")
+            user = CompanyUser(
+                email="dev@test.com",
+                name="개발자 테스트 계정",
+                password=hashed_password,
+                role=UserRole.MANAGER,
+                company_id=company_id
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            print(f"🔐 개발자 테스트 계정 자동 생성: {user.email}, company_id: {user.company_id}")
+    
     user = db.query(User).filter(User.email == request.email).first()
     if not user or not security.verify_password(request.password, str(user.password)):
         raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다.")
@@ -248,12 +274,18 @@ def dev_login(request: DevLoginRequest, db: Session = Depends(get_db)):
     email = request.email
     if not email:
         raise HTTPException(status_code=400, detail="이메일이 필요합니다.")
+    
     # CompanyUser 우선 조회
     user = db.query(CompanyUser).filter(CompanyUser.email == email).first()
     if not user:
         user = db.query(User).filter(User.email == email).first()
     if not user:
         raise HTTPException(status_code=404, detail="해당 이메일의 사용자가 존재하지 않습니다.")
+    
+    # 사용자의 실제 company_id 확인
+    company_id = getattr(user, 'company_id', None)
+    print(f"🔐 개발자 로그인: {email}, company_id: {company_id}")
+    
     role_value = user.role.value if hasattr(user.role, 'value') else user.role
     access_token = security.create_access_token({"sub": user.email, "role": role_value})
     refresh_token = security.create_refresh_token({"sub": user.email})

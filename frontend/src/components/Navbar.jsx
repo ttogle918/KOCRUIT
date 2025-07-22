@@ -24,37 +24,66 @@ function NavBar() {
 
   // Fetch unread notifications count
   useEffect(() => {
-    if (!isGuest) {
-      const fetchNotifications = async () => {
+    let isMounted = true;
+    let intervalId = null;
+
+    const fetchNotifications = async () => {
+      if (!isGuest && user?.id) {
         try {
           setLoading(true);
+          console.log(`🔔 알림 개수 조회 시작 - 사용자: ${user.email}, ID: ${user.id}`);
+          
           const response = await fetchUnreadCount();
-          setUnreadCount(response.data?.count || 0);
+          const count = response.data?.count || 0;
+          
+          // 컴포넌트가 여전히 마운트되어 있는지 확인
+          if (isMounted) {
+            console.log(`🔔 알림 개수 조회 완료 - ${count}개`);
+            setUnreadCount(count);
+          }
         } catch (error) {
           console.error('Failed to fetch notification count:', error);
-          setUnreadCount(0);
+          if (isMounted) {
+            setUnreadCount(0);
+          }
         } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
+        }
+      } else {
+        // 게스트이거나 사용자 정보가 없으면 알림 개수 0으로 설정
+        if (isMounted) {
+          setUnreadCount(0);
           setLoading(false);
         }
-      };
+      }
+    };
 
-      fetchNotifications();
-      
-      // Refresh notifications every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
-      
-      // Also refresh when window gains focus (user returns from another page)
-      const handleFocus = () => {
-        fetchNotifications();
-      };
-      window.addEventListener('focus', handleFocus);
-      
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('focus', handleFocus);
-      };
+    // 즉시 실행
+    fetchNotifications();
+    
+    // 30초마다 자동 새로고침 (사용자가 로그인한 경우에만)
+    if (!isGuest && user?.id) {
+      intervalId = setInterval(fetchNotifications, 30000);
     }
-  }, [isGuest]);
+    
+    // 윈도우 포커스 시 새로고침 (사용자가 로그인한 경우에만)
+    const handleFocus = () => {
+      if (!isGuest && user?.id) {
+        fetchNotifications();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isGuest, user?.id, user?.email]); // 사용자 ID나 email이 변경될 때마다 실행
 
   // Close popup when clicking outside
   useEffect(() => {
@@ -96,10 +125,7 @@ function NavBar() {
 
   const handleNotificationClick = () => {
     setNotiOpen((open) => !open);
-    // Also refresh count when opening notifications
-    if (!notiOpen) {
-      handleNotificationRead();
-    }
+    // 알림을 열 때는 자동 새로고침하지 않음 (NotiBar에서 처리됨)
   };
 
   return (

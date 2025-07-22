@@ -2,7 +2,11 @@ import redis
 import json
 import hashlib
 from functools import wraps
+from typing import Any, Optional
+import asyncio
 import os
+from aiocache import cached
+from aiocache.backends.redis import RedisCache
 
 # Redis 연결 설정 (원래 설정으로 복원)
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
@@ -69,7 +73,7 @@ def redis_cache(expire=60*60*24):
             
             return result
         return wrapper
-    return decorator 
+    return decorator
 
 def clear_function_cache(function_name: str):
     """
@@ -136,4 +140,31 @@ def migrate_function_cache(old_function_name: str, new_function_name: str):
         return migrated_count
     except Exception as e:
         print(f"Error migrating cache from {old_function_name} to {new_function_name}: {e}")
-        return 0 
+        return 0
+
+# 비동기 Redis 캐시 설정
+async def get_async_cache():
+    """비동기 Redis 캐시 인스턴스 반환"""
+    return RedisCache(
+        endpoint="redis",
+        port=6379,
+        db=0,
+        timeout=60
+    )
+
+def async_redis_cache(ttl: int = 3600):
+    """비동기 함수용 Redis 캐시 데코레이터"""
+    def decorator(func):
+        @cached(
+            ttl=ttl,
+            cache=RedisCache,
+            endpoint="redis",
+            port=6379,
+            db=0,
+            timeout=60
+        )
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            return await func(*args, **kwargs)
+        return wrapper
+    return decorator

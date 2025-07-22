@@ -2,58 +2,119 @@ import React, { useState, useEffect } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { extractMajorAndDegree } from '../utils/resumeUtils';
 import HighlightedText, { HighlightStats } from './HighlightedText';
-import { highlightResumeText } from '../api/api';
+import { highlightResumeByApplicationId, getHighlightResults } from '../api/api';
 
-export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle }) {
+export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle, jobpostId, applicationId }) {
   const [localBookmarked, setLocalBookmarked] = useState(bookmarked);
-  const [highlightData, setHighlightData] = useState(null);
+  const [highlightData, setHighlightData] = useState([]);
   const [highlightLoading, setHighlightLoading] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
+  const [highlightError, setHighlightError] = useState(null);
   
   useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
 
-  // 자기소개서 형광펜 하이라이팅 분석
-  const analyzeContent = async (content) => {
-    if (!content || typeof content !== 'string') return;
+  // application_id 기반 하이라이트 분석 (저장된 결과 우선 조회)
+  const analyzeContentByApplicationId = async () => {
+    if (!applicationId) return;
+    setHighlightLoading(true);
+    setHighlightError(null);
     
     try {
-      setHighlightLoading(true);
-      const result = await highlightResumeText(content);
-      console.log('highlight API result:', result);
-      setHighlightData(result);
+      // 1단계: 저장된 결과가 있는지 먼저 확인
+      let result;
+      try {
+        console.log('저장된 하이라이팅 결과 조회 시도...');
+        result = await getHighlightResults(applicationId);
+        console.log('저장된 하이라이팅 결과 발견:', result);
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // 저장된 결과가 없으면 새로 분석
+          console.log('저장된 결과가 없어서 새로 분석 시작...');
+          result = await highlightResumeByApplicationId(applicationId, jobpostId);
+          console.log('새로운 하이라이팅 결과:', result);
+        } else {
+          throw error;
+        }
+      }
+      
+      // 결과를 문단별로 매핑
+      if (result && result.highlights && Array.isArray(result.highlights)) {
+        // 전체 하이라이트를 각 문단의 텍스트에 맞게 분배
+        const highlightsByParagraph = parsed.map((item, idx) => {
+          const paragraphText = item.content;
+          const paragraphHighlights = result.highlights.filter(highlight => {
+            // 하이라이트된 텍스트가 현재 문단에 포함되는지 확인
+            return paragraphText.includes(highlight.text);
+          }).map(highlight => {
+            // 문단 내에서의 상대적 위치로 조정
+            const start = paragraphText.indexOf(highlight.text);
+            return {
+              ...highlight,
+              start: start,
+              end: start + highlight.text.length
+            };
+          });
+          return { highlights: paragraphHighlights };
+        });
+        setHighlightData(highlightsByParagraph);
+      } else {
+        console.warn('하이라이팅 결과가 올바르지 않습니다:', result);
+        setHighlightData([]);
+        setHighlightError('하이라이팅 결과를 처리할 수 없습니다.');
+      }
     } catch (error) {
-      console.error('형광펜 분석 실패:', error);
-      setHighlightData(null); // 명시적으로 null로 설정
+      console.error('하이라이팅 분석 실패:', error);
+      setHighlightData([]);
+      
+      // 타임아웃 에러 특별 처리
+      if (error.message && error.message.includes('시간이 초과')) {
+        setHighlightError('하이라이팅 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+      } else if (error.code === 'ECONNABORTED') {
+        setHighlightError('하이라이팅 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        setHighlightError(error.message || '하이라이팅 분석에 실패했습니다.');
+      }
     } finally {
       setHighlightLoading(false);
     }
   };
 
-  // 자기소개서 내용 추출 및 분석
-  useEffect(() => {
-    if (resume && resume.content) {
-      let contentText = '';
-      
-      try {
-        const parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          contentText = parsed.map(item => item.content).join('\n\n');
-        } else {
-          contentText = resume.content;
-        }
-      } catch {
-        contentText = resume.content;
-      }
-      
-      if (contentText) {
-        analyzeContent(contentText);
-      }
+  // 기존 텍스트 기반 하이라이트 분석 (주석 처리 - 필요시 복원)
+  /*
+  const analyzeContent = async (contentArr) => {
+    if (!Array.isArray(contentArr) || contentArr.length === 0) return;
+    setHighlightLoading(true);
+    try {
+      const results = await Promise.all(
+        contentArr.map(item => highlightResumeText(item.content, "", "", jobpostId))
+      );
+      setHighlightData(results); // [{highlights: [...]}, ...]
+    } catch (error) {
+      setHighlightData([]);
+    } finally {
+      setHighlightLoading(false);
     }
-  }, [resume]);
+  };
+  */
 
+  // application_id가 있을 때만 하이라이트 분석 실행
   useEffect(() => {
-    console.log('highlightData:', highlightData);
-  }, [highlightData]);
+    // 자동으로 하이라이트 분석을 실행하지 않음 - 사용자가 버튼을 클릭할 때만 실행
+    // if (applicationId) {
+    //   analyzeContentByApplicationId();
+    // }
+  }, [applicationId, jobpostId]);
+
+  // 전체 통계용 하이라이트 합치기
+  const allHighlights = (highlightData || []).flatMap(d => d.highlights || []);
+
+  // content 파싱
+  let parsed = [];
+  try {
+    parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
+  } catch {
+    parsed = [];
+  }
 
   if (loading) return (
     <div className="flex items-center justify-center h-full min-h-[300px] text-blue-500 text-xl font-bold animate-pulse">
@@ -271,59 +332,52 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
       <section>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-bold text-blue-700 dark:text-blue-300">자기소개서</h3>
-          {highlightData && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowHighlights(!showHighlights)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  showHighlights 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {showHighlights ? '형광펜 끄기' : '형광펜 켜기'}
-              </button>
-              {highlightLoading && (
-                <span className="text-xs text-blue-500">분석 중...</span>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (highlightData.length === 0 && !highlightLoading) {
+                  analyzeContentByApplicationId();
+                }
+                setShowHighlights(!showHighlights);
+              }}
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                showHighlights 
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                  : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+              disabled={highlightLoading}
+            >
+              {highlightLoading ? '분석 중...' : (showHighlights ? '형광펜 끄기' : '형광펜 켜기')}
+            </button>
+            {highlightLoading && (
+              <span className="text-xs text-blue-500">분석 중...</span>
+            )}
+            {highlightError && (
+              <span className="text-xs text-red-500">{highlightError}</span>
+            )}
+          </div>
         </div>
         
-        {highlightData && showHighlights && (
-          <HighlightStats highlights={highlightData.highlights || []} />
+        {/* 전체 통계 */}
+        {highlightData.length > 0 && showHighlights && (
+          <HighlightStats highlights={allHighlights} />
         )}
-        
-        <div className="bg-gray-50 dark:bg-gray-800 rounded p-4 text-gray-800 dark:text-gray-100 whitespace-pre-line border dark:border-gray-700 min-h-[80px] space-y-6">
-          {(() => {
-            let parsed = [];
-            try {
-              parsed = typeof content === 'string' ? JSON.parse(content) : Array.isArray(content) ? content : [];
-            } catch {
-              parsed = [];
-            }
-            if (!Array.isArray(parsed) || parsed.length === 0) {
-              return <div>내용이 없습니다.</div>;
-            }
-            return parsed.map((item, idx) => (
-              <div key={idx} className="mb-6">
-                <div className="font-bold text-lg mb-2 text-blue-800 dark:text-blue-200">{item.title}</div>
-                {showHighlights && highlightData ? (
-                  <HighlightedText 
-                    text={item.content}
-                    highlights={highlightData.highlights || []}
-                    showLegend={false}
-                    onHighlightClick={(highlight) => {
-                      console.log('하이라이팅 클릭:', highlight);
-                    }}
-                  />
-                ) : (
-                  <div className="whitespace-pre-line text-base">{item.content}</div>
-                )}
-              </div>
-            ));
-          })()}
-        </div>
+
+        {/* 문단별 하이라이트만 */}
+        {parsed.map((item, idx) => (
+          <div key={idx} className="mb-6">
+            <div className="font-bold text-lg mb-2 text-blue-800 dark:text-blue-200">{item.title}</div>
+            {showHighlights && highlightData[idx] ? (
+              <HighlightedText
+                text={item.content}
+                highlights={highlightData[idx].highlights || []}
+                showLegend={false}
+              />
+            ) : (
+              <div className="whitespace-pre-wrap text-base font-inherit">{item.content}</div>
+            )}
+          </div>
+        ))}
       </section>
     </div>
   );

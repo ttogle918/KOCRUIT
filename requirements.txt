@@ -10,6 +10,7 @@ langchain==0.3.13
 langchain-core>=0.3.56
 langchain-openai==0.2.14
 langchain-community==0.3.13
+openai>=1.60,<2
 
 # === LangGraph ===
 langgraph==0.2.60
@@ -41,14 +42,24 @@ jinja2==3.1.2
 
 # === AI & ML (torch 계열 제외) === -> Dockerfile 에 추가했음
 sentence-transformers==2.5.1
-scikit-learn==1.3.2
 numpy==1.26.4
 pandas==2.2.2
-
-hdbscan==0.8.33 
 
 # --- 오디오/음성인식/AI 평가 ---
 openai-whisper==20231117  # 빠르고 정확
 librosa>=0.10.0           # 오디오 처리
 soundfile>=0.12.0         # 파일 처리
 pydub>=0.25.0             # 포맷 변환
+aiocache[redis]==0.12.2
+
+# AI & ML for pattern analysis (CPU 전용으로 최적화)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.0+cpu
+torchvision==0.17.0+cpu
+torchaudio==2.2.0+cpu
+
+# Embedding/AI
+transformers==4.36.2
+scikit-learn==1.5.2
+hdbscan==0.8.40
+python-Levenshtein>=0.12.0

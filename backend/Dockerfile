@@ -20,8 +20,8 @@ RUN apt-get update && apt-get install -y \
     python3-gi \
     && rm -rf /var/lib/apt/lists/*
 
-# === 2) requirements.txt 복사
-COPY requirements.txt .
+# === 2) requirements.txt 복사 후 설치
+COPY ../requirements.txt ./requirements.txt
 
 # === 3) 대용량 라이브러리(PyTorch 계열) 먼저 설치 (캐싱 효과 최대화)
 RUN pip install --no-cache-dir --upgrade pip && \

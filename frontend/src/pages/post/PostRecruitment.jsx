@@ -103,6 +103,12 @@ function PostRecruitment() {
   const jobDetailsRef = useAutoResize(formData.job_details);
   const proceduresRef = useAutoResize(formData.procedures);
 
+  const [departments, setDepartments] = useState([]);
+  const [showDeptDropdown, setShowDeptDropdown] = useState(false);
+  const [deptInput, setDeptInput] = useState('');
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [deptError, setDeptError] = useState(null);
+
   const handleTextareaChange = (e, field) => {
     const newValue = e.target.value;
     setFormData(prev => ({
@@ -201,6 +207,38 @@ function PostRecruitment() {
       deactivateForm();
     };
   }, [activateForm, deactivateForm]);
+
+  // Fetch department list for the user's company on mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      if (!user?.company_id) {
+        console.log('No company_id available, skipping department fetch');
+        return;
+      }
+      
+      setLoadingDepartments(true);
+      setDeptError(null);
+      
+      try {
+        console.log('Fetching departments for company_id:', user.company_id);
+        const response = await api.get(`/companies/${user.company_id}/departments/`);
+        console.log('Departments API response:', response.data);
+        
+        const deptNames = response.data.map(dept => dept.name || dept.department_name);
+        setDepartments(deptNames);
+        console.log('✅ Set departments:', deptNames);
+      } catch (error) {
+        console.error('Failed to fetch departments:', error);
+        setDeptError('부서 목록을 불러올 수 없습니다.');
+        // Fallback to common departments
+        setDepartments(['개발팀', '인사팀', '마케팅팀', '영업팀', '디자인팀', '기획팀', '운영팀']);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+    
+    fetchDepartments();
+  }, [user?.company_id]);
 
   // Context와 로컬 상태 동기화 (한 번만 실행)
   useEffect(() => {
@@ -584,8 +622,8 @@ function PostRecruitment() {
   console.log('Rendering headcount input:', formData.headcount);
 
   return (
-    <Layout title="채용공고 등록">
-      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
+    <Layout>
+      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto mt-16 max-w-screen-xl">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
@@ -598,14 +636,46 @@ function PostRecruitment() {
                   placeholder="채용공고 제목" 
                 />
                 {showError && !formData.title && <div className="text-red-500 text-xs text-left">채용공고 제목을 입력하세요.</div>}
-                <input 
-                  type="text" 
-                  value={formData.department} 
-                  onChange={(e) => handleInputChange(e, 'department')} 
-                  className={`text-md w-full text-center bg-transparent outline-none text-gray-900 dark:text-gray-300 ${showError && !formData.department ? 'border-b-2 border-red-500' : ''}`} 
-                  placeholder="부서명 (예: 개발팀, 인사팀)" 
-                />
-                {showError && !formData.department && <div className="text-red-500 text-xs text-left">부서명을 입력하세요.</div>}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.department}
+                    onChange={e => {
+                      handleInputChange(e, 'department');
+                      setDeptInput(e.target.value);
+                      setShowDeptDropdown(true);
+                    }}
+                    onFocus={() => setShowDeptDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDeptDropdown(false), 150)}
+                    className={`text-md w-full text-center bg-transparent outline-none text-gray-900 dark:text-gray-300 ${showError && !formData.department ? 'border-b-2 border-red-500' : ''}`} 
+                    placeholder="부서명 (예: 개발팀, 인사팀)"
+                    autoComplete="off"
+                  />
+                  {/* Dropdown */}
+                  {showDeptDropdown && departments.length > 0 && (
+                    <ul className="absolute left-0 right-0 z-10 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow max-h-48 overflow-y-auto mt-1">
+                      {departments.filter(d => d.toLowerCase().includes((deptInput || formData.department || '').toLowerCase())).map((d, idx) => (
+                        <li
+                          key={d + idx}
+                          className="px-4 py-2 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                          onMouseDown={() => {
+                            setFormData(prev => ({ ...prev, department: d }));
+                            updateFormField('department', d);
+                            setDeptInput(d);
+                            setShowDeptDropdown(false);
+                          }}
+                        >
+                          {d}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {/* Red warning if not in list */}
+                  {formData.department && !departments.includes(formData.department) && (
+                    <div className="text-red-500 text-xs text-left mt-1">해당 회사에 없는 부서명입니다.</div>
+                  )}
+                  {showError && !formData.department && <div className="text-red-500 text-xs text-left">부서명을 입력하세요.</div>}
+                </div>
               </div>
 
               <div className="flex flex-col md:flex-row gap-4">
@@ -1043,6 +1113,7 @@ function PostRecruitment() {
             setShowMemberModal(false);
             setSelectedMemberIndex(null);
           }}
+          defaultTab="department"
         />
       )}
     </Layout>

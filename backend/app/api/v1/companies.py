@@ -96,6 +96,25 @@ def get_departments(
     return departments
 
 
+@router.get("/{company_id}/departments/", response_model=List[DepartmentDetail])
+def get_company_departments(
+    company_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get departments for a specific company"""
+    # Check if current user belongs to the company
+    if not hasattr(current_user, 'company_id') or current_user.company_id != company_id:
+        raise HTTPException(status_code=403, detail="Access denied to company departments")
+    
+    departments = db.query(Department).filter(
+        Department.company_id == company_id
+    ).offset(skip).limit(limit).all()
+    return departments
+
+
 @router.get("/departments/{department_id}", response_model=DepartmentDetail)
 def get_department(department_id: int, db: Session = Depends(get_db)):
     department = db.query(Department).filter(Department.id == department_id).first()

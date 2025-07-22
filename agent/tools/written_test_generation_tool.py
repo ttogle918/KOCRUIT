@@ -4,7 +4,7 @@ from langchain_openai import ChatOpenAI
 from langchain.tools import tool
 from typing import Dict, List
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 # 코딩테스트 문제 생성 프롬프트
 coding_prompt = PromptTemplate.from_template(
