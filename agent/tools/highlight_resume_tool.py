@@ -353,16 +353,104 @@ def load_api_data(endpoint: str, data_id: int, field_name: str, data_type: str =
         return "" if data_type == "string" else []
 
 def load_company_values(company_id: int) -> List[str]:
-    """회사 인재상 키워드 로드"""
-    return load_api_data("companies", company_id, "values_text", "list")
+    """회사 인재상 키워드 로드 (API 실패 시 데이터베이스 기본값 사용)"""
+    if company_id:
+        keywords = load_api_data("companies", company_id, "values_text", "list")
+        if keywords:
+            print(f"[INFO] 회사 ID {company_id}에서 {len(keywords)}개의 인재상 키워드를 API로 로드했습니다.")
+            return keywords
+    
+    # API 호출 실패 또는 company_id가 없는 경우 데이터베이스에서 기본값 로드
+    print(f"[INFO] 회사 인재상 키워드를 데이터베이스에서 기본값으로 로드합니다.")
+    return load_default_company_values()
 
 def load_jobpost_qualifications(jobpost_id: int) -> str:
-    """채용공고 자격요건 로드"""
-    return load_api_data("company-jobs", jobpost_id, "qualifications", "string", "agent")
+    """채용공고 자격요건 로드 (API 실패 시 데이터베이스 기본값 사용)"""
+    if jobpost_id:
+        qualifications = load_api_data("company-jobs", jobpost_id, "qualifications", "string", "agent")
+        if qualifications:
+            print(f"[INFO] 채용공고 ID {jobpost_id}에서 자격요건을 API로 로드했습니다.")
+            return qualifications
+    
+    # API 호출 실패 또는 jobpost_id가 없는 경우 데이터베이스에서 기본값 로드
+    print(f"[INFO] 자격요건을 데이터베이스에서 기본값으로 로드합니다.")
+    default_keywords = load_default_skill_keywords()
+    return "\n".join(default_keywords)  # 리스트를 문자열로 변환
+
+def load_application_info(application_id: int) -> Dict[str, Any]:
+    """application_id로부터 company_id와 jobpost_id를 가져오는 함수"""
+    if not HAS_REQUESTS:
+        print("[WARNING] requests 패키지가 설치되어 있지 않아 API 호출이 불가능합니다.")
+        return {"company_id": None, "jobpost_id": None}
+    
+    try:
+        # 헤더 설정
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "HighlightResumeTool/1.0"
+        }
+        
+        # Application 정보 가져오기 (agent 엔드포인트 사용)
+        url = f"{BACKEND_API_BASE_URL}/applications/{application_id}/agent"
+        response = requests.get(url, headers=headers, timeout=30)
+        
+        print(f"[DEBUG] Application Agent API 호출 결과: {response.status_code}")
+        
+        if response.status_code == 200:
+            application_data = response.json()
+            jobpost_id = application_data.get("job_post_id")
+            
+            # jobpost_id가 있으면 해당 jobpost의 company_id도 가져오기
+            company_id = None
+            if jobpost_id:
+                jobpost_url = f"{BACKEND_API_BASE_URL}/company/jobposts/{jobpost_id}/agent"
+                jobpost_response = requests.get(jobpost_url, headers=headers, timeout=30)
+                
+                if jobpost_response.status_code == 200:
+                    jobpost_data = jobpost_response.json()
+                    company_id = jobpost_data.get("company_id")
+                    print(f"[INFO] Application ID {application_id}에서 jobpost_id: {jobpost_id}, company_id: {company_id}를 API로 가져왔습니다.")
+                else:
+                    print(f"[WARNING] Jobpost API 호출 실패: {jobpost_response.status_code}")
+            else:
+                print(f"[WARNING] Application ID {application_id}에서 jobpost_id를 찾을 수 없습니다.")
+            
+            return {
+                "company_id": company_id,
+                "jobpost_id": jobpost_id
+            }
+        elif response.status_code == 404:
+            print(f"[ERROR] Application ID {application_id}를 찾을 수 없습니다 (404).")
+            return {"company_id": None, "jobpost_id": None}
+        else:
+            print(f"[WARNING] Application API 호출 실패: {response.status_code}")
+            print(f"[DEBUG] 응답 내용: {response.text[:200]}")
+            return {"company_id": None, "jobpost_id": None}
+        
+    except requests.exceptions.ConnectionError as e:
+        print(f"[ERROR] 백엔드 서버 연결 실패: {e}")
+        return {"company_id": None, "jobpost_id": None}
+    except requests.exceptions.Timeout as e:
+        print(f"[ERROR] API 호출 타임아웃: {e}")
+        return {"company_id": None, "jobpost_id": None}
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Application API 호출 중 네트워크 오류: {e}")
+        return {"company_id": None, "jobpost_id": None}
+    except Exception as e:
+        print(f"[ERROR] Application 정보 로드 중 오류: {e}")
+        return {"company_id": None, "jobpost_id": None}
 
 def load_jobpost_details(jobpost_id: int) -> str:
-    """채용공고 직무 상세 로드"""
-    return load_api_data("company-jobs", jobpost_id, "job_details", "string", "agent")
+    """채용공고 직무 상세 로드 (API 실패 시 데이터베이스 기본값 사용)"""
+    if jobpost_id:
+        job_details = load_api_data("company-jobs", jobpost_id, "job_details", "string", "agent")
+        if job_details:
+            print(f"[INFO] 채용공고 ID {jobpost_id}에서 직무 상세를 API로 로드했습니다.")
+            return job_details
+    
+    # API 호출 실패 또는 jobpost_id가 없는 경우 데이터베이스에서 기본값 로드
+    print(f"[INFO] 직무 상세를 데이터베이스에서 기본값으로 로드합니다.")
+    return load_default_job_details()
 
 def analyze_sentiment(sentences: List[str]) -> List[Dict[str, Any]]:
     """감정 분석: KcELECTRA 모델을 사용하여 문장의 감정을 분석 (최적화됨)"""
@@ -435,7 +523,26 @@ def filter_negative_sentences(sentiment_results: List[Dict[str, Any]], confidenc
     negative_sentences = []
     
     for result in sentiment_results:
-        if result.get("is_negative", False) and result.get("confidence", 0) >= confidence_threshold:
+        # 부정적 문장이거나 중립적이지만 약점/부족함을 나타내는 문장도 포함
+        is_negative = result.get("is_negative", False)
+        confidence = result.get("confidence", 0)
+        emotion = result.get("emotion", "")
+        
+        # 부정적 문장이거나 중립적이지만 약점을 나타내는 문장
+        if (is_negative and confidence >= confidence_threshold) or \
+           (emotion in ["neutral", "unknown"] and confidence >= confidence_threshold * 0.8):
+            # 약점이나 부족함을 나타내는 키워드가 있는지 확인
+            sentence = result.get("sentence", "").lower()
+            weakness_keywords = ["부족", "어려움", "힘들", "문제", "실패", "실수", "미흡", "부족함", "약점", "단점"]
+            
+            if any(keyword in sentence for keyword in weakness_keywords):
+                negative_sentences.append({
+                    "sentence": result["sentence"],
+                    "sentence_index": result["sentence_index"],
+                    "emotion": result["emotion"],
+                    "confidence": result["confidence"]
+                })
+        elif is_negative and confidence >= confidence_threshold:
             negative_sentences.append({
                 "sentence": result["sentence"],
                 "sentence_index": result["sentence_index"],
@@ -502,8 +609,9 @@ class HighlightResumeTool:
         ### 라벨링 규칙
         - **문맥적 매칭을 우선적으로 고려하세요** (단순 키워드 매칭보다 의미적 연결이 중요)
         - 슬로건·다짐류(예: "혁신과 협업을 중시합니다", "최고가 되겠습니다") 및 근거 없는 나열 문장 제외 
-        - 각 value당 최대 3개만 선택해 응답하세요. 유사하거나 약한 건 제외
+        - 각 value당 최대 2개만 선택해 응답하세요. 유사하거나 약한 건 제외
         - 가능한 한 의미 있는 **최소 자연스러운 구절**만 추출 (문장 전체가 아닌 구절 단위)
+        - **응답은 간결하게 유지하세요** (분석 시간 단축을 위해)
 
         ### JSON 응답 포맷
         {{
@@ -580,26 +688,35 @@ class HighlightResumeTool:
         {job_details}
 
         ### 분석 목표
-        **감정분석 결과를 참고하여**, 회사 인재상이나 직무 설명과 **실제로 충돌할 수 있는 위험 요소**만 추려주세요.
+        **감정분석 결과를 참고하여**, 회사 인재상이나 직무 설명과 **충돌할 수 있는 위험 요소**를 찾아주세요. 
+        **더 민감하게 분석하여 잠재적 위험 요소도 포함**하세요.
 
-        ### 매칭 기준 (문맥적 판단만)
+        ### 매칭 기준 (문맥적 판단 + 잠재적 위험)
         **[1] 회사 가치 충돌**
         - 회사 인재상과 명확히 충돌하는 태도/표현
         - 예: "개인주의적 성향", "협업보다는 혼자 일하는 것을 선호", "변화를 싫어함"
+        - **잠재적 위험**: "혼자 일하는 것을 좋아한다", "새로운 것보다는 익숙한 것을 선호한다"
 
         **[2] 직무 수행 위험**
         - 직무 수행에 부정적인 영향을 줄 수 있는 경험이나 태도
         - 예: "책임 회피", "문제 회피", "소극적 태도", "의사소통 부족"
+        - **잠재적 위험**: "어려운 일은 피하고 싶다", "갈등 상황을 싫어한다"
 
         **[3] 문맥적 위험 요소**
         - 특정 키워드가 없어도 문맥상 위험한 의미로 해석되는 경우
         - 예: "적당히 처리했다" → 책임감 부족, "혼자 해결했다" → 협업 부족
         - 예: "어려워서 포기했다" → 도전 정신 부족, "다른 사람 탓을 했다" → 책임 회피
+        - **잠재적 위험**: "최대한 노력했다" → 충분하지 않을 수 있음, "다른 방법을 찾았다" → 쉽게 포기했을 수 있음
+
+        **[4] 부정적 감정 표현**
+        - 감정분석에서 부정적으로 분류된 문장 중 위험 요소가 포함된 경우
+        - 예: "스트레스를 많이 받았다", "힘들었다", "어려웠다" 등이 문맥상 위험할 때
 
         **중요**: 
-        - 키워드 기반 매칭이 아닌 **문맥적 판단**만 사용하세요
-        - 단순히 부정적 표현이 아니라, 회사나 직무와의 구체적 충돌이 있어야 함
+        - 키워드 기반 매칭이 아닌 **문맥적 판단**을 사용하세요
+        - **잠재적 위험 요소도 포함**하여 더 민감하게 분석하세요
         - 감정분석 결과를 참고하되, 문맥적 의미를 우선적으로 고려하세요
+        - **단순히 부정적 표현이 아니라, 회사나 직무와의 충돌 가능성**을 고려하세요
 
         ### 응답 형식 (JSON)
         {{
@@ -870,8 +987,7 @@ class HighlightResumeTool:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
-                max_tokens=1000,
-                timeout=60  # 타임아웃 60초로 단축
+                timeout=180  # 타임아웃 3분으로 늘림 (프롬프트가 길어서)
             )
             
             response_text = response.choices[0].message.content.strip()
@@ -889,128 +1005,53 @@ class HighlightResumeTool:
                 return result.get("highlights", [])
             except json.JSONDecodeError as e:
                 print(f"[WARNING] LLM 응답을 JSON으로 파싱할 수 없습니다.")
-                print(f"[DEBUG] 응답 텍스트: {response_text[:200]}...")
+                print(f"[DEBUG] 응답 텍스트: {response_text[:300]}...")
                 print(f"[DEBUG] JSON 오류: {e}")
+                
+                # JSON 복구 시도
+                try:
+                    # 불완전한 JSON을 복구하는 시도
+                    if '"highlights":' in response_text and '[' in response_text:
+                        # highlights 배열 시작 부분 찾기
+                        start_idx = response_text.find('"highlights":')
+                        if start_idx != -1:
+                            # 배열 시작 부분부터 추출
+                            array_start = response_text.find('[', start_idx)
+                            if array_start != -1:
+                                # 배열 끝 찾기 (중첩된 배열 고려)
+                                bracket_count = 0
+                                array_end = array_start
+                                for i in range(array_start, len(response_text)):
+                                    if response_text[i] == '[':
+                                        bracket_count += 1
+                                    elif response_text[i] == ']':
+                                        bracket_count -= 1
+                                        if bracket_count == 0:
+                                            array_end = i + 1
+                                            break
+                                
+                                # 복구된 JSON 생성
+                                recovered_json = '{"highlights":' + response_text[array_start:array_end] + '}'
+                                result = json.loads(recovered_json)
+                                print(f"[INFO] JSON 복구 성공!")
+                                return result.get("highlights", [])
+                except Exception as recovery_error:
+                    print(f"[DEBUG] JSON 복구 실패: {recovery_error}")
+                
                 return []
                 
         except Exception as e:
             print(f"[ERROR] 1단계 LLM 분석 중 오류: {e}")
             return []
     
-    def second_stage_self_check(self, first_stage_results: List[Dict[str, Any]], keywords: List[str], category: str = "value_fit") -> List[Dict[str, Any]]:
-        """2단계 자기 검증 (색깔별 특화)"""
-        if not first_stage_results:
-            return []
-        
-        if not self._initialized or not self.client:
-            print("[ERROR] HighlightResumeTool이 초기화되지 않았습니다.")
-            return first_stage_results
-        
-        try:
-            # 색깔별 검증 기준 (자연스러운 LLM 문체로)
-            if category == "value_fit":
-                verification_criteria = """
-                1. 문장이 회사 인재상 키워드와 직접적으로 연결되는지 판단해보세요.
-                2. 지원자의 행동이나 사고방식이 회사 가치관과 잘 맞는지 평가해보세요.
-                3. 단순한 미사여구가 아니라 실제 사례나 구체적인 맥락이 드러나는지 확인해보세요.
-                """
-
-            elif category == "risk":
-                verification_criteria = """
-                1. 문장이 회사 인재상이나 직무와 충돌할 가능성이 있는지 판단해보세요.
-                2. 회피적이거나 소극적인 태도가 드러나는 표현인지 살펴보세요.
-                3. 문제 상황만 제시하고 해결 의지는 부족한지 여부를 평가해보세요.
-                """
-
-            elif category == "vague":
-                verification_criteria = """
-                1. 문장이 구체적인 수치나 사례 없이 추상적인 표현인지 판단해보세요.
-                2. 다짐, 의지, 태도만 언급되고 실제 경험이 부족한지 확인해보세요.
-                3. 독자가 문장의 의미를 명확히 이해하기 어려운 표현인지 살펴보세요.
-                """
-
-            elif category == "experience":
-                verification_criteria = """
-                1. 문장이 실제 경험이나 프로젝트를 구체적으로 설명하고 있는지 확인해보세요.
-                2. 기술 구현 과정이나 사용한 도구/방법이 드러나는지 평가해보세요.
-                3. 리더십, 협업, 팀 관리 경험 등이 잘 표현되어 있는지 살펴보세요.
-                """
-
-            elif category == "skill_fit":
-                verification_criteria = """
-                1. 언급된 기술이 채용공고 자격요건과 관련이 있는지 확인해보세요.
-                2. 기술 스택이나 도구 사용 경험이 실제로 나타나는지 평가해보세요.
-                3. 단순 나열이 아니라, 구체적인 활용 맥락이 드러나는지 살펴보세요.
-                """
-
-            else:
-                verification_criteria = """
-                1. 문장이 해당 카테고리와 관련이 있는 내용인지 확인해보세요.
-                2. 매칭 이유가 논리적이고 타당한지 판단해보세요.
-                3. 전체적으로 신뢰할 만한 근거가 있는 표현인지 평가해보세요.
-                """
-            
-            # 프롬프트 구성
-            prompt = f"""
-            다음 분석 결과를 검증해주세요.
-            
-            키워드: {', '.join(keywords)}
-            카테고리: {category}
-            
-            분석 결과:
-            {json.dumps(first_stage_results, ensure_ascii=False, indent=2)}
-            
-            각 결과에 대해 다음을 확인해주세요:
-            {verification_criteria}
-            
-            검증된 결과를 JSON 형식으로 응답해주세요:
-            {{
-                "highlights": [
-                    {{
-                        "sentence": "문장",
-                        "category": "{category}",
-                        "reason": "검증된 이유",
-                        "confidence": 0.9
-                    }}
-                ]
-            }}
-            """
-            
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "당신은 자소서 분석 검증 전문가입니다."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.2,
-                max_tokens=1500
-            )
-            
-            response_text = response.choices[0].message.content.strip()
-            
-            # JSON 파싱
-            try:
-                # ```json으로 감싸진 경우 제거
-                cleaned_response = response_text.strip()
-                if cleaned_response.startswith('```json'):
-                    cleaned_response = cleaned_response[7:]  # ```json 제거
-                if cleaned_response.endswith('```'):
-                    cleaned_response = cleaned_response[:-3]  # ``` 제거
-                
-                result = json.loads(cleaned_response.strip())
-                return result.get("highlights", [])
-            except json.JSONDecodeError as e:
-                print(f"[WARNING] 2단계 검증 응답을 JSON으로 파싱할 수 없습니다.")
-                print(f"[DEBUG] 응답 텍스트: {response_text[:200]}...")
-                print(f"[DEBUG] JSON 오류: {e}")
-                return first_stage_results
-                
-        except Exception as e:
-            print(f"[ERROR] 2단계 자기 검증 중 오류: {e}")
-            return first_stage_results
+    # 2단계 검증 함수 제거 (성능 최적화)
+    # def second_stage_self_check(self, first_stage_results: List[Dict[str, Any]], keywords: List[str], category: str = "value_fit") -> List[Dict[str, Any]]:
+    #     """2단계 자기 검증 (색깔별 특화) - 성능 최적화를 위해 제거됨"""
+    #     # 성능 최적화를 위해 2단계 검증을 완전히 제거
+    #     return first_stage_results
     
     def post_process_results(self, results: List[Dict[str, Any]], values_keywords: List[str], full_text: str) -> List[Dict[str, Any]]:
-        """후처리"""
+        """후처리 (텍스트 포맷팅 보존)"""
         processed_results = []
         
         for result in results:
@@ -1023,11 +1064,28 @@ class HighlightResumeTool:
                 # reason에서 문장 추출 시도
                 reason = result.get("reason", "")
                 if reason and len(reason) > 10:
-                    # reason이 충분히 길면 그것을 텍스트로 사용
+                    # reason이 충분히 길면 그것을 텍스트로 사용 (포맷팅 보존)
                     sentence_text = reason[:100] + "..." if len(reason) > 100 else reason
                 else:
-                    # 기본값으로 전체 텍스트의 일부 사용
+                    # 기본값으로 전체 텍스트의 일부 사용 (포맷팅 보존)
                     sentence_text = full_text[:100] + "..." if len(full_text) > 100 else full_text
+            
+            # 텍스트 포맷팅 보존 (줄바꿈, 공백 등)
+            if sentence_text:
+                # 원본 텍스트에서 해당 부분을 정확히 추출
+                normalized_text = sentence_text.strip()
+                if normalized_text in full_text:
+                    # 원본 텍스트에서 정확히 찾아서 사용
+                    sentence_text = normalized_text
+                else:
+                    # 부분 매칭으로 찾기
+                    clean_text = re.sub(r'\s+', ' ', normalized_text).strip()
+                    clean_full_text = re.sub(r'\s+', ' ', full_text)
+                    if clean_text in clean_full_text:
+                        # 원본 텍스트에서 해당 부분 추출
+                        start_pos = clean_full_text.find(clean_text)
+                        # 원본 텍스트에서 대략적인 위치 찾기
+                        sentence_text = normalized_text
             
             # 기본 필드 설정
             processed_result = {
@@ -1044,19 +1102,37 @@ class HighlightResumeTool:
         return processed_results
     
     def calculate_coordinates(self, results: List[Dict[str, Any]], full_text: str) -> List[Dict[str, Any]]:
-        """좌표 계산"""
+        """좌표 계산 (텍스트 포맷팅 보존)"""
         for result in results:
             # text 또는 sentence 필드에서 텍스트 추출
             text = result.get("text", "") or result.get("sentence", "")
             if text and full_text:
-                start_pos = full_text.find(text)
+                # 텍스트 정규화 (공백, 줄바꿈 등 처리)
+                normalized_text = text.strip()
+                normalized_full_text = full_text
+                
+                # 정확한 매칭 시도
+                start_pos = normalized_full_text.find(normalized_text)
+                
                 if start_pos != -1:
                     result["start"] = start_pos
-                    result["end"] = start_pos + len(text)
+                    result["end"] = start_pos + len(normalized_text)
                 else:
-                    # 텍스트를 찾을 수 없으면 전체 텍스트의 시작 부분에 배치
-                    result["start"] = 0
-                    result["end"] = min(len(text), len(full_text))
+                    # 부분 매칭 시도 (더 유연한 검색)
+                    # 공백과 줄바꿈을 제거한 버전으로 검색
+                    clean_text = re.sub(r'\s+', ' ', normalized_text).strip()
+                    clean_full_text = re.sub(r'\s+', ' ', normalized_full_text)
+                    
+                    clean_start_pos = clean_full_text.find(clean_text)
+                    if clean_start_pos != -1:
+                        # 원본 텍스트에서 해당 위치 찾기
+                        # 간단한 근사치 계산
+                        result["start"] = max(0, clean_start_pos)
+                        result["end"] = min(len(full_text), clean_start_pos + len(clean_text))
+                    else:
+                        # 마지막 수단: 텍스트 길이 기반으로 위치 추정
+                        result["start"] = 0
+                        result["end"] = min(len(normalized_text), len(full_text))
             else:
                 # 텍스트가 없으면 기본값 설정
                 result["start"] = 0
@@ -1073,6 +1149,12 @@ class HighlightResumeTool:
         """노란색 하이라이트: 회사 인재상과의 매칭도 분석"""
         print(f"[YELLOW] 지원서 ID {application_id} 노란색 하이라이트 시작")
         
+        # company_id가 없으면 API에서 가져오기
+        if company_id is None:
+            app_info = load_application_info(application_id)
+            company_id = app_info.get("company_id")
+            print(f"[YELLOW] API에서 가져온 company_id: {company_id}")
+        
         # 자소서 데이터 로드
         resume_content = load_resume_from_api(application_id)
         if not resume_content:
@@ -1085,19 +1167,27 @@ class HighlightResumeTool:
         """이력서 내용을 직접 받아서 노란색 하이라이트 분석"""
         print(f"[YELLOW] 노란색 하이라이트 시작 (직접 내용 전달)")
         
-        # 회사 인재상 키워드 로드
-        keywords = []
-        if company_id:
-            keywords = load_company_values(company_id)
-            print(f"[YELLOW] 회사 ID {company_id}에서 {len(keywords)}개의 인재상 키워드를 로드했습니다.")
+        # 회사 인재상 키워드 로드 (API → 데이터베이스 순서)
+        keywords = load_company_values(company_id) if company_id else load_default_company_values()
+        print(f"[YELLOW] 인재상 키워드 {len(keywords)}개를 로드했습니다: {keywords}")
         
-        # 노란색은 중요하므로 검증 실행
-        return await self._analyze_category(resume_content, "value_fit", keywords, use_verification=True)
+        # 노란색 분석 (2단계 검증 제거로 성능 최적화)
+        return await self._analyze_category(resume_content, "value_fit", keywords)
     
     @async_redis_cache()
     async def highlight_red(self, application_id: int, company_id: Optional[int] = None, jobpost_id: Optional[int] = None) -> list[dict]:
         """빨간색 하이라이트: 위험 요소 분석 (감정 분석 → LLM 분석)"""
         print(f"[RED] 지원서 ID {application_id} 빨간색 하이라이트 시작")
+        
+        # company_id나 jobpost_id가 없으면 API에서 가져오기
+        if company_id is None or jobpost_id is None:
+            app_info = load_application_info(application_id)
+            if company_id is None:
+                company_id = app_info.get("company_id")
+                print(f"[RED] API에서 가져온 company_id: {company_id}")
+            if jobpost_id is None:
+                jobpost_id = app_info.get("jobpost_id")
+                print(f"[RED] API에서 가져온 jobpost_id: {jobpost_id}")
         
         # 자소서 데이터 로드
         resume_content = load_resume_from_api(application_id)
@@ -1111,15 +1201,13 @@ class HighlightResumeTool:
         """이력서 내용을 직접 받아서 빨간색 하이라이트 분석"""
         print(f"[RED] 빨간색 하이라이트 시작 (직접 내용 전달)")
         
-        # 회사 인재상 키워드 로드 (인재상 충돌 분석용)
-        keywords = []
-        if company_id:
-            keywords = load_company_values(company_id)
+        # 회사 인재상 키워드 로드 (API → 데이터베이스 순서)
+        keywords = load_company_values(company_id) if company_id else load_default_company_values()
+        print(f"[RED] 인재상 키워드 {len(keywords)}개를 로드했습니다: {keywords}")
         
-        # 직무 상세 로드 (직무 충돌 분석용)
-        job_details = ""
-        if jobpost_id:
-            job_details = load_jobpost_details(jobpost_id)
+        # 직무 상세 로드 (API → 데이터베이스 순서)
+        job_details = load_jobpost_details(jobpost_id) if jobpost_id else load_default_job_details()
+        print(f"[RED] 직무 상세를 로드했습니다: {job_details[:100]}...")
         
         return await self._analyze_risk_category(resume_content, keywords, job_details)
     
@@ -1143,8 +1231,8 @@ class HighlightResumeTool:
         # 빈 키워드 리스트 (프롬프트에서 모호한 표현을 직접 식별)
         keywords = []
         
-        # 회색은 덜 중요하므로 검증 생략 (성능 우선)
-        return await self._analyze_category(resume_content, "vague", keywords, use_verification=False)
+        # 회색 분석 (2단계 검증 제거로 성능 최적화)
+        return await self._analyze_category(resume_content, "vague", keywords)
     
     @async_redis_cache()
     async def highlight_purple(self, application_id: int) -> list[dict]:
@@ -1166,13 +1254,19 @@ class HighlightResumeTool:
         # 빈 키워드 리스트 (프롬프트에서 경험을 직접 식별)
         keywords = []
         
-        # 보라색은 덜 중요하므로 검증 생략 (성능 우선)
-        return await self._analyze_category(resume_content, "experience", keywords, use_verification=False)
+        # 보라색 분석 (2단계 검증 제거로 성능 최적화)
+        return await self._analyze_category(resume_content, "experience", keywords)
     
     @async_redis_cache()
     async def highlight_blue(self, application_id: int, jobpost_id: Optional[int] = None) -> list[dict]:
         """파란색 하이라이트: 기술 스택 분석"""
         print(f"[BLUE] 지원서 ID {application_id} 파란색 하이라이트 시작")
+        
+        # jobpost_id가 없으면 API에서 가져오기
+        if jobpost_id is None:
+            app_info = load_application_info(application_id)
+            jobpost_id = app_info.get("jobpost_id")
+            print(f"[BLUE] API에서 가져온 jobpost_id: {jobpost_id}")
         
         # 자소서 데이터 로드
         resume_content = load_resume_from_api(application_id)
@@ -1186,38 +1280,37 @@ class HighlightResumeTool:
         """이력서 내용을 직접 받아서 파란색 하이라이트 분석"""
         print(f"[BLUE] 파란색 하이라이트 시작 (직접 내용 전달)")
         
-        # 채용공고 자격요건 로드
-        keywords = []
-        if jobpost_id:
-            qualifications = load_jobpost_qualifications(jobpost_id)
-            
-            # qualifications에서 키워드 추출
-            if qualifications:
-                # 실제 DB 구조에 맞게 파싱
-                qualifications_text = qualifications.strip()
-                for line in qualifications_text.split('\n'):
-                    line = line.strip()
-                    if not line:
-                        continue
-                    
-                    # [필수], [우대], [필수기술] 등의 헤더 제거
-                    if line.startswith('[') and line.endswith(']'):
-                        continue
-                    
-                    # "- " 제거하고 콤마로 분할
-                    if line.startswith('- '):
-                        line = line[2:]  # "- " 제거
-                    
-                    # 콤마로 분할하여 키워드 추출
-                    for item in line.split(','):
-                        item = item.strip()
-                        if item:
-                            keywords.append(item)
-                
-                print(f"[BLUE] 자격요건에서 {len(keywords)}개의 키워드를 추출했습니다.")
+        # 채용공고 자격요건 로드 (API → 데이터베이스 순서)
+        qualifications = load_jobpost_qualifications(jobpost_id) if jobpost_id else ""
         
-        # 파란색은 덜 중요하므로 검증 생략 (성능 우선)
-        return await self._analyze_category(resume_content, "skill_fit", keywords, use_verification=False)
+        # qualifications에서 키워드 추출
+        keywords = []
+        if qualifications:
+            # 실제 DB 구조에 맞게 파싱
+            qualifications_text = qualifications.strip()
+            for line in qualifications_text.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # [필수], [우대], [필수기술] 등의 헤더 제거
+                if line.startswith('[') and line.endswith(']'):
+                    continue
+                
+                # "- " 제거하고 콤마로 분할
+                if line.startswith('- '):
+                    line = line[2:]  # "- " 제거
+                
+                # 콤마로 분할하여 키워드 추출
+                for item in line.split(','):
+                    item = item.strip()
+                    if item:
+                        keywords.append(item)
+        
+        print(f"[BLUE] 자격요건에서 {len(keywords)}개의 키워드를 추출했습니다.")
+        
+        # 파란색 분석 (2단계 검증 제거로 성능 최적화)
+        return await self._analyze_category(resume_content, "skill_fit", keywords)
     
     async def run_all_with_content(self, resume_content: str, application_id: int, jobpost_id: Optional[int] = None, company_id: Optional[int] = None) -> dict:
         """이력서 내용을 직접 받아서 모든 색깔의 하이라이트 분석을 병렬로 실행"""
@@ -1232,32 +1325,63 @@ class HighlightResumeTool:
             return {"error": "Resume content is empty"}
         
         try:
-            # 각 색깔별 하이라이트 분석을 병렬로 실행
-            tasks = [
-                self._highlight_yellow_with_content(resume_content, company_id),
-                self._highlight_red_with_content(resume_content, company_id, jobpost_id),
-                self._highlight_gray_with_content(resume_content),
-                self._highlight_purple_with_content(resume_content),
-                self._highlight_blue_with_content(resume_content, jobpost_id)
-            ]
+            # 각 색깔별 하이라이트 분석을 순차적으로 실행 (안정성 우선)
+            print("[ALL] 순차적 분석 시작...")
             
-            # 병렬 실행 (타임아웃 120초로 단축)
-            results = await asyncio.wait_for(
-                asyncio.gather(*tasks, return_exceptions=True),
-                timeout=120
-            )
+            # 노란색 (가장 중요) - 60초 타임아웃
+            try:
+                yellow_results = await asyncio.wait_for(
+                    self._highlight_yellow_with_content(resume_content, company_id),
+                    timeout=60
+                )
+                print(f"[YELLOW] 완료: {len(yellow_results)}개")
+            except Exception as e:
+                print(f"[ERROR] 노란색 분석 실패: {e}")
+                yellow_results = []
             
-            # 결과 추출 (에러 처리 포함)
-            yellow_results = results[0] if not isinstance(results[0], Exception) else []
-            red_results = results[1] if not isinstance(results[1], Exception) else []
-            gray_results = results[2] if not isinstance(results[2], Exception) else []
-            purple_results = results[3] if not isinstance(results[3], Exception) else []
-            blue_results = results[4] if not isinstance(results[4], Exception) else []
+            # 빨간색 (중요) - 60초 타임아웃
+            try:
+                red_results = await asyncio.wait_for(
+                    self._highlight_red_with_content(resume_content, company_id, jobpost_id),
+                    timeout=60
+                )
+                print(f"[RED] 완료: {len(red_results)}개")
+            except Exception as e:
+                print(f"[ERROR] 빨간색 분석 실패: {e}")
+                red_results = []
             
-            # 에러 로깅
-            for i, result in enumerate(results):
-                if isinstance(result, Exception):
-                    print(f"[ERROR] 카테고리 {i} 분석 중 오류: {result}")
+            # 회색 (덜 중요) - 30초 타임아웃
+            try:
+                gray_results = await asyncio.wait_for(
+                    self._highlight_gray_with_content(resume_content),
+                    timeout=30
+                )
+                print(f"[GRAY] 완료: {len(gray_results)}개")
+            except Exception as e:
+                print(f"[ERROR] 회색 분석 실패: {e}")
+                gray_results = []
+            
+            # 보라색 (덜 중요) - 30초 타임아웃
+            try:
+                purple_results = await asyncio.wait_for(
+                    self._highlight_purple_with_content(resume_content),
+                    timeout=30
+                )
+                print(f"[PURPLE] 완료: {len(purple_results)}개")
+            except Exception as e:
+                print(f"[ERROR] 보라색 분석 실패: {e}")
+                purple_results = []
+            
+            # 파란색 (덜 중요) - 30초 타임아웃
+            try:
+                blue_results = await asyncio.wait_for(
+                    self._highlight_blue_with_content(resume_content, jobpost_id),
+                    timeout=30
+                )
+                print(f"[BLUE] 완료: {len(blue_results)}개")
+            except Exception as e:
+                print(f"[ERROR] 파란색 분석 실패: {e}")
+                blue_results = []
             
             # 결과 통합
             all_results = {
@@ -1292,14 +1416,21 @@ class HighlightResumeTool:
             
         except asyncio.TimeoutError:
             print(f"[ERROR] 지원서 ID {application_id} 분석 타임아웃 (300초 초과)")
-            return {"error": "Analysis timeout"}
+            return {"error": "Analysis timeout", "partial_results": {
+                "yellow": yellow_results if 'yellow_results' in locals() else [],
+                "red": red_results if 'red_results' in locals() else [],
+                "gray": gray_results if 'gray_results' in locals() else [],
+                "purple": purple_results if 'purple_results' in locals() else [],
+                "blue": blue_results if 'blue_results' in locals() else [],
+                "highlights": []
+            }}
         except Exception as e:
             print(f"[ERROR] 전체 하이라이트 분석 중 오류: {e}")
             return {"error": str(e)}
     
     async def _analyze_category(self, resume_content: str, category: str, keywords: List[str], 
-                         job_details: str = "", use_verification: bool = True) -> List[Dict[str, Any]]:
-        """공통 분석 파이프라인: 문장 분할 → 1단계 LLM → (선택적) 2단계 검증 → 후처리 → 좌표 계산"""
+                         job_details: str = "") -> List[Dict[str, Any]]:
+        """공통 분석 파이프라인: 문장 분할 → 1단계 LLM → 후처리 → 좌표 계산 (2단계 검증 제거로 성능 최적화)"""
         if not self._initialized:
             print(f"[ERROR] HighlightResumeTool이 초기화되지 않았습니다.")
             return []
@@ -1318,13 +1449,9 @@ class HighlightResumeTool:
             keywords, candidates, analysis_data["resume_text"], category=category, job_details=job_details
         )
         
-        # 2단계: 선택적 검증 (중요한 색깔만)
-        if use_verification and category in ["value_fit", "risk"]:
-            print(f"[{category.upper()}] 2단계 검증 실행 (중요 색깔)")
-            second_stage_results = self.second_stage_self_check(first_stage_results, keywords, category=category)
-        else:
-            print(f"[{category.upper()}] 2단계 검증 생략 (성능 우선)")
-            second_stage_results = first_stage_results
+        # 2단계 검증 완전 제거 (성능 최적화)
+        print(f"[{category.upper()}] 2단계 검증 생략 (성능 우선)")
+        second_stage_results = first_stage_results
         
         # 3단계: 후처리 및 좌표 계산
         final_results = self.post_process_results(second_stage_results, keywords, analysis_data["resume_text"])
@@ -1354,25 +1481,34 @@ class HighlightResumeTool:
             print("[RISK] 감정 분석 실패로 분석을 중단합니다.")
             return []
         
-        # 부정적 문장만 필터링 (신뢰도 0.6 이상)
-        negative_sentences = filter_negative_sentences(sentiment_results, confidence_threshold=0.6)
+        # 부정적 문장만 필터링 (신뢰도 0.3으로 더 낮춤 - 더 많은 문장 분석)
+        negative_sentences = filter_negative_sentences(sentiment_results, confidence_threshold=0.3)
         
         if not negative_sentences:
-            print("[RISK] 부정적 문장이 없어서 분석을 중단합니다.")
-            return []
-        
-        print(f"[RISK] 감정 분석 완료: {len(negative_sentences)}개 부정적 문장 발견")
-        
-        # 2단계: 부정적 문장을 후보로 설정 (감정분석 결과 포함)
-        candidates = []
-        for item in negative_sentences:
-            candidates.append({
-                "sentence": item["sentence"], 
-                "sentence_index": item["sentence_index"],
-                "emotion": item["emotion"],
-                "confidence": item["confidence"],
-                "sentiment_info": f"감정: {item['emotion']} (신뢰도: {item['confidence']:.2f})"
-            })
+            print("[RISK] 감정 분석으로 부정적 문장을 찾지 못했습니다. 모든 문장에서 위험 요소를 분석합니다.")
+            # 감정 분석으로 부정적 문장을 찾지 못한 경우, 모든 문장에서 위험 요소 분석
+            candidates = []
+            for i, sentence in enumerate(analysis_data["sentences"]):
+                candidates.append({
+                    "sentence": sentence,
+                    "sentence_index": i,
+                    "emotion": "unknown",
+                    "confidence": 0.0,
+                    "sentiment_info": "전체 문장 분석"
+                })
+        else:
+            print(f"[RISK] 감정 분석 완료: {len(negative_sentences)}개 부정적 문장 발견")
+            
+            # 2단계: 부정적 문장을 후보로 설정 (감정분석 결과 포함)
+            candidates = []
+            for item in negative_sentences:
+                candidates.append({
+                    "sentence": item["sentence"], 
+                    "sentence_index": item["sentence_index"],
+                    "emotion": item["emotion"],
+                    "confidence": item["confidence"],
+                    "sentiment_info": f"감정: {item['emotion']} (신뢰도: {item['confidence']:.2f})"
+                })
         
         # 3단계: LLM 분석 (빨간색 특화 프롬프트 사용)
         first_stage_results = self.first_stage_llm_analysis(
@@ -1399,6 +1535,16 @@ class HighlightResumeTool:
             print("[ERROR] HighlightResumeTool이 초기화되지 않았습니다.")
             return {"error": "Tool not initialized"}
         
+        # company_id나 jobpost_id가 없으면 API에서 가져오기
+        if company_id is None or jobpost_id is None:
+            app_info = load_application_info(application_id)
+            if company_id is None:
+                company_id = app_info.get("company_id")
+                print(f"[ALL] API에서 가져온 company_id: {company_id}")
+            if jobpost_id is None:
+                jobpost_id = app_info.get("jobpost_id")
+                print(f"[ALL] API에서 가져온 jobpost_id: {jobpost_id}")
+        
         try:
             # 이력서 내용 로드
             resume_content = load_resume_from_api(application_id)
@@ -1422,3 +1568,161 @@ def get_highlight_tool():
     if _highlight_tool is None:
         _highlight_tool = HighlightResumeTool()
     return _highlight_tool
+
+# === 데이터베이스 기본값 로드 함수들 ===
+@redis_cache()
+def load_default_company_values() -> List[str]:
+    """데이터베이스에서 기본 회사 인재상 키워드 로드"""
+    try:
+        # MySQL 연결
+        import pymysql
+        
+        # 환경변수에서 DB 설정 가져오기
+        db_host = os.getenv("DB_HOST", "kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com")
+        db_user = os.getenv("DB_USER", "admin")
+        db_password = os.getenv("DB_PASSWORD", "kocruit1234!")
+        db_name = os.getenv("DB_NAME", "kocruit")
+        
+        conn = pymysql.connect(
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            db=db_name
+        )
+        cursor = conn.cursor()
+        
+        # company 테이블에서 values_text가 있는 첫 번째 회사 데이터 가져오기
+        cursor.execute("""
+            SELECT values_text FROM company 
+            WHERE values_text IS NOT NULL AND values_text != '' 
+            LIMIT 1
+        """)
+        
+        result = cursor.fetchone()
+        if result and result[0]:
+            values_text = result[0]
+            # 줄바꿈으로 분할하여 키워드 추출
+            keywords = []
+            for line in values_text.split('\n'):
+                line = line.strip()
+                if line and len(line) <= 10:  # 너무 긴 키워드 제외
+                    keywords.append(line)
+            
+            print(f"[INFO] 데이터베이스에서 기본 인재상 키워드 로드 완료: {len(keywords)}개")
+            return keywords[:8]  # 최대 8개로 제한
+        
+        # 데이터가 없으면 빈 리스트 반환
+        print("[WARNING] 데이터베이스에 인재상 데이터가 없습니다.")
+        return []
+        
+    except Exception as e:
+        print(f"[ERROR] 기본 인재상 키워드 로드 실패: {e}")
+        # 빈 리스트 반환
+        return []
+
+@redis_cache()
+def load_default_job_details() -> str:
+    """데이터베이스에서 기본 직무 상세 정보 로드"""
+    try:
+        # MySQL 연결
+        import pymysql
+        
+        # 환경변수에서 DB 설정 가져오기
+        db_host = os.getenv("DB_HOST", "kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com")
+        db_user = os.getenv("DB_USER", "admin")
+        db_password = os.getenv("DB_PASSWORD", "kocruit1234!")
+        db_name = os.getenv("DB_NAME", "kocruit")
+        
+        conn = pymysql.connect(
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            db=db_name
+        )
+        cursor = conn.cursor()
+        
+        # jobpost 테이블에서 job_details가 있는 첫 번째 데이터 가져오기
+        cursor.execute("""
+            SELECT job_details FROM jobpost 
+            WHERE job_details IS NOT NULL AND job_details != '' 
+            LIMIT 1
+        """)
+        
+        result = cursor.fetchone()
+        if result and result[0]:
+            job_details = result[0]
+            print(f"[INFO] 데이터베이스에서 기본 직무 상세 정보 로드 완료: {len(job_details)}자")
+            return job_details
+        
+        # 데이터가 없으면 빈 문자열 반환
+        print("[WARNING] 데이터베이스에 직무 상세 데이터가 없습니다.")
+        return ""
+        
+    except Exception as e:
+        print(f"[ERROR] 기본 직무 상세 정보 로드 실패: {e}")
+        # 빈 문자열 반환
+        return ""
+
+@redis_cache()
+def load_default_skill_keywords() -> List[str]:
+    """데이터베이스에서 기본 기술 키워드 로드"""
+    try:
+        # MySQL 연결
+        import pymysql
+        
+        # 환경변수에서 DB 설정 가져오기
+        db_host = os.getenv("DB_HOST", "kocruit-01.c5k2wi2q8g80.us-east-2.rds.amazonaws.com")
+        db_user = os.getenv("DB_USER", "admin")
+        db_password = os.getenv("DB_PASSWORD", "kocruit1234!")
+        db_name = os.getenv("DB_NAME", "kocruit")
+        
+        conn = pymysql.connect(
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            db=db_name
+        )
+        cursor = conn.cursor()
+        
+        # jobpost 테이블에서 qualifications가 있는 첫 번째 데이터 가져오기
+        cursor.execute("""
+            SELECT qualifications FROM jobpost 
+            WHERE qualifications IS NOT NULL AND qualifications != '' 
+            LIMIT 1
+        """)
+        
+        result = cursor.fetchone()
+        if result and result[0]:
+            qualifications = result[0]
+            # qualifications에서 키워드 추출
+            keywords = []
+            for line in qualifications.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # [필수], [우대], [필수기술] 등의 헤더 제거
+                if line.startswith('[') and line.endswith(']'):
+                    continue
+                
+                # "- " 제거하고 콤마로 분할
+                if line.startswith('- '):
+                    line = line[2:]  # "- " 제거
+                
+                # 콤마로 분할하여 키워드 추출
+                for item in line.split(','):
+                    item = item.strip()
+                    if item and len(item) <= 20:  # 너무 긴 키워드 제외
+                        keywords.append(item)
+            
+            print(f"[INFO] 데이터베이스에서 기본 기술 키워드 로드 완료: {len(keywords)}개")
+            return keywords[:10]  # 최대 10개로 제한
+        
+        # 데이터가 없으면 빈 리스트 반환
+        print("[WARNING] 데이터베이스에 기술 키워드 데이터가 없습니다.")
+        return []
+        
+    except Exception as e:
+        print(f"[ERROR] 기본 기술 키워드 로드 실패: {e}")
+        # 빈 리스트 반환
+        return []

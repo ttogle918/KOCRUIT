@@ -8,7 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 300000, // 5분 타임아웃
+  timeout: 600000, // 10분 타임아웃 (하이라이팅 분석 시간 고려)
 });
 
 // 요청 전 인터셉터: 토큰이 있다면 자동으로 추가
@@ -112,7 +112,7 @@ export const highlightResumeByApplicationId = async (applicationId, jobpostId = 
       jobpost_id: jobpostId,
       company_id: companyId
     }, {
-      timeout: 120000 // 2분으로 단축
+      timeout: 300000 // 5분으로 증가 (AI 분석 시간 고려)
     });
     return response.data;
   } catch (error) {
@@ -120,6 +120,28 @@ export const highlightResumeByApplicationId = async (applicationId, jobpostId = 
     if (error.code === 'ECONNABORTED') {
       throw new Error('하이라이팅 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
     }
+    throw error;
+  }
+};
+
+// 저장된 하이라이팅 결과 조회
+export const getHighlightResults = async (applicationId) => {
+  try {
+    const response = await api.get(`/ai/highlight-results/${applicationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('하이라이팅 결과 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 저장된 하이라이팅 결과 삭제
+export const deleteHighlightResults = async (applicationId) => {
+  try {
+    const response = await api.delete(`/ai/highlight-results/${applicationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('하이라이팅 결과 삭제 실패:', error);
     throw error;
   }
 };

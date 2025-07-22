@@ -41,7 +41,7 @@ function isTransitionWord(text) {
 }
 
 function HighlightedText({ text, highlights }) {
-  if (!highlights || highlights.length === 0) return <span>{text}</span>;
+  if (!highlights || highlights.length === 0) return <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span>;
 
   // 인덱스 기반 하이라이트 (start, end) + 카테고리별 색상 적용
   let lastIndex = 0;
@@ -56,7 +56,13 @@ function HighlightedText({ text, highlights }) {
     const catObj = HIGHLIGHT_CATEGORIES.find(c => c.key === categoryKey);
     
     if (lastIndex < start) {
-      elements.push(<span key={lastIndex}>{text.slice(lastIndex, start)}</span>);
+      // 원본 텍스트 포맷팅 보존
+      const originalText = text.slice(lastIndex, start);
+      elements.push(
+        <span key={lastIndex} style={{ whiteSpace: 'pre-wrap' }}>
+          {originalText}
+        </span>
+      );
     }
     
     // 🆕 다중 카테고리 도트 표시 로직
@@ -86,14 +92,16 @@ function HighlightedText({ text, highlights }) {
       position: 'relative',
       display: 'inline-block',
       border: isTransition ? '1px dashed #ccc' : 'none', // 전환어는 점선 테두리
-      fontStyle: isTransition ? 'italic' : 'normal' // 전환어는 이탤릭
+      fontStyle: isTransition ? 'italic' : 'normal', // 전환어는 이탤릭
+      whiteSpace: 'pre-wrap', // 원본 텍스트 포맷팅 보존
+      fontFamily: 'inherit' // 부모 요소의 글씨체 상속
     };
     
     elements.push(
       <span
         key={start + '-' + end}
         style={highlightStyle}
-        title={isTransition ? `전환어: ${tooltipText}` : tooltipText}
+        title={tooltipText}
       >
         {text.slice(start, end)}
         {/* 🆕 다중 카테고리 도트 표시 */}
@@ -129,10 +137,16 @@ function HighlightedText({ text, highlights }) {
   });
   
   if (lastIndex < text.length) {
-    elements.push(<span key={lastIndex}>{text.slice(lastIndex)}</span>);
+    // 마지막 부분도 원본 텍스트 포맷팅 보존
+    const remainingText = text.slice(lastIndex);
+    elements.push(
+      <span key={lastIndex} style={{ whiteSpace: 'pre-wrap' }}>
+        {remainingText}
+      </span>
+    );
   }
   
-  return <span>{elements}</span>;
+  return <span style={{ whiteSpace: 'pre-wrap' }}>{elements}</span>;
 }
 
 export default HighlightedText;

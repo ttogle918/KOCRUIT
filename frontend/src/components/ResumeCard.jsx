@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { extractMajorAndDegree } from '../utils/resumeUtils';
 import HighlightedText, { HighlightStats } from './HighlightedText';
-import { highlightResumeByApplicationId } from '../api/api';
+import { highlightResumeByApplicationId, getHighlightResults } from '../api/api';
 
 export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle, jobpostId, applicationId }) {
   const [localBookmarked, setLocalBookmarked] = useState(bookmarked);
@@ -13,14 +13,29 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
   
   useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
 
-  // application_id 기반 하이라이트 분석
+  // application_id 기반 하이라이트 분석 (저장된 결과 우선 조회)
   const analyzeContentByApplicationId = async () => {
     if (!applicationId) return;
     setHighlightLoading(true);
     setHighlightError(null);
+    
     try {
-      const result = await highlightResumeByApplicationId(applicationId, jobpostId);
-      console.log('하이라이팅 결과:', result);
+      // 1단계: 저장된 결과가 있는지 먼저 확인
+      let result;
+      try {
+        console.log('저장된 하이라이팅 결과 조회 시도...');
+        result = await getHighlightResults(applicationId);
+        console.log('저장된 하이라이팅 결과 발견:', result);
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // 저장된 결과가 없으면 새로 분석
+          console.log('저장된 결과가 없어서 새로 분석 시작...');
+          result = await highlightResumeByApplicationId(applicationId, jobpostId);
+          console.log('새로운 하이라이팅 결과:', result);
+        } else {
+          throw error;
+        }
+      }
       
       // 결과를 문단별로 매핑
       if (result && result.highlights && Array.isArray(result.highlights)) {
@@ -359,7 +374,7 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
                 showLegend={false}
               />
             ) : (
-              <div className="whitespace-pre-line text-base">{item.content}</div>
+              <div className="whitespace-pre-wrap text-base font-inherit">{item.content}</div>
             )}
           </div>
         ))}

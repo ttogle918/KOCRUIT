@@ -54,6 +54,7 @@ class Application(Base):
     resume = relationship("Resume", back_populates="applications")
     field_scores = relationship("FieldNameScore", back_populates="application")
     memos = relationship("ResumeMemo", back_populates="application")
+    highlight_results = relationship("HighlightResult", back_populates="application")
 
 
 class FieldNameScore(Base):

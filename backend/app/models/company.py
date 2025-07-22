@@ -22,6 +22,7 @@ class Company(Base):
     company_users = relationship("CompanyUser", back_populates="company")
     job_posts = relationship("JobPost", back_populates="company")
     departments = relationship("Department", back_populates="company")
+    highlight_results = relationship("HighlightResult", back_populates="company")
 
 
 class Department(Base):

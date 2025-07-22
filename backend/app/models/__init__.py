@@ -10,6 +10,7 @@ from .weight import Weight
 from .interview_evaluation import InterviewEvaluation, EvaluationDetail, InterviewEvaluationItem
 from .interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember, AssignmentType, AssignmentStatus, RequestStatus, PanelRole
 from .high_performers import HighPerformer
+from .highlight_result import HighlightResult
 
 __all__ = [
     "Base",
@@ -23,5 +24,6 @@ __all__ = [
     "Weight",
     "InterviewEvaluation", "EvaluationDetail", "InterviewEvaluationItem",
     "InterviewPanelAssignment", "InterviewPanelRequest", "InterviewPanelMember",
-    "AssignmentType", "AssignmentStatus", "RequestStatus", "PanelRole"
+    "AssignmentType", "AssignmentStatus", "RequestStatus", "PanelRole",
+    "HighlightResult"
 ] 
