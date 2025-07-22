@@ -3,8 +3,10 @@ import Sidebar from '../../components/Sidebar';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../../layout/Layout';
 import api from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function CorpHome() {
+  const { user } = useAuth();
   const [jobPosts, setJobPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,8 +15,25 @@ export default function CorpHome() {
 
   useEffect(() => {
     const fetchJobPosts = async () => {
+      // 사용자 정보가 없으면 로딩 상태 유지
+      if (!user || !user.company_id) {
+        console.log('🏢 사용자 정보 또는 company_id가 없음, 대기 중...');
+        return;
+      }
+
+      console.log(`🏢 공고 목록 조회 시작 - 사용자: ${user.email}, company_id: ${user.company_id}`);
+      setLoading(true);
+      setError(null);
+      
       try {
-        const jobPostsResponse = await api.get('/company/jobposts/');
+        const jobPostsResponse = await api.get('/company/jobposts/', {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        console.log(`🏢 공고 목록 조회 완료 - ${jobPostsResponse.data.length}개 공고`);
         setJobPosts(jobPostsResponse.data);
       } catch (err) {
         console.error('Error fetching job posts:', err);
@@ -25,7 +44,7 @@ export default function CorpHome() {
     };
 
     fetchJobPosts();
-  }, []);
+  }, [user?.company_id, user?.email]); // 사용자의 company_id나 email이 변경될 때마다 실행
 
   // 상태별 공고 분류 (DB 상태 기반)
   const categorizeJobPostsByStatus = () => {
@@ -134,7 +153,7 @@ export default function CorpHome() {
                         : activeTab === 'selecting' 
                         ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/30' 
                         : activeTab === 'closed'
-                        ? 'bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-900/30'
+                        ? 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
                         : 'bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700'
                     }`}
                   >
@@ -151,7 +170,7 @@ export default function CorpHome() {
                         </span>
                       )}
                       {activeTab === 'closed' && (
-                        <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/30 px-2 py-1 rounded">
+                        <span className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                           마감됨
                         </span>
                       )}
@@ -181,7 +200,7 @@ export default function CorpHome() {
                     )}
                     {/* 마감 탭: 최종 합격자, 마감일, 지원자수 */}
                     {activeTab === 'closed' && (
-                      <div className="text-sm text-gray-600 mt-1 space-y-1">
+                      <div className="text-sm text-gray-600 dark:text-gray-300 mt-1 space-y-1">
                         <div>최종 합격자: {post.final_selected_count ?? '-' }명</div>
                         {post.end_date && (
                           <div>마감일: {new Date(post.end_date).toLocaleDateString('ko-KR')}</div>

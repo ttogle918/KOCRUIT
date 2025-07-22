@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { fetchNotifications, markNotificationAsRead } from '../api/notificationApi.js';
+import { useAuth } from '../context/AuthContext';
 
 dayjs.extend(relativeTime);
 
 export default function NotiBar({ onNotificationClick }) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -15,9 +17,17 @@ export default function NotiBar({ onNotificationClick }) {
 
   useEffect(() => {
     const getNotifications = async () => {
+      // 사용자 정보가 없으면 로딩 상태 유지
+      if (!user || !user.id) {
+        console.log('🔔 사용자 정보가 없음, 알림 조회 대기 중...');
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
+        console.log(`🔔 알림 목록 조회 시작 - 사용자: ${user.email}, ID: ${user.id}`);
+        
         const response = await fetchNotifications();
         const allNotifications = response.data || [];
         
@@ -32,7 +42,7 @@ export default function NotiBar({ onNotificationClick }) {
         });
         
         setNotifications(sortedNotifications);
-        console.log('알림 데이터:', sortedNotifications);
+        console.log(`🔔 알림 목록 조회 완료 - ${sortedNotifications.length}개 알림`);
       } catch (error) {
         console.error('알림 가져오기 실패:', error.response?.status, error.response?.data || error.message);
         setError('알림을 불러오는데 실패했습니다.');
@@ -43,7 +53,7 @@ export default function NotiBar({ onNotificationClick }) {
     };
 
     getNotifications();
-  }, []);
+  }, [user?.id, user?.email]); // 사용자 ID나 email이 변경될 때마다 실행
 
   const handleNotificationClick = async (noti) => {
     try {

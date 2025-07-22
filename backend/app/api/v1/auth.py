@@ -122,7 +122,6 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         if not user:
             # 개발자 계정이 없으면 자동 생성
             from app.models.user import CompanyUser, UserRole
-            from app.core import security
             
             # 기본 회사 ID (첫 번째 회사 또는 1)
             company = db.query(Company).first()

@@ -34,13 +34,30 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const userInfo = localStorage.getItem('user');
-    if (token && userInfo) {
-      setUser(JSON.parse(userInfo));
+    
+    if (token) {
+      // 토큰이 있으면 서버에서 최신 사용자 정보를 가져옴
+      console.log('🔐 토큰 발견, 서버에서 최신 사용자 정보 가져오는 중...');
+      api.get('/auth/me')
+        .then(response => {
+          const userData = response.data;
+          console.log('🔐 서버에서 가져온 최신 사용자 정보:', userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+          setUser(userData);
+          setIsLoading(false);
+        })
+        .catch(error => {
+          console.error('🔐 사용자 정보 가져오기 실패:', error);
+          // 토큰이 유효하지 않으면 로그아웃 처리
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(guestUser);
+          setIsLoading(false);
+        });
     } else {
       setUser(guestUser);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (email, password) => {
