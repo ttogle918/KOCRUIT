@@ -1273,7 +1273,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
                 # 기존 AI 면접 질문 삭제 (job_post_id 기반, 중복 방지)
                 db.query(InterviewQuestion).filter(
                     InterviewQuestion.job_post_id == job_post_id,
-                    InterviewQuestion.type == QuestionType.AI_INTERVIEW
+                    InterviewQuestion.types == QuestionType.AI_INTERVIEW
                 ).delete()
                 
                 # 새로운 질문들 저장 (job_post_id 기반, application_id는 NULL)
@@ -1345,7 +1345,7 @@ def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db
         # job_post_id 기반으로 AI 면접 질문 조회
         questions = db.query(InterviewQuestion).filter(
             InterviewQuestion.job_post_id == application.job_post_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW
         ).order_by(InterviewQuestion.category, InterviewQuestion.id).all()
         
         # 카테고리별로 그룹화
@@ -1388,21 +1388,21 @@ def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(ge
         # 1. 직무별 질문 조회 (job_post_id 기반)
         job_questions = db.query(InterviewQuestion).filter(
             InterviewQuestion.job_post_id == job_post_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW,
             InterviewQuestion.category == "job_specific"
         ).order_by(InterviewQuestion.id).all()
         
         # 2. 공통 질문 조회 (company_id 기반)
         common_questions = db.query(InterviewQuestion).filter(
             InterviewQuestion.company_id == job.company_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW,
             InterviewQuestion.category == "common"
         ).order_by(InterviewQuestion.id).all()
         
         # 3. 게임 테스트 조회 (company_id 기반)
         game_questions = db.query(InterviewQuestion).filter(
             InterviewQuestion.company_id == job.company_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW,
             InterviewQuestion.category == "game_test"
         ).order_by(InterviewQuestion.id).all()
         
@@ -1475,7 +1475,7 @@ def get_common_questions_for_job_post(
         
         common_questions = db.query(InterviewQuestion).filter(
             InterviewQuestion.application_id == first_application.id,
-            InterviewQuestion.type == QuestionType.COMMON
+            InterviewQuestion.types == QuestionType.COMMON
         ).all()
         
         return {
@@ -1513,7 +1513,7 @@ def get_questions_for_application(
         )
         
         if question_type:
-            query = query.filter(InterviewQuestion.type == QuestionType(question_type))
+            query = query.filter(InterviewQuestion.types == QuestionType(question_type))
         
         questions = query.all()
         
@@ -1636,7 +1636,7 @@ def get_questions_generation_status(
         first_app = applications[0]
         common_questions_count = db.query(InterviewQuestion).filter(
             InterviewQuestion.application_id == first_app.id,
-            InterviewQuestion.type == QuestionType.COMMON
+            InterviewQuestion.types == QuestionType.COMMON
         ).count()
         
         # 개별 질문 생성된 지원자 수 확인
@@ -1646,7 +1646,7 @@ def get_questions_generation_status(
         for app in applications:
             app_questions = db.query(InterviewQuestion).filter(
                 InterviewQuestion.application_id == app.id,
-                InterviewQuestion.type != QuestionType.COMMON
+                InterviewQuestion.types != QuestionType.COMMON
             ).count()
             
             if app_questions > 0:

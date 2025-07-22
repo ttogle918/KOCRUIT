@@ -151,7 +151,7 @@ async def get_ai_interview_questions(
     
     try:
         query = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW
         )
         
         if category:
@@ -190,7 +190,7 @@ async def clear_ai_interview_questions(db: Session = Depends(get_db)) -> Dict[st
     
     try:
         deleted_count = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW
         ).delete()
         
         db.commit()
@@ -275,7 +275,7 @@ async def generate_scenario_questions(
         # 1. DB에서 기존 질문 조회 (공고별로 미리 생성된 질문)
         existing_questions = db.query(InterviewQuestion).filter(
             InterviewQuestion.job_post_id == job_post_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW
         ).all()
         
         if existing_questions:

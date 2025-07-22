@@ -44,7 +44,7 @@ class QuestionGenerationScheduler:
                         first_app = applications[0]
                         existing_common_questions = db.query(InterviewQuestion).filter(
                             InterviewQuestion.application_id == first_app.id,
-                            InterviewQuestion.type == QuestionType.COMMON
+                            InterviewQuestion.types == QuestionType.COMMON
                         ).count()
                         
                         if existing_common_questions == 0:

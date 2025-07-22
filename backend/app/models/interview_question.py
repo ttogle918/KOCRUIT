@@ -19,7 +19,7 @@ class InterviewQuestion(Base):
     application_id = Column(Integer, ForeignKey('application.id'), nullable=True)  # 개별 질문용
     job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=True)  # 직무별 질문용
     company_id = Column(Integer, ForeignKey('company.id'), nullable=True)  # 공통 질문용
-    type = Column(Enum(QuestionType), nullable=False)  # 질문 유형
+    types = Column("type", Enum(QuestionType), nullable=False)  # 질문 유형
     question_text = Column(Text, nullable=False)  # 질문 내용
     category = Column(String(50), nullable=True)  # 질문 카테고리 (common, personal, company, job, game_test 등)
     difficulty = Column(String(20), nullable=True)  # 난이도 (easy, medium, hard)

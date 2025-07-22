@@ -16,7 +16,7 @@ def check_ai_questions():
     try:
         # AI 면접 질문 개수 확인
         ai_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW
         ).all()
         
         print(f"=== AI 면접 질문 현황 ===")
