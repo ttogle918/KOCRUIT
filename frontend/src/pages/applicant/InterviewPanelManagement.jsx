@@ -1058,17 +1058,7 @@ export default function InterviewPanelManagement() {
                     </div>
                   )}
 
-                  {/* Summary */}
-                  {interviewerProfile.profile?.summary && (
-                    <div>
-                      <h4 className="text-md font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                        프로필 요약
-                      </h4>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded p-3">
-                        {interviewerProfile.profile.summary}
-                      </p>
-                    </div>
-                  )}
+
                 </div>
               </div>
             </div>

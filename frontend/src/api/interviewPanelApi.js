@@ -151,6 +151,17 @@ export const interviewPanelApi = {
       console.error('면접관 프로필 조회 실패:', error);
       throw error;
     }
+  },
+
+  // Get my interview schedules for current user
+  getMyInterviewSchedules: async () => {
+    try {
+      const response = await axiosInstance.get(`${INTERVIEW_PANEL_API}/my-interview-schedules/`);
+      return response.data;
+    } catch (error) {
+      console.error('내 면접 일정 조회 실패:', error);
+      throw error;
+    }
   }
 };
 

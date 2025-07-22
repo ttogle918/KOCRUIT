@@ -26,8 +26,8 @@ COPY requirements.txt .
 # === 3) 대용량 라이브러리(PyTorch 계열) 먼저 설치 (캐싱 효과 최대화)
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu \
-        torch==2.2.0+cpu \
-        torchvision==0.17.0+cpu \
+        torch==2.2.0 \
+        torchvision==0.17.0 \
         torchaudio==2.2.0
 
 # === 4) 나머지 패키지 설치

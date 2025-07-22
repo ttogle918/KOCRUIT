@@ -30,6 +30,14 @@ def analyze_interview_requirements(state: Dict[str, Any]) -> Dict[str, Any]:
     
     # 면접 유형별 요구사항 분석
     requirements = {
+        "ai": {
+            "needs_personal_questions": True,
+            "needs_company_questions": bool(company_name),
+            "needs_job_questions": bool(job_info),
+            "needs_portfolio_analysis": True,
+            "needs_resume_analysis": True,
+            "needs_automated_evaluation": True
+        },
         "general": {
             "needs_personal_questions": True,
             "needs_company_questions": bool(company_name),
@@ -152,7 +160,17 @@ def question_generator(state: Dict[str, Any]) -> Dict[str, Any]:
             questions["job"] = job_questions
         
         # 면접 유형별 특화 질문
-        if interview_type == "executive":
+        if interview_type == "ai":
+            # AI 면접은 기본 질문들을 모두 포함하되, 자동화에 최적화된 형태로 제공
+            ai_questions = {
+                "common": common_questions,
+                "personal": questions.get("personal", []),
+                "company": questions.get("company", []),
+                "job": questions.get("job", [])
+            }
+            questions["ai"] = ai_questions
+        
+        elif interview_type == "executive":
             executive_questions = generate_executive_interview_questions(
                 resume_text=resume_text,
                 job_info=job_info,

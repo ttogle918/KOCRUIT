@@ -349,11 +349,16 @@ class InterviewQuestionService:
     ) -> Dict[str, int]:
         """면접 일정이 확정된 지원자들에 대해 질문 생성 (백그라운드 스케줄러용)"""
         try:
-            # 면접 일정이 확정된 지원자들 조회
+            # 면접 일정이 확정된 지원자들 조회 (AI 면접 또는 1차 면접)
             scheduled_applications = db.query(Application).filter(
                 Application.job_post_id == job_post_id,
                 Application.document_status == DocumentStatus.PASSED.value,
-                Application.interview_status == InterviewStatus.SCHEDULED.value
+                Application.interview_status.in_([
+                    InterviewStatus.AI_INTERVIEW_SCHEDULED.value,
+                    InterviewStatus.FIRST_INTERVIEW_SCHEDULED.value,
+                    InterviewStatus.SECOND_INTERVIEW_SCHEDULED.value,
+                    InterviewStatus.FINAL_INTERVIEW_SCHEDULED.value
+                ])
             ).all()
             
             # 공고 정보 조회
@@ -362,7 +367,8 @@ class InterviewQuestionService:
                 raise ValueError(f"공고 정보를 찾을 수 없습니다: {job_post_id}")
             
             company_name = job_post.company.name if job_post.company else ""
-            job_info = f"{job_post.title} - {job_post.description}"
+            from app.api.v1.interview_question import parse_job_post_data
+            job_info = parse_job_post_data(job_post)
             
             results = {
                 "total_applications": len(scheduled_applications),

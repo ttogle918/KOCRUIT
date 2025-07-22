@@ -19,7 +19,7 @@ redis_client = redis.Redis(
     retry_on_timeout=True
 )
 
-def cache_result(expire_time: int = 300, key_prefix: str = "cache"):
+def cache_result(expire_time: int = 3600, key_prefix: str = "cache"):
     """
     함수 결과를 Redis에 캐싱하는 데코레이터
     

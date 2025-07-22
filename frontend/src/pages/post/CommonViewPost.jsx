@@ -64,39 +64,49 @@ function CommonViewPost() {
         <div className="max-w-4xl mx-auto">
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-center space-y-2">
-              <h2 className="text-2xl font-semibold text-gray-900 border-b border-gray-300 dark:border-gray-600 pb-2 dark:text-white">{jobPost.companyName}</h2>
-              <p className="text-md text-gray-900 dark:text-gray-300">{jobPost.title}</p>
+              <h2 className="text-2xl font-semibold text-gray-900 border-b border-gray-300 dark:border-gray-600 pb-2 dark:text-white">
+                {jobPost.companyName || 'Unknown Company'}
+              </h2>
+              <p className="text-md text-gray-900 dark:text-gray-300">{jobPost.title || ''}</p>
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-gray-900 dark:text-white">
               <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">모집 정보</h4>
               <div className="border-t border-gray-300 dark:border-gray-600 px-4 pt-3 space-y-3">
-                <p><strong>모집 인원:</strong> {jobPost.headcount}명</p>
-                <p><strong>근무지역:</strong> {jobPost.location}</p>
-                <p><strong>고용형태:</strong> {jobPost.employment_type}</p>
-                <p><strong>기간:</strong> {jobPost.start_date} ~ {jobPost.end_date}</p>
+                <p><strong>모집 인원:</strong> {jobPost.headcount || 0}명</p>
+                <p><strong>근무지역:</strong> {jobPost.location || ''}</p>
+                <p><strong>고용형태:</strong> {jobPost.employment_type || ''}</p>
+                <p><strong>기간:</strong> {jobPost.start_date || ''} ~ {jobPost.end_date || ''}</p>
               </div>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4">
               <div className="w-full md:w-1/2 bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
                 <h4 className="text-lg font-semibold text-gray-900 ml-4 pb-2 dark:text-white">지원자격</h4>
-                <pre className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">{jobPost.qualifications}</pre>
+                <div className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">
+                  {jobPost.qualifications || ''}
+                </div>
               </div>
               <div className="w-full md:w-1/2 bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
                 <h4 className="text-lg font-semibold text-gray-900 ml-4 pb-2 dark:text-white">근무조건</h4>
-                <pre className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">{jobPost.conditions}</pre>
+                <div className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">
+                  {jobPost.conditions || ''}
+                </div>
               </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
               <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">모집분야 및 자격요건</h4>
-              <pre className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">{jobPost.job_details}</pre>
+              <div className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">
+                {jobPost.job_details || ''}
+              </div>
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4">
               <h4 className="text-lg font-semibold ml-4 pb-2 dark:text-white">전형절차</h4>
-              <pre className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">{jobPost.procedures}</pre>
+              <div className="whitespace-pre-wrap text-gray-900 dark:text-white border-t border-gray-300 dark:border-gray-600 pt-2 px-4">
+                {jobPost.procedures || ''}
+              </div>
             </div>
           </div>
         </div>
