@@ -86,14 +86,7 @@ export default function ViewPostSidebar({ jobPost }) {
           <MdOutlinePlayCircle size={20} />
           {isHovered && <span className="ml-2">필기 질문 생성</span>}
         </button>
-      </div>
-      
-      {/* 면접 단계별 네비게이션 */}
-      <div className="flex flex-col gap-1 w-full mb-6">
-        <div className={`text-xs font-semibold px-2 mb-1 ${isHovered ? 'block' : 'hidden'}`}>
-          면접 진행
-        </div>
-        {/* AI 면접 */}
+        {/* 필기 합격자 명단 버튼 */}
         <button
           className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
@@ -104,8 +97,15 @@ export default function ViewPostSidebar({ jobPost }) {
           <MdCheckCircle size={20} />
           {isHovered && <span className="ml-2">필기 합격자 명단</span>}
         </button>
+      </div>
+      
+      {/* 면접 단계별 네비게이션 */}
+      <div className="flex flex-col gap-1 w-full mb-6">
+        <div className={`text-xs font-semibold px-2 mb-1 ${isHovered ? 'block' : 'hidden'}`}>
+          면접 진행
+        </div>
+        {/* AI 면접 */}
         <button
-          className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-bold
           className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
             ${isAiInterview
