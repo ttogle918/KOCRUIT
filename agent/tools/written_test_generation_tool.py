@@ -12,8 +12,8 @@ coding_prompt = PromptTemplate.from_template(
     아래는 채용공고 정보입니다:
     ---
     제목: {title}
-    부서: {department}
     자격요건: {qualifications}
+    근무조건: {conditions}
     직무상세: {job_details}
     ---
     이 공고는 개발자(프로그래머, 엔지니어, SW, IT 등) 직무입니다.
@@ -32,8 +32,8 @@ aptitude_prompt = PromptTemplate.from_template(
     아래는 채용공고 정보입니다:
     ---
     제목: {title}
-    부서: {department}
     자격요건: {qualifications}
+    근무조건: {conditions}
     직무상세: {job_details}
     ---
     이 공고는 비개발자 직무입니다.
@@ -53,19 +53,19 @@ DEV_KEYWORDS = ["개발", "엔지니어", "프로그래밍", "SW", "IT", "프로
 
 def is_developer_job(jobpost: Dict) -> bool:
     """공고 정보에서 개발자 직무 여부 판별"""
-    text = f"{jobpost.get('title','')} {jobpost.get('department','')} {jobpost.get('job_details','')} {jobpost.get('qualifications','')}"
+    text = f"{jobpost.get('title','')} {jobpost.get('job_details','')} {jobpost.get('conditions','')}"
     return any(k in text for k in DEV_KEYWORDS)
 
 @tool("generate_written_test_questions", return_direct=True)
 def generate_written_test_questions(jobpost: Dict) -> List[str]:
     """
     jobpost(공고) dict를 입력받아, 개발자 직무면 코딩테스트, 그 외면 직무적합성 평가 문제를 2~3개 생성합니다.
-    입력 예시: {"title": ..., "department": ..., "qualifications": ..., "job_details": ...}
+    입력 예시: {"title": ..., "conditions": ..., "job_details": ...}
     출력: 문제 리스트(List[str])
     """
     if not isinstance(jobpost, dict):
         raise ValueError("jobpost는 dict 타입이어야 합니다.")
-    for key in ["title", "department", "qualifications", "job_details"]:
+    for key in ["title", "conditions", "job_details"]:
         if key not in jobpost:
             raise ValueError(f"jobpost에 '{key}' 필드가 필요합니다.")
     if is_developer_job(jobpost):

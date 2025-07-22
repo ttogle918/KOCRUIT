@@ -1,16 +1,25 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.job import JobPost
 from app.models.written_test_question import WrittenTestQuestion
+from app.models.written_test_answer import WrittenTestAnswer
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func
+from sqlalchemy import or_
 
 # agent tool import
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
 from agent.tools.written_test_generation_tool import generate_written_test_questions
+from agent.tools.answer_grading_tool import grade_written_test_answer
+from app.schemas.written_test_answer import WrittenTestAnswerCreate, WrittenTestAnswerResponse
+
+import openai
+import re
+from app.models.application import Application, WrittenTestStatus
 
 router = APIRouter()
 
@@ -31,6 +40,12 @@ class SpellCheckResponse(BaseModel):
     suggestions: List[str]
     corrected_text: str = ""
 
+class WrittenTestStatusUpdateRequest(BaseModel):
+    user_id: int
+    jobpost_id: int
+    status: str  # PASSED, FAILED, etc.
+    score: float
+
 @router.post('/written-test/generate')
 def generate_written_test(req: WrittenTestGenerateRequest, db: Session = Depends(get_db)):
     try:
@@ -38,15 +53,27 @@ def generate_written_test(req: WrittenTestGenerateRequest, db: Session = Depends
         if not job_post:
             raise HTTPException(status_code=404, detail="JobPost not found")
         
-        # JobPost 데이터를 dict로 변환
+        # 필수 필드 체크 (4개 모두 키 포함, None은 빈 문자열)
         jobpost_dict = {
-            "title": job_post.title or "",
-            "department": job_post.department or "",
-            "qualifications": job_post.qualifications or "",
-            "job_details": job_post.job_details or ""
+            "title": getattr(job_post, "title", "") or "",
+            "qualifications": getattr(job_post, "qualifications", "") or "",
+            "conditions": getattr(job_post, "conditions", "") or "",
+            "job_details": getattr(job_post, "job_details", "") or ""
         }
+        # 디버깅용 로그 추가
+        print("job_post:", job_post)
+        print("title:", getattr(job_post, "title", None))
+        print("qualifications:", getattr(job_post, "qualifications", None))
+        print("conditions:", getattr(job_post, "conditions", None))
+        print("job_details:", getattr(job_post, "job_details", None))
+        print("jobpost_dict:", jobpost_dict)
         
-        questions = generate_written_test_questions(jobpost_dict)
+        for key in ["title", "qualifications", "conditions", "job_details"]:
+            if jobpost_dict[key] == "":
+                raise HTTPException(status_code=400, detail=f"JobPost의 '{key}' 필드가 비어 있습니다.")
+        
+        # 호출 방식 변경: jobpost_dict를 jobpost 키로 감싸서 넘김
+        questions = generate_written_test_questions({"jobpost": jobpost_dict})
         return {"questions": questions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"문제 생성 오류: {str(e)}")
@@ -59,7 +86,16 @@ def submit_written_test(req: WrittenTestSubmitRequest, db: Session = Depends(get
         job_post = db.query(JobPost).filter(JobPost.id == req.jobPostId).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="JobPost not found")
-        is_dev = any(k in (job_post.title or "") or k in (job_post.department or "") for k in dev_keywords)
+        # department를 문자열로 안전하게 처리
+        department_name = ""
+        if hasattr(job_post, "department") and job_post.department is not None:
+            # 관계형 객체라면 .name 사용
+            if hasattr(job_post.department, "name"):
+                department_name = job_post.department.name or ""
+            else:
+                department_name = str(job_post.department)
+        # testType 판별
+        is_dev = any(k in (job_post.title or "") or k in department_name for k in dev_keywords)
         test_type = 'coding' if is_dev else 'aptitude'
         # 문제 저장
         for idx, q in enumerate(req.questions):
@@ -77,6 +113,29 @@ def submit_written_test(req: WrittenTestSubmitRequest, db: Session = Depends(get
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"문제 제출 오류: {str(e)}")
+
+@router.post('/written-test/submit-answer', response_model=WrittenTestAnswerResponse)
+def submit_written_test_answer(req: WrittenTestAnswerCreate, db: Session = Depends(get_db)):
+    try:
+        answer = WrittenTestAnswer(
+            user_id=req.user_id,
+            jobpost_id=req.jobpost_id,
+            question_id=req.question_id,
+            answer_text=req.answer_text
+        )
+        # AI 채점: score, feedback이 없는 경우에만 평가
+        question = db.query(WrittenTestQuestion).filter(WrittenTestQuestion.id == req.question_id).first()
+        if question and (answer.score is None or answer.score == 0):
+            result = grade_written_test_answer(question.question_text, req.answer_text)
+            answer.score = result["score"]
+            answer.feedback = result["feedback"]
+        db.add(answer)
+        db.commit()
+        db.refresh(answer)
+        return answer
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"답안 저장/채점 오류: {str(e)}")
 
 @router.post('/spell-check', response_model=SpellCheckResponse)
 def spell_check_text(req: SpellCheckRequest):
@@ -171,3 +230,148 @@ def spell_check_text(req: SpellCheckRequest):
             suggestions=["다시 시도해주세요."],
             corrected_text=req.text
         )
+
+@router.post('/written-test/auto-grade/jobpost/{jobpost_id}')
+def auto_grade_written_test_by_jobpost(jobpost_id: int, db: Session = Depends(get_db)):
+    """
+    해당 jobpost_id의 모든 문제/답안 중 score가 NULL인 것만 AI로 자동 채점하여 score/feedback을 저장하고,
+    지원자별 평균 점수를 application.written_test_score에 저장, 상위 5배수만 합격(PASSED) 처리
+    """
+    try:
+        questions = db.query(WrittenTestQuestion).filter(WrittenTestQuestion.jobpost_id == jobpost_id).all()
+        if not questions:
+            raise HTTPException(status_code=404, detail="해당 공고의 문제가 없습니다.")
+        # score가 NULL인 답안만 불러오기
+        answers = db.query(WrittenTestAnswer).filter(
+            WrittenTestAnswer.jobpost_id == jobpost_id,
+            or_(WrittenTestAnswer.score == None, WrittenTestAnswer.score == 0)
+        ).all()
+        # 1. 답안별로 score/feedback 저장
+        graded_count = 0
+        for answer in answers:
+            question = next((q for q in questions if q.id == answer.question_id), None)
+            if not question:
+                continue
+            result = grade_written_test_answer(question.question_text, answer.answer_text)
+            if result["score"] is not None:
+                answer.score = result["score"]
+                answer.feedback = result["feedback"]
+                graded_count += 1
+            else:
+                answer.feedback = result["feedback"]
+        db.commit()
+        # 2. 지원자별 평균 점수 계산 및 application 테이블에 저장
+        from sqlalchemy import func
+        results = (
+            db.query(
+                WrittenTestAnswer.user_id,
+                func.avg(WrittenTestAnswer.score).label('average_score')
+            )
+            .filter(WrittenTestAnswer.jobpost_id == jobpost_id)
+            .group_by(WrittenTestAnswer.user_id)
+            .order_by(func.avg(WrittenTestAnswer.score).desc())
+            .all()
+        )
+        jobpost = db.query(JobPost).filter(JobPost.id == jobpost_id).first()
+        headcount = jobpost.headcount if jobpost and jobpost.headcount else 1
+        cutoff = headcount * 5
+        result_list = []
+        for idx, row in enumerate(results):
+            avg_score = row.average_score
+            application = db.query(Application).filter(
+                Application.user_id == row.user_id,
+                Application.job_post_id == jobpost_id
+            ).first()
+            if application:
+                application.written_test_score = avg_score
+                if idx < cutoff:
+                    application.written_test_status = WrittenTestStatus.PASSED
+                else:
+                    application.written_test_status = WrittenTestStatus.FAILED
+            result_list.append({
+                "user_id": row.user_id,
+                "average_score": round(avg_score, 2) if avg_score is not None else None,
+                "status": "합격" if idx < cutoff else "불합격"
+            })
+        db.commit()
+        return {
+            "graded_count": graded_count,
+            "total_answers": len(answers),
+            "results": result_list
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"자동 채점 오류: {str(e)}")
+
+@router.get('/written-test/results/{jobpost_id}')
+def get_written_test_results(jobpost_id: int, db: Session = Depends(get_db)):
+    results = (
+        db.query(
+            WrittenTestAnswer.user_id,
+            func.sum(WrittenTestAnswer.score).label('total_score')
+        )
+        .filter(WrittenTestAnswer.jobpost_id == jobpost_id)
+        .group_by(WrittenTestAnswer.user_id)
+        .order_by(func.sum(WrittenTestAnswer.score).desc())
+        .all()
+    )
+    jobpost = db.query(JobPost).filter(JobPost.id == jobpost_id).first()
+    headcount = jobpost.headcount if jobpost and jobpost.headcount else 1
+    cutoff = headcount * 5
+    result_list = []
+    # 합격/불합격 상태 일괄 업데이트
+    for idx, row in enumerate(results):
+        status = "합격" if idx < cutoff else "불합격"
+        # Application 객체 찾아서 written_test_status 업데이트
+        application = db.query(Application).filter(
+            Application.user_id == row.user_id,
+            Application.job_post_id == jobpost_id
+        ).first()
+        if application:
+            if status == "합격":
+                application.written_test_status = WrittenTestStatus.PASSED
+            else:
+                application.written_test_status = WrittenTestStatus.FAILED
+        result_list.append({
+            "user_id": row.user_id,
+            "total_score": row.total_score,
+            "status": status
+        })
+    db.commit()
+    return result_list
+
+@router.get('/written-test/passed/{jobpost_id}')
+def get_written_test_passed_applicants(jobpost_id: int, db: Session = Depends(get_db)):
+    from app.models.application import Application, WrittenTestStatus
+    passed_apps = db.query(Application).filter(
+        Application.job_post_id == jobpost_id,
+        Application.written_test_status == WrittenTestStatus.PASSED
+    ).all()
+    return [
+        {
+            "user_id": app.user.id if app.user else None,  # user_id 추가
+            "user_name": app.user.name if app.user else None,
+            "written_test_score": app.written_test_score,
+        }
+        for app in passed_apps
+    ]
+
+@router.post('/written-test/update-status-and-score')
+def update_written_test_status_and_score(
+    req: WrittenTestStatusUpdateRequest = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    지원자의 필기시험 상태와 최종 점수를 동시에 업데이트합니다.
+    """
+    application = db.query(Application).filter(
+        Application.user_id == req.user_id,
+        Application.job_post_id == req.jobpost_id
+    ).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    # 상태 및 점수 동시 업데이트
+    application.written_test_status = getattr(WrittenTestStatus, req.status)
+    application.written_test_score = req.score
+    db.commit()
+    return {"message": "Written test status and score updated successfully."}

@@ -26,6 +26,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 from app.scheduler.job_status_scheduler import JobStatusScheduler
+from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
 
 
 def safe_create_tables():
@@ -92,7 +93,10 @@ async def lifespan(app: FastAPI):
     print("🔄 Starting JobPost status scheduler...")
     asyncio.create_task(job_status_scheduler.start())
     print("JobPost 상태 스케줄러 시작 완료")
-    
+
+    # 필기 답안 자동 채점 스케줄러 시작
+    start_written_test_auto_grader()
+
     # 시드 데이터 실행
     try:
         import subprocess

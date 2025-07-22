@@ -4,7 +4,7 @@ import api from '../api/api';
 import { calculateAge } from '../utils/resumeUtils';
 import GrowthPredictionCard from './GrowthPredictionCard';
 
-const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
+const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(applicant?.isBookmarked === 'Y');
@@ -243,17 +243,29 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange }) => {
         )}
       </div>
 
-      {/* Pass/Reject Reason */}
+      {/* Pass/Reject Reason + Feedbacks */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
           {applicant?.status === 'PASSED' ? '합격 사유' : '불합격 사유'}
         </h3>
-        <div className={`rounded-lg p-4 ${applicant?.status === 'PASSED' ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20"}`}>
+        <div className={`rounded-lg p-4 ${applicant?.status === 'PASSED' ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
           <p className="text-gray-700 dark:text-gray-300">
             {applicant?.status === 'PASSED'
               ? (aiPassReason || '서류 심사에서 우수한 성과를 보여 합격 처리되었습니다.')
               : (aiFailReason || '서류 심사 결과 불합격 처리되었습니다.')}
           </p>
+          {applicant?.status === 'PASSED' && feedbacks && feedbacks.length > 0 && (
+            <div className="mt-4">
+              <h4 className="font-semibold mb-2">문제별 피드백</h4>
+              <ul className="list-disc pl-6">
+                {feedbacks.map((fb, idx) => (
+                  <li key={idx} className="text-gray-700 dark:text-gray-300">
+                    <span className="font-bold">문제 {fb.question_id}:</span> {fb.feedback}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 
