@@ -122,6 +122,25 @@ def get_company_job_post(
     return job_post
 
 
+@router.get("/{job_post_id}/agent")
+def get_job_post_for_agent(
+    job_post_id: int, 
+    db: Session = Depends(get_db)
+):
+    """Agent용: 인증 없이 채용공고 정보 가져오기"""
+    job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+    
+    if not job_post:
+        raise HTTPException(status_code=404, detail="Job post not found")
+    
+    return {
+        "id": job_post.id,
+        "qualifications": job_post.qualifications or "",
+        "job_details": job_post.job_details or "",
+        "company_id": job_post.company_id
+    }
+
+
 @router.post("/", response_model=JobPostDetail, status_code=201)
 def create_company_job_post(
     job_post: JobPostCreate,

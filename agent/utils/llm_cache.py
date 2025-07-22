@@ -1,7 +1,11 @@
 import redis
 import json
 import hashlib
-from functools import wraps
+import functools
+from typing import Any, Optional
+import asyncio
+from aiocache import cached
+from aiocache.backends.redis import RedisCache
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)
 
@@ -13,7 +17,7 @@ def redis_cache(expire=60*60*24):
     - expire: 만료(초), 기본 24시간
     """
     def decorator(func):
-        @wraps(func)
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             # 입력 파라미터로 캐시 키 생성 (함수명+파라미터 해시)
             try:
@@ -36,5 +40,32 @@ def redis_cache(expire=60*60*24):
             else:
                 redis_client.set(cache_key, result, ex=expire)
             return result
+        return wrapper
+    return decorator
+
+# 비동기 Redis 캐시 설정
+async def get_async_cache():
+    """비동기 Redis 캐시 인스턴스 반환"""
+    return RedisCache(
+        endpoint="redis",
+        port=6379,
+        db=0,
+        timeout=60
+    )
+
+def async_redis_cache(ttl: int = 3600):
+    """비동기 함수용 Redis 캐시 데코레이터"""
+    def decorator(func):
+        @cached(
+            ttl=ttl,
+            cache=RedisCache,
+            endpoint="redis",
+            port=6379,
+            db=0,
+            timeout=60
+        )
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            return await func(*args, **kwargs)
         return wrapper
     return decorator 

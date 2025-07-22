@@ -63,7 +63,7 @@ const agentApi = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 60000, // 60초로 증가 (AI 모델 로딩 시간 고려)
 });
 
 export const extractWeights = async (jobPostingContent, existingWeights = []) => {
@@ -104,22 +104,26 @@ export const devLogin = async (email) => {
   }
 };
 
-// 자기소개서 형광펜 하이라이팅 API
-export const highlightResumeText = async (text, jobDescription = "", companyValues = "", qualifications = "") => {
+// 자기소개서 형광펜 하이라이팅 API (application_id 기반)
+export const highlightResumeByApplicationId = async (applicationId, jobpostId = null, companyId = null) => {
   try {
-    // baseURL이 http://localhost:8000 이므로, 전체 경로를 명확히 적음
-    const response = await axiosInstance.post('/api/v1/ai/highlight-resume', {
-      text,
-      job_description: jobDescription,
-      company_values: companyValues,
-      qualifications
+    const response = await api.post('/ai/highlight-resume-by-application', {
+      application_id: applicationId,
+      jobpost_id: jobpostId,
+      company_id: companyId
+    }, {
+      timeout: 120000 // 2분으로 단축
     });
     return response.data;
   } catch (error) {
-    console.error('자기소개서 하이라이팅 분석 실패:', error);
+    console.error('하이라이팅 분석 실패:', error);
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('하이라이팅 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+    }
     throw error;
   }
 };
+
 
 export async function getResumeHighlights(text) {
   const res = await fetch('/api/v1/highlight', {

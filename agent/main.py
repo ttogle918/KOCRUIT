@@ -1,5 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import sys
+import os
+
+# Python 경로에 현재 디렉토리 추가
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from agents.graph_agent import build_graph
 from agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, create_session_id
 from agents.chatbot_node import ChatbotNode
@@ -10,12 +16,23 @@ from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_field_tool import form_field_update_tool, form_status_check_tool
 from tools.form_field_improve_tool import form_field_improve_tool
 from agents.application_evaluation_agent import evaluate_application
+from tools.highlight_resume_tool import get_highlight_tool
 from dotenv import load_dotenv
 import uuid
 import os
 from fastapi import HTTPException
 from langchain_openai import ChatOpenAI
 import json
+from pydantic import BaseModel
+from typing import Optional
+
+# Pydantic 모델 정의
+class HighlightResumeRequest(BaseModel):
+    text: str
+    job_description: str = ""
+    company_values: str = ""
+    jobpost_id: Optional[int] = None
+    company_id: Optional[int] = None
 
 load_dotenv()
 
@@ -42,7 +59,9 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "chat": "/chat/",
-            "chat_session": "/chat/session/new",
+            "highlight_resume": "/highlight-resume",
+            "extract_weights": "/extract-weights/",
+            "evaluate_application": "/evaluate-application/",
             "monitor_health": "/monitor/health",
             "monitor_sessions": "/monitor/sessions",
             "docs": "/docs"
@@ -72,6 +91,57 @@ except Exception as e:
     print(f"Error initializing Redis monitor: {e}")
     redis_monitor = None
     scheduler = None
+
+@app.post("/highlight-resume")
+async def highlight_resume(request: dict):
+    """이력서 하이라이팅 분석 (resume_content 직접 전달)"""
+    print(f"🎯 AI Agent: 하이라이팅 요청 받음!")
+    print(f"📥 요청 데이터: {request}")
+    
+    try:
+        # HighlightResumeTool 인스턴스 생성
+        highlight_tool = get_highlight_tool()
+        if not highlight_tool:
+            print("❌ HighlightResumeTool 초기화 실패")
+            raise HTTPException(status_code=503, detail="HighlightResumeTool을 초기화할 수 없습니다")
+        
+        # application_id 필수 체크
+        if "application_id" not in request:
+            print("❌ application_id 누락")
+            raise HTTPException(status_code=400, detail="application_id is required")
+        
+        # resume_content 필수 체크
+        if "resume_content" not in request:
+            print("❌ resume_content 누락")
+            raise HTTPException(status_code=400, detail="resume_content is required")
+        
+        application_id = request["application_id"]
+        resume_content = request["resume_content"]
+        jobpost_id = request.get("jobpost_id")
+        company_id = request.get("company_id")
+        
+        print(f"✅ 파라미터 확인 완료: application_id={application_id}, jobpost_id={jobpost_id}, company_id={company_id}")
+        print(f"📄 이력서 내용 길이: {len(resume_content)} characters")
+        
+        # resume_content 기반 하이라이팅 실행 (비동기)
+        print("🚀 하이라이팅 분석 시작...")
+        result = await highlight_tool.run_all_with_content(
+            resume_content=resume_content,
+            application_id=application_id,
+            jobpost_id=jobpost_id,
+            company_id=company_id
+        )
+        
+        print(f"✅ 하이라이팅 분석 완료: {len(result.get('highlights', []))} highlights")
+        print(f"📤 응답 전송 시작...")
+        print(f"📦 응답 데이터: {result}")
+        return result
+        
+    except Exception as e:
+        print(f"❌ 하이라이팅 분석 중 오류 발생: {str(e)}")
+        import traceback
+        print(f"📋 상세 오류: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/run/")
 async def run(request: Request):
@@ -284,6 +354,7 @@ async def start_scheduler():
     if scheduler is None:
         return {"error": "Scheduler not initialized"}
     
+    import asyncio
     asyncio.create_task(scheduler.start())
     return {"message": "Scheduler started"}
 
@@ -645,4 +716,10 @@ async def suggest_questions(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8001, 
+        reload=False,  # 자동 리로드 비활성화
+        log_level="info"
+    )

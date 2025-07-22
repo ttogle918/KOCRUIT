@@ -17,10 +17,17 @@ class ApplicationViewAction(str, enum.Enum):
     DOWNLOAD = "DOWNLOAD"
 
 
-class ApplicationStatus(str, enum.Enum):
+class DocumentStatus(str, enum.Enum):
+    # 기존 값들 (호환성 유지)
     DOCUMENT_WAITING = "DOCUMENT_WAITING"
     DOCUMENT_PASSED = "DOCUMENT_PASSED"
     DOCUMENT_REJECTED = "DOCUMENT_REJECTED"
+    REJECTED = "REJECTED"
+    
+    # 새로운 값들
+    PENDING = "PENDING"      # 서류 심사 대기
+    REVIEWING = "REVIEWING"  # 서류 심사 중
+    PASSED = "PASSED"        # 서류 합격
 
 
 class Application(Base):
@@ -35,7 +42,7 @@ class Application(Base):
     human_score = Column(Numeric(5, 2))
     final_score = Column(Numeric(5, 2))
     status = Column(SqlEnum(ApplyStatus), default=ApplyStatus.WAITING, nullable=False)
-    document_status = Column(SqlEnum(ApplicationStatus), default=ApplicationStatus.DOCUMENT_WAITING, nullable=False)
+    document_status = Column(SqlEnum(DocumentStatus), default=DocumentStatus.DOCUMENT_WAITING, nullable=False)
     applied_at = Column(DateTime, default=datetime.utcnow)
     application_source = Column(String(255))
     pass_reason = Column(Text)

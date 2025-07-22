@@ -9,7 +9,7 @@ from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
     ApplicationList
 )
-from app.models.application import Application, ApplyStatus, ApplicationStatus
+from app.models.application import Application, ApplyStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
@@ -241,6 +241,32 @@ def get_application(
     print(f"Certificates 개수: {len(certificates)}")
     
     return response_data
+
+
+@router.get("/{application_id}/content")
+def get_application_content(
+    application_id: int,
+    db: Session = Depends(get_db)
+):
+    """Agent용: 인증 없이 자소서 내용만 가져오기"""
+    # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
+    application = (
+        db.query(Application)
+        .options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        )
+        .filter(Application.id == application_id)
+        .first()
+    )
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    return {
+        "content": application.resume.content if application.resume else "",
+        "application_id": application_id
+    }
 
 
 @router.post("/", response_model=ApplicationDetail)

@@ -8,6 +8,7 @@ langchain==0.3.13
 langchain-core>=0.3.56
 langchain-openai==0.2.14
 langchain-community==0.3.13
+openai>=1.60,<2
 
 # LangGraph
 langgraph==0.2.60
@@ -31,6 +32,7 @@ python-multipart==0.0.7
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 redis==5.0.1
+aiocache[redis]==0.12.2
 httpx==0.25.2
 
 # AI & ML for pattern analysis (CPU 전용으로 최적화)

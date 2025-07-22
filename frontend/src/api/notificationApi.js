@@ -1,6 +1,6 @@
 import axios from './axiosInstance'; // JWT 포함된 Axios 인스턴스 사용
 
-const BASE_URL = '/api/v1/notifications';
+const BASE_URL = '/notifications';
 
 export const fetchNotifications = () => axios.get(`${BASE_URL}/`);
 export const fetchUnreadNotifications = () => axios.get(`${BASE_URL}/unread`);

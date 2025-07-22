@@ -6,6 +6,7 @@ from tools.resume_scoring_tool import resume_scoring_tool
 from tools.pass_reason_tool import pass_reason_tool
 from tools.fail_reason_tool import fail_reason_tool
 from tools.application_decision_tool import application_decision_tool
+from agent.utils.llm_cache import redis_cache
 
 # 상태 정의
 class ApplicationState(TypedDict):
@@ -45,9 +46,11 @@ def build_application_evaluation_graph():
     # 그래프 컴파일
     return workflow.compile()
 
+@redis_cache()
 def evaluate_application(job_posting: str, spec_data: dict, resume_data: dict, weight_data: dict = None):
     """
     지원자의 서류를 평가합니다.
+    Redis 캐싱이 적용되어 같은 입력에 대해 캐시된 결과를 반환합니다.
     
     Args:
         job_posting (str): 채용공고 내용

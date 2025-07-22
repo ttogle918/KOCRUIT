@@ -220,7 +220,12 @@ const CommonResumeList = ({
       </div>
       {/* 이력서 상세 */}
       <div className="flex flex-col flex-1 min-w-[200px] h-[600px] overflow-y-auto">
-        <ResumeCard resume={resume} loading={resumeLoading} />
+        <ResumeCard 
+          resume={resume} 
+          loading={resumeLoading} 
+          jobpostId={jobPostId} 
+          applicationId={selectedApplicant?.id}
+        />
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.models.schedule import Schedule, ScheduleInterview
 from app.models.user import User
 from app.api.v1.auth import get_current_user
-from app.models.application import Application, ApplyStatus, ApplicationStatus
+from app.models.application import Application, ApplyStatus
 from app.schemas.application import ApplicationUpdate, ApplicationBulkStatusUpdate
 
 router = APIRouter()

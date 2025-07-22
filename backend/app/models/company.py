@@ -10,6 +10,7 @@ class Company(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True)
     description = Column(Text)
+    values_text = Column(Text)  # 회사 인재상/가치관 정보
     address = Column(String(255))
     phone = Column(String(20))
     website = Column(String(255))

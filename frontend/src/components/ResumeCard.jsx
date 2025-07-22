@@ -2,23 +2,76 @@ import React, { useState, useEffect } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import { extractMajorAndDegree } from '../utils/resumeUtils';
 import HighlightedText, { HighlightStats } from './HighlightedText';
-import { highlightResumeText } from '../api/api';
+import { highlightResumeByApplicationId } from '../api/api';
 
-export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle }) {
+export default function ResumeCard({ resume, loading, bookmarked, onBookmarkToggle, jobpostId, applicationId }) {
   const [localBookmarked, setLocalBookmarked] = useState(bookmarked);
   const [highlightData, setHighlightData] = useState([]);
   const [highlightLoading, setHighlightLoading] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
+  const [highlightError, setHighlightError] = useState(null);
   
   useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
 
-  // 문단별 하이라이트 분석
+  // application_id 기반 하이라이트 분석
+  const analyzeContentByApplicationId = async () => {
+    if (!applicationId) return;
+    setHighlightLoading(true);
+    setHighlightError(null);
+    try {
+      const result = await highlightResumeByApplicationId(applicationId, jobpostId);
+      console.log('하이라이팅 결과:', result);
+      
+      // 결과를 문단별로 매핑
+      if (result && result.highlights && Array.isArray(result.highlights)) {
+        // 전체 하이라이트를 각 문단의 텍스트에 맞게 분배
+        const highlightsByParagraph = parsed.map((item, idx) => {
+          const paragraphText = item.content;
+          const paragraphHighlights = result.highlights.filter(highlight => {
+            // 하이라이트된 텍스트가 현재 문단에 포함되는지 확인
+            return paragraphText.includes(highlight.text);
+          }).map(highlight => {
+            // 문단 내에서의 상대적 위치로 조정
+            const start = paragraphText.indexOf(highlight.text);
+            return {
+              ...highlight,
+              start: start,
+              end: start + highlight.text.length
+            };
+          });
+          return { highlights: paragraphHighlights };
+        });
+        setHighlightData(highlightsByParagraph);
+      } else {
+        console.warn('하이라이팅 결과가 올바르지 않습니다:', result);
+        setHighlightData([]);
+        setHighlightError('하이라이팅 결과를 처리할 수 없습니다.');
+      }
+    } catch (error) {
+      console.error('하이라이팅 분석 실패:', error);
+      setHighlightData([]);
+      
+      // 타임아웃 에러 특별 처리
+      if (error.message && error.message.includes('시간이 초과')) {
+        setHighlightError('하이라이팅 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+      } else if (error.code === 'ECONNABORTED') {
+        setHighlightError('하이라이팅 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+      } else {
+        setHighlightError(error.message || '하이라이팅 분석에 실패했습니다.');
+      }
+    } finally {
+      setHighlightLoading(false);
+    }
+  };
+
+  // 기존 텍스트 기반 하이라이트 분석 (주석 처리 - 필요시 복원)
+  /*
   const analyzeContent = async (contentArr) => {
     if (!Array.isArray(contentArr) || contentArr.length === 0) return;
     setHighlightLoading(true);
     try {
       const results = await Promise.all(
-        contentArr.map(item => highlightResumeText(item.content))
+        contentArr.map(item => highlightResumeText(item.content, "", "", jobpostId))
       );
       setHighlightData(results); // [{highlights: [...]}, ...]
     } catch (error) {
@@ -27,21 +80,15 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
       setHighlightLoading(false);
     }
   };
+  */
 
-  // content 배열로 분석
+  // application_id가 있을 때만 하이라이트 분석 실행
   useEffect(() => {
-    if (resume && resume.content) {
-      let parsed = [];
-      try {
-        parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
-      } catch {
-        parsed = [];
-      }
-      if (parsed.length > 0) {
-        analyzeContent(parsed);
-      }
-    }
-  }, [resume]);
+    // 자동으로 하이라이트 분석을 실행하지 않음 - 사용자가 버튼을 클릭할 때만 실행
+    // if (applicationId) {
+    //   analyzeContentByApplicationId();
+    // }
+  }, [applicationId, jobpostId]);
 
   // 전체 통계용 하이라이트 합치기
   const allHighlights = (highlightData || []).flatMap(d => d.highlights || []);
@@ -270,23 +317,30 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
       <section>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-bold text-blue-700 dark:text-blue-300">자기소개서</h3>
-          {highlightData.length > 0 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowHighlights(!showHighlights)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  showHighlights 
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                }`}
-              >
-                {showHighlights ? '형광펜 끄기' : '형광펜 켜기'}
-              </button>
-              {highlightLoading && (
-                <span className="text-xs text-blue-500">분석 중...</span>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (highlightData.length === 0 && !highlightLoading) {
+                  analyzeContentByApplicationId();
+                }
+                setShowHighlights(!showHighlights);
+              }}
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                showHighlights 
+                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                  : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+              }`}
+              disabled={highlightLoading}
+            >
+              {highlightLoading ? '분석 중...' : (showHighlights ? '형광펜 끄기' : '형광펜 켜기')}
+            </button>
+            {highlightLoading && (
+              <span className="text-xs text-blue-500">분석 중...</span>
+            )}
+            {highlightError && (
+              <span className="text-xs text-red-500">{highlightError}</span>
+            )}
+          </div>
         </div>
         
         {/* 전체 통계 */}
