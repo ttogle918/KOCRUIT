@@ -2,20 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { fetchGrowthPrediction } from '../api/growthPredictionApi';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as BarTooltip, Legend as BarLegend } from 'recharts';
+import Plot from 'react-plotly.js';
 
 const GrowthPredictionCard = ({ applicationId }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
-  const [showRatio, setShowRatio] = useState(true); // true: 비율(고성과자=100), false: 실제값
+  // 그래프 모드: 'ratio' | 'normalized' | 'raw'
+  const [chartMode, setChartMode] = useState('ratio'); // 기본값: 비율(고성과자=100)
 
   // applicationId가 바뀔 때마다 상태 초기화
   useEffect(() => {
     setResult(null);
     setError(null);
     setShowDetail(false);
-    setShowRatio(true);
+    setChartMode('ratio');
     setLoading(false);
   }, [applicationId]);
 
@@ -32,32 +34,49 @@ const GrowthPredictionCard = ({ applicationId }) => {
     }
   };
 
-  // 비교 그래프 데이터 변환 (RadarChart용)
-  const getRadarData = () => {
+  // 1. 비율(고성과자=100) 데이터 변환
+  const getRatioData = () => {
     if (!result || !result.comparison_chart_data) return [];
     const { labels, applicant, high_performer } = result.comparison_chart_data;
-    if (showRatio) {
-      // 비율(고성과자=100)
-      return labels.map((label, idx) => {
-        const max = high_performer[idx] > 0 ? high_performer[idx] : 1;
-        const applicantNorm = (applicant[idx] / max) * 100;
-        return {
-          항목: label,
-          지원자: Math.min(applicantNorm, 100),
-          고성과자: 100,
-          raw_지원자: applicant[idx],
-          raw_고성과자: high_performer[idx],
-          지원자비율: applicantNorm,
-        };
-      });
-    } else {
-      // 실제값
-      return labels.map((label, idx) => ({
+    return labels.map((label, idx) => {
+      const max = high_performer[idx] > 0 ? high_performer[idx] : 1;
+      const applicantNorm = (applicant[idx] / max) * 100;
+      return {
         항목: label,
-        지원자: applicant[idx],
-        고성과자: high_performer[idx],
-      }));
-    }
+        지원자: Math.min(applicantNorm, 100),
+        고성과자: 100,
+        raw_지원자: applicant[idx],
+        raw_고성과자: high_performer[idx],
+        지원자비율: applicantNorm,
+      };
+    });
+  };
+
+  // 2. 정규화(0~100) 데이터 변환 (항목별 최대값 기준)
+  const getNormalizedData = () => {
+    if (!result || !result.comparison_chart_data) return [];
+    const { labels, applicant, high_performer } = result.comparison_chart_data;
+    return labels.map((label, idx) => {
+      const max = Math.max(applicant[idx], high_performer[idx], 1);
+      return {
+        항목: label,
+        지원자: (applicant[idx] / max) * 100,
+        고성과자: (high_performer[idx] / max) * 100,
+        raw_지원자: applicant[idx],
+        raw_고성과자: high_performer[idx],
+      };
+    });
+  };
+
+  // 3. 실제값 데이터 변환
+  const getRawData = () => {
+    if (!result || !result.comparison_chart_data) return [];
+    const { labels, applicant, high_performer } = result.comparison_chart_data;
+    return labels.map((label, idx) => ({
+      항목: label,
+      지원자: applicant[idx],
+      고성과자: high_performer[idx],
+    }));
   };
 
   // 실제값 모드에서 최대값 계산 (축 범위용)
@@ -79,6 +98,32 @@ const GrowthPredictionCard = ({ applicationId }) => {
         ))}
       </ul>
     );
+  };
+
+  // 그래프 데이터 및 축/범위/설명 선택
+  let chartData = [];
+  let yDomain = [0, 100];
+  let chartDesc = '';
+  if (chartMode === 'ratio') {
+    chartData = getRatioData();
+    yDomain = [0, 100];
+    chartDesc = '고성과자=100%로 환산한 지원자 상대비율입니다. (실제값은 툴팁 참고)';
+  } else if (chartMode === 'normalized') {
+    chartData = getNormalizedData();
+    yDomain = [0, 100];
+    chartDesc = '각 항목별로 0~100으로 정규화한 값입니다. (실제값은 툴팁 참고)';
+  } else {
+    chartData = getRawData();
+    yDomain = [0, getMaxValue()];
+    chartDesc = '실제값(절대값) 비교입니다. 값의 편차가 클 수 있습니다.';
+  }
+
+  // Box plot 항목별 단위/설명 매핑
+  const boxplotLabels = {
+    '경력(년)': { label: '경력(년)', unit: '년', desc: '고성과자 총 경력 연수 분포' },
+    '주요 프로젝트 경험 수': { label: '주요 프로젝트 경험 수', unit: '개', desc: '고성과자 주요 프로젝트 경험 개수' },
+    '학력': { label: '학력', unit: '레벨', desc: '학사=2, 석사=3, 박사=4' },
+    '자격증': { label: '자격증 개수', unit: '개', desc: '고성과자 자격증 보유 개수' },
   };
 
   return (
@@ -135,30 +180,56 @@ const GrowthPredictionCard = ({ applicationId }) => {
           </button>
           {showDetail && (
             <>
-              <button
-                className="mb-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-2 py-1 rounded text-xs"
-                onClick={() => setShowRatio((v) => !v)}
-              >
-                {showRatio ? '실제값 보기' : '비율(고성과자=100) 보기'}
-              </button>
+              {/* 그래프 모드 선택 버튼 */}
+              <div className="flex gap-2 mb-2 mt-2">
+                <button
+                  className={`px-2 py-1 rounded text-xs border ${chartMode === 'ratio' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                  onClick={() => setChartMode('ratio')}
+                >
+                  비율(고성과자=100) 보기
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs border ${chartMode === 'normalized' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                  onClick={() => setChartMode('normalized')}
+                >
+                  정규화(0~100) 보기
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs border ${chartMode === 'raw' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                  onClick={() => setChartMode('raw')}
+                >
+                  실제값 보기
+                </button>
+              </div>
+              <div className="text-xs text-gray-500 mb-2">{chartDesc}</div>
               <div className="mt-2">
-                {getRadarData().length > 0 ? (
-                  showRatio ? (
+                {chartData.length > 0 ? (
+                  chartMode === 'ratio' || chartMode === 'normalized' ? (
                     <ResponsiveContainer width="100%" height={280}>
-                      <RadarChart data={getRadarData()} outerRadius={100}>
+                      <RadarChart data={chartData} outerRadius={100}>
                         <PolarGrid />
                         <PolarAngleAxis dataKey="항목" />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                        <PolarRadiusAxis angle={30} domain={yDomain} />
                         <Radar name="지원자" dataKey="지원자" stroke="#2563eb" fill="#2563eb" fillOpacity={0.4} />
                         <Radar name="고성과자" dataKey="고성과자" stroke="#22c55e" fill="#22c55e" fillOpacity={0.2} />
                         <Legend />
                         <Tooltip
                           formatter={(value, name, props) => {
                             if (name === '지원자') {
-                              return [`${value.toFixed(1)}% (실제: ${props.payload.raw_지원자}, 비율: ${props.payload.지원자비율.toFixed(1)}%)`, '지원자'];
+                              return [
+                                chartMode === 'ratio' || chartMode === 'normalized'
+                                  ? `${value.toFixed(1)}% (실제: ${props.payload.raw_지원자})`
+                                  : `${value} (실제값)`,
+                                '지원자',
+                              ];
                             }
                             if (name === '고성과자') {
-                              return [`${value.toFixed(1)}% (실제: ${props.payload.raw_고성과자})`, '고성과자'];
+                              return [
+                                chartMode === 'ratio' || chartMode === 'normalized'
+                                  ? `${value.toFixed(1)}% (실제: ${props.payload.raw_고성과자})`
+                                  : `${value} (실제값)`,
+                                '고성과자',
+                              ];
                             }
                             return value;
                           }}
@@ -167,10 +238,10 @@ const GrowthPredictionCard = ({ applicationId }) => {
                     </ResponsiveContainer>
                   ) : (
                     <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={getRadarData()} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="항목" />
-                        <YAxis />
+                        <YAxis domain={yDomain} />
                         <BarTooltip />
                         <BarLegend />
                         <Bar dataKey="지원자" fill="#2563eb" name="지원자" />
@@ -182,6 +253,52 @@ const GrowthPredictionCard = ({ applicationId }) => {
                   <div className="text-gray-400 text-center">비교 그래프 데이터를 불러올 수 없습니다.</div>
                 )}
               </div>
+              {/* Box plot: 고성과자 분포 + 지원자 위치 */}
+              {result.boxplot_data && (
+                <div className="mt-6">
+                  <h4 className="font-semibold text-base mb-2">고성과자 분포와 지원자 위치 (Box Plot)</h4>
+                  {Object.entries(result.boxplot_data).map(([label, stats]) => {
+                    const meta = boxplotLabels[label] || { label, unit: '', desc: '' };
+                    return (
+                      <div key={label} className="mb-6">
+                        <div className="font-semibold mb-1">
+                          {meta.label} <span className="text-xs text-gray-500">({meta.desc}{meta.unit ? `, 단위: ${meta.unit}` : ''})</span>
+                        </div>
+                        <Plot
+                          data={[
+                            {
+                              y: [stats.min, stats.q1, stats.median, stats.q3, stats.max],
+                              type: 'box',
+                              name: '고성과자 분포',
+                              boxpoints: false,
+                              marker: { color: '#2563eb' }
+                            },
+                            {
+                              y: [stats.applicant],
+                              type: 'scatter',
+                              mode: 'markers',
+                              name: '지원자',
+                              marker: { color: 'red', size: 14, symbol: 'circle' }
+                            }
+                          ]}
+                          layout={{
+                            title: `${meta.label} 분포`,
+                            yaxis: { title: `${meta.label}${meta.unit ? ` (${meta.unit})` : ''}` },
+                            showlegend: true,
+                            height: 320,
+                            margin: { l: 60, r: 30, t: 40, b: 40 }
+                          }}
+                          config={{ displayModeBar: false }}
+                          style={{ width: '100%', maxWidth: 500 }}
+                        />
+                      </div>
+                    );
+                  })}
+                  <div className="text-xs text-gray-500 mt-2">
+                    파란 박스는 고성과자 집단의 분포(최저~최고, 25%~75%, 중간값), 빨간 점은 지원자의 위치입니다.
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

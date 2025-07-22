@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "@hello-pangea/dnd": "^18.0.1"
+    "@hello-pangea/dnd": "^18.0.1",
+    "plotly.js": "^3.0.1"
+  },
+  "devDependencies": {
+    "vite-plugin-commonjs": "^0.10.4"
   }
 }

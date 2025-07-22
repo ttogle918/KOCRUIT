@@ -157,7 +157,7 @@ export default function ViewPostSidebar({ jobPost }) {
             onClick={() => navigate(`/report/document?job_post_id=${effectiveJobPostId}`)}
           >
             <MdCheckCircle size={18} />
-            {isHovered && <span className="ml-2 text-sm">서류 보고서</span>}
+            {isHovered && <span className="ml-2 text-sm">서류전형 평가서</span>}
           </button>
           {/* 기존 면접/최종 보고서 버튼 */}
           <button
