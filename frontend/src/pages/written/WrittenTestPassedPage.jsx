@@ -108,6 +108,7 @@ export default function WrittenTestPassedPage() {
   const [showAnswerModal, setShowAnswerModal] = useState(false);
   const [totalApplicants, setTotalApplicants] = useState(null);
   const [documentPassedCount, setDocumentPassedCount] = useState(null);
+  const passMultiplier = 5; // 정책상 5배수
 
   useEffect(() => {
     const fetchApplicants = async () => {
@@ -274,7 +275,7 @@ export default function WrittenTestPassedPage() {
         <div className="w-full flex justify-center items-center py-2">
           {typeof documentPassedCount === 'number' && jobPost && jobPost.headcount ? (
             <span className="text-2xl font-bold text-gray-700 dark:text-gray-200">
-              서류 합격자 {documentPassedCount}명 중 최종 선발인원의 {jobPost.headcount}배수인 {jobPost.headcount * 5}명이 필기 합격되었습니다. (실제 합격자: {passedApplicants.length}명)
+              서류 합격자 {documentPassedCount}명 중 최종 선발인원의 {passMultiplier}배수({jobPost.headcount * passMultiplier}명) 기준, 동점자를 포함하여 총 {passedApplicants.length}명이 필기 합격되었습니다.
             </span>
           ) : (
             <span className="text-xl font-bold text-gray-400">서류 합격자/선발 인원 정보를 불러오는 중...</span>

@@ -9,6 +9,31 @@ from app.models.job import JobPost
 from sqlalchemy import func
 import datetime
 
+def update_written_test_pass_status(db, jobpost_id):
+    jobpost = db.query(JobPost).filter(JobPost.id == jobpost_id).first()
+    headcount = jobpost.headcount if jobpost and jobpost.headcount else 1
+    cutoff = headcount * 5
+    apps = db.query(Application)\
+        .filter(Application.job_post_id == jobpost_id)\
+        .order_by(
+            (Application.written_test_score == None).asc(),
+            Application.written_test_score.desc()
+        ).all()
+    if not apps:
+        return
+    # cutoff 점수 구하기
+    if len(apps) <= cutoff:
+        cutoff_score = apps[-1].written_test_score
+    else:
+        cutoff_score = apps[cutoff-1].written_test_score
+    for app in apps:
+        if app.written_test_score is not None and app.written_test_score >= cutoff_score:
+            app.written_test_status = WrittenTestStatus.PASSED
+        else:
+            app.written_test_status = WrittenTestStatus.FAILED
+    db.commit()
+
+
 def auto_grade_unscored_answers():
     start_time = datetime.datetime.now()
     print(f"[Auto Grader] 채점 시작: {start_time}")
@@ -43,6 +68,7 @@ def auto_grade_unscored_answers():
             # --- 추가: 채점 후 application.written_test_score 즉시 업데이트 ---
             # (user_id, jobpost_id) 쌍 추출
             updated_pairs = set((a.user_id, a.jobpost_id) for a in answers)
+            updated_jobpost_ids = set()
             for user_id, jobpost_id in updated_pairs:
                 # 해당 지원자의 모든 답안이 채점 완료됐는지 확인
                 total_answers = db.query(WrittenTestAnswer).filter(
@@ -72,6 +98,11 @@ def auto_grade_unscored_answers():
                         application.written_test_score = avg_score
                         db.commit()
                         print(f"[Auto Grader] 평균점수 반영: user_id={user_id}, jobpost_id={jobpost_id}, avg_score={avg_score}")
+                        updated_jobpost_ids.add(jobpost_id)
+
+            # --- 추가: 각 jobpost_id별로 상위 5배수만 PASSED 처리 ---
+            for jobpost_id in updated_jobpost_ids:
+                update_written_test_pass_status(db, jobpost_id)
 
             db.close()
         except Exception as e:
