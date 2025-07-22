@@ -1,6 +1,8 @@
 from langchain_openai import ChatOpenAI
 import json
+from agent.utils.llm_cache import redis_cache
 
+@redis_cache()
 def fail_reason_tool(state):
     """
     점수와 평가 세부사항을 바탕으로 불합격 이유를 생성합니다.

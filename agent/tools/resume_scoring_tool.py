@@ -1,11 +1,14 @@
 from langchain_openai import ChatOpenAI
 import json
+from agent.utils.llm_cache import redis_cache
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
 
+@redis_cache()
 def resume_scoring_tool(state):
     """
     spec 테이블과 resume 테이블 데이터를 기반으로 지원자의 서류 점수를 평가합니다.
+    Redis 캐싱이 적용되어 같은 입력에 대해 캐시된 결과를 반환합니다.
     """
     spec_data = state.get("spec_data", {})
     resume_data = state.get("resume_data", {})

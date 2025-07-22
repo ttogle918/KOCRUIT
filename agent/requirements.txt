@@ -1,40 +1,63 @@
-# LangChain ecosystem (AI 에이전트 핵심)
+# === LangChain ecosystem (AI 에이전트 핵심) ===
 langchain==0.3.13
 langchain-core>=0.3.56
 langchain-openai==0.2.14
 langchain-community==0.3.13
+openai>=1.60,<2
 
-# LangGraph (워크플로우 관리)
+# === LangGraph (워크플로우 관리) ===
 langgraph==0.2.60
 
-# RAG and Vector Database
+# === RAG and Vector Database ===
 chromadb==0.4.24
 
-# CPU 전용 PyTorch 및 sentence-transformers
+# === CPU 전용 PyTorch 및 AI 모델 ===
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.2.0+cpu
 torchvision==0.17.0+cpu
 torchaudio==2.2.0+cpu
 sentence-transformers==2.5.1
+transformers==4.36.2
 
-# Memory and State Management
+# === Memory and State Management ===
 redis>=4.0.0
+aiocache[redis]==0.12.2
 
-# Monitoring and System
+# === Monitoring and System ===
 psutil==5.9.5
 
-# Utilities
+# === Utilities ===
 python-dotenv==1.0.1
 pydantic==2.9.2
+python-multipart==0.0.9
+fastapi==0.110.0
+uvicorn==0.29.0
+jinja2==3.1.2
+aiofiles>=23.1.0
+numpy==1.26.4
+scikit-learn==1.5.2
+pymysql==1.1.1
+requests==2.31.0
+tqdm==4.66.2
 
-# --- 오디오/음성인식/AI 평가 ---
+# === Web Scraping ===
+beautifulsoup4==4.12.3
+selenium==4.23.1
+webdriver-manager==4.0.2
+
+# === Text Processing ===
+python-levenshtein==0.25.0
+
+# === Search Tools ===
+tavily-python==0.3.3
+
+# === 오디오/음성인식/AI 평가 ===
 openai-whisper==20231117  # ✅ 음성인식
 librosa>=0.10.0           # ✅ 오디오 처리
 soundfile>=0.12.0         # ✅ 파일 처리
 pydub>=0.25.0             # ✅ 포맷 변환
 
-# --- 화자 분리 및 실시간 처리 ---
+# === 화자 분리 및 실시간 처리 ===
 pyannote.audio>=3.1.0     # ✅ 화자 분리 (6명 구분 가능)
-numpy>=1.24.0             # ✅ 수치 계산
 scipy>=1.10.0             # ✅ 신호 처리
 websockets>=11.0          # ✅ WebSocket 통신

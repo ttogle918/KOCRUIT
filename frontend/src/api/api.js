@@ -8,7 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 300000, // 5분 타임아웃
+  timeout: 600000, // 10분 타임아웃 (하이라이팅 분석 시간 고려)
 });
 
 // 요청 전 인터셉터: 토큰이 있다면 자동으로 추가
@@ -63,7 +63,7 @@ const agentApi = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 60000, // 60초로 증가 (AI 모델 로딩 시간 고려)
 });
 
 export const extractWeights = async (jobPostingContent, existingWeights = []) => {
@@ -104,21 +104,48 @@ export const devLogin = async (email) => {
   }
 };
 
-// 자기소개서 형광펜 하이라이팅 API
-export const highlightResumeText = async (text, jobDescription = "", companyValues = "") => {
+// 자기소개서 형광펜 하이라이팅 API (application_id 기반)
+export const highlightResumeByApplicationId = async (applicationId, jobpostId = null, companyId = null) => {
   try {
-    // baseURL이 http://localhost:8000 이므로, 전체 경로를 명확히 적음
-    const response = await axiosInstance.post('/api/v1/ai/highlight-resume', {
-      text,
-      job_description: jobDescription,
-      company_values: companyValues
+    const response = await api.post('/ai/highlight-resume-by-application', {
+      application_id: applicationId,
+      jobpost_id: jobpostId,
+      company_id: companyId
+    }, {
+      timeout: 300000 // 5분으로 증가 (AI 분석 시간 고려)
     });
     return response.data;
   } catch (error) {
-    console.error('자기소개서 하이라이팅 분석 실패:', error);
+    console.error('하이라이팅 분석 실패:', error);
+    if (error.code === 'ECONNABORTED') {
+      throw new Error('하이라이팅 분석 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+    }
     throw error;
   }
 };
+
+// 저장된 하이라이팅 결과 조회
+export const getHighlightResults = async (applicationId) => {
+  try {
+    const response = await api.get(`/ai/highlight-results/${applicationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('하이라이팅 결과 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 저장된 하이라이팅 결과 삭제
+export const deleteHighlightResults = async (applicationId) => {
+  try {
+    const response = await api.delete(`/ai/highlight-results/${applicationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('하이라이팅 결과 삭제 실패:', error);
+    throw error;
+  }
+};
+
 
 export async function getResumeHighlights(text) {
   const res = await fetch('/api/v1/highlight', {

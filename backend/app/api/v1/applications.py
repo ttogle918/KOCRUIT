@@ -247,6 +247,54 @@ def get_application(
     return response_data
 
 
+@router.get("/{application_id}/content")
+def get_application_content(
+    application_id: int,
+    db: Session = Depends(get_db)
+):
+    """Agent용: 인증 없이 자소서 내용만 가져오기"""
+    # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
+    application = (
+        db.query(Application)
+        .options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        )
+        .filter(Application.id == application_id)
+        .first()
+    )
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    return {
+        "content": application.resume.content if application.resume else "",
+        "application_id": application_id
+    }
+
+@router.get("/{application_id}/agent")
+def get_application_for_agent(
+    application_id: int,
+    db: Session = Depends(get_db)
+):
+    """Agent용: 인증 없이 application의 기본 정보만 가져오기"""
+    application = (
+        db.query(Application)
+        .filter(Application.id == application_id)
+        .first()
+    )
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    return {
+        "id": application.id,
+        "job_post_id": application.job_post_id,
+        "user_id": application.user_id,
+        "resume_id": application.resume_id
+    }
+
+
 @router.post("/", response_model=ApplicationDetail)
 def create_application(
     application: ApplicationCreate,

@@ -13,6 +13,7 @@ from .weight import Weight
 from .high_performers import HighPerformer
 from .written_test_question import WrittenTestQuestion
 from .EmailVerificationToken import EmailVerificationToken
+from .highlight_result import HighlightResult
 from app.core.database import Base
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "Weight",
     "HighPerformer",
     "WrittenTestQuestion",
-    "EmailVerificationToken"
+    "EmailVerificationToken",
+    "HighlightResult"
 ] 
