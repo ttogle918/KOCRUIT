@@ -18,6 +18,8 @@ from app.models.schedule import ScheduleInterview
 from app.models.job import JobPost
 from app.models.weight import Weight
 from app.utils.llm_cache import redis_cache
+from app.models.written_test_answer import WrittenTestAnswer
+from app.schemas.written_test_answer import WrittenTestAnswerResponse
 
 router = APIRouter()
 
@@ -897,6 +899,7 @@ def get_passed_applicants(
         
         applicant_data = {
             "id": app.user.id,
+            "user_id": app.user.id,  # user_id 필드 추가
             "name": app.user.name,
             "email": app.user.email,
             "application_id": app.id,
@@ -924,3 +927,12 @@ def get_passed_applicants(
         "total_count": len(applicants),
         "passed_applicants": applicants
     }
+
+
+@router.get("/job/{job_post_id}/user/{user_id}/written-answers", response_model=List[WrittenTestAnswerResponse])
+def get_written_test_answers(job_post_id: int, user_id: int, db: Session = Depends(get_db)):
+    answers = db.query(WrittenTestAnswer).filter(
+        WrittenTestAnswer.jobpost_id == job_post_id,
+        WrittenTestAnswer.user_id == user_id
+    ).all()
+    return answers

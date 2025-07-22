@@ -71,6 +71,13 @@ class InterviewStage(str, enum.Enum):
     FINAL_INTERVIEW = "FINAL_INTERVIEW" # 최종 면접
 
 
+class WrittenTestStatus(enum.Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    PASSED = "PASSED"
+    FAILED = "FAILED"
+
+
 class Application(Base):
     __tablename__ = "application"
     
@@ -82,9 +89,11 @@ class Application(Base):
     ai_score = Column(Numeric(5, 2))
     human_score = Column(Numeric(5, 2))
     final_score = Column(Numeric(5, 2))
+    written_test_score = Column(Numeric(5, 2))
     status = Column(SqlEnum(ApplyStatus), default=ApplyStatus.WAITING, nullable=False)
     document_status = Column(SqlEnum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
     interview_status = Column(SqlEnum(InterviewStatus), default=InterviewStatus.NOT_SCHEDULED, nullable=False)
+    written_test_status = Column(SqlEnum(WrittenTestStatus), default=WrittenTestStatus.PENDING, nullable=False)
     applied_at = Column(DateTime, default=datetime.utcnow)
     application_source = Column(String(255))
     pass_reason = Column(Text)

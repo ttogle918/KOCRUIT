@@ -29,6 +29,7 @@ import AiInterviewDemo from './components/AiInterviewDemo';
 import WrittenTestGenerator from './pages/applicant/WrittenTestGenerator';
 import InterviewPanelManagement from './pages/applicant/InterviewPanelManagement';
 import DocumentReport from "./pages/DocumentReport.jsx";
+import WrittenTestPassedPage from './pages/written/WrittenTestPassedPage';
 
 // Context & Constants
 import { ThemeProvider } from "./context/ThemeContext";
@@ -136,6 +137,7 @@ function AppRoutes() {
                 <Route path="/interview-panel-management/:jobPostId" element={<ProtectedRoute><InterviewPanelManagement /></ProtectedRoute>} />
                 <Route path="/applicant/written-test-generator" element={<ProtectedRoute><WrittenTestGenerator /></ProtectedRoute>} />
                 <Route path="/report/document" element={<ProtectedRoute><DocumentReport /></ProtectedRoute>} />
+                <Route path="/written-test-passed/:jobpostId" element={<WrittenTestPassedPage />} />
               
               </Routes>
               <Chatbot />

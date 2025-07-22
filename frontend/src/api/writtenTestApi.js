@@ -16,4 +16,21 @@ export const submitWrittenTest = async ({ jobPostId, questions }) => {
     jobPostId, questions
   });
   return res.data;
+};
+
+// 필기 답변/피드백 조회
+export const getWrittenTestAnswers = async ({ jobPostId, userId }) => {
+  const res = await axios.get(`/api/v1/applications/job/${jobPostId}/user/${userId}/written-answers`);
+  return res.data;
+};
+
+// 필기 상태+점수 동시 업데이트
+export const updateWrittenTestStatusAndScore = async ({ userId, jobPostId, status, score }) => {
+  const res = await axios.post('/api/v1/ai-evaluate/written-test/update-status-and-score', {
+    user_id: userId,
+    jobpost_id: jobPostId,
+    status,
+    score
+  });
+  return res.data;
 }; 
