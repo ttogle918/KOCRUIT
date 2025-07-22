@@ -125,11 +125,47 @@ function ViewPost() {
     );
   }
 
+  // --- Milestone Bar Logic ---
+  const statusSteps = [
+    { key: 'SCHEDULED', label: '모집 예정' },
+    { key: 'RECRUITING', label: '모집중' },
+    { key: 'SELECTING', label: '선발중' },
+    { key: 'CLOSED', label: '마감' },
+  ];
+  const currentStepIdx = statusSteps.findIndex(step => step.key === jobPost.status);
+
+  // ---
+
   return (
     <>
       <ViewPostSidebar jobPost={jobPost} />
-      <Layout title="채용공고 상세보기" settingsButton={settingsButton}>
+      <Layout title={null} settingsButton={null}>
         <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
+          {/* Milestone Bar + Settings Button */}
+          <div className="flex items-center justify-between mt-6 mb-6">
+            <div className="flex-1 flex items-center gap-0 self-end mx-8">
+              {statusSteps.map((step, idx) => (
+                <React.Fragment key={step.key}>
+                  <div className={`flex flex-col items-center min-w-[80px]`}> 
+                    <div className={`w-8 h-8 flex items-center justify-center rounded-full border-2 text-sm font-bold transition-all
+                      ${idx < currentStepIdx ? 'bg-blue-500 border-blue-500 text-white' : ''}
+                      ${idx === currentStepIdx ? 'bg-white border-blue-600 text-blue-700 dark:bg-gray-900 dark:text-blue-300' : ''}
+                      ${idx > currentStepIdx ? 'bg-gray-200 border-gray-300 text-gray-400 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500' : ''}
+                    `}>
+                      {idx + 1}
+                    </div>
+                    <span className={`mt-2 text-xs font-medium
+                      ${idx === currentStepIdx ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}`}>{step.label}</span>
+                  </div>
+                  {idx < statusSteps.length - 1 && (
+                    <div className={`flex-1 h-1 mx-1 rounded transition-all
+                      ${idx < currentStepIdx ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-700'}`}></div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            <div className="ml-4 flex-shrink-0">{settingsButton}</div>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-400 p-4 text-center space-y-2">

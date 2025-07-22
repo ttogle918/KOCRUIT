@@ -183,6 +183,10 @@ function EditPost() {
 
     if (jobPostId) {
       fetchJobPost();
+    } else {
+      // If creating a new post, clear weights in both local state and context
+      setWeights([]);
+      updateWeights([]);
     }
 
     // 컴포넌트 언마운트 시 폼 비활성화
@@ -549,8 +553,8 @@ function EditPost() {
   }
 
   return (
-    <Layout title="채용공고 수정">
-      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
+    <Layout>
+      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto mt-16 max-w-screen-xl">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">

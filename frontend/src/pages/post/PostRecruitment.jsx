@@ -584,8 +584,8 @@ function PostRecruitment() {
   console.log('Rendering headcount input:', formData.headcount);
 
   return (
-    <Layout title="채용공고 등록">
-      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto max-w-screen-xl">
+    <Layout>
+      <div className="min-h-screen bg-[#eef6ff] dark:bg-gray-900 p-6 mx-auto mt-16 max-w-screen-xl">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">

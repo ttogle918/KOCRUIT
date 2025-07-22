@@ -13,6 +13,17 @@ export default function CorpHome() {
   const [activeTab, setActiveTab] = useState('recruiting'); // 'scheduled', 'recruiting', 'selecting', 'closed'
   const navigate = useNavigate();
 
+  // Get company name from user data
+  const getCompanyName = () => {
+    if (user?.companyName) {
+      return user.companyName;
+    }
+    if (user?.company?.name) {
+      return user.company.name;
+    }
+    return '회사명'; // Fallback
+  };
+
   useEffect(() => {
     const fetchJobPosts = async () => {
       // 사용자 정보가 없으면 로딩 상태 유지
@@ -79,7 +90,7 @@ export default function CorpHome() {
   // DB 상태 기반으로 공고가 이미 분류되어 있음
 
   return (
-    <Layout title="회사명">
+    <Layout title={getCompanyName()}>
       <div className="flex flex-1 px-8 gap-6">
         <Sidebar />
         <main className="flex-1 flex flex-col items-center">
