@@ -71,6 +71,26 @@ export default function ApplicantList() {
   // jobPostId가 없으면 기본값 사용
   const effectiveJobPostId = jobPostId;
 
+  // 필기합격자 명단 존재 여부 계산
+  const [writtenTestPassedReady, setWrittenTestPassedReady] = useState(false);
+
+  useEffect(() => {
+    const fetchWrittenTestPassed = async () => {
+      try {
+        const res = await api.get(`/written-test/passed/${effectiveJobPostId}`);
+        console.log('[DEBUG] /written-test/passed 응답:', res.data);
+        setWrittenTestPassedReady(Array.isArray(res.data) && res.data.length > 0);
+      } catch (e) {
+        console.log('[DEBUG] /written-test/passed 에러:', e);
+        setWrittenTestPassedReady(false);
+      }
+    };
+    if (effectiveJobPostId) fetchWrittenTestPassed();
+  }, [effectiveJobPostId]);
+
+  useEffect(() => {
+    console.log('[DEBUG] writtenTestPassedReady:', writtenTestPassedReady);
+  }, [writtenTestPassedReady]);
 
 
   useEffect(() => {
