@@ -98,6 +98,9 @@ class Application(Base):
     application_source = Column(String(255))
     pass_reason = Column(Text)
     fail_reason = Column(Text)
+    ai_interview_score = Column(Numeric(5, 2))  # AI 면접 전용 점수
+    ai_interview_pass_reason = Column(Text)     # AI 면접 전용 합격 사유
+    ai_interview_fail_reason = Column(Text)      # AI 면접 전용 불합격 사유
     
     # Relationships with back_populates
     user = relationship("User", back_populates="applications")

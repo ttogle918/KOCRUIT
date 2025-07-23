@@ -77,6 +77,21 @@ class AiInterviewApi {
   }
 
   /**
+   * 특정 지원자의 AI 면접 질문 조회
+   * @param {number} applicationId - 지원서 ID
+   * @returns {Promise<Object>} 질문 데이터
+   */
+  static async getAiInterviewQuestionsByApplication(applicationId) {
+    try {
+      const response = await api.get(`/interview-questions/application/${applicationId}/ai-questions`);
+      return response.data;
+    } catch (error) {
+      console.error('AI 면접 질문 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
    * AI 면접 시나리오 조회
    * @returns {Promise<Object>} AI 면접 시나리오 정보
    */
