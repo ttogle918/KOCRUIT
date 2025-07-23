@@ -47,7 +47,7 @@ manager = ConnectionManager()
 @router.post("/generate-ai-interview-questions")
 async def generate_ai_interview_questions(
     job_info: str = "",
-    interview_type: str = "ai_interview",
+    interview_type: str = "AI_INTERVIEW",
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """AI 면접용 시나리오 기반 질문 생성"""
@@ -151,7 +151,7 @@ async def get_ai_interview_questions(
     
     try:
         query = db.query(InterviewQuestion).filter(
-            InterviewQuestion.types == QuestionType.AI_INTERVIEW
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW
         )
         
         if category:
@@ -190,7 +190,7 @@ async def clear_ai_interview_questions(db: Session = Depends(get_db)) -> Dict[st
     
     try:
         deleted_count = db.query(InterviewQuestion).filter(
-            InterviewQuestion.types == QuestionType.AI_INTERVIEW
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW
         ).delete()
         
         db.commit()
@@ -275,7 +275,7 @@ async def generate_scenario_questions(
         # 1. DB에서 기존 질문 조회 (공고별로 미리 생성된 질문)
         existing_questions = db.query(InterviewQuestion).filter(
             InterviewQuestion.job_post_id == job_post_id,
-            InterviewQuestion.types == QuestionType.AI_INTERVIEW
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW
         ).all()
         
         if existing_questions:

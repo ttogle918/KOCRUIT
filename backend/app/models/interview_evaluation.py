@@ -8,6 +8,7 @@ from app.models.job import JobPost
 from app.models.application import Application, ApplyStatus, DocumentStatus
 from app.models.resume import Resume
 from app.models.weight import Weight
+from app.models.schedule import AIInterviewSchedule
 
 class EvaluationStatus(str, enum.Enum):
     PENDING = "PENDING"
@@ -15,12 +16,18 @@ class EvaluationStatus(str, enum.Enum):
     CONFIRMED = "CONFIRMED"
     REJECTED = "REJECTED"
 
+class EvaluationType(str, enum.Enum):
+    AI = "AI"
+    PRACTICAL = "실무진"
+    EXECUTIVE = "임원"
+    
 class InterviewEvaluation(Base):
     __tablename__ = 'interview_evaluation'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    interview_id = Column(Integer, ForeignKey('schedule_interview.id'), nullable=False)
+    interview_id = Column(Integer, ForeignKey('ai_interview_schedule.id'), nullable=False)  # AI 면접용으로 변경
     evaluator_id = Column(Integer, ForeignKey('company_user.id'))
     is_ai = Column(Boolean, default=False)
+    evaluation_type = Column(SqlEnum(EvaluationType), default=EvaluationType.AI, nullable=False)
     total_score = Column(DECIMAL(5,2))  # score -> total_score로 변경
     summary = Column(Text)
     created_at = Column(TIMESTAMP)
@@ -31,6 +38,8 @@ class InterviewEvaluation(Base):
     evaluation_items = relationship('InterviewEvaluationItem', back_populates='evaluation', cascade='all, delete-orphan')
     # 기존 관계 유지 (호환성)
     details = relationship('EvaluationDetail', back_populates='evaluation')
+    # AI 면접 일정 관계 추가
+    ai_interview_schedule = relationship('AIInterviewSchedule')
 
 class InterviewEvaluationItem(Base):
     __tablename__ = 'interview_evaluation_item'

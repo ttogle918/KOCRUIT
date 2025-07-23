@@ -227,7 +227,7 @@ class InterviewQuestionService:
         """지원서별 질문 조회"""
         query = db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id)
         if question_type:
-            query = query.filter(InterviewQuestion.types == question_type)
+            query = query.filter(InterviewQuestion.type == question_type)
         return query.order_by(InterviewQuestion.created_at).all()
     
     @staticmethod
