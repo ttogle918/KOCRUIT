@@ -23,6 +23,7 @@ import redis
 import json
 
 from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
+from app.models.interview_question_log import InterviewQuestionLog
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)
 
@@ -1819,3 +1820,20 @@ async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_d
     except Exception as e:
         print(f"AI 도구 생성 오류: {e}")
         raise HTTPException(status_code=500, detail=f"AI 도구 생성 실패: {str(e)}")
+
+@router.get("/application/{application_id}/logs")
+def get_interview_question_logs_by_application(application_id: int, db: Session = Depends(get_db)):
+    """특정 지원자의 AI 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환"""
+    logs = db.query(InterviewQuestionLog).filter(InterviewQuestionLog.application_id == application_id).order_by(InterviewQuestionLog.created_at).all()
+    return [
+        {
+            "question_id": log.question_id,
+            "question_text": log.question_text,
+            "answer_text": log.answer_text,
+            "answer_audio_url": log.answer_audio_url,
+            "answer_video_url": log.answer_video_url,
+            "created_at": log.created_at,
+            "updated_at": log.updated_at
+        }
+        for log in logs
+    ]

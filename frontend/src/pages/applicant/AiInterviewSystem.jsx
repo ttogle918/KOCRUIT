@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import api from '../../api/api';
+import AiInterviewApi from '../../api/aiInterviewApi';
 import { 
   FiCamera, FiMic, FiMicOff, FiVideo, FiVideoOff, 
   FiPlay, FiPause, FiSquare, FiSettings, FiUser,
@@ -232,6 +233,33 @@ function AiInterviewSystem() {
       fetchData();
     }
   }, [jobPostId, applicantId]);
+
+  // 질문-답변 로그 fetch 및 상태 세팅
+  useEffect(() => {
+    const fetchQuestionLogs = async () => {
+      if (!applicantId) return;
+      try {
+        const logs = await AiInterviewApi.getInterviewQuestionLogsByApplication(applicantId);
+        if (logs && logs.length > 0) {
+          setQuestionScripts(
+            logs.map((log, idx) => ({
+              id: idx + 1,
+              question: log.question_text,
+              category: log.category || 'general',
+              answer: log.answer_text || '',
+              answer_audio_url: log.answer_audio_url,
+              answer_video_url: log.answer_video_url,
+              timestamp: log.created_at,
+              evaluation: null
+            }))
+          );
+        }
+      } catch (error) {
+        console.error('질문+답변 로그 fetch 실패:', error);
+      }
+    };
+    fetchQuestionLogs();
+  }, [applicantId]);
 
   // WebSocket 연결 설정
   useEffect(() => {
@@ -933,13 +961,26 @@ function AiInterviewSystem() {
                           </span>
                         </div>
                         <p className="text-gray-800 mb-3 font-medium">{script.question}</p>
-                        <textarea
-                          value={script.answer}
-                          onChange={(e) => handleAnswerInput(script.id, e.target.value)}
-                          placeholder="답변을 입력하세요..."
-                          className="w-full p-2 border border-gray-300 rounded text-sm resize-none"
-                          rows="3"
-                        />
+                        {script.answer ? (
+                          <div className="mb-2">
+                            <span className="text-green-700 font-semibold">답변:</span>
+                            <p className="text-gray-700 mt-1 whitespace-pre-line">{script.answer}</p>
+                          </div>
+                        ) : (
+                          <div className="mb-2 text-gray-400 italic">아직 답변이 없습니다.</div>
+                        )}
+                        {/* 오디오 답변 */}
+                        {script.answer_audio_url && (
+                          <audio controls src={script.answer_audio_url} className="mt-2 w-full">
+                            오디오 답변을 지원하지 않는 브라우저입니다.
+                          </audio>
+                        )}
+                        {/* 비디오 답변 */}
+                        {script.answer_video_url && (
+                          <video controls src={script.answer_video_url} className="mt-2 w-full h-40">
+                            비디오 답변을 지원하지 않는 브라우저입니다.
+                          </video>
+                        )}
                         {script.timestamp && (
                           <p className="text-xs text-gray-500 mt-1">
                             답변 시간: {new Date(script.timestamp).toLocaleTimeString()}

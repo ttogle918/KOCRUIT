@@ -238,6 +238,21 @@ class AiInterviewApi {
       throw error;
     }
   }
+
+  /**
+   * 특정 지원자의 AI 면접 질문+답변 로그 조회
+   * @param {number} applicationId - 지원서 ID
+   * @returns {Promise<Array>} 질문+답변 로그 리스트
+   */
+  static async getInterviewQuestionLogsByApplication(applicationId) {
+    try {
+      const response = await api.get(`/interview-questions/application/${applicationId}/logs`);
+      return response.data;
+    } catch (error) {
+      console.error('AI 면접 질문+답변 로그 조회 실패:', error);
+      throw error;
+    }
+  }
 }
 
 export default AiInterviewApi; 
