@@ -6,7 +6,7 @@ import api from '../../api/api';
 import { 
   FiCamera, FiMic, FiMicOff, FiVideo, FiVideoOff, 
   FiPlay, FiPause, FiSquare, FiSettings, FiUser,
-  FiClock, FiTarget, FiTrendingUp, FiAward
+  FiClock, FiTarget, FiTrendingUp, FiAward, FiFolder
 } from 'react-icons/fi';
 import { 
   MdOutlineAutoAwesome, MdOutlinePsychology,
@@ -18,6 +18,15 @@ import {
   FaUsers, FaGamepad, FaBrain, FaEye,
   FaSmile, FaHandPaper, FaMicrophone
 } from 'react-icons/fa';
+import { 
+  convertDriveUrlToDirect, 
+  extractVideoIdFromUrl, 
+  extractFolderIdFromUrl,
+  getDriveItemType,
+  getVideosFromSharedFolder,
+  formatFileSize,
+  formatDate
+} from '../../utils/googleDrive';
 
 function AiInterviewSystem() {
   const { jobPostId, applicantId } = useParams();
@@ -474,6 +483,159 @@ function AiInterviewSystem() {
     setShowScoringCriteria(!showScoringCriteria);
   };
 
+  // Google Drive 연동 상태
+  const [googleDriveEnabled, setGoogleDriveEnabled] = useState(false);
+  const [driveVideoUrl, setDriveVideoUrl] = useState('');
+  const [driveVideoId, setDriveVideoId] = useState('');
+  
+  // 디렉토리 공유 관련 상태
+  const [folderVideos, setFolderVideos] = useState([]);
+  const [showFolderVideos, setShowFolderVideos] = useState(false);
+  const [selectedVideoFromFolder, setSelectedVideoFromFolder] = useState(null);
+  const [isLoadingFolder, setIsLoadingFolder] = useState(false);
+  
+  // Google Drive API 키 (실제 환경에서는 환경변수로 관리)
+  const GOOGLE_DRIVE_API_KEY = import.meta.env.VITE_GOOGLE_DRIVE_API_KEY || '';
+
+  // Google Drive 동영상 URL 처리
+  const handleDriveVideoUrl = (url) => {
+    const itemType = getDriveItemType(url);
+    
+    if (itemType === 'file') {
+      // 개별 파일 처리
+      const videoId = extractVideoIdFromUrl(url);
+      if (videoId) {
+        const directUrl = `https://drive.google.com/uc?export=download&id=${videoId}`;
+        setDriveVideoUrl(directUrl);
+        setDriveVideoId(videoId);
+        setVideoFile(directUrl);
+        setShowFolderVideos(false);
+      }
+    } else if (itemType === 'folder') {
+      // 폴더 처리
+      handleFolderShare(url);
+    } else {
+      alert('지원하지 않는 Google Drive 링크 형식입니다.');
+    }
+  };
+
+  // 폴더 공유 처리
+  const handleFolderShare = async (folderUrl) => {
+    try {
+      setIsLoadingFolder(true);
+      
+      // API 키가 없는 경우 테스트 데이터 사용
+      if (!GOOGLE_DRIVE_API_KEY) {
+        console.log('Google Drive API 키가 없어 테스트 데이터를 사용합니다.');
+        
+        // 테스트용 동영상 목록
+        const testVideos = [
+          {
+            id: 'test_video_1',
+            name: '면접 동영상 1.mp4',
+            size: 52428800, // 50MB
+            createdTime: '2024-01-15T10:30:00Z',
+            mimeType: 'video/mp4'
+          },
+          {
+            id: 'test_video_2',
+            name: '면접 동영상 2.mp4',
+            size: 78643200, // 75MB
+            createdTime: '2024-01-16T14:20:00Z',
+            mimeType: 'video/mp4'
+          },
+          {
+            id: 'test_video_3',
+            name: '면접 동영상 3.mp4',
+            size: 104857600, // 100MB
+            createdTime: '2024-01-17T09:15:00Z',
+            mimeType: 'video/mp4'
+          }
+        ];
+        
+        setFolderVideos(testVideos);
+        setShowFolderVideos(true);
+        setSelectedVideoFromFolder(null);
+        return;
+      }
+      
+      const videos = await getVideosFromSharedFolder(folderUrl, GOOGLE_DRIVE_API_KEY);
+      
+      if (videos.length === 0) {
+        alert('폴더에 동영상 파일이 없습니다.');
+        return;
+      }
+      
+      setFolderVideos(videos);
+      setShowFolderVideos(true);
+      setSelectedVideoFromFolder(null);
+    } catch (error) {
+      console.error('폴더 처리 오류:', error);
+      alert('폴더를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoadingFolder(false);
+    }
+  };
+
+  // 폴더에서 동영상 선택
+  const selectVideoFromFolder = (video) => {
+    let directUrl;
+    
+    // 테스트 동영상인 경우 샘플 동영상 URL 사용
+    if (video.id.startsWith('test_video_')) {
+      directUrl = 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4';
+    } else {
+      // 실제 Google Drive 동영상
+      directUrl = `https://drive.google.com/uc?export=download&id=${video.id}`;
+    }
+    
+    setSelectedVideoFromFolder(video);
+    setVideoFile(directUrl);
+    setDriveVideoId(video.id);
+    setShowFolderVideos(false);
+  };
+
+  // 폴더 동영상 목록 닫기
+  const closeFolderVideos = () => {
+    setShowFolderVideos(false);
+    setFolderVideos([]);
+    setSelectedVideoFromFolder(null);
+  };
+
+  // Google Drive 파일 선택 (시뮬레이션)
+  const selectDriveVideo = () => {
+    // 테스트용 Google Drive 링크들
+    const testLinks = [
+      {
+        name: "테스트 동영상 1 (개별 파일)",
+        url: "https://drive.google.com/file/d/1ABC123DEF456/view?usp=sharing",
+        type: "file"
+      },
+      {
+        name: "테스트 폴더 (여러 동영상)",
+        url: "https://drive.google.com/drive/folders/1XYZ789GHI012?usp=sharing",
+        type: "folder"
+      }
+    ];
+    
+    const selectedLink = prompt(
+      `Google Drive 공유 링크를 입력하세요 (파일 또는 폴더):\n\n` +
+      `테스트용 링크:\n` +
+      testLinks.map((link, index) => `${index + 1}. ${link.name}: ${link.url}`).join('\n')
+    );
+    
+    if (selectedLink) {
+      // 테스트 링크 번호로 선택한 경우
+      const testIndex = parseInt(selectedLink) - 1;
+      if (testIndex >= 0 && testIndex < testLinks.length) {
+        handleDriveVideoUrl(testLinks[testIndex].url);
+      } else {
+        // 직접 입력한 링크
+        handleDriveVideoUrl(selectedLink);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -586,9 +748,9 @@ function AiInterviewSystem() {
                         <p className="text-sm text-gray-500">학력: N/A</p>
                       </div>
                     </div>
-                  </div>
+                      </div>
                 )}
-              </div>
+                      </div>
 
               {/* 동영상 뷰 */}
               <div className="bg-white rounded-lg shadow-md p-6">
@@ -599,10 +761,16 @@ function AiInterviewSystem() {
                   </h3>
                   <div className="flex gap-2">
                     <button
+                      onClick={selectDriveVideo}
+                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                    >
+                      Drive 연동
+                    </button>
+                    <button
                       onClick={() => document.getElementById('video-upload').click()}
                       className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
                     >
-                      업로드
+                      로컬 업로드
                     </button>
                     <input
                       id="video-upload"
@@ -611,14 +779,58 @@ function AiInterviewSystem() {
                       onChange={handleVideoUpload}
                       className="hidden"
                     />
-                  </div>
+                    </div>
                 </div>
+
+                {/* 폴더 동영상 선택 모달 */}
+                {showFolderVideos && (
+                  <div className="mb-4 bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-800 flex items-center gap-2">
+                        <FiFolder />
+                        폴더 내 동영상 선택
+                      </h4>
+                      <button
+                        onClick={closeFolderVideos}
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    
+                    {isLoadingFolder ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <p className="text-sm text-gray-600">폴더를 불러오는 중...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {folderVideos.map((video) => (
+                          <div
+                            key={video.id}
+                            onClick={() => selectVideoFromFolder(video)}
+                            className="flex items-center justify-between p-3 bg-white rounded border cursor-pointer hover:bg-blue-50 transition-colors"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-800 truncate">{video.name}</p>
+                              <div className="flex gap-4 text-xs text-gray-500 mt-1">
+                                <span>{formatFileSize(video.size)}</span>
+                                <span>{formatDate(video.createdTime)}</span>
+                              </div>
+                            </div>
+                            <FiPlay className="text-blue-500" />
+                          </div>
+                        ))}
+                  </div>
+                )}
+              </div>
+                )}
                 
                 <div className="relative bg-black rounded-lg overflow-hidden">
                   {videoFile ? (
                     <>
-                      <video
-                        ref={videoRef}
+                  <video
+                    ref={videoRef}
                         src={videoFile}
                         className="w-full h-64 object-cover"
                         onTimeUpdate={handleVideoTimeUpdate}
@@ -642,42 +854,57 @@ function AiInterviewSystem() {
                           ></div>
                         </div>
                       </div>
+                      {/* 동영상 소스 표시 */}
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                        {driveVideoId ? 'Google Drive' : '로컬 파일'}
+                      </div>
+                      
+                      {/* 선택된 동영상 정보 */}
+                      {selectedVideoFromFolder && (
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                          {selectedVideoFromFolder.name}
+                    </div>
+                  )}
                     </>
                   ) : (
                     <div className="w-full h-64 flex items-center justify-center text-gray-400">
                       <div className="text-center">
                         <FiVideo size={48} className="mx-auto mb-2" />
-                        <p>동영상을 업로드하세요</p>
+                        <p>동영상을 업로드하거나 Drive에서 연동하세요</p>
+                        <div className="mt-2 text-xs text-gray-500">
+                          <p>• Google Drive: 공유 링크로 연동</p>
+                          <p>• 로컬 파일: 직접 업로드</p>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
-                
-                {/* 카메라/마이크 컨트롤 */}
+                  
+                  {/* 카메라/마이크 컨트롤 */}
                 <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={toggleCamera}
+                    <button
+                      onClick={toggleCamera}
                     className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
-                      isCameraOn 
-                        ? 'bg-green-500 text-white' 
+                        isCameraOn 
+                          ? 'bg-green-500 text-white' 
                         : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
+                      }`}
+                    >
                     {isCameraOn ? <FiVideo /> : <FiVideoOff />} 카메라
-                  </button>
-                  <button
-                    onClick={toggleMic}
+                    </button>
+                    <button
+                      onClick={toggleMic}
                     className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
-                      isMicOn 
-                        ? 'bg-green-500 text-white' 
+                        isMicOn 
+                          ? 'bg-green-500 text-white' 
                         : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
+                      }`}
+                    >
                     {isMicOn ? <FiMic /> : <FiMicOff />} 마이크
-                  </button>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* 중앙: 질문-답변 스크립트 */}
             <div className="xl:col-span-1">
@@ -778,24 +1005,24 @@ function AiInterviewSystem() {
             <div className="xl:col-span-1 space-y-6">
               
               {/* 실시간 평가 */}
-              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <FiTrendingUp />
                     실시간 평가
                   </h3>
-                  <button
+                      <button
                     onClick={toggleScoringCriteria}
                     className="text-blue-500 hover:text-blue-700 text-sm"
-                  >
+                      >
                     채점기준
-                  </button>
-                </div>
+                      </button>
+            </div>
                 
                 <div className="space-y-4">
                   {Object.entries(evaluationMetrics).map(([category, data]) => (
                     <div key={category} className="border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-700">
                           {category === 'language_ability' && '언어능력'}
                           {category === 'non_verbal_behavior' && '비언어행동'}
@@ -803,19 +1030,19 @@ function AiInterviewSystem() {
                           {category === 'cognitive_ability' && '인지능력'}
                           {category === 'job_fit' && '직무적합도'}
                           {category === 'interview_reliability' && '면접신뢰도'}
-                        </span>
+                      </span>
                         <span className="text-sm font-bold text-blue-600">{data.score.toFixed(1)}점</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
                           className="bg-blue-500 h-2 rounded-full transition-all"
                           style={{ width: `${data.score}%` }}
-                        ></div>
-                      </div>
+                      ></div>
+                    </div>
                     </div>
                   ))}
-                </div>
-              </div>
+                    </div>
+                  </div>
 
               {/* 채점기준 상세 */}
               {showScoringCriteria && (
@@ -848,10 +1075,10 @@ function AiInterviewSystem() {
                               <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
                                 하: {details.poor}점 미만
                               </span>
-                            </div>
-                          </div>
-                        ))}
                       </div>
+                    </div>
+                        ))}
+                        </div>
                     ))}
                   </div>
                 </div>

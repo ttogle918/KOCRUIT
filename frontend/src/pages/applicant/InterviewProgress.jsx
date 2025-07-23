@@ -9,6 +9,7 @@ import InterviewerEvaluationPanel from '../../components/InterviewerEvaluationPa
 import DraggableResumeWindow from '../../components/DraggableResumeWindow';
 import AiInterviewSystem from './AiInterviewSystem';
 import api from '../../api/api';
+import AiInterviewApi from '../../api/aiInterviewApi';
 import { FiChevronLeft, FiChevronRight, FiSave, FiPlus, FiPlay } from 'react-icons/fi';
 import { MdOutlineAutoAwesome, MdOutlineOpenInNew } from 'react-icons/md';
 import { FaUsers } from 'react-icons/fa';
@@ -37,13 +38,6 @@ function InterviewProgress() {
   const isAiInterview = interviewStage === 'ai'; // AI 면접
   const isFirstInterview = interviewStage === 'first'; // 1차 면접 (실무진)
   const isSecondInterview = interviewStage === 'second'; // 2차 면접 (임원)
-  
-  // AI 면접 시스템으로 리다이렉트 (지원자가 선택된 경우)
-  console.log('🔍 AI 면접 리다이렉트 조건 확인:', { isAiInterview, applicantId, condition: isAiInterview && applicantId });
-  if (isAiInterview && applicantId) {
-    console.log('✅ AiInterviewSystem으로 리다이렉트');
-    return <AiInterviewSystem />;
-  }
   
   // 면접 단계별 제목 및 설정
   const interviewConfig = {
@@ -135,6 +129,9 @@ function InterviewProgress() {
   const [useDraggableLayout, setUseDraggableLayout] = useState(false); // 드래그 가능한 레이아웃 사용 여부
   const [useRecommendedLayout, setUseRecommendedLayout] = useState(false); // 권장 레이아웃 사용 여부
   const [showPanelModal, setShowPanelModal] = useState(false); // 패널 모달 표시 여부
+
+  // AI 면접 시스템으로 리다이렉트 (지원자가 선택된 경우)
+  console.log('🔍 AI 면접 리다이렉트 조건 확인:', { isAiInterview, applicantId, condition: isAiInterview && applicantId });
 
   // 백그라운드 이력서 및 면접 도구 프리로딩 함수
   const preloadResumes = async (applicants) => {
@@ -265,26 +262,23 @@ function InterviewProgress() {
       evaluator_type: currentConfig.evaluatorType // 평가자 유형 추가
     };
     try {
-      // 면접 단계에 따라 다른 엔드포인트 사용
       let endpoint;
       if (isAiInterview) {
-        // AI 면접: 먼저 DB에서 기존 질문 조회 시도
+        // AI 면접: applicationId로 질문 조회
         try {
-          const existingQuestionsRes = await api.get(`/interview-questions/application/${applicationId}/ai-questions`);
-          if (existingQuestionsRes.data.total_count > 0) {
-            // 기존 질문이 있으면 사용
+          const data = await AiInterviewApi.getAiInterviewQuestionsByApplication(applicationId);
+          if (data && data.total_count > 0) {
             const allQuestions = [];
-            Object.values(existingQuestionsRes.data.questions).forEach(categoryQuestions => {
+            Object.values(data.questions).forEach(categoryQuestions => {
               allQuestions.push(...categoryQuestions.map(q => q.question_text));
             });
             setQuestions(allQuestions);
-            console.log(`✅ 기존 AI 면접 질문 ${existingQuestionsRes.data.total_count}개 로드`);
+            console.log(`✅ 기존 AI 면접 질문 ${data.total_count}개 로드`);
             return;
           }
         } catch (error) {
           console.log('기존 AI 면접 질문 없음, 새로 생성합니다.');
         }
-        
         // 기존 질문이 없으면 새로 생성하고 DB에 저장
         endpoint = '/interview-questions/ai-interview-save';
         const res = await api.post(endpoint, { ...requestData, save_to_db: true });
@@ -900,6 +894,12 @@ function InterviewProgress() {
         <div className="flex h-screen items-center justify-center text-red-500 dark:text-red-400">{error}</div>
       </div>
     );
+  }
+
+  // AI 면접 시스템으로 리다이렉트 (지원자가 선택된 경우)
+  if (isAiInterview && applicantId) {
+    console.log('✅ AiInterviewSystem으로 리다이렉트');
+    return <AiInterviewSystem />;
   }
 
   // 레이아웃: Navbar(상단), ViewPostSidebar(좌측), 나머지 flex
