@@ -39,7 +39,7 @@ class AIQuestionGenerationScheduler:
             # 이미 질문이 생성되어 있는지 확인 (더 엄격한 검사)
             existing_questions = db.query(InterviewQuestion).filter(
                 InterviewQuestion.job_post_id == job_post_id,
-                InterviewQuestion.types == QuestionType.AI_INTERVIEW
+                InterviewQuestion.type == QuestionType.AI_INTERVIEW
             ).count()
             
             # company_id 기반 질문도 확인
@@ -47,7 +47,7 @@ class AIQuestionGenerationScheduler:
             if company_id:
                 company_questions = db.query(InterviewQuestion).filter(
                     InterviewQuestion.company_id == company_id,
-                    InterviewQuestion.types == QuestionType.AI_INTERVIEW
+                    InterviewQuestion.type == QuestionType.AI_INTERVIEW
                 ).count()
                 existing_questions += company_questions
             

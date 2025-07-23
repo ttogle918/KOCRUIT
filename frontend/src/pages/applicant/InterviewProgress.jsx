@@ -112,8 +112,15 @@ function InterviewProgress() {
   const [preloadingStatus, setPreloadingStatus] = useState('idle'); // 'idle', 'loading', 'completed'
 
   // 새로운 UI 시스템 상태
-  const [activePanel, setActivePanel] = useState(isAiInterview ? 'ai' : 'common-questions'); // AI 면접에서는 AI 패널을 기본으로
+  const [activePanel, setActivePanel] = useState('common-questions'); // 기본값으로 설정
   
+  // AI 면접인 경우 activePanel을 'ai'로 설정하는 useEffect 추가
+  useEffect(() => {
+    if (isAiInterview) {
+      setActivePanel('ai');
+    }
+  }, [isAiInterview]);
+
   // 패널 변경 핸들러 (모달 표시)
   const handlePanelChange = (panelId) => {
     setActivePanel(panelId);
