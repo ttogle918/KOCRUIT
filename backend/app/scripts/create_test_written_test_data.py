@@ -40,13 +40,13 @@ def create_test_written_test_data():
         # 상위 3명을 필기합격자로 설정
         for i, application in enumerate(applications[:3]):
             application.written_test_status = WrittenTestStatus.PASSED
-            application.written_test_score = 85.0 + (i * 5.0)  # 85, 90, 95점
+            application.written_test_score = 4.0 + (i * 0.5)  # 4.0, 4.5, 5.0점
             print(f"지원자 {application.id}를 필기합격자로 설정 (점수: {application.written_test_score})")
         
         # 나머지는 필기불합격자로 설정
         for application in applications[3:]:
             application.written_test_status = WrittenTestStatus.FAILED
-            application.written_test_score = 60.0 + (hash(str(application.id)) % 20)  # 60-80점 사이
+            application.written_test_score = 1.0 + (hash(str(application.id)) % 30) / 10  # 1.0-4.0점 사이
             print(f"지원자 {application.id}를 필기불합격자로 설정 (점수: {application.written_test_score})")
         
         db.commit()

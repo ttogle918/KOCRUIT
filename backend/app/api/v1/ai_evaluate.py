@@ -365,6 +365,7 @@ def get_written_test_failed_applicants(jobpost_id: int, db: Session = Depends(ge
     ).all()
     return [
         {
+            "id": app.id,  # 지원자 ID 추가
             "user_id": app.user.id if app.user else None,
             "user_name": app.user.name if app.user else None,
             "written_test_score": app.written_test_score,

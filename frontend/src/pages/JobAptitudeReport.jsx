@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useSearchParams } from "react-router-dom";
+import ApplicantTestDetailModal from "../components/ApplicantTestDetailModal";
 
 function JobAptitudeReport() {
   const [data, setData] = useState(null);
@@ -10,6 +11,10 @@ function JobAptitudeReport() {
   const fullText = '직무적성평가 보고서 생성 중입니다...';
   const [searchParams] = useSearchParams();
   const jobPostId = searchParams.get("job_post_id");
+  
+  // 모달 상태 관리
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedApplicantId, setSelectedApplicantId] = useState(null);
 
   useEffect(() => {
     if (jobPostId) {
@@ -103,6 +108,18 @@ function JobAptitudeReport() {
     }
   };
 
+  // 지원자 클릭 핸들러
+  const handleApplicantClick = (applicantId) => {
+    setSelectedApplicantId(applicantId);
+    setIsModalOpen(true);
+  };
+
+  // 모달 닫기 핸들러
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedApplicantId(null);
+  };
+
   if (!data) return (
     <div style={{
       minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -159,21 +176,21 @@ function JobAptitudeReport() {
         </h2>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'nowrap' }}>
           <div style={{ flex: 1, background: '#f0fdf4', padding: 16, borderRadius: 8 }}>
-            <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>평가 대상자</div>
+            <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>합격자 수 / 응시자 수</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
-              {data?.stats?.total_applicants || 0}명
+              {data?.stats?.passed_applicants_count || 0}명 / {data?.stats?.total_written_applicants || 0}명
             </div>
           </div>
           <div style={{ flex: 1, background: '#f0fdf4', padding: 16, borderRadius: 8 }}>
-            <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>필기 합격자</div>
+            <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>전체 평균 점수</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
-              {data?.stats?.passed_applicants_count || 0}명
+              {data?.stats?.total_average_score || 0}점
             </div>
           </div>
           <div style={{ flex: 1, background: '#f0fdf4', padding: 16, borderRadius: 8 }}>
-            <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>평균 필기 점수</div>
+            <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>커트라인 점수</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
-              {data?.stats?.average_written_score || 0}점
+              {data?.stats?.cutoff_score || 0}점
             </div>
           </div>
           <div style={{ flex: 1, background: '#f0fdf4', padding: 16, borderRadius: 8 }}>
@@ -189,21 +206,18 @@ function JobAptitudeReport() {
         <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1f2937', marginBottom: 16 }}>
           🎯 필기합격자 상세 분석
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'nowrap' }}>
           {data?.stats?.written_analysis?.map((analysis, index) => (
-            <div key={index} style={{ background: '#f8fafc', padding: 20, borderRadius: 8, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: '#1f2937', marginBottom: 8 }}>
+            <div key={index} style={{ flex: 1, background: '#f0fdf4', padding: 16, borderRadius: 8 }}>
+              <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>
                 {analysis.category}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#16a34a', marginBottom: 8 }}>
-                {analysis.score}{analysis.category === '합격률' ? '%' : '점'}
-              </div>
-              <div style={{ fontSize: 14, color: '#64748b' }}>
-                {analysis.description}
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1f2937' }}>
+                {analysis.score}{analysis.category === '합격률' ? '%' : analysis.category === '표준편차' ? '' : '점'}
               </div>
             </div>
           )) || (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#64748b', padding: 20 }}>
+            <div style={{ flex: 1, textAlign: 'center', color: '#64748b', padding: 20 }}>
               필기평가 분석 데이터가 없습니다.
             </div>
           )}
@@ -212,7 +226,7 @@ function JobAptitudeReport() {
 
       <div style={{ background: 'white', borderRadius: 12, padding: 32, marginBottom: 24 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1f2937', marginBottom: 16 }}>
-          📋 필기합격자 명단
+          📋 필기합격자 명단 <span style={{ fontSize: 14, color: '#64748b', fontWeight: 400 }}>(클릭하여 상세 결과 확인)</span>
         </h2>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -227,10 +241,20 @@ function JobAptitudeReport() {
             </thead>
             <tbody>
               {data?.stats?.passed_applicants?.map((applicant, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <tr 
+                  key={index} 
+                  style={{ 
+                    borderBottom: '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.closest('tr').style.backgroundColor = '#f8fafc'}
+                  onMouseOut={(e) => e.target.closest('tr').style.backgroundColor = 'transparent'}
+                  onClick={() => handleApplicantClick(applicant.id)}
+                >
                   <td style={{ padding: '12px', color: '#1f2937' }}>{index + 1}</td>
                   <td style={{ padding: '12px', color: '#1f2937', fontWeight: 500 }}>{applicant.name}</td>
-                  <td style={{ padding: '12px', color: '#16a34a', fontWeight: 600 }}>{applicant.written_score}점</td>
+                  <td style={{ padding: '12px', color: '#16a34a', fontWeight: 600 }}>{applicant.written_score}점/5점</td>
                   <td style={{ padding: '12px', color: '#64748b' }}>{applicant.evaluation_date}</td>
                   <td style={{ padding: '12px' }}>
                     <span style={{ 
@@ -259,7 +283,7 @@ function JobAptitudeReport() {
 
       <div style={{ background: 'white', borderRadius: 12, padding: 32, marginBottom: 24 }}>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1f2937', marginBottom: 16 }}>
-          📋 필기불합격자 명단
+          📋 필기불합격자 명단 <span style={{ fontSize: 14, color: '#64748b', fontWeight: 400 }}>(클릭하여 상세 결과 확인)</span>
         </h2>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -274,11 +298,21 @@ function JobAptitudeReport() {
             </thead>
             <tbody>
               {failedApplicants?.map((applicant, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <tr 
+                  key={index} 
+                  style={{ 
+                    borderBottom: '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.target.closest('tr').style.backgroundColor = '#f8fafc'}
+                  onMouseOut={(e) => e.target.closest('tr').style.backgroundColor = 'transparent'}
+                  onClick={() => handleApplicantClick(applicant.id)}
+                >
                   <td style={{ padding: '12px', color: '#1f2937' }}>{index + 1}</td>
                   <td style={{ padding: '12px', color: '#1f2937', fontWeight: 500 }}>{applicant.user_name}</td>
                   <td style={{ padding: '12px', color: '#ef4444', fontWeight: 600 }}>
-                    {applicant.written_test_score !== null ? `${applicant.written_test_score}점` : '미응시'}
+                    {applicant.written_test_score !== null ? `${applicant.written_test_score}점/5점` : '미응시'}
                   </td>
                   <td style={{ padding: '12px', color: '#64748b' }}>{applicant.evaluation_date || '-'}</td>
                   <td style={{ padding: '12px' }}>
@@ -310,10 +344,42 @@ function JobAptitudeReport() {
         <h2 style={{ fontSize: 20, fontWeight: 700, color: '#1f2937', marginBottom: 16 }}>
           📋 상세 평가 결과
         </h2>
-        <div style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6 }}>
-          {data?.detailed_analysis || '직무적성평가 상세 분석 결과가 여기에 표시됩니다.'}
+        <div style={{ 
+          fontSize: 14, 
+          color: '#374151', 
+          lineHeight: 1.8,
+          whiteSpace: 'pre-line',
+          background: '#f9fafb',
+          padding: '20px',
+          borderRadius: '8px',
+          border: '1px solid #e5e7eb'
+        }}>
+          {data?.detailed_analysis ? (
+            <div dangerouslySetInnerHTML={{ 
+              __html: data.detailed_analysis
+                .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #1f2937; font-weight: 600;">$1</strong>')
+                .replace(/\n/g, '<br>')
+            }} />
+          ) : (
+            <div style={{ 
+              textAlign: 'center', 
+              color: '#6b7280', 
+              fontStyle: 'italic',
+              padding: '40px 20px'
+            }}>
+              직무적성평가 상세 분석 결과가 여기에 표시됩니다.
+            </div>
+          )}
         </div>
       </div>
+      
+      {/* 지원자 필기시험 상세 결과 모달 */}
+      <ApplicantTestDetailModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        applicantId={selectedApplicantId}
+        jobPostId={jobPostId}
+      />
     </div>
   );
 }
