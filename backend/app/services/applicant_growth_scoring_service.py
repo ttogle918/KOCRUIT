@@ -184,14 +184,12 @@ class ApplicantGrowthScoringService:
 - 학사 이상이면 '학력이 낮다'고 평가하지 않는다
 
 지원자 주요 스펙:
-- KPI: {norm.get('kpi')} (고성과자 평균: {self.stats.get('kpi_score_mean')})
-- 승진속도: {norm.get('promotion_speed')}년 (고성과자 평균: {self.stats.get('promotion_speed_years_mean')}년)
+- 경력(년): {norm.get('experience_years')} (고성과자 평균: {self.stats.get('total_experience_years_mean', 0.0)})
 - 학력: {norm.get('degree')} (고성과자 평균: {self.stats.get('degree_mean')})
 - 자격증 개수: {norm.get('certifications_count')} (고성과자 평균: {self.stats.get('certifications_count_mean')})
 
 항목별 점수:
-- KPI: {detail['kpi']['score']:.1f}
-- 승진속도: {detail['promotion_speed']['score']:.1f}
+- 경력: {detail.get('experience_years', {}).get('score', 0):.1f}
 - 학력: {detail['degree']['score']:.1f}
 - 자격증: {detail['certifications']['score']:.1f}
 

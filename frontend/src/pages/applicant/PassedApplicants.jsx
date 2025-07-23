@@ -23,6 +23,8 @@ export default function PassedApplicants() {
   const [jobPostLoading, setJobPostLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
+  const [sortOrder, setSortOrder] = useState(null); // 'desc' | 'asc' | null
+  const [showSortOptions, setShowSortOptions] = useState(false);
 
   useEffect(() => {
     const fetchApplicants = async () => {
@@ -91,8 +93,20 @@ export default function PassedApplicants() {
     navigate('/email', { state: { applicants: selectedApplicants, interviewInfo } });
   };
 
-  const totalPages = Math.ceil(passedApplicants.length / PAGE_SIZE);
-  const pagedApplicants = passedApplicants.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+  // 정렬 함수
+  const getSortedApplicants = () => {
+    if (!sortOrder) return passedApplicants;
+    return [...passedApplicants].sort((a, b) => {
+      const aScore = a.ai_score ?? 0;
+      const bScore = b.ai_score ?? 0;
+      if (sortOrder === 'asc') return aScore - bScore;
+      if (sortOrder === 'desc') return bScore - aScore;
+      return 0;
+    });
+  };
+  const sortedApplicants = getSortedApplicants();
+  const totalPages = Math.ceil(sortedApplicants.length / PAGE_SIZE);
+  const pagedApplicants = sortedApplicants.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
 
   if (loading) {
     return (
@@ -140,9 +154,36 @@ export default function PassedApplicants() {
             <div className={`${splitMode ? 'w-1/2 min-h-[600px]' : 'w-full'} h-auto`}>
               {/* Filter Tabs + Sort Button */}
               <div className="flex justify-between items-center mb-4">
-                <button className="text-sm text-gray-700 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm hover:bg-gray-100">
-                  점수 정렬
-                </button>
+                <div className="relative">
+                  <button
+                    className="text-sm text-gray-700 bg-white border border-gray-300 px-3 py-1 rounded shadow-sm hover:bg-gray-100"
+                    onClick={() => setShowSortOptions((prev) => !prev)}
+                  >
+                    점수 정렬
+                  </button>
+                  {showSortOptions && (
+                    <div className="absolute left-0 mt-2 bg-white border rounded shadow z-10 flex flex-col min-w-[120px]">
+                      <button
+                        className={`px-4 py-2 text-left hover:bg-gray-100 ${sortOrder === 'asc' ? 'font-bold text-blue-600' : ''}`}
+                        onClick={() => { setSortOrder('asc'); setShowSortOptions(false); setCurrentPage(1); }}
+                      >
+                        오름차순
+                      </button>
+                      <button
+                        className={`px-4 py-2 text-left hover:bg-gray-100 ${sortOrder === 'desc' ? 'font-bold text-blue-600' : ''}`}
+                        onClick={() => { setSortOrder('desc'); setShowSortOptions(false); setCurrentPage(1); }}
+                      >
+                        내림차순
+                      </button>
+                      <button
+                        className="px-4 py-2 text-left hover:bg-gray-100 text-gray-500"
+                        onClick={() => { setSortOrder(null); setShowSortOptions(false); setCurrentPage(1); }}
+                      >
+                        정렬 해제
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 지원자 카드 그리드 (스크롤 없음) */}

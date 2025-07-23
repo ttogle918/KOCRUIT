@@ -16,7 +16,7 @@ except ImportError:
     print("⚠️ APScheduler not available, using fallback")
     BackgroundScheduler = None
 from app.core.database import SessionLocal
-from app.models.interview_evaluation import auto_process_applications
+# from app.models.interview_evaluation import auto_process_applications # <- 제거
 from sqlalchemy import text, inspect
 import logging
 
@@ -71,7 +71,7 @@ def safe_create_tables():
             
     except Exception as e:
         print(f"❌ Safe table creation failed: {e}")
-from app.models.interview_evaluation import auto_process_applications, auto_evaluate_all_applications
+from app.services.application_evaluation_service import auto_evaluate_all_applications
 
 
 # JobPost 상태 스케줄러 인스턴스 (싱글톤)
@@ -273,12 +273,10 @@ def run_auto_process():
     """자동 처리 함수"""
     db = SessionLocal()
     try:
-        # 기존 자동 처리
-        auto_process_applications(db)
-        
-        # AI 평가 배치 프로세스 추가
+        # 기존 자동 처리 (auto_process_applications) 제거
+        # auto_process_applications(db)
+        # AI 평가 배치 프로세스만 실행
         auto_evaluate_all_applications(db)
-        
         print("자동 처리 완료")
     except Exception as e:
         print(f"자동 처리 중 오류: {e}")

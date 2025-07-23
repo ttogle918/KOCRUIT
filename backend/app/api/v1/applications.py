@@ -20,6 +20,7 @@ from app.models.weight import Weight
 from app.utils.llm_cache import redis_cache
 from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
+from app.services.application_evaluation_service import auto_evaluate_all_applications
 
 router = APIRouter()
 
@@ -575,7 +576,6 @@ def batch_ai_evaluate_applications(
     current_user: User = Depends(get_current_user)
 ):
     """모든 지원자에 대해 AI 평가를 배치로 실행합니다."""
-    from app.models.interview_evaluation import auto_evaluate_all_applications
     
     try:
         result = auto_evaluate_all_applications(db)
@@ -614,7 +614,6 @@ def reset_ai_scores_for_job(
     db.commit()
     
     # 자동 평가 시스템 실행 (기존 함수 활용)
-    from app.models.interview_evaluation import auto_evaluate_all_applications
     try:
         auto_evaluate_all_applications(db)
         return {
@@ -859,6 +858,7 @@ def get_applicants_with_second_interview(job_post_id: int, db: Session = Depends
 
 
 @router.get("/job/{job_post_id}/passed-applicants")
+@redis_cache(expire=300)  # 5분 캐싱
 def get_passed_applicants(
     job_post_id: int,
     db: Session = Depends(get_db)
