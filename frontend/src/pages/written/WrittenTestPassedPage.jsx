@@ -132,7 +132,9 @@ export default function WrittenTestPassedPage() {
       setJobPostLoading(true)
       try {
         const res = await api.get(`/company/jobposts/${jobpostId}`);
-        setJobPost(res.data);
+        // jobPost 객체에 id 필드를 명시적으로 추가
+        const jobPostData = { ...res.data, id: jobpostId };
+        setJobPost(jobPostData);
       } catch (err) {
         setJobPost(null);
       } finally {
