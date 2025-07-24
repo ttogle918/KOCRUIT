@@ -6,6 +6,7 @@ from app.api.v1.ai_evaluate import router as ai_evaluate_router
 from app.api.v1.growth_prediction import router as growth_prediction_router
 from .realtime_interview import router as realtime_interview_router
 from .ai_interview_questions import router as ai_interview_questions_router
+from .resume_plagiarism import router as resume_plagiarism_router
 
 
 api_router = APIRouter()
@@ -31,3 +32,4 @@ api_router.include_router(highlight_router, prefix="/ai", tags=["AI Highlight"])
 api_router.include_router(reports.router, prefix="/report", tags=["reports"])
 api_router.include_router(realtime_interview_router, prefix="/realtime-interview", tags=["realtime-interview"])
 api_router.include_router(ai_interview_questions_router, prefix="/ai-interview", tags=["ai-interview"])
+api_router.include_router(resume_plagiarism_router, prefix="/resume-plagiarism", tags=["resume-plagiarism"])

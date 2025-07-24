@@ -693,7 +693,12 @@ def get_applicants_by_job(
             "degree_type": degree,  # 학위(석사/박사 등)
             "resume_id": app.resume_id,  # ← 이 줄 추가!
             "address": app.user.address if app.user.address else None,  # address 필드 추가
-            "certificates": certificates  # 자격증 배열 추가
+            "certificates": certificates,  # 자격증 배열 추가
+            # 표절 점수 관련 정보 추가
+            "plagiarism_score": app.resume.plagiarism_score if app.resume else None,
+            "plagiarism_checked_at": app.resume.plagiarism_checked_at.isoformat() if app.resume and app.resume.plagiarism_checked_at else None,
+            "most_similar_resume_id": app.resume.most_similar_resume_id if app.resume else None,
+            "similarity_threshold": app.resume.similarity_threshold if app.resume else 0.9
         }
         applicants.append(applicant_data)
     return applicants

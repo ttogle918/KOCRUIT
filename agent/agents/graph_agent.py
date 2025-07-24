@@ -1,6 +1,5 @@
 from langgraph.graph import Graph, END
 from langchain_openai import ChatOpenAI
-from tools.job_posting_tool import job_posting_recommend_tool
 from agents.interview_question_node import generate_company_questions, generate_common_question_bundle
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_field_tool import form_field_update_tool, form_status_check_tool
@@ -171,10 +170,9 @@ def router(state):
     3. form_status_check_tool - 현재 폼 상태를 확인하는 요청
     4. form_field_update_tool - 특정 필드를 수정하거나 변경하는 요청
     5. spell_check_tool - 맞춤법 검사나 문법 수정 요청
-    6. job_posting_tool - 채용공고 관련 조언이나 추천
-    7. company_question_generator - 회사 관련 면접 질문 생성
-    8. project_question_generator - 프로젝트 기반 면접 질문 생성
-    9. info_tool - 정보성 안내/설명/FAQ 요청 (실제 행동 없이 설명만)
+    6. company_question_generator - 회사 관련 면접 질문 생성
+    7. project_question_generator - 프로젝트 기반 면접 질문 생성
+    8. info_tool - 정보성 안내/설명/FAQ 요청 (실제 행동 없이 설명만)
     
     분석 기준:
     - 폼 채우기/생성: "작성", "채워줘", "생성", "만들어줘", "공고 작성" 등의 키워드
@@ -192,7 +190,7 @@ def router(state):
     - 맞춤법 검사 요청의 경우 spell_check_tool을 선택하세요.
     
     응답은 정확히 다음 중 하나만 반환하세요:
-    form_fill_tool, form_improve_tool, form_status_check_tool, form_field_update_tool, spell_check_tool, apply_spell_corrections, job_posting_tool, company_question_generator, project_question_generator, info_tool
+    form_fill_tool, form_improve_tool, form_status_check_tool, form_field_update_tool, spell_check_tool, apply_spell_corrections, company_question_generator, project_question_generator, info_tool
     """
     
     try:
@@ -245,7 +243,7 @@ def router(state):
         # 응답 검증
         valid_tools = [
             "form_fill_tool", "form_improve_tool", "form_status_check_tool", 
-            "form_field_update_tool", "spell_check_tool", "apply_spell_corrections", "job_posting_tool", 
+            "form_field_update_tool", "spell_check_tool", "apply_spell_corrections", 
             "company_question_generator", "project_question_generator", "info_tool"
         ]
         
@@ -257,8 +255,6 @@ def router(state):
             # 기본값: 사용 가능한 데이터에 따라 결정
             if state.get("resume_text"):
                 return {"next": "project_question_generator", **state}
-            elif state.get("job_posting"):
-                return {"next": "job_posting_tool", **state}
             elif state.get("company_name"):
                 return {"next": "company_question_generator", **state}
             else:
@@ -269,8 +265,6 @@ def router(state):
         # 오류 시 기본값 반환
         if state.get("resume_text"):
             return {"next": "project_question_generator", **state}
-        elif state.get("job_posting"):
-            return {"next": "job_posting_tool", **state}
         elif state.get("company_name"):
             return {"next": "company_question_generator", **state}
         else:
@@ -336,7 +330,6 @@ def build_graph():
     
     # 노드 추가
     graph.add_node("router", router)
-    graph.add_node("job_posting_tool", job_posting_recommend_tool)
     graph.add_node("company_question_generator", company_question_generator)
     graph.add_node("portfolio_analyzer", portfolio_analyzer)
     graph.add_node("project_question_generator", project_question_generator)
@@ -356,7 +349,6 @@ def build_graph():
         "router",
         lambda x: x["next"],
         {
-            "job_posting_tool": "job_posting_tool",
             "company_question_generator": "company_question_generator",
             "project_question_generator": "project_question_generator",
             "form_fill_tool": "form_fill_tool",
@@ -371,7 +363,6 @@ def build_graph():
     
     # 모든 노드에서 END로 연결
     graph.add_edge("project_question_generator", END)
-    graph.add_edge("job_posting_tool", END)
     graph.add_edge("company_question_generator", END)
     graph.add_edge("form_fill_tool", END)
     graph.add_edge("form_improve_tool", END)
@@ -383,13 +374,6 @@ def build_graph():
     
     return graph.compile()
 
-def build_job_posting_graph():
-    """채용공고 개선 전용 그래프"""
-    graph = Graph()
-    graph.add_node("job_posting_tool", job_posting_recommend_tool)
-    graph.set_entry_point("job_posting_tool")
-    graph.set_finish_point("job_posting_tool")
-    return graph.compile()
 
 def build_company_question_graph():
     """회사 질문 생성 전용 그래프"""

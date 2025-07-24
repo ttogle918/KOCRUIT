@@ -5,6 +5,8 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import api from '../../api/api';
+import LinearProgress from '@mui/material/LinearProgress';
+import Box from '@mui/material/Box';
 
 export default function ResumeAnalysisAccordion({ resumeId }) {
   const [analysis, setAnalysis] = useState(null);

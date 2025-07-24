@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
@@ -14,6 +14,12 @@ class Resume(Base):
     file_url = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 표절 점수 관련 컬럼들
+    plagiarism_score = Column(Float, nullable=True, comment="표절 유사도 점수 (0-1)")
+    plagiarism_checked_at = Column(DateTime, nullable=True, comment="표절 검사 수행 시간")
+    most_similar_resume_id = Column(Integer, nullable=True, comment="가장 유사한 이력서 ID")
+    similarity_threshold = Column(Float, default=0.9, comment="표절 의심 임계값")
     
     # Relationships with back_populates
     user = relationship("User", back_populates="resumes")
