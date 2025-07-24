@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend/**'
       - 'agent/**'
+      - 'frontend/**'
       - 'requirements.txt'
       - '.github/workflows/**'
 
@@ -16,6 +17,7 @@ jobs:
     env:
       GHCR_BACKEND: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-backend
       GHCR_AGENT: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-agent
+      GHCR_FRONTEND: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-frontend
 
     steps:
       - name: Checkout code
@@ -33,3 +35,8 @@ jobs:
         run: |
           docker build -t $GHCR_AGENT:latest -f agent/Dockerfile .
           docker push $GHCR_AGENT:latest
+
+      - name: Build and Push Frontend Image
+        run: |
+          docker build -t $GHCR_FRONTEND:latest -f frontend/Dockerfile ./frontend
+          docker push $GHCR_FRONTEND:latest

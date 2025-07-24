@@ -494,7 +494,7 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
         # 포트폴리오 정보 수집 (임시로 빈 문자열)
         portfolio_info = ""
         # LangGraph 기반 이력서 분석 (항상 직접 수행)
-        from agent.agents.interview_question_node import generate_resume_analysis_report
+        from agent.tools.resume_analysis_tool import generate_resume_analysis_report
         analysis_result = generate_resume_analysis_report(
             resume_text=resume_text,
             job_info=job_info,

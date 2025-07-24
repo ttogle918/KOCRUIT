@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
-import requests
-import json
 import time
+import requests
 from pydantic import BaseModel
 
 from app.core.database import get_db
@@ -48,27 +47,18 @@ async def highlight_resume_by_application(
         
         print(f"✅ Resume content found: {len(resume_content)} characters")
         
-        # AI Agent 서버로 요청 (Docker 네트워크에서는 컨테이너 이름 사용)
-        agent_url = "http://kocruit_agent:8001/highlight-resume"
-        payload = {
-            "application_id": request.application_id,
-            "jobpost_id": request.jobpost_id,
-            "company_id": request.company_id,
-            "resume_content": resume_content  # 이력서 내용을 직접 전달
-        }
+        # 새로운 형광펜 도구 사용
+        from agent.tools.highlight_tool import highlight_resume_by_application_id
         
-        print(f"🚀 AI Agent 서버로 요청: {agent_url}")
-        print(f"📦 Payload: {payload}")
+        print(f"🚀 형광펜 하이라이팅 도구 호출")
         
-        # 타임아웃을 5분으로 증가 (AI 분석 시간 고려)
-        response = requests.post(agent_url, json=payload, timeout=300)
-        print(f"📡 AI Agent 응답 상태: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"❌ AI Agent 오류 응답: {response.text}")
-            raise HTTPException(status_code=500, detail=f"AI Agent 서버 오류: {response.text}")
-        
-        result = response.json()
+        # 형광펜 도구로 하이라이팅 수행
+        result = highlight_resume_by_application_id(
+            application_id=request.application_id,
+            resume_content=resume_content,
+            jobpost_id=request.jobpost_id,
+            company_id=request.company_id
+        )
         analysis_duration = time.time() - start_time
         print(f"✅ 하이라이팅 분석 완료: {len(result.get('highlights', []))} highlights (소요시간: {analysis_duration:.2f}초)")
         

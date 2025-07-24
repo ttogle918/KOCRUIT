@@ -17,7 +17,7 @@ from tools.form_field_tool import form_field_update_tool, form_status_check_tool
 from tools.form_field_improve_tool import form_field_improve_tool
 from agents.application_evaluation_agent import evaluate_application
 from tools.speech_recognition_tool import speech_recognition_tool
-from tools.highlight_resume_tool import get_highlight_tool
+from tools.highlight_tool import highlight_resume_content
 # from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool, RealtimeInterviewEvaluationTool
 from dotenv import load_dotenv
 import uuid

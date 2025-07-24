@@ -39,6 +39,14 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
       
       // 결과를 문단별로 매핑
       if (result && result.highlights && Array.isArray(result.highlights)) {
+        // content 파싱 (함수 내부에서 처리)
+        let parsed = [];
+        try {
+          parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
+        } catch {
+          parsed = [];
+        }
+        
         // 전체 하이라이트를 각 문단의 텍스트에 맞게 분배
         const highlightsByParagraph = parsed.map((item, idx) => {
           const paragraphText = item.content;
@@ -99,10 +107,10 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
 
   // application_id가 있을 때만 하이라이트 분석 실행
   useEffect(() => {
-    // 자동으로 하이라이트 분석을 실행하지 않음 - 사용자가 버튼을 클릭할 때만 실행
-    // if (applicationId) {
-    //   analyzeContentByApplicationId();
-    // }
+    // applicationId가 있으면 자동으로 하이라이트 분석 실행
+    if (applicationId) {
+      analyzeContentByApplicationId();
+    }
   }, [applicationId, jobpostId]);
 
   // 전체 통계용 하이라이트 합치기
@@ -350,10 +358,21 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
               {highlightLoading ? '분석 중...' : (showHighlights ? '형광펜 끄기' : '형광펜 켜기')}
             </button>
             {highlightLoading && (
-              <span className="text-xs text-blue-500">분석 중...</span>
+              <div className="flex items-center gap-1 text-xs text-blue-500">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                분석 중...
+              </div>
             )}
             {highlightError && (
-              <span className="text-xs text-red-500">{highlightError}</span>
+              <div className="flex items-center gap-1 text-xs text-red-500">
+                <span>⚠️</span>
+                {highlightError}
+              </div>
+            )}
+            {highlightData.length > 0 && !highlightLoading && !showHighlights && (
+              <div className="text-xs text-green-600 dark:text-green-400">
+                ✅ 분석 완료
+              </div>
             )}
           </div>
         </div>
