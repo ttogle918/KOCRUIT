@@ -316,11 +316,13 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
     return db_question
 
 @router.get("/application/{application_id}", response_model=List[InterviewQuestionResponse])
+@redis_cache(expire=300)  # 5분 캐시 (질문 조회)
 def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
     from app.models.interview_question import InterviewQuestion
     return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
 
 @router.get("/application/{application_id}/by-type", response_model=InterviewQuestionResponse)
+@redis_cache(expire=300)  # 5분 캐시 (질문 타입별 조회)
 def get_questions_by_type(application_id: int, db: Session = Depends(get_db)):
     """지원서별 질문을 유형별로 분류하여 조회"""
     return InterviewQuestionService.get_questions_by_type(db, application_id)
@@ -332,6 +334,7 @@ def create_questions_bulk(bulk_data: InterviewQuestionBulkCreate, db: Session = 
 
 
 @router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_integrated_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
     """통합 면접 질문 생성 API - 이력서, 공고, 회사 정보를 모두 활용"""
 
@@ -473,6 +476,7 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/resume-analysis", response_model=ResumeAnalysisResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
     """이력서 분석 리포트 생성 API"""
     # 캐시 로직 완전히 제거!
@@ -644,6 +648,7 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/company-questions", response_model=CompanyQuestionResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (회사 정보 기반)
 async def generate_company_questions(request: CompanyQuestionRequest):
     """회사명 기반 면접 질문 생성 (인재상 + 뉴스 기반)"""
     # POST /api/v1/interview-questions/company-questions
@@ -724,6 +729,7 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/common-questions", response_model=Dict[str, Any])
+@redis_cache(expire=3600)  # 1시간 캐시 (공통 질문)
 async def generate_common_questions_endpoint(
     company_name: str = "",
     job_post_id: Optional[int] = None,
@@ -762,6 +768,7 @@ async def generate_common_questions_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/job-questions", response_model=JobQuestionResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_job_questions(request: JobQuestionRequest, db: Session = Depends(get_db)):
     """지원서 기반 직무 맞춤형 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     # POST /api/v1/interview-questions/job-questions
@@ -836,6 +843,7 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
 
 
 @router.post("/passed-applicants-questions", response_model=Dict[str, Any])
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_passed_applicants_questions(
     request: dict,
     db: Session = Depends(get_db)
@@ -979,6 +987,7 @@ async def generate_passed_applicants_questions(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analysis-questions", response_model=Dict[str, Any])
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_analysis_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
     """
     다양한 직무 역량(실무, 문제해결, 커뮤니케이션, 성장 가능성 등) 평가 질문 통합 API
@@ -1074,6 +1083,7 @@ async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsReque
 
 # --- 공고 기반 가이드라인 ---
 @router.post("/interview-guideline/job-based", response_model=JobBasedGuidelineResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Session = Depends(get_db)):
     try:
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
@@ -1092,6 +1102,7 @@ async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Se
 
 # --- 공고 기반 평가 기준 ---
 @router.post("/evaluation-criteria/job-based", response_model=JobBasedCriteriaResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def suggest_job_based_evaluation_criteria(request: JobBasedCriteriaRequest, db: Session = Depends(get_db)):
     try:
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
@@ -1144,6 +1155,7 @@ class AiInterviewSaveResponse(BaseModel):
     message: str
 
 @router.post("/ai-interview", response_model=AiInterviewResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_ai_interview_questions(request: AiInterviewRequest, db: Session = Depends(get_db)):
     """AI 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     try:
@@ -1334,6 +1346,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/application/{application_id}/ai-questions")
+@redis_cache(expire=300)  # 5분 캐시 (AI 질문 조회)
 def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db)):
     """특정 지원자의 AI 면접 질문 조회 (job_post_id 기반)"""
     try:
@@ -1376,6 +1389,7 @@ def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/job/{job_post_id}/ai-questions")
+@redis_cache(expire=300)  # 5분 캐시 (AI 질문 조회)
 def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 AI 면접 질문 조회 (공통 + 직무별 + 게임)"""
     try:
@@ -1460,6 +1474,7 @@ def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/job/{job_post_id}/common-questions")
+@redis_cache(expire=300)  # 5분 캐시 (공통 질문 조회)
 def get_common_questions_for_job_post(
     job_post_id: int,
     db: Session = Depends(get_db)
@@ -1497,6 +1512,7 @@ def get_common_questions_for_job_post(
         raise HTTPException(status_code=500, detail=f"공통 질문 조회 실패: {str(e)}")
 
 @router.get("/application/{application_id}/questions")
+@redis_cache(expire=300)  # 5분 캐시 (질문 조회)
 def get_questions_for_application(
     application_id: int,
     question_type: Optional[str] = None,
@@ -1613,6 +1629,7 @@ def generate_individual_questions_for_application(
         raise HTTPException(status_code=500, detail=f"개별 질문 생성 실패: {str(e)}")
 
 @router.get("/job/{job_post_id}/questions-status")
+@redis_cache(expire=60)  # 1분 캐시 (상태 조회)
 def get_questions_generation_status(
     job_post_id: int,
     db: Session = Depends(get_db)
@@ -1681,6 +1698,7 @@ class AiToolsResponse(BaseModel):
     questions: Optional[str] = None
 
 @router.post("/ai-tools", response_model=AiToolsResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_db)):
     """AI 면접을 위한 통합 도구 생성 (체크리스트, 강점/약점, 가이드라인, 평가 기준)"""
     try:
@@ -1823,6 +1841,7 @@ async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail=f"AI 도구 생성 실패: {str(e)}")
 
 @router.get("/application/{application_id}/logs")
+@redis_cache(expire=300)  # 5분 캐시 (로그 조회)
 def get_interview_question_logs_by_application(
     application_id: int, 
     interview_type: Optional[str] = None,
@@ -1852,6 +1871,7 @@ def get_interview_question_logs_by_application(
     ]
 
 @router.get("/application/{application_id}/logs/statistics")
+@redis_cache(expire=300)  # 5분 캐시 (통계 조회)
 def get_interview_logs_statistics(application_id: int, db: Session = Depends(get_db)):
     """특정 지원자의 면접 유형별 통계 반환"""
     # 면접 유형별 개수 조회
