@@ -9,6 +9,7 @@ class InterviewType(str, enum.Enum):
     SECOND_INTERVIEW = "SECOND_INTERVIEW"  # 2차 면접 (임원)
     FINAL_INTERVIEW = "FINAL_INTERVIEW"   # 최종 면접
 
+
 class InterviewQuestionLog(Base):
     __tablename__ = "interview_question_log"
 

@@ -472,6 +472,7 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
     
     # 두 조건 모두 만족해야 합격
     passed = (num_low < low_threshold) and (num_high >= high_threshold)
+
     
     # 8. 총점 계산 (상: 2점, 중: 1점, 하: 0점)
     total_score = num_high * 2 + num_medium * 1 + num_low * 0
@@ -528,6 +529,7 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
             application.interview_status = InterviewStatus.AI_INTERVIEW_PASSED.value
         else:
             application.interview_status = InterviewStatus.AI_INTERVIEW_FAILED.value
+
     
     db.commit()
     
@@ -544,5 +546,5 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
     print(f"   - 합격 여부: {'통과' if passed else '불합격'}")
     print(f"   - 판정 기준: 하 등급 {num_low}개 < {low_threshold}개 AND 상 등급 {num_high}개 >= {high_threshold}개")
     print(f"   - 합격 조건: 하 등급 20% 미만({low_threshold}개) AND 상 등급 30% 이상({high_threshold}개)")
-    
+
     return evaluation.id 

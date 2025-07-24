@@ -860,6 +860,7 @@ function AiInterviewSystem() {
                     <>
                   <video
                     ref={videoRef}
+
                         src={videoFile}
                         className="w-full h-64 object-cover"
                         onTimeUpdate={handleVideoTimeUpdate}
@@ -933,6 +934,83 @@ function AiInterviewSystem() {
                     </button>
                   </div>
                 </div>
+                
+                {/* 카메라/마이크 컨트롤 */}
+                <div className="mt-4 flex gap-2">
+                  <button
+                    onClick={toggleCamera}
+                    className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
+                      isCameraOn 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {isCameraOn ? <FiVideo /> : <FiVideoOff />} 카메라
+                  </button>
+                  <button
+                    onClick={toggleMic}
+                    className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
+                      isMicOn 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {isMicOn ? <FiMic /> : <FiMicOff />} 마이크
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 중앙: 질문-답변 스크립트 */}
+            <div className="xl:col-span-1">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <FiTarget />
+                    질문-답변 스크립트
+                  </h3>
+                  <button
+                    onClick={toggleScripts}
+                    className="text-blue-500 hover:text-blue-700 text-sm"
+                  >
+                    {showScripts ? '숨기기' : '보기'}
+                  </button>
+                </div>
+                
+                {showScripts && questionScripts.length > 0 && (
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {questionScripts.map((script, index) => (
+                      <div key={script.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-sm font-medium text-blue-600">질문 {script.id}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            {script.category}
+                          </span>
+                        </div>
+                        <p className="text-gray-800 mb-3 font-medium">{script.question}</p>
+                        <textarea
+                          value={script.answer}
+                          onChange={(e) => handleAnswerInput(script.id, e.target.value)}
+                          placeholder="답변을 입력하세요..."
+                          className="w-full p-2 border border-gray-300 rounded text-sm resize-none"
+                          rows="3"
+                        />
+                        {script.timestamp && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            답변 시간: {new Date(script.timestamp).toLocaleTimeString()}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {(!showScripts || questionScripts.length === 0) && (
+                  <div className="text-center text-gray-500 py-8">
+                    <FiTarget size={48} className="mx-auto mb-2" />
+                    <p>질문-답변 스크립트가 없습니다</p>
+                  </div>
+                )}
               </div>
 
             {/* 중앙: 질문-답변 스크립트 */}
@@ -1048,6 +1126,7 @@ function AiInterviewSystem() {
               
               {/* 실시간 평가 */}
                 <div className="bg-white rounded-lg shadow-md p-6">
+
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                     <FiTrendingUp />
@@ -1060,11 +1139,13 @@ function AiInterviewSystem() {
                     채점기준
                       </button>
             </div>
+
                 
                 <div className="space-y-4">
                   {Object.entries(evaluationMetrics).map(([category, data]) => (
                     <div key={category} className="border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
+
                         <span className="text-sm font-medium text-gray-700">
                           {category === 'language_ability' && '언어능력'}
                           {category === 'non_verbal_behavior' && '비언어행동'}
@@ -1085,6 +1166,7 @@ function AiInterviewSystem() {
                   ))}
                     </div>
                   </div>
+
 
               {/* 채점기준 상세 */}
               {showScoringCriteria && (
@@ -1121,6 +1203,7 @@ function AiInterviewSystem() {
                     </div>
                         ))}
                         </div>
+
                     ))}
                   </div>
                 </div>
