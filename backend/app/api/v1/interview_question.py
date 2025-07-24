@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional, Dict, Any
 from app.core.database import get_db
 from app.api.v1.auth import get_current_user
@@ -23,7 +24,7 @@ import redis
 import json
 
 from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
-from app.models.interview_question_log import InterviewQuestionLog
+from app.models.interview_question_log import InterviewQuestionLog, InterviewType
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)
 
@@ -1822,12 +1823,24 @@ async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=500, detail=f"AI 도구 생성 실패: {str(e)}")
 
 @router.get("/application/{application_id}/logs")
-def get_interview_question_logs_by_application(application_id: int, db: Session = Depends(get_db)):
-    """특정 지원자의 AI 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환"""
-    logs = db.query(InterviewQuestionLog).filter(InterviewQuestionLog.application_id == application_id).order_by(InterviewQuestionLog.created_at).all()
+def get_interview_question_logs_by_application(
+    application_id: int, 
+    interview_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """특정 지원자의 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환"""
+    query = db.query(InterviewQuestionLog).filter(InterviewQuestionLog.application_id == application_id)
+    
+    # 면접 유형 필터링
+    if interview_type:
+        query = query.filter(InterviewQuestionLog.interview_type == interview_type)
+    
+    logs = query.order_by(InterviewQuestionLog.created_at).all()
+    
     return [
         {
             "question_id": log.question_id,
+            "interview_type": log.interview_type.value if log.interview_type else "AI_INTERVIEW",
             "question_text": log.question_text,
             "answer_text": log.answer_text,
             "answer_audio_url": log.answer_audio_url,
@@ -1837,3 +1850,32 @@ def get_interview_question_logs_by_application(application_id: int, db: Session 
         }
         for log in logs
     ]
+
+@router.get("/application/{application_id}/logs/statistics")
+def get_interview_logs_statistics(application_id: int, db: Session = Depends(get_db)):
+    """특정 지원자의 면접 유형별 통계 반환"""
+    # 면접 유형별 개수 조회
+    stats = db.query(
+        InterviewQuestionLog.interview_type,
+        func.count(InterviewQuestionLog.id).label('count')
+    ).filter(
+        InterviewQuestionLog.application_id == application_id
+    ).group_by(
+        InterviewQuestionLog.interview_type
+    ).all()
+    
+    # 전체 통계
+    total_count = db.query(InterviewQuestionLog).filter(
+        InterviewQuestionLog.application_id == application_id
+    ).count()
+    
+    return {
+        "total_interviews": total_count,
+        "by_type": [
+            {
+                "interview_type": stat.interview_type.value if stat.interview_type else "AI_INTERVIEW",
+                "count": stat.count
+            }
+            for stat in stats
+        ]
+    }

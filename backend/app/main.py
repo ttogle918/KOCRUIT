@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
 import asyncio
@@ -26,52 +27,12 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 from app.scheduler.job_status_scheduler import JobStatusScheduler
-from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
 from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
 
 
-def safe_create_tables():
-    """안전한 테이블 생성 - 기존 테이블은 건드리지 않고 새로운 테이블만 생성"""
-    try:
-        inspector = inspect(engine)
-        existing_tables = inspector.get_table_names()
-        
-        # 새로운 테이블들만 생성
-        new_tables = [
-            'interview_evaluation_item'  # 새로 추가된 테이블
-        ]
-        
-        for table_name in new_tables:
-            if table_name not in existing_tables:
-                print(f"Creating new table: {table_name}")
-                # 해당 테이블만 생성
-                table = Base.metadata.tables.get(table_name)
-                if table:
-                    table.create(bind=engine, checkfirst=True)
-                    print(f"✅ Table {table_name} created successfully")
-                else:
-                    print(f"⚠️ Table {table_name} not found in metadata")
-            else:
-                print(f"✅ Table {table_name} already exists")
-        
-        # 기존 테이블에 새로운 컬럼 추가 (필요한 경우)
-        try:
-            # interview_evaluation 테이블에 updated_at 컬럼 추가
-            with engine.connect() as conn:
-                result = conn.execute(text("SHOW COLUMNS FROM interview_evaluation LIKE 'updated_at'"))
-                if not result.fetchone():
-                    print("Adding updated_at column to interview_evaluation table")
-                    conn.execute(text("ALTER TABLE interview_evaluation ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
-                    conn.commit()
-                    print("✅ updated_at column added successfully")
-                else:
-                    print("✅ updated_at column already exists")
-        except Exception as e:
-            print(f"⚠️ Column update check failed: {e}")
-            
-    except Exception as e:
-        print(f"❌ Safe table creation failed: {e}")
+# safe_create_tables 함수 제거 - Base.metadata.create_all()이 모든 테이블을 안전하게 생성함
 from app.models.interview_evaluation import auto_process_applications, auto_evaluate_all_applications
+from app.models.interview_question import InterviewQuestion, QuestionType
 
 
 # JobPost 상태 스케줄러 인스턴스 (싱글톤)
@@ -85,8 +46,7 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting application...")
     
-    # 안전한 테이블 생성
-    safe_create_tables()
+    # 데이터베이스 테이블 생성
     Base.metadata.create_all(bind=engine)
     print("데이터베이스 테이블 생성 완료")
     
@@ -95,24 +55,6 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(job_status_scheduler.start())
     print("JobPost 상태 스케줄러 시작 완료")
 
-    # 필기 답안 자동 채점 스케줄러 시작
-    start_written_test_auto_grader()
-
-    
-    # 면접 질문 생성 스케줄러 시작
-    print("🔄 Starting Question Generation scheduler...")
-    try:
-        # 백그라운드에서 스케줄러 실행
-        import threading
-        scheduler_thread = threading.Thread(
-            target=QuestionGenerationScheduler.run_scheduler,
-            daemon=True
-        )
-        scheduler_thread.start()
-        print("면접 질문 생성 스케줄러 시작 완료")
-    except Exception as e:
-        print(f"면접 질문 생성 스케줄러 시작 실패: {e}")
-    
     # 시드 데이터 실행
     try:
         import subprocess
@@ -143,7 +85,7 @@ async def lifespan(app: FastAPI):
         print(f"AI 평가 실행 중 오류: {e}")
         import traceback
         print(f"상세 오류: {traceback.format_exc()}")
-    
+
     print("=== FastAPI 서버 시작 완료 ===")
     
     yield
@@ -160,6 +102,17 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Static files (interview videos 등) 제공 - 디렉토리가 없으면 건너뛰기
+import os
+if os.path.exists("app/scripts/interview_videos"):
+    app.mount(
+        "/static/interview_videos",
+        StaticFiles(directory="app/scripts/interview_videos"),
+        name="interview_videos"
+    )
+else:
+    print("⚠️ interview_videos 디렉토리가 없어서 StaticFiles 마운트를 건너뜁니다.")
 
 # FastAPI 등록된 경로 목록 출력 (디버깅용)
 @app.on_event("startup")

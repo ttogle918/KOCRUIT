@@ -240,16 +240,33 @@ class AiInterviewApi {
   }
 
   /**
-   * 특정 지원자의 AI 면접 질문+답변 로그 조회
+   * 특정 지원자의 면접 질문+답변 로그 조회
    * @param {number} applicationId - 지원서 ID
+   * @param {string} interviewType - 면접 유형 (AI_INTERVIEW, FIRST_INTERVIEW, SECOND_INTERVIEW, FINAL_INTERVIEW)
    * @returns {Promise<Array>} 질문+답변 로그 리스트
    */
-  static async getInterviewQuestionLogsByApplication(applicationId) {
+  static async getInterviewQuestionLogsByApplication(applicationId, interviewType = null) {
     try {
-      const response = await api.get(`/interview-questions/application/${applicationId}/logs`);
+      const params = interviewType ? { interview_type: interviewType } : {};
+      const response = await api.get(`/interview-questions/application/${applicationId}/logs`, { params });
       return response.data;
     } catch (error) {
-      console.error('AI 면접 질문+답변 로그 조회 실패:', error);
+      console.error('면접 질문+답변 로그 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 특정 지원자의 면접 로그 통계 조회
+   * @param {number} applicationId - 지원서 ID
+   * @returns {Promise<Object>} 면접 유형별 통계
+   */
+  static async getInterviewLogsStatistics(applicationId) {
+    try {
+      const response = await api.get(`/interview-questions/application/${applicationId}/logs/statistics`);
+      return response.data;
+    } catch (error) {
+      console.error('면접 로그 통계 조회 실패:', error);
       throw error;
     }
   }

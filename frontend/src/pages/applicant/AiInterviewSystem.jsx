@@ -239,7 +239,8 @@ function AiInterviewSystem() {
     const fetchQuestionLogs = async () => {
       if (!applicantId) return;
       try {
-        const logs = await AiInterviewApi.getInterviewQuestionLogsByApplication(applicantId);
+        // AI 면접 로그만 가져오기
+        const logs = await AiInterviewApi.getInterviewQuestionLogsByApplication(applicantId, 'AI_INTERVIEW');
         if (logs && logs.length > 0) {
           setQuestionScripts(
             logs.map((log, idx) => ({
@@ -255,7 +256,7 @@ function AiInterviewSystem() {
           );
         }
       } catch (error) {
-        console.error('질문+답변 로그 fetch 실패:', error);
+        console.error('AI 면접 질문+답변 로그 fetch 실패:', error);
       }
     };
     fetchQuestionLogs();

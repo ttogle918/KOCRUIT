@@ -20,6 +20,8 @@ from app.models.weight import Weight
 from app.utils.llm_cache import redis_cache
 from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
+from app.utils.enum_converter import get_safe_interview_status
+from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
 
 router = APIRouter()
 
@@ -679,7 +681,7 @@ def get_applicants_by_job(
             "application_id": app.id,
             "status": app.status,
             "document_status": app.document_status,  # 서류 상태 추가
-            "interview_status": app.interview_status,  # 면접 상태 추가
+            "interview_status": get_safe_interview_status(app.interview_status),  # 면접 상태 추가 (안전 변환)
             "applied_at": app.applied_at,
             "score": app.score,
             "ai_score": app.ai_score,  # AI 점수 추가
@@ -757,14 +759,22 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
             if si:
                 schedule_date = si.schedule_date
         user = db.query(User).filter(User.id == app.user_id).first()
+        
+        # AI 면접 평가 점수 조회
+        ai_evaluation = db.query(InterviewEvaluation).filter(
+            InterviewEvaluation.interview_id == app.id,
+            InterviewEvaluation.evaluation_type == EvaluationType.AI
+        ).first()
+        
         result.append({
             "applicant_id": app.user_id,
             "name": user.name if user else "",
             "schedule_interview_id": schedule_interview_id,
             "schedule_date": schedule_date,
-            "interview_status": app.interview_status,  # AI 면접 상태 추가
+            "interview_status": get_safe_interview_status(app.interview_status),  # AI 면접 상태 추가 (안전 변환)
             "document_status": app.document_status,  # 서류 상태 추가
             "status": app.status,  # 전체 상태 추가
+            "ai_interview_score": ai_evaluation.total_score if ai_evaluation else None,  # AI 면접 점수 추가
         })
     return result
 

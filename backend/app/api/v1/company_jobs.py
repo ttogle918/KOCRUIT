@@ -647,7 +647,7 @@ def update_company_job_post(
                     schedule_id=interview_schedule.id,
                     user_id=current_user.id,
                     schedule_date=scheduled_at,
-                    status=InterviewStatus.SCHEDULED
+                    status=InterviewStatus.AI_INTERVIEW_SCHEDULED
                 )
                 db.add(schedule_interview)
                 db.flush()

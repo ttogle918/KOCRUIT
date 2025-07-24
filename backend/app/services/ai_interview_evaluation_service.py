@@ -2,6 +2,7 @@ import json
 import os
 from app.models.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationStatus, EvaluationType
 from app.models.schedule import Schedule, ScheduleInterview, InterviewScheduleStatus
+from app.models.application import InterviewStatus
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -167,16 +168,16 @@ def get_grade_and_reason_stress(stress_signal_score):
         return "하", "스트레스 신호가 많음"
 
 def load_ai_interview_data(json_path: str = None):
-    """AI 면접 평가 데이터 로드"""
+    """AI 면접 평가 데이터 로드 (확장된 버전 사용)"""
     if json_path is None:
         # Docker 컨테이너 내부 경로 설정
-        # /app 디렉토리에서 backend/data/ai_interview_applicant_evaluation.json 찾기
+        # /app 디렉토리에서 backend/data/ai_interview_applicant_evaluation_extended.json 찾기
         possible_paths = [
-            '/app/data/ai_interview_applicant_evaluation.json',  # Docker 컨테이너 내부
-            '/app/backend/data/ai_interview_applicant_evaluation.json',  # 백엔드 디렉토리 내부
-            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'ai_interview_applicant_evaluation.json'),  # 상대 경로
-            'data/ai_interview_applicant_evaluation.json',  # 현재 디렉토리 기준
-            '../data/ai_interview_applicant_evaluation.json',  # 상위 디렉토리
+            '/app/data/ai_interview_applicant_evaluation_extended.json',  # Docker 컨테이너 내부
+            '/app/backend/data/ai_interview_applicant_evaluation_extended.json',  # 백엔드 디렉토리 내부
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'ai_interview_applicant_evaluation_extended.json'),  # 상대 경로
+            'data/ai_interview_applicant_evaluation_extended.json',  # 현재 디렉토리 기준
+            '../data/ai_interview_applicant_evaluation_extended.json',  # 상위 디렉토리
         ]
         
         for path in possible_paths:
@@ -462,11 +463,15 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
     num_medium = sum(1 for i in items if i['grade'] == "중")
     num_low = sum(1 for i in items if i['grade'] == "하")
     
-    # 7. 합격 여부 판정 (확장된 기준)
-    # 하 등급이 전체의 15% 미만이면 통과 (24개 항목 기준으로 약 3.6개, 즉 3개 미만)
+    # 7. 합격 여부 판정 (현실적인 기준)
+    # 하 등급이 전체의 20% 미만이면 통과 (24개 항목 기준으로 약 4.8개, 즉 4개 미만)
+    # 상 등급이 전체의 30% 이상이어야 함 (24개 항목 기준으로 7개 이상)
     total_items = len(items)
-    low_threshold = max(2, int(total_items * 0.15))  # 최소 2개, 최대 15%
-    passed = num_low < low_threshold
+    low_threshold = max(3, int(total_items * 0.20))  # 최소 3개, 최대 20%
+    high_threshold = int(total_items * 0.30)  # 30% 이상
+    
+    # 두 조건 모두 만족해야 합격
+    passed = (num_low < low_threshold) and (num_high >= high_threshold)
     
     # 8. 총점 계산 (상: 2점, 중: 1점, 하: 0점)
     total_score = num_high * 2 + num_medium * 1 + num_low * 0
@@ -514,14 +519,20 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
         )
         db.add(evaluation_item)
     
-    # 12. 지원자의 AI 점수 업데이트
+    # 12. 지원자의 AI 점수 및 상태 업데이트
     if application:
         # AI 평가 점수를 지원서에 반영
         application.ai_interview_score = total_score
+        # AI 면접 완료 상태로 업데이트
+        application.interview_status = InterviewStatus.AI_INTERVIEW_COMPLETED.value
         if passed:
             application.ai_interview_pass_reason = "AI 면접 통과"
+            # 합격 시 합격 상태로 업데이트
+            application.interview_status = InterviewStatus.AI_INTERVIEW_PASSED.value
         else:
             application.ai_interview_fail_reason = "AI 면접 불합격"
+            # 불합격 시 불합격 상태로 업데이트
+            application.interview_status = InterviewStatus.AI_INTERVIEW_FAILED.value
     
     db.commit()
     
@@ -536,6 +547,7 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
     print(f"   - 총점: {total_score}점")
     print(f"   - 상 등급: {num_high}개, 중 등급: {num_medium}개, 하 등급: {num_low}개")
     print(f"   - 합격 여부: {'통과' if passed else '불합격'}")
-    print(f"   - 판정 기준: 하 등급이 {low_threshold}개 미만이면 통과 (전체 {total_items}개 중 15% 미만)")
+    print(f"   - 판정 기준: 하 등급 {num_low}개 < {low_threshold}개 AND 상 등급 {num_high}개 >= {high_threshold}개")
+    print(f"   - 합격 조건: 하 등급 20% 미만({low_threshold}개) AND 상 등급 30% 이상({high_threshold}개)")
     
     return evaluation.id 
