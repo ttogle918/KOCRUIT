@@ -69,8 +69,8 @@ function AiInterviewSystem() {
   const [gameScore, setGameScore] = useState(0);
   
   // WebSocket 연결
-  const [wsConnection, setWsConnection] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  // const [wsConnection, setWsConnection] = useState(null);
+  // const [connectionStatus, setConnectionStatus] = useState('disconnected');
   
   // 오디오/비디오 스트림
   const [mediaStream, setMediaStream] = useState(null);
@@ -264,72 +264,72 @@ function AiInterviewSystem() {
   }, [applicantId]);
 
   // WebSocket 연결 설정
-  useEffect(() => {
-    if (interviewState === 'active' && !wsConnection) {
-      const ws = new WebSocket(`ws://localhost:8000/ws/ai-interview/${jobPostId}/${applicantId}`);
+  // useEffect(() => {
+  //   if (interviewState === 'active' && !wsConnection) {
+  //     const ws = new WebSocket(`ws://localhost:8000/ws/ai-interview/${jobPostId}/${applicantId}`);
       
-      ws.onopen = () => {
-        setConnectionStatus('connected');
-        console.log('AI 면접 WebSocket 연결됨');
-      };
+  //     ws.onopen = () => {
+  //       setConnectionStatus('connected');
+  //       console.log('AI 면접 WebSocket 연결됨');
+  //     };
       
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleWebSocketMessage(data);
-      };
+  //     ws.onmessage = (event) => {
+  //       const data = JSON.parse(event.data);
+  //       handleWebSocketMessage(data);
+  //     };
       
-      ws.onclose = () => {
-        setConnectionStatus('disconnected');
-        console.log('AI 면접 WebSocket 연결 해제됨');
-      };
+  //     ws.onclose = () => {
+  //       setConnectionStatus('disconnected');
+  //       console.log('AI 면접 WebSocket 연결 해제됨');
+  //     };
       
-      ws.onerror = (error) => {
-        setConnectionStatus('error');
-        console.error('WebSocket 오류:', error);
-      };
+  //     ws.onerror = (error) => {
+  //       setConnectionStatus('error');
+  //       console.error('WebSocket 오류:', error);
+  //     };
       
-      setWsConnection(ws);
+  //     setWsConnection(ws);
       
-      return () => {
-        ws.close();
-      };
-    }
-  }, [interviewState, jobPostId, applicantId]);
+  //     return () => {
+  //       ws.close();
+  //     };
+  //   }
+  // }, [interviewState, jobPostId, applicantId]);
 
   // WebSocket 메시지 처리
-  const handleWebSocketMessage = (data) => {
-    switch (data.type) {
-      case 'evaluation_update':
-        setEvaluationMetrics(prev => ({
-          ...prev,
-          [data.metric]: {
-            ...prev[data.metric],
-            score: data.score,
-            details: { ...prev[data.metric].details, ...data.details }
-          }
-        }));
-        break;
+  // const handleWebSocketMessage = (data) => {
+  //   switch (data.type) {
+  //     case 'evaluation_update':
+  //       setEvaluationMetrics(prev => ({
+  //         ...prev,
+  //         [data.metric]: {
+  //           ...prev[data.metric],
+  //           score: data.score,
+  //           details: { ...prev[data.metric].details, ...data.details }
+  //         }
+  //       }));
+  //       break;
       
-      case 'question_timer':
-        setQuestionTimer(data.time);
-        break;
+  //     case 'question_timer':
+  //       setQuestionTimer(data.time);
+  //       break;
       
-      case 'game_test_start':
-        setGameTest(data.game);
-        break;
+  //     case 'game_test_start':
+  //       setGameTest(data.game);
+  //       break;
       
-      case 'game_score_update':
-        setGameScore(data.score);
-        break;
+  //     case 'game_score_update':
+  //       setGameScore(data.score);
+  //       break;
       
-      case 'interview_complete':
-        setInterviewState('completed');
-        break;
+  //     case 'interview_complete':
+  //       setInterviewState('completed');
+  //       break;
       
-      default:
-        console.log('알 수 없는 메시지 타입:', data.type);
-    }
-  };
+  //     default:
+  //       console.log('알 수 없는 메시지 타입:', data.type);
+  //   }
+  // };
 
   // 미디어 스트림 설정
   const setupMediaStream = async () => {
@@ -362,13 +362,13 @@ function AiInterviewSystem() {
       setCurrentStep(2); // 시나리오 질문 단계로 이동
       
       // WebSocket으로 면접 시작 신호 전송
-      if (wsConnection) {
-        wsConnection.send(JSON.stringify({
-          type: 'interview_start',
-          job_post_id: jobPostId,
-          applicant_id: applicantId
-        }));
-      }
+      // if (wsConnection) {
+      //   wsConnection.send(JSON.stringify({
+      //     type: 'interview_start',
+      //     job_post_id: jobPostId,
+      //     applicant_id: applicantId
+      //   }));
+      // }
     } catch (error) {
       console.error('면접 시작 실패:', error);
     }
@@ -408,13 +408,13 @@ function AiInterviewSystem() {
 
   // 게임 테스트 시작
   const startGameTest = () => {
-    if (wsConnection) {
-      wsConnection.send(JSON.stringify({
-        type: 'start_game_test',
-        job_post_id: jobPostId,
-        applicant_id: applicantId
-      }));
-    }
+    // if (wsConnection) {
+    //   wsConnection.send(JSON.stringify({
+    //     type: 'start_game_test',
+    //     job_post_id: jobPostId,
+    //     applicant_id: applicantId
+    //   }));
+    // }
   };
 
   // 면접 완료
@@ -422,13 +422,13 @@ function AiInterviewSystem() {
     setInterviewState('completed');
     setCurrentStep(5);
     
-    if (wsConnection) {
-      wsConnection.send(JSON.stringify({
-        type: 'interview_complete',
-        job_post_id: jobPostId,
-        applicant_id: applicantId
-      }));
-    }
+    // if (wsConnection) {
+    //   wsConnection.send(JSON.stringify({
+    //     type: 'interview_complete',
+    //     job_post_id: jobPostId,
+    //     applicant_id: applicantId
+    //   }));
+    // }
   };
 
   // 총점 계산

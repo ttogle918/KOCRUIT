@@ -38,6 +38,7 @@ class JobPost(Base):
     interview_schedules = relationship("Schedule", back_populates="job_post", cascade="all, delete-orphan")
     jobpost_roles = relationship("JobPostRole", back_populates="jobpost", cascade="all, delete-orphan")
     written_test_questions = relationship("WrittenTestQuestion", back_populates="job_post")
+    evaluation_criteria = relationship("EvaluationCriteria", back_populates="job_post", cascade="all, delete-orphan")
 
 
 class JobPostRole(Base):

@@ -74,7 +74,8 @@ const InterviewPanel = ({
   
   // 실시간 오디오 관련
   const mediaRecorderRef = useRef(null);
-  const websocketRef = useRef(null);
+  // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
+  // const websocketRef = useRef(null);
   const audioChunksRef = useRef([]);
   const streamRef = useRef(null);
   const audioRef = useRef(null);
@@ -100,119 +101,123 @@ const InterviewPanel = ({
   ];
 
   // WebSocket 연결
-  const connectWebSocket = useCallback(() => {
-    if (!sessionId) {
-      console.log('세션 ID가 없습니다');
-      return;
-    }
+  // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
+  // const connectWebSocket = useCallback(() => {
+  //   if (!sessionId) {
+  //     console.log('세션 ID가 없습니다');
+  //     return;
+  //   }
 
-    if (websocketRef.current?.readyState === WebSocket.OPEN) {
-      console.log('이미 WebSocket이 연결되어 있습니다');
-      return;
-    }
+  //   if (websocketRef.current?.readyState === WebSocket.OPEN) {
+  //     console.log('이미 WebSocket이 연결되어 있습니다');
+  //     return;
+  //   }
 
-    const wsUrl = `ws://localhost:8000/api/v1/realtime-interview/ws/interview/${sessionId}`;
-    console.log('WebSocket 연결 시도:', wsUrl);
+  //   const wsUrl = `ws://localhost:8000/api/v1/realtime-interview/ws/interview/${sessionId}`;
+  //   console.log('WebSocket 연결 시도:', wsUrl);
     
-    try {
-      websocketRef.current = new WebSocket(wsUrl);
+  //   try {
+  //     websocketRef.current = new WebSocket(wsUrl);
       
-      const connectionTimeout = setTimeout(() => {
-        if (websocketRef.current?.readyState === WebSocket.CONNECTING) {
-          console.error('WebSocket 연결 타임아웃');
-          websocketRef.current.close();
-          setIsConnected(false);
-        }
-      }, 10000);
+  //     const connectionTimeout = setTimeout(() => {
+  //       if (websocketRef.current?.readyState === WebSocket.CONNECTING) {
+  //         console.error('WebSocket 연결 타임아웃');
+  //         websocketRef.current.close();
+  //         setIsConnected(false);
+  //       }
+  //     }, 10000);
       
-      websocketRef.current.onopen = () => {
-        clearTimeout(connectionTimeout);
-        console.log('WebSocket 연결됨');
-        setIsConnected(true);
-      };
+  //     websocketRef.current.onopen = () => {
+  //       clearTimeout(connectionTimeout);
+  //       console.log('WebSocket 연결됨');
+  //       setIsConnected(true);
+  //     };
       
-      websocketRef.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('WebSocket 메시지 수신:', data.type);
-          handleWebSocketMessage(data);
-        } catch (error) {
-          console.error('메시지 파싱 오류:', error);
-        }
-      };
+  //     websocketRef.current.onmessage = (event) => {
+  //       try {
+  //         const data = JSON.parse(event.data);
+  //         console.log('WebSocket 메시지 수신:', data.type);
+  //         handleWebSocketMessage(data);
+  //       } catch (error) {
+  //         console.error('메시지 파싱 오류:', error);
+  //       }
+  //     };
       
-      websocketRef.current.onclose = (event) => {
-        clearTimeout(connectionTimeout);
-        console.log('WebSocket 연결 해제:', event.code, event.reason);
-        setIsConnected(false);
+  //     websocketRef.current.onclose = (event) => {
+  //       clearTimeout(connectionTimeout);
+  //       console.log('WebSocket 연결 해제:', event.code, event.reason);
+  //       setIsConnected(false);
         
-        if (event.code !== 1000) {
-          setTimeout(() => {
-            if (!isConnected) {
-              connectWebSocket();
-            }
-          }, 3000);
-        }
-      };
+  //       if (event.code !== 1000) {
+  //         setTimeout(() => {
+  //           if (!isConnected) {
+  //             connectWebSocket();
+  //           }
+  //         }, 3000);
+  //       }
+  //     };
       
-      websocketRef.current.onerror = (error) => {
-        clearTimeout(connectionTimeout);
-        console.error('WebSocket 오류:', error);
-        setIsConnected(false);
-      };
-    } catch (error) {
-      console.error('WebSocket 생성 오류:', error);
-      setIsConnected(false);
-    }
-  }, [sessionId, isConnected]);
+  //     websocketRef.current.onerror = (error) => {
+  //       clearTimeout(connectionTimeout);
+  //       console.error('WebSocket 오류:', error);
+  //       setIsConnected(false);
+  //     };
+  //   } catch (error) {
+  //     console.error('WebSocket 생성 오류:', error);
+  //     setIsConnected(false);
+  //   }
+  // }, [sessionId, isConnected]);
 
   // WebSocket 메시지 처리
-  const handleWebSocketMessage = (data) => {
-    switch (data.type) {
-      case 'audio_processed':
-        handleAudioProcessed(data.result);
-        break;
-      case 'note_saved':
-        console.log('메모가 저장되었습니다');
-        break;
-      case 'evaluation_summary':
-        setSessionSummary(data.summary);
-        break;
-      case 'session_ended':
-        handleSessionEnded(data.final_result);
-        break;
-      case 'ping':
-        console.log('서버 ping 수신:', data.timestamp);
-        break;
-      default:
-        console.log('알 수 없는 메시지 타입:', data.type);
-    }
-  };
+  // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
+  // const handleWebSocketMessage = (data) => {
+  //   switch (data.type) {
+  //     case 'audio_processed':
+  //       handleAudioProcessed(data.result);
+  //       break;
+  //     case 'note_saved':
+  //       console.log('메모가 저장되었습니다');
+  //       break;
+  //     case 'evaluation_summary':
+  //       setSessionSummary(data.summary);
+  //       break;
+  //     case 'session_ended':
+  //       handleSessionEnded(data.final_result);
+  //       break;
+  //     case 'ping':
+  //       console.log('서버 ping 수신:', data.timestamp);
+  //       break;
+  //     default:
+  //       console.log('알 수 없는 메시지 타입:', data.type);
+  //   }
+  // };
 
   // 오디오 처리 결과 처리
-  const handleAudioProcessed = (result) => {
-    if (result.transcription?.text) {
-      setTranscripts(prev => [...prev, {
-        timestamp: result.timestamp,
-        speaker: result.diarization?.current_speaker || 'unknown',
-        text: result.transcription.text
-      }]);
-    }
+  // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
+  // const handleAudioProcessed = (result) => {
+  //   if (result.transcription?.text) {
+  //     setTranscripts(prev => [...prev, {
+  //       timestamp: result.timestamp,
+  //       speaker: result.diarization?.current_speaker || 'unknown',
+  //       text: result.transcription.text
+  //     }]);
+  //   }
     
-    if (result.evaluation?.score > 0) {
-      setEvaluations(prev => [...prev, result.evaluation]);
-    }
+  //   if (result.evaluation?.score > 0) {
+  //     setEvaluations(prev => [...prev, result.evaluation]);
+  //   }
     
-    if (result.diarization?.current_speaker) {
-      setCurrentSpeaker(result.diarization.current_speaker);
-    }
-  };
+  //   if (result.diarization?.current_speaker) {
+  //     setCurrentSpeaker(result.diarization.current_speaker);
+  //   }
+  // };
 
   // 세션 종료 처리
-  const handleSessionEnded = (finalResult) => {
-    console.log('면접이 종료되었습니다');
-    setSessionSummary(finalResult);
-  };
+  // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
+  // const handleSessionEnded = (finalResult) => {
+  //   console.log('면접이 종료되었습니다');
+  //   setSessionSummary(finalResult);
+  // };
 
   // 오디오 녹음 시작
   const startRecording = async () => {
@@ -350,25 +355,27 @@ const InterviewPanel = ({
   }, [jobId, applicantId]);
 
   // WebSocket 연결
-  useEffect(() => {
-    if (sessionId) {
-      connectWebSocket();
-    }
+  // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
+  // useEffect(() => {
+  //   if (sessionId) {
+  //     connectWebSocket();
+  //   }
     
-    return () => {
-      if (websocketRef.current) {
-        websocketRef.current.close();
-      }
-    };
-  }, [sessionId, connectWebSocket]);
+  //   return () => {
+  //     if (websocketRef.current) {
+  //       websocketRef.current.close();
+  //     }
+  //   };
+  // }, [sessionId, connectWebSocket]);
 
   // 컴포넌트 언마운트 시 정리
   useEffect(() => {
     return () => {
       stopRecording();
-      if (websocketRef.current) {
-        websocketRef.current.close();
-      }
+      // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
+      // if (websocketRef.current) {
+      //   websocketRef.current.close();
+      // }
       // 오디오 URL 정리
       recordedFiles.forEach(file => {
         URL.revokeObjectURL(file.url);

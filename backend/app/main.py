@@ -9,8 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.core.database import engine
-from app.models import Base
+from app.core.database import engine, Base
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
 except ImportError:
@@ -46,9 +45,33 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting application...")
     
-    # 데이터베이스 테이블 생성
-    Base.metadata.create_all(bind=engine)
-    print("데이터베이스 테이블 생성 완료")
+    # 데이터베이스 연결 확인 및 테이블 생성 (재시도 로직 포함)
+    max_retries = 3
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"데이터베이스 연결 시도 {attempt + 1}/{max_retries}...")
+            
+            # 연결 테스트 - 단순화
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+                print("데이터베이스 연결 성공!")
+            
+            # 테이블 생성
+            Base.metadata.create_all(bind=engine)
+            print("데이터베이스 테이블 생성 완료")
+            break
+            
+        except Exception as e:
+            print(f"데이터베이스 연결 실패 (시도 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                print(f"{retry_delay}초 후 재시도...")
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2  # 지수 백오프
+            else:
+                print("최대 재시도 횟수 초과. 애플리케이션을 종료합니다.")
+                raise e
     
     # JobPost 상태 스케줄러 시작
     print("🔄 Starting JobPost status scheduler...")

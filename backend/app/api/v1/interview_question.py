@@ -1958,3 +1958,94 @@ async def evaluate_audio(
         # 임시 파일 삭제
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+# --- 공고 기반 평가 기준 ---
+@router.post("/evaluation-criteria/job-based", response_model=JobBasedCriteriaResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
+async def suggest_job_based_evaluation_criteria(request: JobBasedCriteriaRequest, db: Session = Depends(get_db)):
+    """공고 기반 평가항목 생성 및 DB 저장"""
+    try:
+        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        
+        job_info = parse_job_post_data(job_post)
+        
+        # LangGraph를 통한 평가항목 생성
+        from agent.agents.interview_question_node import suggest_evaluation_criteria
+        criteria_result = suggest_evaluation_criteria(
+            resume_text="",
+            job_info=job_info,
+            company_name=request.company_name or ""
+        )
+        
+        # DB에 저장
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
+        from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
+        
+        criteria_service = EvaluationCriteriaService(db)
+        
+        # 기존 데이터가 있으면 업데이트, 없으면 새로 생성
+        existing_criteria = criteria_service.get_evaluation_criteria_by_job_post(request.job_post_id)
+        
+        criteria_data = EvaluationCriteriaCreate(
+            job_post_id=request.job_post_id,
+            company_name=request.company_name,
+            suggested_criteria=criteria_result.get("suggested_criteria", []),
+            weight_recommendations=criteria_result.get("weight_recommendations", []),
+            evaluation_questions=criteria_result.get("evaluation_questions", []),
+            scoring_guidelines=criteria_result.get("scoring_guidelines", {})
+        )
+        
+        if existing_criteria:
+            # 기존 데이터 업데이트
+            criteria_service.update_evaluation_criteria(request.job_post_id, criteria_data)
+        else:
+            # 새로 생성
+            criteria_service.create_evaluation_criteria(criteria_data)
+        
+        return criteria_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/evaluation-criteria/job/{job_post_id}", response_model=JobBasedCriteriaResponse)
+@redis_cache(expire=300)  # 5분 캐시 (DB 조회)
+async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
+    """공고별 저장된 평가항목 조회"""
+    try:
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
+        
+        criteria_service = EvaluationCriteriaService(db)
+        criteria = criteria_service.get_evaluation_criteria_by_job_post(job_post_id)
+        
+        if not criteria:
+            raise HTTPException(status_code=404, detail="Evaluation criteria not found for this job post")
+        
+        return JobBasedCriteriaResponse(
+            suggested_criteria=criteria.suggested_criteria,
+            weight_recommendations=criteria.weight_recommendations,
+            evaluation_questions=criteria.evaluation_questions,
+            scoring_guidelines=criteria.scoring_guidelines
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/evaluation-criteria/job/{job_post_id}")
+async def delete_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
+    """공고별 평가항목 삭제"""
+    try:
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
+        
+        criteria_service = EvaluationCriteriaService(db)
+        success = criteria_service.delete_evaluation_criteria(job_post_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Evaluation criteria not found for this job post")
+        
+        return {"message": "Evaluation criteria deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

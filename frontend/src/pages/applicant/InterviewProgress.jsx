@@ -105,6 +105,11 @@ function InterviewProgress() {
   const [commonQuestionsError, setCommonQuestionsError] = useState(null);
   const [preloadingStatus, setPreloadingStatus] = useState('idle'); // 'idle', 'loading', 'completed'
 
+  // 공고 기반 평가항목 상태 추가
+  const [jobBasedEvaluationCriteria, setJobBasedEvaluationCriteria] = useState(null);
+  const [evaluationScores, setEvaluationScores] = useState({}); // 평가 점수 상태
+  const [evaluationTotalScore, setEvaluationTotalScore] = useState(0); // 총점 상태
+
   // 새로운 UI 시스템 상태
   const [activePanel, setActivePanel] = useState('common-questions'); // 기본값으로 설정
   
@@ -252,6 +257,11 @@ function InterviewProgress() {
       try {
         const res = await api.get(`/company/jobposts/${jobPostId}`);
         setJobPost(res.data);
+        
+        // 공고 정보 로드 후 공고 기반 평가항목도 함께 조회
+        if (res.data && isFirstInterview) {
+          await fetchJobBasedEvaluationCriteria(jobPostId);
+        }
       } catch (err) {
         setJobPost(null);
       } finally {
@@ -442,6 +452,34 @@ function InterviewProgress() {
     setEvaluation(prev => ({ ...prev, [item]: level }));
   };
 
+  // 공고 기반 평가항목 점수 변경 핸들러 추가
+  const handleEvaluationScoreChange = (criterionKey, score) => {
+    setEvaluationScores(prev => {
+      const newScores = { ...prev, [criterionKey]: score };
+      
+      // 총점 계산
+      const scores = Object.values(newScores).filter(s => typeof s === 'number');
+      const total = scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+      setEvaluationTotalScore(Math.round(total * 10) / 10);
+      
+      return newScores;
+    });
+  };
+
+  // 평가항목 초기화 함수
+  const initializeEvaluationScores = (criteria) => {
+    if (!criteria?.suggested_criteria) return;
+    
+    const initialScores = {};
+    criteria.suggested_criteria.forEach((criterion, index) => {
+      const key = `criterion_${index}`;
+      initialScores[key] = 0;
+    });
+    
+    setEvaluationScores(initialScores);
+    setEvaluationTotalScore(0);
+  };
+
   // 평가 저장 핸들러 (자동 저장용, 중복 방지)
   const handleSaveEvaluation = async (auto = false) => {
     if (auto && !autoSaveEnabled) return; // 오토세이브 OFF면 무시
@@ -470,6 +508,28 @@ function InterviewProgress() {
       });
     });
     
+    // 공고 기반 평가항목 점수 추가
+    if (jobBasedEvaluationCriteria?.suggested_criteria) {
+      jobBasedEvaluationCriteria.suggested_criteria.forEach((criterion, index) => {
+        const criterionKey = `criterion_${index}`;
+        const score = evaluationScores[criterionKey];
+        
+        if (score && typeof score === 'number') {
+          // 점수에 따른 등급 계산
+          let grade = 'C';
+          if (score >= 4) grade = 'A';
+          else if (score >= 3) grade = 'B';
+          
+          evaluationItems.push({
+            evaluate_type: criterion.criterion,
+            evaluate_score: score,
+            grade: grade,
+            comment: criterion.description
+          });
+        }
+      });
+    }
+    
     // 기존 details 배열 (호환성)
     const details = [];
     Object.entries(evaluation).forEach(([category, items]) => {
@@ -483,6 +543,11 @@ function InterviewProgress() {
     // 평균점수 계산
     const allScores = evaluationItems.map(d => d.evaluate_score).filter(s => typeof s === 'number');
     const avgScore = allScores.length > 0 ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(2) : null;
+    
+    // 공고 기반 평가항목 총점도 고려
+    const finalScore = evaluationTotalScore > 0 ? 
+      ((parseFloat(avgScore || 0) + evaluationTotalScore) / 2).toFixed(2) : 
+      avgScore;
     
     // 변경사항이 없으면 저장하지 않음
     const current = JSON.stringify({ evaluation, memo });
@@ -540,7 +605,7 @@ function InterviewProgress() {
       interview_id: interviewId,
       evaluator_id: user.id,
       is_ai: false, // 수동 평가
-      total_score: avgScore,  // score -> total_score로 변경
+      total_score: finalScore,  // score -> total_score로 변경
       summary: memo,
       status: 'SUBMITTED', // 평가 완료 상태
       details,  // 기존 호환성
@@ -667,6 +732,10 @@ function InterviewProgress() {
               selectedApplicant={selectedApplicant}
               onEvaluationSubmit={handleEvaluationSubmit}
               isConnected={true}
+              jobBasedEvaluationCriteria={jobBasedEvaluationCriteria}
+              evaluationScores={evaluationScores}
+              onEvaluationScoreChange={handleEvaluationScoreChange}
+              evaluationTotalScore={evaluationTotalScore}
             />
           );
         case 'ai':
@@ -852,7 +921,7 @@ function InterviewProgress() {
     return () => {
       if (saveTimer.current) clearInterval(saveTimer.current);
     };
-  }, [evaluation, memo, selectedApplicant, user, autoSaveEnabled]);
+  }, [evaluation, memo, selectedApplicant, user, autoSaveEnabled, evaluationScores]); // evaluationScores 추가
 
   // 면접 시간별 지원자 그룹화
   const groupedApplicants = applicants.reduce((groups, applicant) => {
@@ -950,6 +1019,48 @@ function InterviewProgress() {
       fetchCommonQuestions();
     }
   }, [resume, jobPostId, jobPost?.company?.name]);
+
+  // 공고 기반 평가항목 조회 함수 추가
+  const fetchJobBasedEvaluationCriteria = async (jobPostId) => {
+    if (!jobPostId) return;
+    
+    try {
+      console.log(`🔍 공고 기반 평가항목 조회: jobPostId=${jobPostId}`);
+      
+      // 먼저 DB에서 기존 평가항목 조회
+      const response = await api.get(`/interview-questions/evaluation-criteria/job/${jobPostId}`);
+      
+      if (response.data) {
+        setJobBasedEvaluationCriteria(response.data);
+        initializeEvaluationScores(response.data); // 평가 점수 초기화
+        console.log('✅ DB에서 공고 기반 평가항목 로드 완료:', response.data);
+        return response.data;
+      }
+    } catch (error) {
+      if (error.response?.status === 404) {
+        console.log('📝 DB에 평가항목이 없습니다. 새로 생성합니다.');
+        
+        // DB에 없으면 새로 생성
+        try {
+          const createResponse = await api.post('/interview-questions/evaluation-criteria/job-based', {
+            job_post_id: jobPostId,
+            company_name: jobPost?.company?.name || '회사'
+          });
+          
+          setJobBasedEvaluationCriteria(createResponse.data);
+          initializeEvaluationScores(createResponse.data); // 평가 점수 초기화
+          console.log('✅ 공고 기반 평가항목 생성 및 저장 완료:', createResponse.data);
+          return createResponse.data;
+        } catch (createError) {
+          console.error('❌ 평가항목 생성 실패:', createError);
+          return null;
+        }
+      } else {
+        console.error('❌ 평가항목 조회 실패:', error);
+        return null;
+      }
+    }
+  };
 
   if (loading || jobPostLoading) {
     return (
@@ -1293,6 +1404,10 @@ function InterviewProgress() {
                       selectedApplicant={selectedApplicant}
                       onEvaluationSubmit={handleEvaluationSubmit}
                       isConnected={true}
+                      jobBasedEvaluationCriteria={jobBasedEvaluationCriteria}
+                      evaluationScores={evaluationScores}
+                      onEvaluationScoreChange={handleEvaluationScoreChange}
+                      evaluationTotalScore={evaluationTotalScore}
                     />
                   )
                 },
@@ -1421,6 +1536,10 @@ function InterviewProgress() {
                     selectedApplicant={selectedApplicant}
                     onEvaluationSubmit={handleEvaluationSubmit}
                     isConnected={true}
+                    jobBasedEvaluationCriteria={jobBasedEvaluationCriteria}
+                    evaluationScores={evaluationScores}
+                    onEvaluationScoreChange={handleEvaluationScoreChange}
+                    evaluationTotalScore={evaluationTotalScore}
                   />
                 </div>
                 <div className="h-1/2">
