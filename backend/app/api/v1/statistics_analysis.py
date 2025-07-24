@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Dict, Any
 from pydantic import BaseModel
 import json
@@ -53,13 +53,17 @@ def analyze_with_llm(chart_data: List[Dict[str, Any]], chart_type: str, job_post
         'certificate': '자격증 보유 현황'
     }
     
+    # 회사명과 직무 설명 안전하게 추출
+    company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
+    job_description = job_post.job_details or job_post.qualifications or "직무 설명 없음"
+    
     prompt = f"""
     다음은 채용공고의 {chart_type_labels.get(chart_type, chart_type)} 통계 데이터입니다.
 
     채용공고 정보:
     - 제목: {job_post.title}
-    - 회사: {job_post.company_name}
-    - 직무: {job_post.job_description[:200]}...
+    - 회사: {company_name}
+    - 직무: {job_description[:200]}...
 
     통계 데이터:
     {json.dumps(chart_data, ensure_ascii=False, indent=2)}
@@ -161,8 +165,11 @@ def analyze_trend_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> D
     # 평균 지원자 수
     avg_applicants = total_applicants / len(chart_data) if chart_data else 0
     
+    # 회사명 안전하게 추출
+    company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
+    
     analysis = f"""
-    📊 **지원 시기별 추이 분석**
+    📊 **지원 시기별 추이 분석** - {company_name}
     
     **전체 지원자 수**: {total_applicants}명
     **평균 일일 지원자 수**: {avg_applicants:.1f}명
@@ -209,8 +216,11 @@ def analyze_age_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dic
     total_applicants = sum(item.get('count', 0) for item in chart_data)
     dominant_age = max(chart_data, key=lambda x: x.get('count', 0))
     
+    # 회사명 안전하게 추출
+    company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
+    
     analysis = f"""
-    👥 **연령대별 지원자 분석**
+    👥 **연령대별 지원자 분석** - {company_name}
     
     **전체 지원자 수**: {total_applicants}명
     **주요 연령대**: {dominant_age.get('name', '')} ({dominant_age.get('count', 0)}명, {dominant_age.get('count', 0)/total_applicants*100:.1f}%)
@@ -258,8 +268,11 @@ def analyze_gender_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> 
     male_ratio = male_count / total_applicants * 100 if total_applicants > 0 else 0
     female_ratio = female_count / total_applicants * 100 if total_applicants > 0 else 0
     
+    # 회사명 안전하게 추출
+    company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
+    
     analysis = f"""
-    👫 **성별 지원자 분석**
+    👫 **성별 지원자 분석** - {company_name}
     
     **전체 지원자 수**: {total_applicants}명
     **남성**: {male_count}명 ({male_ratio:.1f}%)
@@ -305,8 +318,11 @@ def analyze_education_data(chart_data: List[Dict[str, Any]], job_post: JobPost) 
                         if item.get('name') in ['석사', '박사'])
     high_education_ratio = high_education / total_applicants * 100 if total_applicants > 0 else 0
     
+    # 회사명 안전하게 추출
+    company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
+    
     analysis = f"""
-    🎓 **학력별 지원자 분석**
+    🎓 **학력별 지원자 분석** - {company_name}
     
     **전체 지원자 수**: {total_applicants}명
     **주요 학력**: {dominant_education.get('name', '')} ({dominant_education.get('value', 0)}명, {dominant_education.get('value', 0)/total_applicants*100:.1f}%)
@@ -355,8 +371,11 @@ def analyze_province_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -
                       if item.get('name') in ['서울특별시', '경기도', '인천광역시'])
     capital_ratio = capital_area / total_applicants * 100 if total_applicants > 0 else 0
     
+    # 회사명 안전하게 추출
+    company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
+    
     analysis = f"""
-    🗺️ **지역별 지원자 분석**
+    🗺️ **지역별 지원자 분석** - {company_name}
     
     **전체 지원자 수**: {total_applicants}명
     **주요 지역**: {dominant_province.get('name', '')} ({dominant_province.get('value', 0)}명, {dominant_province.get('value', 0)/total_applicants*100:.1f}%)
@@ -402,8 +421,11 @@ def analyze_certificate_data(chart_data: List[Dict[str, Any]], job_post: JobPost
     with_cert = total_applicants - no_cert
     cert_ratio = with_cert / total_applicants * 100 if total_applicants > 0 else 0
     
+    # 회사명 안전하게 추출
+    company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
+    
     analysis = f"""
-    📜 **자격증 보유 현황 분석**
+    📜 **자격증 보유 현황 분석** - {company_name}
     
     **전체 지원자 수**: {total_applicants}명
     **자격증 보유자**: {with_cert}명 ({cert_ratio:.1f}%)
@@ -440,8 +462,11 @@ def analyze_certificate_data(chart_data: List[Dict[str, Any]], job_post: JobPost
 async def analyze_statistics(request: StatisticsAnalysisRequest, db: Session = Depends(get_db)):
     """통계 데이터에 대한 AI 분석 제공"""
     try:
-        # 채용공고 정보 조회
-        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
+        # 채용공고 정보 조회 (company 관계 포함)
+        job_post = db.query(JobPost).options(
+            joinedload(JobPost.company)
+        ).filter(JobPost.id == request.job_post_id).first()
+        
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
         

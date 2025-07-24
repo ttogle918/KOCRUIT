@@ -93,11 +93,7 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
               AI 분석 결과 - {getChartTypeLabel(chartType)}
             </Typography>
-            {isLLMUsed && (
-              <Tooltip title="GPT-4o-mini 모델을 사용한 고급 AI 분석">
-                <SmartToy sx={{ color: '#00bcd4', fontSize: 20 }} />
-              </Tooltip>
-            )}
+
           </Box>
           <IconButton 
             onClick={() => setExpanded(!expanded)}
@@ -125,15 +121,7 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
 
           {analysis && !loading && (
             <Box>
-              {/* AI 모델 정보 */}
-              {isLLMUsed && (
-                <Box sx={{ mb: 2, p: 1, backgroundColor: '#e3f2fd', borderRadius: 1, border: '1px solid #bbdefb' }}>
-                  <Typography variant="body2" sx={{ color: '#1565c0', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <SmartToy sx={{ fontSize: 16 }} />
-                    GPT-4o-mini 모델을 사용한 고급 AI 분석
-                  </Typography>
-                </Box>
-              )}
+
 
               {/* 기본 분석 결과 */}
               <Box sx={{ mb: 3 }}>
