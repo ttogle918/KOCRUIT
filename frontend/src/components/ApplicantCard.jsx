@@ -170,10 +170,10 @@ const ApplicantCard = forwardRef(({
           </div>
           
           {/* 표절률 */}
-          <div className="flex flex-col items-center">
-            <span className={`text-gray-500 font-medium ${compact ? 'text-[9px]' : 'text-xs'} mb-1`}>표절률</span>
-            <div className="flex items-center gap-1">
-              <div className={`bg-gray-200 rounded-full ${compact ? 'h-1 w-12' : 'h-1.5 w-16'}`}>
+          <div className="flex flex-col items-center w-full">
+            <span className={`text-gray-500 font-medium ${compact ? 'text-[9px]' : 'text-xs'} mb-1 whitespace-nowrap`}>표절률</span>
+            <div className="flex items-center w-full max-w-[130px] ml-auto">
+              <div className="bg-gray-200 rounded-full h-1.5 flex-1 mr-2 min-w-[40px]">
                 <div 
                   className="h-full rounded-full transition-all duration-300"
                   style={{ 
@@ -183,12 +183,12 @@ const ApplicantCard = forwardRef(({
                 ></div>
               </div>
               <span 
-                className={`font-medium ${compact ? 'text-[9px]' : 'text-xs'}`}
+                className="font-medium text-xs ml-1 whitespace-nowrap"
                 style={{ color: similarityColor }}
               >
                 {similarityScore}%
               </span>
-              <span className={`${compact ? 'text-[8px]' : 'text-xs'} text-gray-500`}>{similarityStatus}</span>
+              <span className="text-xs text-gray-500 ml-1 min-w-[32px] text-center whitespace-nowrap">{similarityStatus}</span>
             </div>
           </div>
         </div>

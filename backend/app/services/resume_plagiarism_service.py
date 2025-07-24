@@ -281,23 +281,23 @@ class ResumePlagiarismService:
             logger.error(f"표절 검사 결과 DB 저장 실패: {e}")
             db.rollback()
     
-    def check_resume_plagiarism(self, db: Session, resume_id: int, similarity_threshold: float = 0.9) -> Dict:
+    def check_resume_plagiarism(self, db: Session, resume_id: int, similarity_threshold: float = 0.9, force: bool = False) -> Dict:
         """
-        데이터베이스의 이력서에 대해 표절 검사 (DB 캐싱 지원)
-        
+        데이터베이스의 이력서에 대해 표절 검사 (DB 캐싱 지원, force=True면 항상 새로 검사)
         Args:
             db: 데이터베이스 세션
             resume_id: 검사할 이력서 ID
             similarity_threshold: 표절 의심 임계값
-            
+            force: 강제 재검사 여부
         Returns:
             표절 검사 결과
         """
         try:
-            # 1. 먼저 DB에서 캐시된 결과 확인
-            cached_result = self._get_cached_plagiarism_result(db, resume_id)
-            if cached_result:
-                return cached_result
+            # 1. force가 아니면 DB에서 캐시된 결과 확인
+            if not force:
+                cached_result = self._get_cached_plagiarism_result(db, resume_id)
+                if cached_result:
+                    return cached_result
             
             # 2. 이력서 조회
             resume = db.query(Resume).filter(Resume.id == resume_id).first()
@@ -310,15 +310,20 @@ class ResumePlagiarismService:
                     "error": "이력서를 찾을 수 없습니다."
                 }
             
-            # 3. 표절 검사 실행
-            logger.info(f"새로운 표절 검사 실행: resume_id={resume_id}")
+            # 3. force=True면 먼저 해당 이력서를 새로 임베딩하고 ChromaDB에 저장
+            if force:
+                logger.info(f"강제 재검사: 이력서 {resume_id} 새로 임베딩 및 저장")
+                self.embed_and_store_resume(db, resume_id)
+            
+            # 4. 표절 검사 실행
+            logger.info(f"새로운 표절 검사 실행: resume_id={resume_id}, force={force}")
             result = self.detect_plagiarism(
                 resume_content=extract_all_content(resume.content),
                 resume_id=resume_id,
                 similarity_threshold=similarity_threshold
             )
             
-            # 4. 결과를 DB에 저장
+            # 5. 결과를 DB에 저장 (plagiarism_score, plagiarism_checked_at, most_similar_resume_id, similarity_threshold)
             self._save_plagiarism_result(db, resume_id, result)
             
             return result

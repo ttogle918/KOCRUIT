@@ -68,23 +68,23 @@ async def check_plagiarism(
 async def check_resume_plagiarism(
     resume_id: int,
     similarity_threshold: float = Query(0.9, description="표절 의심 임계값"),
+    force: bool = Query(False, description="강제 재검사 여부"),
     db: Session = Depends(get_db)
 ):
     """
     데이터베이스의 특정 이력서에 대해 표절 검사
-    
     - **resume_id**: 검사할 이력서 ID
     - **similarity_threshold**: 표절 의심 임계값 (기본값: 0.9)
+    - **force**: 강제 재검사 여부 (기본값: False)
     """
     try:
         result = plagiarism_service.check_resume_plagiarism(
             db=db,
             resume_id=resume_id,
-            similarity_threshold=similarity_threshold
+            similarity_threshold=similarity_threshold,
+            force=force
         )
-        
         return PlagiarismCheckResponse(**result)
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"이력서 표절 검사 중 오류가 발생했습니다: {str(e)}")
 

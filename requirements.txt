@@ -45,7 +45,6 @@ sentence-transformers==2.5.1
 numpy==1.26.4
 pandas==2.2.2
 
-hdbscan==0.8.33
 
 # === Vector Database & OpenAI ===
 chromadb==0.4.22
