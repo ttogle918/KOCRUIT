@@ -1,98 +1,95 @@
 #!/usr/bin/env python3
 """
-AI 면접 평가 점수 상태 확인 스크립트
+AI 면접 점수 데이터베이스 확인 스크립트
 """
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from app.core.database import get_db
-from app.models.job import JobPost
-from app.models.application import Application, DocumentStatus, InterviewStatus
-from app.models.user import User
-from app.models.interview_evaluation import InterviewEvaluation
+from sqlalchemy import create_engine, text
+from app.core.config import settings
+from app.models.application import Application, WrittenTestStatus
+from sqlalchemy.orm import sessionmaker
 
 def check_ai_interview_scores():
-    """AI 면접 평가 점수 상태 확인"""
-    db = next(get_db())
+    """AI 면접 점수 데이터베이스 상태 확인"""
+    engine = create_engine(settings.DATABASE_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
     
     try:
-        print("=== AI 면접 평가 점수 상태 확인 ===\n")
+        print("🔍 AI 면접 점수 데이터베이스 상태 확인")
+        print("=" * 60)
         
-        # 모든 공고 조회
-        job_posts = db.query(JobPost).all()
+        # 1. 서류 합격자 중 AI 면접 점수 확인
+        print("\n📊 서류 합격자 (written_test_status = PASSED) 중 AI 면접 점수 현황:")
+        passed_applications = db.query(Application).filter(
+            Application.written_test_status == WrittenTestStatus.PASSED
+        ).all()
         
-        for job_post in job_posts:
-            print(f"📋 공고: {job_post.title} (ID: {job_post.id})")
-            
-            # 해당 공고의 지원자들 조회
-            applications = db.query(Application).filter(
-                Application.job_post_id == job_post.id,
-                Application.document_status == DocumentStatus.PASSED
-            ).all()
-            
-            print(f"   전체 지원자 수: {len(applications)}")
-            
-            ai_interview_completed = 0
-            ai_interview_passed = 0
-            ai_interview_failed = 0
-            no_score = 0
-            
-            for app in applications:
-                user = db.query(User).filter(User.id == app.user_id).first()
-                
-                # AI 면접 평가 조회
-                evaluation = db.query(InterviewEvaluation).filter(
-                    InterviewEvaluation.application_id == app.id,
-                    InterviewEvaluation.interview_type == 'AI_INTERVIEW'
-                ).first()
-                
-                status_info = f"  👤 {user.name if user else 'Unknown'} (ID: {app.id})"
-                status_info += f" - 면접상태: {app.interview_status}"
-                
-                if evaluation and evaluation.total_score is not None:
-                    status_info += f" - 점수: {evaluation.total_score}"
-                    ai_interview_completed += 1
-                    
-                    if evaluation.total_score >= 70:  # 70점 이상을 합격으로 가정
-                        status_info += " ✅ (합격)"
-                        ai_interview_passed += 1
-                    else:
-                        status_info += " ❌ (불합격)"
-                        ai_interview_failed += 1
-                else:
-                    status_info += " - 점수: 없음 ⚠️"
-                    no_score += 1
-                
-                print(status_info)
-            
-            print(f"   📊 AI 면접 완료: {ai_interview_completed}")
-            print(f"   ✅ AI 면접 합격: {ai_interview_passed}")
-            print(f"   ❌ AI 면접 불합격: {ai_interview_failed}")
-            print(f"   ⚠️  점수 없음: {no_score}")
-            print()
+        print(f"   - 총 서류 합격자 수: {len(passed_applications)}명")
         
-        # 전체 통계
-        print("=== 전체 통계 ===")
-        total_applications = db.query(Application).filter(
-            Application.document_status == DocumentStatus.PASSED
-        ).count()
+        scored_count = 0
+        no_score_count = 0
         
-        total_evaluations = db.query(InterviewEvaluation).filter(
-            InterviewEvaluation.interview_type == 'AI_INTERVIEW'
-        ).count()
+        for app in passed_applications:
+            if app.ai_interview_score is not None:
+                scored_count += 1
+                print(f"   ✅ ID {app.user_id}: {app.ai_interview_score}점 (상태: {app.interview_status})")
+            else:
+                no_score_count += 1
+                print(f"   ❌ ID {app.user_id}: 점수 없음 (상태: {app.interview_status})")
         
-        total_with_score = db.query(InterviewEvaluation).filter(
-            InterviewEvaluation.interview_type == 'AI_INTERVIEW',
-            InterviewEvaluation.total_score.isnot(None)
-        ).count()
+        print(f"\n📈 요약:")
+        print(f"   - 점수 있는 지원자: {scored_count}명")
+        print(f"   - 점수 없는 지원자: {no_score_count}명")
         
-        print(f"전체 지원자: {total_applications}")
-        print(f"AI 면접 평가 기록: {total_evaluations}")
-        print(f"점수 있는 평가: {total_with_score}")
-        print(f"점수 없는 평가: {total_evaluations - total_with_score}")
+        # 2. AI 면접 평가 완료된 지원자 확인
+        print(f"\n🤖 AI 면접 평가 완료된 지원자:")
+        completed_applications = db.query(Application).filter(
+            Application.interview_status.in_([
+                'AI_INTERVIEW_COMPLETED',
+                'AI_INTERVIEW_PASSED', 
+                'AI_INTERVIEW_FAILED'
+            ])
+        ).all()
         
+        print(f"   - AI 면접 완료자 수: {len(completed_applications)}명")
+        
+        for app in completed_applications:
+            print(f"   - ID {app.user_id}: {app.ai_interview_score}점 (상태: {app.interview_status})")
+        
+        # 3. 데이터베이스 컬럼 확인
+        print(f"\n🗄️ 데이터베이스 컬럼 확인:")
+        result = db.execute(text("""
+            SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_NAME = 'application' 
+            AND COLUMN_NAME = 'ai_interview_score'
+        """)).fetchone()
+        
+        if result:
+            print(f"   - 컬럼명: {result[0]}")
+            print(f"   - 데이터 타입: {result[1]}")
+            print(f"   - NULL 허용: {result[2]}")
+            print(f"   - 기본값: {result[3]}")
+        else:
+            print("   ❌ ai_interview_score 컬럼을 찾을 수 없습니다!")
+        
+        # 4. 샘플 데이터 확인
+        print(f"\n📋 샘플 데이터 (처음 5개):")
+        sample_applications = db.query(Application).filter(
+            Application.written_test_status == WrittenTestStatus.PASSED
+        ).limit(5).all()
+        
+        for app in sample_applications:
+            print(f"   - ID {app.user_id}: ai_interview_score={app.ai_interview_score}, "
+                  f"interview_status={app.interview_status}, "
+                  f"written_test_status={app.written_test_status}")
+        
+    except Exception as e:
+        print(f"❌ 오류 발생: {str(e)}")
     finally:
         db.close()
 

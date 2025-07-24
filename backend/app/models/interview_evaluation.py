@@ -263,8 +263,6 @@ def auto_evaluate_all_applications(db: Session):
             
             # 데이터베이스 업데이트
             application.ai_interview_score = result.get("ai_interview_score", 0.0)
-            application.ai_interview_pass_reason = result.get("ai_interview_pass_reason", "")
-            application.ai_interview_fail_reason = result.get("ai_interview_fail_reason", "")
             
             # AI 면접 평가 완료 상태로 업데이트
             if result.get("ai_interview_score"):

@@ -524,14 +524,9 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
         # AI 평가 점수를 지원서에 반영
         application.ai_interview_score = total_score
         # AI 면접 완료 상태로 업데이트
-        application.interview_status = InterviewStatus.AI_INTERVIEW_COMPLETED.value
         if passed:
-            application.ai_interview_pass_reason = "AI 면접 통과"
-            # 합격 시 합격 상태로 업데이트
             application.interview_status = InterviewStatus.AI_INTERVIEW_PASSED.value
         else:
-            application.ai_interview_fail_reason = "AI 면접 불합격"
-            # 불합격 시 불합격 상태로 업데이트
             application.interview_status = InterviewStatus.AI_INTERVIEW_FAILED.value
     
     db.commit()

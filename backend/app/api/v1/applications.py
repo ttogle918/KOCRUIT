@@ -9,7 +9,7 @@ from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
     ApplicationList
 )
-from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus, WrittenTestStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
@@ -21,7 +21,6 @@ from app.utils.llm_cache import redis_cache
 from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
 from app.utils.enum_converter import get_safe_interview_status
-from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
 
 router = APIRouter()
 
@@ -734,13 +733,14 @@ def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db
 @redis_cache(expire=300)  # 5분 캐시
 def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get_db)):
     """AI 면접 지원자 + 면접일정 포함 API"""
-    # 모든 지원자를 보여주도록 필터링 조건 완화
+    # 서류 합격자만 조회 (written_test_status가 PASSED인 지원자)
     meta = MetaData()
     schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
     
-    # 모든 지원자 조회 (필터링 조건 제거)
+    # 서류 합격자만 조회 (written_test_status가 PASSED인 지원자)
     applicants = db.query(Application).filter(
-        Application.job_post_id == job_post_id
+        Application.job_post_id == job_post_id,
+        Application.written_test_status == WrittenTestStatus.PASSED
     ).all()
     
     result = []
@@ -760,11 +760,11 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
                 schedule_date = si.schedule_date
         user = db.query(User).filter(User.id == app.user_id).first()
         
-        # AI 면접 평가 점수 조회
-        ai_evaluation = db.query(InterviewEvaluation).filter(
-            InterviewEvaluation.interview_id == app.id,
-            InterviewEvaluation.evaluation_type == EvaluationType.AI
-        ).first()
+        # 디버깅을 위한 로그 추가
+        print(f"🔍 AI 면접 지원자 조회 - ID: {app.user_id}, 이름: {user.name if user else 'Unknown'}")
+        print(f"   - ai_interview_score: {app.ai_interview_score}")
+        print(f"   - interview_status: {app.interview_status}")
+        print(f"   - written_test_status: {app.written_test_status}")
         
         result.append({
             "applicant_id": app.user_id,
@@ -774,7 +774,7 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
             "interview_status": get_safe_interview_status(app.interview_status),  # AI 면접 상태 추가 (안전 변환)
             "document_status": app.document_status,  # 서류 상태 추가
             "status": app.status,  # 전체 상태 추가
-            "ai_interview_score": ai_evaluation.total_score if ai_evaluation else None,  # AI 면접 점수 추가
+            "ai_interview_score": app.ai_interview_score,  # Application 테이블의 AI 면접 점수
         })
     return result
 
