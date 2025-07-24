@@ -118,7 +118,12 @@ function InterviewProgress() {
   // 패널 변경 핸들러 (모달 표시)
   const handlePanelChange = (panelId) => {
     setActivePanel(panelId);
-    setShowPanelModal(true);
+    // 실무진 면접의 경우 모달을 열지 않고 전체 화면으로 표시
+    if (panelId === 'practical') {
+      setShowPanelModal(false);
+    } else {
+      setShowPanelModal(true);
+    }
   };
   const [panelSelectorCollapsed, setPanelSelectorCollapsed] = useState(true); // 첫 화면에서 접힌 상태로 시작
   const [resumeWindows, setResumeWindows] = useState([]); // 다중 이력서 창 관리
@@ -410,8 +415,10 @@ function InterviewProgress() {
       setEvaluation({});
       setExistingEvaluationId(null);
       
-      // 지원자 클릭 시 자동으로 이력서 창 열기
-      openResumeWindow(applicant, mappedResume);
+      // 지원자 클릭 시 자동으로 이력서 창 열기 (실무진 면접이 아닌 경우에만)
+      if (activePanel !== 'practical') {
+        openResumeWindow(applicant, mappedResume);
+      }
       
       // LangGraph 워크플로우를 사용한 면접 도구 및 질문 생성
       await fetchInterviewToolsWithWorkflow(
@@ -681,8 +688,32 @@ function InterviewProgress() {
               companyName={jobPost?.company?.name}
               applicantName={selectedApplicant?.name}
               audioFile={selectedApplicant?.audio_file || null}
-              jobInfo={jobPost ? JSON.stringify(jobPost) : null}
-              resumeInfo={resume ? JSON.stringify(resume) : null}
+              jobInfo={jobPost}
+              resumeInfo={resume}
+              jobPostId={jobPostId}
+            />
+          );
+        case 'practical':
+          return (
+            <InterviewPanel
+              questions={questions}
+              interviewChecklist={interviewChecklist}
+              strengthsWeaknesses={strengthsWeaknesses}
+              interviewGuideline={interviewGuideline}
+              evaluationCriteria={evaluationCriteria}
+              toolsLoading={toolsLoading}
+              memo={memo}
+              onMemoChange={setMemo}
+              evaluation={evaluation}
+              onEvaluationChange={setEvaluation}
+              isAutoSaving={isAutoSaving}
+              resumeId={resume?.id}
+              applicationId={selectedApplicant?.id}
+              companyName={jobPost?.company?.name}
+              applicantName={selectedApplicant?.name}
+              audioFile={selectedApplicant?.audio_file || null}
+              jobInfo={jobPost}
+              resumeInfo={resume}
               jobPostId={jobPostId}
             />
           );
@@ -707,6 +738,7 @@ function InterviewProgress() {
               {activePanel === 'applicant-questions' && '지원자 질문'}
               {activePanel === 'interviewer' && '면접관 평가'}
               {activePanel === 'ai' && 'AI 평가'}
+              {activePanel === 'practical' && '실무진 면접'}
             </h3>
             <button
               onClick={() => setShowPanelModal(false)}
@@ -980,7 +1012,7 @@ function InterviewProgress() {
           </div>
         </div>
       </div>
-      {/* 좌측 지원자 리스트: fixed - AI 면접이 아닌 경우에만 표시 */}
+      {/* 좌측 지원자 리스트: fixed - AI 면접이 아닌 경우에만 표시 (실무진 면접에서는 표시) */}
       {!isAiInterview && (
         <div
           className="fixed left-[90px] bg-white dark:bg-gray-800 border-r border-gray-300 dark:border-gray-600 flex flex-col"
@@ -1188,6 +1220,8 @@ function InterviewProgress() {
                             {getInterviewStatusLabel(applicant.interview_status, true)}
                             <div className="text-xs text-gray-400">
                               {applicant.ai_interview_score ? `점수: ${applicant.ai_interview_score}` : '미평가'}
+                              {/* 디버깅용 로그 */}
+                              {console.log('🔍 프론트엔드 AI 면접 점수:', applicant.ai_interview_score, '지원자:', applicant.name)}
                             </div>
                           </div>
                         </button>
@@ -1445,6 +1479,30 @@ function InterviewProgress() {
                     toolsLoading={toolsLoading}
                   />
                 </div>
+              ) : activePanel === 'practical' ? (
+                <div className="w-full h-full">
+                  <InterviewPanel
+                    questions={questions}
+                    interviewChecklist={interviewChecklist}
+                    strengthsWeaknesses={strengthsWeaknesses}
+                    interviewGuideline={interviewGuideline}
+                    evaluationCriteria={evaluationCriteria}
+                    toolsLoading={toolsLoading}
+                    memo={memo}
+                    onMemoChange={setMemo}
+                    evaluation={evaluation}
+                    onEvaluationChange={setEvaluation}
+                    isAutoSaving={isAutoSaving}
+                    resumeId={resume?.id}
+                    applicationId={selectedApplicant?.id}
+                    companyName={jobPost?.company?.name}
+                    applicantName={selectedApplicant?.name}
+                    audioFile={selectedApplicant?.audio_file || null}
+                    jobInfo={jobPost}
+                    resumeInfo={resume ? JSON.stringify(resume) : null}
+                    jobPostId={jobPostId}
+                  />
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
@@ -1465,8 +1523,8 @@ function InterviewProgress() {
         
       </div>
 
-      {/* 오른쪽 패널 선택기 - AI 면접에서는 숨김 */}
-      {!isAiInterview && (
+      {/* 오른쪽 패널 선택기 - AI 면접과 실무진 면접에서는 숨김 */}
+      {!isAiInterview && activePanel !== 'practical' && (
         <InterviewPanelSelector
           activePanel={activePanel}
           onPanelChange={handlePanelChange}
@@ -1478,8 +1536,8 @@ function InterviewProgress() {
       {/* 패널 모달 */}
       {renderPanelModal()}
 
-      {/* 다중 이력서 창들 - AI 면접이 아닌 경우에만 표시 */}
-      {!isAiInterview && (
+      {/* 다중 이력서 창들 - AI 면접과 실무진 면접이 아닌 경우에만 표시 */}
+      {!isAiInterview && activePanel !== 'practical' && (
         <>
           {console.log('🪟 렌더링할 창 개수:', resumeWindows.length)}
           {console.log('🪟 창 목록:', resumeWindows)}
@@ -1502,16 +1560,16 @@ function InterviewProgress() {
         </>
       )}
       
-      {/* 디버깅용 창 상태 표시 - AI 면접이 아닌 경우에만 표시 */}
-      {!isAiInterview && resumeWindows.length > 0 && (
+      {/* 디버깅용 창 상태 표시 - AI 면접과 실무진 면접이 아닌 경우에만 표시 */}
+      {!isAiInterview && activePanel !== 'practical' && resumeWindows.length > 0 && (
         <div className="fixed top-20 left-4 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded z-[9999]">
           <div>창 개수: {resumeWindows.length}</div>
           <div>활성 창: {activeResumeWindow}</div>
         </div>
       )}
 
-      {/* 공통 면접 질문 버튼 - AI 면접이 아닌 경우에만 표시 */}
-      {!isAiInterview && (
+      {/* 공통 면접 질문 버튼 - AI 면접과 실무진 면접이 아닌 경우에만 표시 */}
+      {!isAiInterview && activePanel !== 'practical' && (
         <div
           style={{
             position: 'fixed',

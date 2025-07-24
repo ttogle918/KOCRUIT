@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict, Any
@@ -25,6 +25,11 @@ import json
 
 from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
 from app.models.interview_question_log import InterviewQuestionLog, InterviewType
+from agent.tools.speech_recognition_tool import SpeechRecognitionTool
+from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
+from agent.tools.answer_grading_tool import grade_written_test_answer
+import tempfile
+import os
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)
 
@@ -1847,17 +1852,28 @@ def get_interview_question_logs_by_application(
     interview_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """특정 지원자의 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환"""
+    """특정 지원자의 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환 (오디오 분석/점수화 포함)"""
+    from agent.tools.speech_recognition_tool import SpeechRecognitionTool
+    from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
+    from agent.tools.answer_grading_tool import grade_written_test_answer
+    import random
+    import os
+
     query = db.query(InterviewQuestionLog).filter(InterviewQuestionLog.application_id == application_id)
-    
-    # 면접 유형 필터링
     if interview_type:
         query = query.filter(InterviewQuestionLog.interview_type == interview_type)
-    
     logs = query.order_by(InterviewQuestionLog.created_at).all()
-    
-    return [
-        {
+
+    # 오디오 분석 예시 3개만 무작위 선택 (오디오가 있는 것 중)
+    audio_logs = [log for log in logs if log.answer_audio_url]
+    audio_logs_to_analyze = set(random.sample(audio_logs, min(3, len(audio_logs))))
+
+    speech_tool = SpeechRecognitionTool()
+    realtime_tool = RealtimeInterviewEvaluationTool()
+
+    result = []
+    for log in logs:
+        item = {
             "question_id": log.question_id,
             "interview_type": log.interview_type.value if log.interview_type else "AI_INTERVIEW",
             "question_text": log.question_text,
@@ -1867,8 +1883,34 @@ def get_interview_question_logs_by_application(
             "created_at": log.created_at,
             "updated_at": log.updated_at
         }
-        for log in logs
-    ]
+        # 오디오가 있고, 예시 3개 중 하나라면 오디오 분석
+        if log in audio_logs_to_analyze and log.answer_audio_url and os.path.exists(log.answer_audio_url):
+            # 1. 오디오→텍스트 변환
+            trans_result = speech_tool.transcribe_audio(log.answer_audio_url)
+            trans_text = trans_result.get("text", "")
+            item["answer_text_transcribed"] = trans_text
+            # 2. 감정/태도 분석 (간단화: 긍정/보통/부정)
+            eval_result = realtime_tool._evaluate_realtime_content(trans_text, "applicant", 0)
+            sentiment = eval_result.get("sentiment", "neutral")
+            if sentiment == "positive":
+                emotion = attitude = "긍정"
+            elif sentiment == "negative":
+                emotion = attitude = "부정"
+            else:
+                emotion = attitude = "보통"
+            item["emotion"] = emotion
+            item["attitude"] = attitude
+            # 3. 답변 점수화 (오디오→텍스트 기준)
+            grade = grade_written_test_answer(log.question_text, trans_text)
+            item["answer_score"] = grade.get("score")
+            item["answer_feedback"] = grade.get("feedback")
+        else:
+            # 오디오 없으면 텍스트 답변만 점수화
+            grade = grade_written_test_answer(log.question_text, log.answer_text or "")
+            item["answer_score"] = grade.get("score")
+            item["answer_feedback"] = grade.get("feedback")
+        result.append(item)
+    return result
 
 @router.get("/application/{application_id}/logs/statistics")
 @redis_cache(expire=300)  # 5분 캐시 (통계 조회)
@@ -1899,3 +1941,65 @@ def get_interview_logs_statistics(application_id: int, db: Session = Depends(get
             for stat in stats
         ]
     }
+
+@router.post("/application/{application_id}/evaluate-audio")
+async def evaluate_audio(
+    application_id: int,
+    question_id: int,  # 질문 ID도 프론트에서 같이 보내야 DB 저장 가능
+    question_text: str,
+    audio_file: UploadFile = File(...)
+):
+    """
+    오디오 파일을 받아 실시간으로 STT, 감정/태도, 답변 점수화 결과를 반환
+    """
+    # 1. 임시 파일로 저장
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(await audio_file.read())
+        tmp_path = tmp.name
+
+    try:
+        # 2. 오디오→텍스트(STT)
+        speech_tool = SpeechRecognitionTool()
+        trans_result = speech_tool.transcribe_audio(tmp_path)
+        trans_text = trans_result.get("text", "")
+
+        # 3. 감정/태도 분석
+        realtime_tool = RealtimeInterviewEvaluationTool()
+        eval_result = realtime_tool._evaluate_realtime_content(trans_text, "applicant", 0)
+        sentiment = eval_result.get("sentiment", "neutral")
+        if sentiment == "positive":
+            emotion = attitude = "긍정"
+        elif sentiment == "negative":
+            emotion = attitude = "부정"
+        else:
+            emotion = attitude = "보통"
+
+        # 4. 답변 점수화
+        grade = grade_written_test_answer(question_text, trans_text)
+        answer_score = grade.get("score")
+        answer_feedback = grade.get("feedback")
+
+        # DB 저장
+        db = next(get_db())  # Depends 사용 불가 시 직접 호출
+        log = db.query(InterviewQuestionLog).filter(
+            InterviewQuestionLog.application_id == application_id,
+            InterviewQuestionLog.question_id == question_id
+        ).first()
+        if log:
+            log.answer_text_transcribed = trans_text
+            log.emotion = emotion
+            log.attitude = attitude
+            log.answer_score = answer_score
+            log.answer_feedback = answer_feedback
+            db.commit()
+        return {
+            "answer_text_transcribed": trans_text,
+            "emotion": emotion,
+            "attitude": attitude,
+            "answer_score": answer_score,
+            "answer_feedback": answer_feedback,
+        }
+    finally:
+        # 임시 파일 삭제
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
