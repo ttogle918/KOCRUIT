@@ -30,7 +30,7 @@ def generate_ai_questions():
         # 기존 AI 면접 질문 삭제 (job_post_id 기반)
         deleted_count = db.query(InterviewQuestion).filter(
             InterviewQuestion.job_post_id == job.id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW
+            InterviewQuestion.types == QuestionType.AI_INTERVIEW
         ).delete()
         print(f"기존 AI 면접 질문 {deleted_count}개 삭제")
         

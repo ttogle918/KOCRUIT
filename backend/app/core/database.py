@@ -10,30 +10,25 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# AWS RDS 최적화를 위한 연결 풀 설정 (t3.small 최적화)
+# AWS RDS 최적화를 위한 연결 풀 설정 (MySQL Connector/Python 8.3.0 호환)
 engine = create_engine(
     settings.DATABASE_URL,
     poolclass=QueuePool,
-    pool_size=int(os.getenv("MYSQL_MAX_CONNECTIONS", 15)),  # t3.small 최적화
-    max_overflow=int(os.getenv("MYSQL_MAX_CONNECTIONS", 15)) * 1.5,  # 최대 추가 연결
-    pool_pre_ping=True,  # 연결 전 ping으로 연결 상태 확인
-    pool_recycle=1200,  # 20분마다 연결 재생성 (t3.small 최적화)
-    pool_timeout=20,  # 연결 대기 시간 단축
-    echo=False,  # SQL 로그 출력 비활성화 (성능 향상)
-    # AWS RDS MySQL 최적화 설정 (t3.small용)
+    pool_size=int(os.getenv("MYSQL_MAX_CONNECTIONS", 10)),
+    max_overflow=int(os.getenv("MYSQL_MAX_CONNECTIONS", 10)) * 2,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+    pool_timeout=30,
+    echo=False,
+    # MySQL Connector/Python 8.3.0 호환 설정
     connect_args={
-        "connect_timeout": int(os.getenv("MYSQL_CONNECT_TIMEOUT", 10)),  # 연결 타임아웃 단축
-        "read_timeout": int(os.getenv("MYSQL_READ_TIMEOUT", 10)),       # 읽기 타임아웃 단축
-        "write_timeout": int(os.getenv("MYSQL_WRITE_TIMEOUT", 10)),     # 쓰기 타임아웃 단축
+        "connect_timeout": int(os.getenv("MYSQL_CONNECT_TIMEOUT", 30)),
+        "read_timeout": int(os.getenv("MYSQL_READ_TIMEOUT", 30)),
+        "write_timeout": int(os.getenv("MYSQL_WRITE_TIMEOUT", 30)),
         "charset": "utf8mb4",
         "autocommit": False,
-        "sql_mode": "STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO",
-        # 성능 최적화
-        "init_command": "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO'",
         "use_unicode": True,
-        "collation": "utf8mb4_unicode_ci",
-        # 추가 성능 최적화
-        "ssl": {"ssl": {}}  # SSL 연결
+        "sql_mode": "STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"
     }
 )
 

@@ -13,6 +13,7 @@ from app.services.interviewer_profile_service import InterviewerProfileService
 from app.utils.llm_cache import invalidate_cache
 import os
 import uuid
+from app.models.interview_evaluation import EvaluationType
 
 router = APIRouter()
 
@@ -300,7 +301,198 @@ def get_interviewer_profiles(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"면접관 프로필 조회 중 오류가 발생했습니다: {str(e)}") 
 
-    return result 
+@router.get("/ai-interview/{application_id}")
+def get_ai_interview_evaluation(application_id: int, db: Session = Depends(get_db)):
+    """AI 면접 평가 결과 조회"""
+    try:
+        from app.models.application import Application
+        from app.models.schedule import AIInterviewSchedule
+        
+        # 지원자 정보 조회
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="지원자를 찾을 수 없습니다")
+        
+        # AI 면접 일정 조회
+        ai_schedule = db.query(AIInterviewSchedule).filter(
+            AIInterviewSchedule.application_id == application_id
+        ).first()
+        
+        if not ai_schedule:
+            return {
+                "success": False,
+                "message": "AI 면접 일정이 없습니다",
+                "application_id": application_id,
+                "evaluation": None
+            }
+        
+        # AI 면접 평가 결과 조회
+        evaluation = db.query(InterviewEvaluation).filter(
+            InterviewEvaluation.interview_id == ai_schedule.id,
+            InterviewEvaluation.evaluation_type == EvaluationType.AI
+        ).first()
+        
+        if not evaluation:
+            return {
+                "success": False,
+                "message": "AI 면접 평가 결과가 없습니다",
+                "application_id": application_id,
+                "interview_id": ai_schedule.id,
+                "evaluation": None
+            }
+        
+        # 평가 항목 조회
+        evaluation_items = db.query(InterviewEvaluationItem).filter(
+            InterviewEvaluationItem.evaluation_id == evaluation.id
+        ).all()
+        
+        # 결과 구성
+        result = {
+            "success": True,
+            "application_id": application_id,
+            "interview_id": ai_schedule.id,
+            "applicant_name": application.user.name if application.user else "",
+            "job_post_title": "",
+            "evaluation": {
+                "id": evaluation.id,
+                "total_score": float(evaluation.total_score) if evaluation.total_score else 0,
+                "summary": evaluation.summary,
+                "status": evaluation.status.value if evaluation.status else "PENDING",
+                "created_at": evaluation.created_at.isoformat() if evaluation.created_at else None,
+                "updated_at": evaluation.updated_at.isoformat() if evaluation.updated_at else None,
+                "evaluation_items": [
+                    {
+                        "evaluate_type": item.evaluate_type,
+                        "evaluate_score": float(item.evaluate_score) if item.evaluate_score else 0,
+                        "grade": item.grade,
+                        "comment": item.comment
+                    }
+                    for item in evaluation_items
+                ]
+            }
+        }
+        
+        # 공고 정보 추가
+        if ai_schedule.job_post:
+            result["job_post_title"] = ai_schedule.job_post.title
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI 면접 평가 조회 실패: {str(e)}")
+
+@router.get("/ai-interview/job-post/{job_post_id}")
+def get_ai_interview_evaluations_by_job_post(job_post_id: int, db: Session = Depends(get_db)):
+    """특정 공고의 모든 AI 면접 평가 결과 조회"""
+    try:
+        from app.models.schedule import AIInterviewSchedule
+        
+        # 해당 공고의 AI 면접 일정 조회
+        ai_schedules = db.query(AIInterviewSchedule).filter(
+            AIInterviewSchedule.job_post_id == job_post_id
+        ).all()
+        
+        if not ai_schedules:
+            return {
+                "success": True,
+                "job_post_id": job_post_id,
+                "total_evaluations": 0,
+                "evaluations": []
+            }
+        
+        # 각 일정의 평가 결과 조회
+        evaluations = []
+        for schedule in ai_schedules:
+            evaluation = db.query(InterviewEvaluation).filter(
+                InterviewEvaluation.interview_id == schedule.id,
+                InterviewEvaluation.evaluation_type == EvaluationType.AI
+            ).first()
+            
+            if evaluation:
+                # 평가 항목 조회
+                evaluation_items = db.query(InterviewEvaluationItem).filter(
+                    InterviewEvaluationItem.evaluation_id == evaluation.id
+                ).all()
+                
+                # 등급별 개수 계산
+                grade_counts = {"상": 0, "중": 0, "하": 0}
+                for item in evaluation_items:
+                    if item.grade in grade_counts:
+                        grade_counts[item.grade] += 1
+                
+                # 합격 여부 판정
+                total_items = len(evaluation_items)
+                low_threshold = max(2, int(total_items * 0.15))
+                passed = grade_counts["하"] < low_threshold
+                
+                evaluations.append({
+                    "application_id": schedule.application_id,
+                    "applicant_name": schedule.applicant.name if schedule.applicant else "",
+                    "interview_id": schedule.id,
+                    "evaluation_id": evaluation.id,
+                    "total_score": float(evaluation.total_score) if evaluation.total_score else 0,
+                    "grade_counts": grade_counts,
+                    "passed": passed,
+                    "created_at": evaluation.created_at.isoformat() if evaluation.created_at else None
+                })
+        
+        return {
+            "success": True,
+            "job_post_id": job_post_id,
+            "total_evaluations": len(evaluations),
+            "evaluations": evaluations
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"공고별 AI 면접 평가 조회 실패: {str(e)}")
+
+@router.get("/ai-interview/summary")
+def get_ai_interview_summary(db: Session = Depends(get_db)):
+    """AI 면접 전체 요약 통계"""
+    try:
+        # 전체 AI 면접 평가 수
+        total_evaluations = db.query(InterviewEvaluation).filter(
+            InterviewEvaluation.evaluation_type == EvaluationType.AI
+        ).count()
+        
+        # 합격/불합격 통계
+        passed_count = 0
+        failed_count = 0
+        
+        evaluations = db.query(InterviewEvaluation).filter(
+            InterviewEvaluation.evaluation_type == EvaluationType.AI
+        ).all()
+        
+        for evaluation in evaluations:
+            evaluation_items = db.query(InterviewEvaluationItem).filter(
+                InterviewEvaluationItem.evaluation_id == evaluation.id
+            ).all()
+            
+            if evaluation_items:
+                grade_counts = {"상": 0, "중": 0, "하": 0}
+                for item in evaluation_items:
+                    if item.grade in grade_counts:
+                        grade_counts[item.grade] += 1
+                
+                total_items = len(evaluation_items)
+                low_threshold = max(2, int(total_items * 0.15))
+                if grade_counts["하"] < low_threshold:
+                    passed_count += 1
+                else:
+                    failed_count += 1
+        
+        return {
+            "success": True,
+            "summary": {
+                "total_evaluations": total_evaluations,
+                "passed_count": passed_count,
+                "failed_count": failed_count,
+                "pass_rate": round(passed_count / total_evaluations * 100, 2) if total_evaluations > 0 else 0
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI 면접 요약 조회 실패: {str(e)}")
 
 @router.post("/upload-audio")
 async def upload_interview_audio(
@@ -349,9 +541,20 @@ async def upload_interview_audio(
             content = await audio_file.read()
             buffer.write(content)
         
-        # 데이터베이스에 녹음 파일 정보 저장 (필요시)
-        # 여기서는 파일 경로를 application 테이블에 저장하거나 별도 테이블에 저장할 수 있습니다.
+        # 2. DB 기록 (status='pending')
+        log = InterviewQuestionLog(
+            application_id=application_id,
+            question_id=question_id,
+            answer_audio_url=file_path,
+            status='pending',
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+
         return {
             "message": "녹음 파일이 성공적으로 업로드되었습니다.",
             "filename": unique_filename,

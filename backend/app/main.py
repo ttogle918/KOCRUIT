@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
 import asyncio
@@ -8,8 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
 from app.api.v1.api import api_router
-from app.core.database import engine
-from app.models import Base
+from app.core.database import engine, Base
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
 except ImportError:
@@ -26,7 +26,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 from app.scheduler.job_status_scheduler import JobStatusScheduler
-from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
 from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
 
 
@@ -72,6 +71,9 @@ def safe_create_tables():
     except Exception as e:
         print(f"❌ Safe table creation failed: {e}")
 from app.services.application_evaluation_service import auto_evaluate_all_applications
+# safe_create_tables 함수 제거 - Base.metadata.create_all()이 모든 테이블을 안전하게 생성함
+from app.models.interview_evaluation import auto_process_applications, auto_evaluate_all_applications
+from app.models.interview_question import InterviewQuestion, QuestionType
 
 
 # JobPost 상태 스케줄러 인스턴스 (싱글톤)
@@ -85,34 +87,39 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting application...")
     
-    # 안전한 테이블 생성
-    safe_create_tables()
-    Base.metadata.create_all(bind=engine)
-    print("데이터베이스 테이블 생성 완료")
+    # 데이터베이스 연결 확인 및 테이블 생성 (재시도 로직 포함)
+    max_retries = 3
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"데이터베이스 연결 시도 {attempt + 1}/{max_retries}...")
+            
+            # 연결 테스트 - 단순화
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+                print("데이터베이스 연결 성공!")
+            
+            # 테이블 생성
+            Base.metadata.create_all(bind=engine)
+            print("데이터베이스 테이블 생성 완료")
+            break
+            
+        except Exception as e:
+            print(f"데이터베이스 연결 실패 (시도 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                print(f"{retry_delay}초 후 재시도...")
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2  # 지수 백오프
+            else:
+                print("최대 재시도 횟수 초과. 애플리케이션을 종료합니다.")
+                raise e
     
     # JobPost 상태 스케줄러 시작
     print("🔄 Starting JobPost status scheduler...")
     asyncio.create_task(job_status_scheduler.start())
     print("JobPost 상태 스케줄러 시작 완료")
 
-    # 필기 답안 자동 채점 스케줄러 시작
-    start_written_test_auto_grader()
-
-    
-    # 면접 질문 생성 스케줄러 시작
-    print("🔄 Starting Question Generation scheduler...")
-    try:
-        # 백그라운드에서 스케줄러 실행
-        import threading
-        scheduler_thread = threading.Thread(
-            target=QuestionGenerationScheduler.run_scheduler,
-            daemon=True
-        )
-        scheduler_thread.start()
-        print("면접 질문 생성 스케줄러 시작 완료")
-    except Exception as e:
-        print(f"면접 질문 생성 스케줄러 시작 실패: {e}")
-    
     # 시드 데이터 실행
     try:
         import subprocess
@@ -143,7 +150,7 @@ async def lifespan(app: FastAPI):
         print(f"AI 평가 실행 중 오류: {e}")
         import traceback
         print(f"상세 오류: {traceback.format_exc()}")
-    
+
     print("=== FastAPI 서버 시작 완료 ===")
     
     yield
@@ -160,6 +167,17 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Static files (interview videos 등) 제공 - 디렉토리가 없으면 건너뛰기
+import os
+if os.path.exists("app/scripts/interview_videos"):
+    app.mount(
+        "/static/interview_videos",
+        StaticFiles(directory="app/scripts/interview_videos"),
+        name="interview_videos"
+    )
+else:
+    print("⚠️ interview_videos 디렉토리가 없어서 StaticFiles 마운트를 건너뜁니다.")
 
 # FastAPI 등록된 경로 목록 출력 (디버깅용)
 @app.on_event("startup")

@@ -30,9 +30,9 @@ def check_db_questions():
         # 타입별 분포 확인
         from sqlalchemy import func
         type_counts = db.query(
-            InterviewQuestion.type, 
+            InterviewQuestion.types, 
             func.count(InterviewQuestion.id)
-        ).group_by(InterviewQuestion.type).all()
+        ).group_by(InterviewQuestion.types).all()
         
         print("타입별 분포:")
         for q_type, count in type_counts:

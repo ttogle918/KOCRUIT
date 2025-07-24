@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MdOutlinePerson, MdOutlineSmartToy, MdOutlineSettings, MdOutlineQuestionAnswer, MdOutlineQuiz, MdClose } from 'react-icons/md';
+import { MdOutlinePerson, MdOutlineSmartToy, MdOutlineSettings, MdOutlineQuestionAnswer, MdOutlineQuiz, MdClose, MdOutlineWork } from 'react-icons/md';
 
 export default function InterviewPanelSelector({ 
   activePanel, 
@@ -35,6 +35,12 @@ export default function InterviewPanelSelector({
       name: 'AI 평가',
       icon: MdOutlineSmartToy,
       description: 'AI가 실시간으로 평가하는 패널'
+    },
+    {
+      id: 'practical',
+      name: '실무진 면접',
+      icon: MdOutlineWork,
+      description: '실무진 면접용 3단 레이아웃'
     }
   ];
 
