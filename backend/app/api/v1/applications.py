@@ -20,6 +20,7 @@ from app.models.weight import Weight
 from app.utils.llm_cache import redis_cache
 from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
+from app.services.application_evaluation_service import auto_evaluate_all_applications
 
 router = APIRouter()
 
@@ -245,6 +246,54 @@ def get_application(
     print(f"Certificates 개수: {len(certificates)}")
     
     return response_data
+
+
+@router.get("/{application_id}/content")
+def get_application_content(
+    application_id: int,
+    db: Session = Depends(get_db)
+):
+    """Agent용: 인증 없이 자소서 내용만 가져오기"""
+    # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
+    application = (
+        db.query(Application)
+        .options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        )
+        .filter(Application.id == application_id)
+        .first()
+    )
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    return {
+        "content": application.resume.content if application.resume else "",
+        "application_id": application_id
+    }
+
+@router.get("/{application_id}/agent")
+def get_application_for_agent(
+    application_id: int,
+    db: Session = Depends(get_db)
+):
+    """Agent용: 인증 없이 application의 기본 정보만 가져오기"""
+    application = (
+        db.query(Application)
+        .filter(Application.id == application_id)
+        .first()
+    )
+    
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    return {
+        "id": application.id,
+        "job_post_id": application.job_post_id,
+        "user_id": application.user_id,
+        "resume_id": application.resume_id
+    }
 
 
 @router.post("/", response_model=ApplicationDetail)
@@ -527,7 +576,6 @@ def batch_ai_evaluate_applications(
     current_user: User = Depends(get_current_user)
 ):
     """모든 지원자에 대해 AI 평가를 배치로 실행합니다."""
-    from app.models.interview_evaluation import auto_evaluate_all_applications
     
     try:
         result = auto_evaluate_all_applications(db)
@@ -566,7 +614,6 @@ def reset_ai_scores_for_job(
     db.commit()
     
     # 자동 평가 시스템 실행 (기존 함수 활용)
-    from app.models.interview_evaluation import auto_evaluate_all_applications
     try:
         auto_evaluate_all_applications(db)
         return {
@@ -816,6 +863,7 @@ def get_applicants_with_second_interview(job_post_id: int, db: Session = Depends
 
 
 @router.get("/job/{job_post_id}/passed-applicants")
+@redis_cache(expire=300)  # 5분 캐싱
 def get_passed_applicants(
     job_post_id: int,
     db: Session = Depends(get_db)

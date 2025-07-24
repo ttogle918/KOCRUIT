@@ -35,6 +35,7 @@ import {
 import { calculateAge, mapResumeData } from '../../utils/resumeUtils';
 import ProvinceMapChart from '../../components/ProvinceMapChart';
 import CommonResumeList from '../../components/CommonResumeList';
+import StatisticsAnalysis from '../../components/StatisticsAnalysis';
 
 
 
@@ -71,6 +72,45 @@ export default function ApplicantList() {
   // jobPostId가 없으면 기본값 사용
   const effectiveJobPostId = jobPostId;
 
+  // 필기합격자 명단 존재 여부 계산
+  const [writtenTestPassedReady, setWrittenTestPassedReady] = useState(false);
+
+  // 차트 타입 매핑 함수
+  const getChartType = (index) => {
+    const chartTypes = ['trend', 'age', 'gender', 'education', 'province', 'certificate'];
+    return chartTypes[index] || 'trend';
+  };
+
+  // 차트 데이터 매핑 함수
+  const getChartData = (index) => {
+    switch (index) {
+      case 0: return getApplicationTrendStats(applicants);
+      case 1: return getAgeGroupStats(applicants);
+      case 2: return getGenderStats(applicants);
+      case 3: return getEducationStats(applicants);
+      case 4: return getProvinceStats(applicants);
+      case 5: return getCertificateCountStats(applicants);
+      default: return [];
+    }
+  };
+
+  useEffect(() => {
+    const fetchWrittenTestPassed = async () => {
+      try {
+        const res = await api.get(`/written-test/passed/${effectiveJobPostId}`);
+        console.log('[DEBUG] /written-test/passed 응답:', res.data);
+        setWrittenTestPassedReady(Array.isArray(res.data) && res.data.length > 0);
+      } catch (e) {
+        console.log('[DEBUG] /written-test/passed 에러:', e);
+        setWrittenTestPassedReady(false);
+      }
+    };
+    if (effectiveJobPostId) fetchWrittenTestPassed();
+  }, [effectiveJobPostId]);
+
+  useEffect(() => {
+    console.log('[DEBUG] writtenTestPassedReady:', writtenTestPassedReady);
+  }, [writtenTestPassedReady]);
 
 
   useEffect(() => {
@@ -448,7 +488,7 @@ export default function ApplicantList() {
                 </div>
                 {/*여기를 이력서로*/}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
-                  <ResumePage resume={resume} loading={resumeLoading} error={null} onClick={handleApplicantClick}/>
+                  <ResumePage resume={resume} loading={resumeLoading} error={null} jobpostId={effectiveJobPostId} applicationId={selectedApplicant?.application_id || selectedApplicant?.applicationId}/>
                 </div>
                 <div className="p-4 border-t bg-white dark:bg-gray-800">
                   {/* 합격/불합격/건너뛰기 버튼 */}
@@ -519,21 +559,23 @@ export default function ApplicantList() {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: 1200,
+            width: '90vw',
+            maxWidth: 1200,
+            height: '85vh',
             maxHeight: '90vh',
             bgcolor: 'background.paper',
             border: '2px solid #1976d2',
             boxShadow: 24,
             borderRadius: 3,
-            p: 4,
-            overflow: 'hidden',
+            p: 3,
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
           {modalView === 'chart' && (
             <>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 flex-shrink-0">
                 <IconButton onClick={() => setSlideIndex(slideIndex - 1)} disabled={slideIndex === 0}>
                   <ArrowBackIosNew />
                 </IconButton>
@@ -549,128 +591,178 @@ export default function ApplicantList() {
                   <ArrowForwardIos />
                 </IconButton>
               </div>
+              <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
               {slideIndex === 0 && (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart 
-                    data={getApplicationTrendStats(applicants)} 
-                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                    onClick={(e) => {
-                      if (e && e.activeLabel) {
-                        handleTrendLineClick(e.activeLabel);
-                      }
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} 
-                      dot={{ r: 4, onClick: (e, payload) => handleTrendLineClick(payload.payload.date), style: { cursor: 'pointer' } }}
-                      activeDot={{ r: 6, style: { cursor: 'pointer' }, onClick: (e, payload) => handleTrendLineClick(payload.payload.date) }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart 
+                      data={getApplicationTrendStats(applicants)} 
+                      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                      onClick={(e) => {
+                        if (e && e.activeLabel) {
+                          handleTrendLineClick(e.activeLabel);
+                        }
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} 
+                        dot={{ r: 4, onClick: (e, payload) => handleTrendLineClick(payload.payload.date), style: { cursor: 'pointer' } }}
+                        activeDot={{ r: 6, style: { cursor: 'pointer' }, onClick: (e, payload) => handleTrendLineClick(payload.payload.date) }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <StatisticsAnalysis
+                    jobPostId={effectiveJobPostId}
+                    chartType={getChartType(0)}
+                    chartData={getChartData(0)}
+                    isVisible={slideIndex === 0}
+                  />
+                </>
               )}
               {slideIndex === 1 && (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart
-                    data={getAgeGroupStats(applicants)}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                    onClick={(data) => {
-                      if (data && data.activePayload && data.activePayload[0]) {
-                        const clickedData = data.activePayload[0].payload;
-                        handleAgeBarClick(clickedData.name);
-                      }
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar
-                      dataKey="count"
-                      fill={CHART_COLORS.AGE_GROUP}
-                      radius={[6, 6, 0, 0]}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={getAgeGroupStats(applicants)}
+                      margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+                      onClick={(data) => {
+                        if (data && data.activePayload && data.activePayload[0]) {
+                          const clickedData = data.activePayload[0].payload;
+                          handleAgeBarClick(clickedData.name);
+                        }
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Bar
+                        dataKey="count"
+                        fill={CHART_COLORS.AGE_GROUP}
+                        radius={[6, 6, 0, 0]}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <StatisticsAnalysis
+                    jobPostId={effectiveJobPostId}
+                    chartType={getChartType(1)}
+                    chartData={getChartData(1)}
+                    isVisible={slideIndex === 1}
+                  />
+                </>
               )}
               {slideIndex === 2 && (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={getGenderStats(applicants)}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label
-                      style={{ cursor: 'pointer' }}
-                      onClick={(data, index) => {
-                        // recharts Pie의 onClick은 (data, index) 순서로 전달됨
-                        console.log('Pie clicked:', data);
-                        handleGenderPieClick(data.name);
-                      }}
-                    >
-                      {getGenderStats(applicants).map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={CHART_COLORS.GENDER[idx % CHART_COLORS.GENDER.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend layout="vertical" align="right" verticalAlign="middle" />
-                  </PieChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={getGenderStats(applicants)}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                        style={{ cursor: 'pointer' }}
+                        onClick={(data, index) => {
+                          // recharts Pie의 onClick은 (data, index) 순서로 전달됨
+                          console.log('Pie clicked:', data);
+                          handleGenderPieClick(data.name);
+                        }}
+                      >
+                        {getGenderStats(applicants).map((entry, idx) => (
+                          <Cell key={`cell-${idx}`} fill={CHART_COLORS.GENDER[idx % CHART_COLORS.GENDER.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend layout="vertical" align="right" verticalAlign="middle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <StatisticsAnalysis
+                    jobPostId={effectiveJobPostId}
+                    chartType={getChartType(2)}
+                    chartData={getChartData(2)}
+                    isVisible={slideIndex === 2}
+                  />
+                </>
               )}
               {slideIndex === 3 && (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={getEducationStats(applicants)}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label
-                      style={{ cursor: 'pointer' }}
-                      onClick={(data, index) => {
-                        console.log('Education Pie clicked:', data);
-                        handleEducationPieClick(data.name);
-                      }}
-                    >
-                      {getEducationStats(applicants).map((entry, idx) => (
-                        <Cell key={`cell-edu-${idx}`} fill={CHART_COLORS.EDUCATION[idx % CHART_COLORS.EDUCATION.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend layout="vertical" align="right" verticalAlign="middle" />
-                  </PieChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={getEducationStats(applicants)}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                        style={{ cursor: 'pointer' }}
+                        onClick={(data, index) => {
+                          console.log('Education Pie clicked:', data);
+                          handleEducationPieClick(data.name);
+                        }}
+                      >
+                        {getEducationStats(applicants).map((entry, idx) => (
+                          <Cell key={`cell-edu-${idx}`} fill={CHART_COLORS.EDUCATION[idx % CHART_COLORS.EDUCATION.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend layout="vertical" align="right" verticalAlign="middle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <StatisticsAnalysis
+                    jobPostId={effectiveJobPostId}
+                    chartType={getChartType(3)}
+                    chartData={getChartData(3)}
+                    isVisible={slideIndex === 3}
+                  />
+                </>
               )}
               {slideIndex === 4 && (
-                <div style={{ width: '100%', height: 500 }}>
-                  <ProvinceMapChart 
-                    provinceStats={getProvinceStats(applicants)} 
-                    onProvinceClick={handleProvinceClick}
+                <>
+                  <div style={{ width: '100%', height: 500 }}>
+                    <ProvinceMapChart 
+                      provinceStats={getProvinceStats(applicants)} 
+                      onProvinceClick={handleProvinceClick}
+                    />
+                  </div>
+                  <StatisticsAnalysis
+                    jobPostId={effectiveJobPostId}
+                    chartType={getChartType(4)}
+                    chartData={getChartData(4)}
+                    isVisible={slideIndex === 4}
                   />
-                </div>
+                </>
               )}
               {slideIndex === 5 && (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={getCertificateCountStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill={CHART_COLORS.CERTIFICATE} radius={[6, 6, 0, 0]} 
-                      style={{cursor:'pointer'}} 
-                      onClick={(data, index) => handleCertificateBarClick(data.name)}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={getCertificateCountStats(applicants)} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill={CHART_COLORS.CERTIFICATE} radius={[6, 6, 0, 0]} 
+                        style={{cursor:'pointer'}} 
+                        onClick={(data, index) => handleCertificateBarClick(data.name)}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <StatisticsAnalysis
+                    jobPostId={effectiveJobPostId}
+                    chartType={getChartType(5)}
+                    chartData={getChartData(5)}
+                    isVisible={slideIndex === 5}
+                  />
+                </>
               )}
+              </div>
             </>
           )}
           {modalView === 'list' && (
@@ -699,7 +791,7 @@ export default function ApplicantList() {
               <button className="absolute top-4 right-32 px-4 py-2 bg-blue-100 text-blue-700 rounded" onClick={handleBackToChart}>차트로 돌아가기</button>
             </div>
           )}
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-4 flex-shrink-0">
             <Button onClick={handleModalClose} variant="contained">닫기</Button>
           </div>
         </Box>

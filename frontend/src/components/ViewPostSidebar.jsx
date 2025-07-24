@@ -1,17 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CiSettings, CiUser, CiCalendar } from 'react-icons/ci';
 import { MdOutlinePlayCircle, MdCheckCircle, MdRadioButtonUnchecked } from 'react-icons/md';
 import { MdOutlineAutoAwesome, MdOutlineGroups, MdOutlineBusiness } from 'react-icons/md';
+import axiosInstance from '../api/axiosInstance';
 
 export default function ViewPostSidebar({ jobPost }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { jobPostId: urlJobPostId } = useParams();
   const [isHovered, setIsHovered] = useState(false);
+  const [hasWrittenTestPassed, setHasWrittenTestPassed] = useState(false);
+  const checkedJobPostIdsRef = useRef(new Set()); // 이미 확인한 jobPostId들을 저장 (useRef 사용)
   const headerHeight = 64;
-  // jobPostId가 없으면 빈 문자열로 fallback
-  const effectiveJobPostId = urlJobPostId || jobPost?.id || '';
+  // jobPost 객체의 id를 우선적으로 사용, 없으면 URL 파라미터 사용
+  const effectiveJobPostId = jobPost?.id || urlJobPostId || '';
+  
+  console.log('[ViewPostSidebar] jobPost 정보:', {
+    jobPost: jobPost,
+    jobPostId: jobPost?.id,
+    urlJobPostId: urlJobPostId,
+    effectiveJobPostId: effectiveJobPostId,
+    effectiveJobPostIdType: typeof effectiveJobPostId
+  });
   const interviewReportDone = jobPost?.interviewReportDone;
   const finalReportDone = jobPost?.finalReportDone;
 
@@ -24,6 +35,58 @@ export default function ViewPostSidebar({ jobPost }) {
   const aiInterviewPath = `/interview-progress/${effectiveJobPostId}/ai`;
   const firstInterviewPath = `/interview-progress/${effectiveJobPostId}/first`;
   const secondInterviewPath = `/interview-progress/${effectiveJobPostId}/second`;
+
+  // 필기합격자 데이터 조회
+  useEffect(() => {
+    const checkWrittenTestPassed = async () => {
+      console.log('[ViewPostSidebar] useEffect 실행:', {
+        effectiveJobPostId,
+        checkedJobPostIds: Array.from(checkedJobPostIdsRef.current)
+      });
+      
+      if (!effectiveJobPostId) {
+        console.log('[ViewPostSidebar] effectiveJobPostId가 없어서 API 호출하지 않음');
+        return;
+      }
+      
+      // 이미 확인한 jobPostId인지 체크
+      if (checkedJobPostIdsRef.current.has(effectiveJobPostId)) {
+        console.log('[ViewPostSidebar] 이미 확인한 jobPostId:', effectiveJobPostId);
+        return;
+      }
+      
+      try {
+        console.log('[ViewPostSidebar] API 호출 시작:', `/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        const data = response.data;
+        const passedCount = data?.stats?.passed_applicants_count || 0;
+        console.log('[ViewPostSidebar] 필기합격자 데이터 조회 결과:', {
+          jobPostId: effectiveJobPostId,
+          data: data,
+          passedCount: passedCount,
+          hasWrittenTestPassed: passedCount > 0
+        });
+        setHasWrittenTestPassed(passedCount > 0);
+        
+        // 확인한 jobPostId를 캐시에 추가
+        checkedJobPostIdsRef.current.add(effectiveJobPostId);
+      } catch (error) {
+        console.error('[ViewPostSidebar] 필기합격자 데이터 조회 실패:', error);
+        console.error('[ViewPostSidebar] 에러 상세:', {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        });
+        setHasWrittenTestPassed(false);
+        
+        // 에러가 발생해도 확인한 것으로 표시 (재시도 방지)
+        checkedJobPostIdsRef.current.add(effectiveJobPostId);
+      }
+    };
+
+    console.log('[ViewPostSidebar] useEffect 의존성 변경됨:', { effectiveJobPostId });
+    checkWrittenTestPassed();
+  }, [effectiveJobPostId]); // effectiveJobPostId만 의존성으로 유지
 
   // 현재 경로와 비교
   const isApplicantList = location.pathname === applicantListPath;
@@ -157,7 +220,22 @@ export default function ViewPostSidebar({ jobPost }) {
             onClick={() => navigate(`/report/document?job_post_id=${effectiveJobPostId}`)}
           >
             <MdCheckCircle size={18} />
-            {isHovered && <span className="ml-2 text-sm">서류 보고서</span>}
+            {isHovered && <span className="ml-2 text-sm">서류전형 평가서</span>}
+          </button>
+          {/* 직무적성평가 보고서 버튼 추가 */}
+          <button
+            className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm
+              ${isHovered ? 'justify-start' : 'justify-center'}
+              ${hasWrittenTestPassed 
+                ? 'bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-800'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }
+              ${!hasWrittenTestPassed ? 'opacity-60 cursor-not-allowed' : ''}`}
+            onClick={() => hasWrittenTestPassed && navigate(`/report/job-aptitude?job_post_id=${effectiveJobPostId}`)}
+            disabled={!hasWrittenTestPassed}
+          >
+            {hasWrittenTestPassed ? <MdCheckCircle size={18} /> : <MdRadioButtonUnchecked size={18} />}
+            {isHovered && <span className="ml-2 text-sm">직무적성평가 보고서</span>}
           </button>
           {/* 기존 면접/최종 보고서 버튼 */}
           <button

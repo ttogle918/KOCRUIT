@@ -12,7 +12,7 @@ function DocumentReport() {
 
   useEffect(() => {
     if (jobPostId) {
-      axiosInstance.get(`/api/v1/report/document?job_post_id=${jobPostId}`)
+      axiosInstance.get(`/report/document?job_post_id=${jobPostId}`)
         .then((res) => setData(res.data))
         .catch((error) => {
           console.error('서류 보고서 데이터 조회 실패:', error);

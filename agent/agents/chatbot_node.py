@@ -3,7 +3,10 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
 from .memory_manager import ConversationMemory
-from .rag_system import RAGSystem
+try:
+    from .rag_system import RAGSystem
+except ImportError:
+    RAGSystem = None
 import os
 import redis
 import json
@@ -56,7 +59,7 @@ class ChatbotNode:
             api_key=os.getenv("OPENAI_API_KEY")
         )
         self.memory = ConversationMemory()
-        self.rag_system = RAGSystem()
+        self.rag_system = RAGSystem() if RAGSystem else None
         
         # 페이지별 시스템 프롬프트
         self.page_prompts = {

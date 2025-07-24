@@ -7,6 +7,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
 from agent.agents.pattern_summary_node import PatternSummaryNode
 from langchain_openai import ChatOpenAI
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,13 +38,15 @@ def normalize_degree(degree: str) -> float:
 class ApplicantGrowthScoringService:
     """지원자-고성과자 비교 및 성장 가능성 스코어링 서비스"""
     
-    def __init__(self, high_performer_stats: Dict[str, Any], weights: Optional[Dict[str, float]] = None):
+    def __init__(self, high_performer_stats: Dict[str, Any], high_performer_members: Optional[List[Dict[str, Any]]] = None, weights: Optional[Dict[str, float]] = None):
         """
         Args:
             high_performer_stats: 고성과자 통계(평균 등)
+            high_performer_members: 고성과자 raw 데이터 리스트
             weights: 각 항목별 가중치 (기본값: KPI=0.4, 승진속도=0.3, 학력=0.2, 자격증=0.1)
         """
         self.stats = high_performer_stats
+        self.high_performer_members = high_performer_members
         self.weights = weights or {
             "kpi": 0.4,
             "promotion_speed": 0.3,
@@ -54,12 +57,13 @@ class ApplicantGrowthScoringService:
     def normalize_applicant_specs(self, specs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         지원자 스펙(specs) 리스트를 정규화된 dict로 변환
-        Returns: {degree, certifications_count, promotion_speed, kpi, ...}
+        Returns: {degree, certifications_count, promotion_speed, kpi, experience_years}
         """
         degree = 0.0
         certifications_count = 0
         promotion_speed = None
         kpi = None
+        experience_years = 0.0
         for spec in specs:
             stype = spec.get("spec_type")
             stitle = spec.get("spec_title")
@@ -78,11 +82,17 @@ class ApplicantGrowthScoringService:
                     kpi = float(sdesc) if sdesc is not None else None
                 except:
                     kpi = None
+            elif stype == "experience" and stitle == "years":
+                try:
+                    experience_years = float(sdesc) if sdesc is not None else 0.0
+                except:
+                    experience_years = 0.0
         return {
             "degree": degree,
             "certifications_count": certifications_count,
             "promotion_speed": promotion_speed,
-            "kpi": kpi
+            "kpi": kpi,
+            "experience_years": experience_years,
         }
     
     def score_applicant(self, applicant_specs: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -129,21 +139,30 @@ class ApplicantGrowthScoringService:
             cert_score * self.weights["certifications"]
         )
         # 비교 그래프용 데이터 생성
-        chart_labels = ["KPI", "승진속도", "학력", "자격증"]
+        chart_labels = ["경력(년)", "학력", "자격증"]
         def safe_float(val):
             try:
                 return float(val)
             except (TypeError, ValueError):
                 return 0.0
+        # 경력(년) 추출
+        applicant_exp = safe_float(norm.get("experience_years"))
         applicant_values = [
-            safe_float(norm.get("kpi")),
-            safe_float(norm.get("promotion_speed")),
+            applicant_exp,
             safe_float(norm.get("degree")),
             safe_float(norm.get("certifications_count")),
         ]
+        # 고성과자 평균값 추출
+        high_exp = None
+        if hasattr(self, 'high_performer_members'):
+            members = self.high_performer_members
+            exp_vals = [float(m.get('total_experience_years', 0)) for m in members if m.get('total_experience_years') is not None]
+            if exp_vals:
+                high_exp = sum(exp_vals) / len(exp_vals)
+        if high_exp is None:
+            high_exp = self.stats.get('total_experience_years_mean', 0.0)
         high_performer_values = [
-            safe_float(self.stats.get("kpi_score_mean")),
-            safe_float(self.stats.get("promotion_speed_years_mean")),
+            safe_float(high_exp),
             safe_float(self.stats.get("degree_mean")),
             safe_float(self.stats.get("certifications_count_mean")),
         ]
@@ -165,14 +184,12 @@ class ApplicantGrowthScoringService:
 - 학사 이상이면 '학력이 낮다'고 평가하지 않는다
 
 지원자 주요 스펙:
-- KPI: {norm.get('kpi')} (고성과자 평균: {self.stats.get('kpi_score_mean')})
-- 승진속도: {norm.get('promotion_speed')}년 (고성과자 평균: {self.stats.get('promotion_speed_years_mean')}년)
+- 경력(년): {norm.get('experience_years')} (고성과자 평균: {self.stats.get('total_experience_years_mean', 0.0)})
 - 학력: {norm.get('degree')} (고성과자 평균: {self.stats.get('degree_mean')})
 - 자격증 개수: {norm.get('certifications_count')} (고성과자 평균: {self.stats.get('certifications_count_mean')})
 
 항목별 점수:
-- KPI: {detail['kpi']['score']:.1f}
-- 승진속도: {detail['promotion_speed']['score']:.1f}
+- 경력: {detail.get('experience_years', {}).get('score', 0):.1f}
 - 학력: {detail['degree']['score']:.1f}
 - 자격증: {detail['certifications']['score']:.1f}
 

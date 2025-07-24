@@ -76,6 +76,8 @@ def extract_passed_summary_llm(pass_reasons: list[str]) -> str:
         print(f"[LLM-합격자요약] 오류: {e}")
         return ""
 
+
+
 @router.get("/document")
 async def get_document_report_data(
     job_post_id: int,
@@ -342,4 +344,6 @@ async def download_document_report_pdf(
         print(f"PDF 생성 중 에러 발생: {str(e)}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"PDF 생성 중 오류가 발생했습니다: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"PDF 생성 중 오류가 발생했습니다: {str(e)}")
+
+ 

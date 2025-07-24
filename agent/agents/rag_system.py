@@ -1,30 +1,44 @@
 from typing import List, Dict, Any
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
-import chromadb
+try:
+    from langchain_community.vectorstores import Chroma
+    from langchain_openai import OpenAIEmbeddings
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_core.documents import Document
+    import chromadb
+    HAS_CHROMA = True
+except ImportError:
+    HAS_CHROMA = False
 import os
 
 class RAGSystem:
     def __init__(self, persist_directory: str = "./chroma_db"):
         """RAG 시스템 초기화"""
         self.persist_directory = persist_directory
-        self.embeddings = OpenAIEmbeddings()
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-        )
         
-        # ChromaDB 클라이언트 초기화
-        self.vectorstore = Chroma(
-            persist_directory=persist_directory,
-            embedding_function=self.embeddings
-        )
+        if HAS_CHROMA:
+            self.embeddings = OpenAIEmbeddings()
+            self.text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200,
+                length_function=len,
+            )
+            
+            # ChromaDB 클라이언트 초기화
+            self.vectorstore = Chroma(
+                persist_directory=persist_directory,
+                embedding_function=self.embeddings
+            )
+        else:
+            self.embeddings = None
+            self.text_splitter = None
+            self.vectorstore = None
     
     def add_documents(self, documents: List[str], metadata: List[Dict] = None):
         """문서들을 벡터 데이터베이스에 추가"""
+        if not HAS_CHROMA:
+            print("ChromaDB not available. Skipping document addition.")
+            return
+            
         try:
             # 문서를 청크로 분할
             docs = []

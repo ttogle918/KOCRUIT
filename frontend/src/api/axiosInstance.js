@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 300000, // 5분으로 증가 (AI 일괄 재평가용)
+  timeout: 60000, // 60초로 단축 (하이라이팅 분석용)
   withCredentials: false // Authorization 쓸 때는 이거 false 또는 생략
 });
 

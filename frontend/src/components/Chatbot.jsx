@@ -89,7 +89,7 @@ const chatbotApi = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 30000, // 30초로 증가 (AI 응답 시간 고려)
 });
 
 // 챗봇 API에 토큰 인터셉터 추가

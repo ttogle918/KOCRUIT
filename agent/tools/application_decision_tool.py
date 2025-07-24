@@ -1,6 +1,8 @@
 from langchain_openai import ChatOpenAI
 import json
+from agent.utils.llm_cache import redis_cache
 
+@redis_cache()
 def application_decision_tool(state):
     """
     점수를 기반으로 최종 서류 합격/불합격을 판별합니다.
