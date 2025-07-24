@@ -12,7 +12,8 @@ import {
   CircularProgress,
   Alert,
   Collapse,
-  IconButton
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   TrendingUp,
@@ -20,7 +21,8 @@ import {
   Recommend,
   ExpandMore,
   ExpandLess,
-  Psychology
+  Psychology,
+  SmartToy
 } from '@mui/icons-material';
 import api from '../api/api';
 
@@ -29,6 +31,7 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(true);
+  const [isLLMUsed, setIsLLMUsed] = useState(false);
 
   useEffect(() => {
     if (isVisible && jobPostId && chartType && chartData && chartData.length > 0) {
@@ -48,9 +51,13 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
       });
       
       setAnalysis(response.data);
+      
+      // 백엔드에서 받은 실제 LLM 사용 여부 사용
+      setIsLLMUsed(response.data.is_llm_used || false);
     } catch (err) {
       console.error('통계 분석 요청 실패:', err);
       setError('AI 분석을 불러오는 중 오류가 발생했습니다.');
+      setIsLLMUsed(false);
     } finally {
       setLoading(false);
     }
@@ -86,6 +93,11 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
               AI 분석 결과 - {getChartTypeLabel(chartType)}
             </Typography>
+            {isLLMUsed && (
+              <Tooltip title="GPT-4o-mini 모델을 사용한 고급 AI 분석">
+                <SmartToy sx={{ color: '#00bcd4', fontSize: 20 }} />
+              </Tooltip>
+            )}
           </Box>
           <IconButton 
             onClick={() => setExpanded(!expanded)}
@@ -100,7 +112,7 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
               <CircularProgress size={40} />
               <Typography sx={{ ml: 2, alignSelf: 'center' }}>
-                AI 분석 중...
+                {isLLMUsed ? 'AI 모델이 데이터를 분석하고 있습니다...' : '데이터를 분석하고 있습니다...'}
               </Typography>
             </Box>
           )}
@@ -113,6 +125,16 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
 
           {analysis && !loading && (
             <Box>
+              {/* AI 모델 정보 */}
+              {isLLMUsed && (
+                <Box sx={{ mb: 2, p: 1, backgroundColor: '#e3f2fd', borderRadius: 1, border: '1px solid #bbdefb' }}>
+                  <Typography variant="body2" sx={{ color: '#1565c0', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <SmartToy sx={{ fontSize: 16 }} />
+                    GPT-4o-mini 모델을 사용한 고급 AI 분석
+                  </Typography>
+                </Box>
+              )}
+
               {/* 기본 분석 결과 */}
               <Box sx={{ mb: 3 }}>
                 <Typography 

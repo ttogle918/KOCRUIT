@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from pydantic import BaseModel
 import json
-import requests
+import os
+from langchain_openai import ChatOpenAI
 from app.core.database import get_db
 from app.models.application import Application
 from app.models.resume import Resume
@@ -21,14 +22,127 @@ class StatisticsAnalysisResponse(BaseModel):
     analysis: str
     insights: List[str]
     recommendations: List[str]
+    is_llm_used: bool = False
+
+# LLM 모델 초기화
+def get_llm():
+    """LLM 모델 인스턴스 반환"""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    
+    return ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.3,
+        api_key=api_key
+    )
+
+def analyze_with_llm(chart_data: List[Dict[str, Any]], chart_type: str, job_post: JobPost) -> Dict[str, Any]:
+    """LLM을 사용한 통계 데이터 분석"""
+    llm = get_llm()
+    if not llm:
+        # LLM이 없으면 규칙 기반 분석으로 폴백
+        return analyze_with_rules(chart_data, chart_type, job_post)
+    
+    chart_type_labels = {
+        'trend': '지원 시기별 추이',
+        'age': '연령대별 지원자',
+        'gender': '성별 지원자',
+        'education': '학력별 지원자',
+        'province': '지역별 지원자',
+        'certificate': '자격증 보유 현황'
+    }
+    
+    prompt = f"""
+    다음은 채용공고의 {chart_type_labels.get(chart_type, chart_type)} 통계 데이터입니다.
+
+    채용공고 정보:
+    - 제목: {job_post.title}
+    - 회사: {job_post.company_name}
+    - 직무: {job_post.job_description[:200]}...
+
+    통계 데이터:
+    {json.dumps(chart_data, ensure_ascii=False, indent=2)}
+
+    이 데이터를 분석하여 다음을 제공해주세요:
+
+    1. **기본 분석 결과**: 핵심 통계 정보와 주요 특징
+    2. **주요 인사이트**: 데이터에서 발견된 중요한 패턴과 의미 (3-5개)
+    3. **권장사항**: 채용 전략 개선을 위한 구체적인 제안 (3-5개)
+
+    응답 형식 (JSON):
+    {{
+        "analysis": "📊 **분석 제목**\\n\\n**전체 지원자 수**: X명\\n**주요 특징**: ...",
+        "insights": [
+            "💡 첫 번째 인사이트",
+            "💡 두 번째 인사이트",
+            "💡 세 번째 인사이트"
+        ],
+        "recommendations": [
+            "✅ 첫 번째 권장사항",
+            "✅ 두 번째 권장사항",
+            "✅ 세 번째 권장사항"
+        ]
+    }}
+    """
+    
+    try:
+        response = llm.invoke(prompt)
+        response_text = response.content.strip()
+        
+        # JSON 부분만 추출
+        if "```json" in response_text:
+            start = response_text.find("```json") + 7
+            end = response_text.find("```", start)
+            response_text = response_text[start:end].strip()
+        elif "```" in response_text:
+            start = response_text.find("```") + 3
+            end = response_text.find("```", start)
+            response_text = response_text[start:end].strip()
+        
+        result = json.loads(response_text)
+        return {
+            "analysis": result.get("analysis", ""),
+            "insights": result.get("insights", []),
+            "recommendations": result.get("recommendations", []),
+            "is_llm_used": True
+        }
+        
+    except Exception as e:
+        print(f"LLM 분석 중 오류 발생: {e}")
+        # LLM 실패 시 규칙 기반 분석으로 폴백
+        return analyze_with_rules(chart_data, chart_type, job_post)
+
+def analyze_with_rules(chart_data: List[Dict[str, Any]], chart_type: str, job_post: JobPost) -> Dict[str, Any]:
+    """규칙 기반 분석 (LLM 폴백용)"""
+    if chart_type == 'trend':
+        return analyze_trend_data(chart_data, job_post)
+    elif chart_type == 'age':
+        return analyze_age_data(chart_data, job_post)
+    elif chart_type == 'gender':
+        return analyze_gender_data(chart_data, job_post)
+    elif chart_type == 'education':
+        return analyze_education_data(chart_data, job_post)
+    elif chart_type == 'province':
+        return analyze_province_data(chart_data, job_post)
+    elif chart_type == 'certificate':
+        return analyze_certificate_data(chart_data, job_post)
+    else:
+        return {
+            "analysis": "지원하지 않는 차트 타입입니다.",
+            "insights": [],
+            "recommendations": [],
+            "is_llm_used": False
+        }
 
 def analyze_trend_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dict[str, Any]:
-    """지원 시기별 추이 데이터 분석"""
+    """지원 시기별 추이 데이터 분석 (규칙 기반)"""
     if not chart_data:
         return {
             "analysis": "지원 데이터가 충분하지 않아 분석할 수 없습니다.",
             "insights": [],
-            "recommendations": []
+            "recommendations": [],
+            "is_llm_used": False
         }
     
     # 최고점과 최저점 찾기
@@ -78,16 +192,18 @@ def analyze_trend_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> D
     return {
         "analysis": analysis,
         "insights": insights,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "is_llm_used": False
     }
 
 def analyze_age_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dict[str, Any]:
-    """연령대별 지원자 데이터 분석"""
+    """연령대별 지원자 데이터 분석 (규칙 기반)"""
     if not chart_data:
         return {
             "analysis": "연령대별 데이터가 충분하지 않아 분석할 수 없습니다.",
             "insights": [],
-            "recommendations": []
+            "recommendations": [],
+            "is_llm_used": False
         }
     
     total_applicants = sum(item.get('count', 0) for item in chart_data)
@@ -121,16 +237,18 @@ def analyze_age_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dic
     return {
         "analysis": analysis,
         "insights": insights,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "is_llm_used": False
     }
 
 def analyze_gender_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dict[str, Any]:
-    """성별 지원자 데이터 분석"""
+    """성별 지원자 데이터 분석 (규칙 기반)"""
     if not chart_data:
         return {
             "analysis": "성별 데이터가 충분하지 않아 분석할 수 없습니다.",
             "insights": [],
-            "recommendations": []
+            "recommendations": [],
+            "is_llm_used": False
         }
     
     total_applicants = sum(item.get('value', 0) for item in chart_data)
@@ -165,16 +283,18 @@ def analyze_gender_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> 
     return {
         "analysis": analysis,
         "insights": insights,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "is_llm_used": False
     }
 
 def analyze_education_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dict[str, Any]:
-    """학력별 지원자 데이터 분석"""
+    """학력별 지원자 데이터 분석 (규칙 기반)"""
     if not chart_data:
         return {
             "analysis": "학력별 데이터가 충분하지 않아 분석할 수 없습니다.",
             "insights": [],
-            "recommendations": []
+            "recommendations": [],
+            "is_llm_used": False
         }
     
     total_applicants = sum(item.get('value', 0) for item in chart_data)
@@ -213,16 +333,18 @@ def analyze_education_data(chart_data: List[Dict[str, Any]], job_post: JobPost) 
     return {
         "analysis": analysis,
         "insights": insights,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "is_llm_used": False
     }
 
 def analyze_province_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dict[str, Any]:
-    """지역별 지원자 데이터 분석"""
+    """지역별 지원자 데이터 분석 (규칙 기반)"""
     if not chart_data:
         return {
             "analysis": "지역별 데이터가 충분하지 않아 분석할 수 없습니다.",
             "insights": [],
-            "recommendations": []
+            "recommendations": [],
+            "is_llm_used": False
         }
     
     total_applicants = sum(item.get('value', 0) for item in chart_data)
@@ -261,16 +383,18 @@ def analyze_province_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -
     return {
         "analysis": analysis,
         "insights": insights,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "is_llm_used": False
     }
 
 def analyze_certificate_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dict[str, Any]:
-    """자격증 보유수별 지원자 데이터 분석"""
+    """자격증 보유수별 지원자 데이터 분석 (규칙 기반)"""
     if not chart_data:
         return {
             "analysis": "자격증 데이터가 충분하지 않아 분석할 수 없습니다.",
             "insights": [],
-            "recommendations": []
+            "recommendations": [],
+            "is_llm_used": False
         }
     
     total_applicants = sum(item.get('count', 0) for item in chart_data)
@@ -308,7 +432,8 @@ def analyze_certificate_data(chart_data: List[Dict[str, Any]], job_post: JobPost
     return {
         "analysis": analysis,
         "insights": insights,
-        "recommendations": recommendations
+        "recommendations": recommendations,
+        "is_llm_used": False
     }
 
 @router.post("/analyze", response_model=StatisticsAnalysisResponse)
@@ -320,26 +445,14 @@ async def analyze_statistics(request: StatisticsAnalysisRequest, db: Session = D
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
         
-        # 차트 타입별 분석 함수 호출
-        analysis_functions = {
-            'trend': analyze_trend_data,
-            'age': analyze_age_data,
-            'gender': analyze_gender_data,
-            'education': analyze_education_data,
-            'province': analyze_province_data,
-            'certificate': analyze_certificate_data
-        }
-        
-        if request.chart_type not in analysis_functions:
-            raise HTTPException(status_code=400, detail="Invalid chart type")
-        
-        analysis_func = analysis_functions[request.chart_type]
-        result = analysis_func(request.chart_data, job_post)
+        # LLM 기반 분석 시도 (실패 시 규칙 기반으로 폴백)
+        result = analyze_with_llm(request.chart_data, request.chart_type, job_post)
         
         return StatisticsAnalysisResponse(
             analysis=result["analysis"],
             insights=result["insights"],
-            recommendations=result["recommendations"]
+            recommendations=result["recommendations"],
+            is_llm_used=result["is_llm_used"]
         )
         
     except Exception as e:
