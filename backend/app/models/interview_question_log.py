@@ -22,5 +22,10 @@ class InterviewQuestionLog(Base):
     answer_text = Column(Text)
     answer_audio_url = Column(String(255))
     answer_video_url = Column(String(255))
+    answer_text_transcribed = Column(Text)
+    emotion = Column(String(16))
+    attitude = Column(String(16))
+    answer_score = Column(Integer)  # 또는 Float, DB 타입에 맞게
+    answer_feedback = Column(Text)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now()) 

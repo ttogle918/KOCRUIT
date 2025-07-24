@@ -28,6 +28,7 @@ import {
   formatFileSize,
   formatDate
 } from '../../utils/googleDrive';
+import ResumePage from '../resume/ResumePage';
 
 function AiInterviewSystem() {
   const { jobPostId, applicantId } = useParams();
@@ -523,6 +524,89 @@ function AiInterviewSystem() {
   const [selectedVideoFromFolder, setSelectedVideoFromFolder] = useState(null);
   const [isLoadingFolder, setIsLoadingFolder] = useState(false);
   
+  // 1. 상태 추가
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
+
+  // 2. 지원자 정보 카드 클릭 핸들러
+  const handleResumeModalOpen = () => setIsResumeModalOpen(true);
+  const handleResumeModalClose = () => setIsResumeModalOpen(false);
+
+  // 3. 동영상+지원자 정보 UI
+  const selectedApplicant = applicant; // 현재 페이지에서 사용할 지원자 정보
+  const videoElement = videoRef.current; // 동영상 요소
+
+  // applicant 상태 변화 확인용 콘솔 로그
+  useEffect(() => {
+    if (applicant) {
+      console.log('지원자 정보(applicant):', applicant);
+    }
+  }, [applicant]);
+
+  // 동영상 영역을 aspect-ratio(16:9)로 감싸고, object-fit으로 비율 유지
+  const videoContainerStyle = {
+    position: 'relative',
+    width: '100%',
+    aspectRatio: '16/9',
+    backgroundColor: 'black',
+    overflow: 'hidden', // 카드가 영역 밖으로 나가지 않게
+  };
+
+  // 동영상 위에 지원자 정보 카드 배치 (강조용 배경색 추가)
+  const resumeCardStyle = {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    zIndex: 20,
+    backgroundColor: '#fffbe6', // 강조용 연노랑
+    borderRadius: 8,
+    padding: '12px 18px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    cursor: 'pointer',
+    border: '2px solid #1976d2', // 강조
+    minWidth: 180,
+    minHeight: 80,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  };
+
+  // 동영상 위에 지원자 정보 카드 배치
+  const resumeCardContent = applicant && (
+    <div style={resumeCardStyle} onClick={handleResumeModalOpen}>
+      <div className="font-bold text-lg">{applicant.name}</div>
+      <div className="text-sm text-gray-500">{applicant.email}</div>
+      <div className="text-xs text-gray-400">{applicant.applied_at && new Date(applicant.applied_at).toLocaleString()}</div>
+      <button className="mt-1 px-3 py-1 bg-gray-200 text-gray-700 rounded text-xs">이력서 보기</button>
+    </div>
+  );
+
+  // 동영상 영역 렌더링
+  const videoArea = (
+    <div style={videoContainerStyle}>
+      {resumeCardContent}
+      <video
+        ref={videoRef}
+        src={videoFile || driveVideoUrl}
+        className="w-full h-full object-cover"
+        onTimeUpdate={handleVideoTimeUpdate}
+        onLoadedMetadata={handleVideoLoadedMetadata}
+        onEnded={handleVideoEnded}
+      />
+    </div>
+  );
+
+  // 4. 모달
+  const modal = (
+    isResumeModalOpen && applicant && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6 relative">
+          <button className="absolute top-2 right-2 text-gray-500" onClick={handleResumeModalClose}>✕</button>
+          <ResumePage resume={applicant} />
+        </div>
+      </div>
+    )
+  );
+
   // Google Drive API 키 (실제 환경에서는 환경변수로 관리)
   const GOOGLE_DRIVE_API_KEY = import.meta.env.VITE_GOOGLE_DRIVE_API_KEY || '';
 
@@ -665,6 +749,42 @@ function AiInterviewSystem() {
     }
   };
 
+  // 평가 항목/점수/피드백 예시 (API에서 받아온 데이터로 대체)
+  const evaluationItems = questionScripts.map(q => ({
+    label: q.question,
+    score: q.answer_score || '-',
+    feedback: q.answer_feedback || ''
+  }));
+  const totalScore = evaluationItems.filter(i => i.score !== '-').length > 0
+    ? (evaluationItems.filter(i => i.score !== '-').reduce((sum, i) => sum + (parseFloat(i.score) || 0), 0) / evaluationItems.filter(i => i.score !== '-').length).toFixed(1)
+    : '-';
+  const aiFeedback = evaluationItems.map(i => i.feedback).filter(Boolean).join('\n');
+
+  // 평가 결과 상태
+  const [evaluation, setEvaluation] = useState(null);
+  const [evalLoading, setEvalLoading] = useState(true);
+  const [evalError, setEvalError] = useState(null);
+
+  // 평가 결과 API fetch
+  useEffect(() => {
+    if (!applicantId) return;
+    setEvalLoading(true);
+    setEvalError(null);
+    api.get(`/interview-evaluation/ai-interview/${applicantId}`)
+      .then(res => {
+        if (res.data && res.data.success && res.data.evaluation) {
+          setEvaluation(res.data.evaluation);
+        } else {
+          setEvaluation(null);
+        }
+      })
+      .catch(err => {
+        setEvalError('AI 평가 결과를 불러오지 못했습니다.');
+        setEvaluation(null);
+      })
+      .finally(() => setEvalLoading(false));
+  }, [applicantId]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -680,7 +800,6 @@ function AiInterviewSystem() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <ViewPostSidebar jobPost={jobPost} />
-      
       {/* AI 면접 헤더 */}
       <div className="fixed top-16 left-90 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
@@ -693,20 +812,8 @@ function AiInterviewSystem() {
               실시간 평가 메트릭 기반 자동 면접
             </p>
           </div>
-          
           <div className="flex items-center gap-4">
-            {/* 연결 상태 */}
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-              connectionStatus === 'connected' 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-red-100 text-red-800'
-            }`}>
-              <div className={`w-2 h-2 rounded-full ${
-                connectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'
-              }`}></div>
-              {connectionStatus === 'connected' ? '연결됨' : '연결 안됨'}
-            </div>
-            
+            {/* 연결 상태 UI 완전 제거 */}
             {/* 면접 상태 */}
             <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
               {interviewState === 'preparation' && '준비 중'}
@@ -717,501 +824,133 @@ function AiInterviewSystem() {
         </div>
       </div>
 
-      {/* 메인 콘텐츠 - 사이드바에 가려지지 않도록 여백 추가 */}
-      <div className="pt-32 pb-8 px-6 ml-90">
-        <div className="max-w-7xl mx-auto">
-          
-          {/* 면접 단계 표시 */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">면접 진행 단계</h2>
-              <span className="text-sm text-gray-500">단계 {currentStep + 1} / {interviewSteps.length}</span>
-            </div>
-            <div className="flex items-center space-x-4 overflow-x-auto">
-              {interviewSteps.map((step, index) => (
-                <div key={step.id} className="flex items-center flex-shrink-0">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                    index <= currentStep 
-                      ? 'bg-green-500 border-green-500 text-white' 
-                      : 'bg-gray-200 border-gray-300 text-gray-500'
-                  }`}>
-                    <step.icon size={20} />
-                  </div>
-                  <span className={`ml-2 text-sm font-medium ${
-                    index <= currentStep ? 'text-green-600' : 'text-gray-500'
-                  }`}>
-                    {step.title}
-                  </span>
-                  {index < interviewSteps.length - 1 && (
-                    <div className={`w-8 h-0.5 mx-2 ${
-                      index < currentStep ? 'bg-green-500' : 'bg-gray-300'
-                    }`}></div>
-                  )}
+      {/* 반응형 3분할 레이아웃 - 좌측 여백/세로 가득 */}
+      <div className="w-full overflow-x-auto pt-40 ml-[90px] md:ml-[180px] h-screen">
+        <div className="w-full flex flex-col md:flex-row gap-0 md:gap-2 h-full">
+          {/* 왼쪽: 면접 동영상 */}
+          <div className="flex-1 mb-4 md:mb-0 flex flex-col h-full">
+            <div className="bg-white rounded-lg shadow-md p-4 md:p-6 flex-1 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <FiVideo />
+                  면접 동영상
+                </h3>
+                <div className="flex gap-2">
+                  <button onClick={selectDriveVideo} className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">Drive 연동</button>
+                  <button onClick={() => document.getElementById('video-upload').click()} className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">로컬 업로드</button>
+                  <input id="video-upload" type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
                 </div>
-              ))}
+              </div>
+              {/* 동영상 플레이어 */}
+              <div className="relative bg-black rounded-lg overflow-hidden flex-1">
+                {videoFile ? (
+                  <>
+                    {videoArea}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <button onClick={toggleVideoPlay} className="bg-black bg-opacity-50 text-white p-3 rounded-full hover:bg-opacity-70">{isVideoPlaying ? <FiPause size={24} /> : <FiPlay size={24} />}</button>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-2">
+                      <div className="w-full bg-gray-600 rounded-full h-1">
+                        <div className="bg-blue-500 h-1 rounded-full transition-all" style={{ width: `${videoProgress}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">{driveVideoId ? 'Google Drive' : '로컬 파일'}</div>
+                    {selectedVideoFromFolder && (<div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">{selectedVideoFromFolder.name}</div>)}
+                  </>
+                ) : (
+                  <div className="w-full h-64 flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <FiVideo size={48} className="mx-auto mb-2" />
+                      <p>동영상을 업로드하거나 Drive에서 연동하세요</p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        <p>• Google Drive: 공유 링크로 연동</p>
+                        <p>• 로컬 파일: 직접 업로드</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* 카메라/마이크 컨트롤 */}
+              <div className="mt-4 flex gap-2">
+                <button onClick={toggleCamera} className={`flex-1 py-2 px-3 rounded text-sm font-medium ${isCameraOn ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}>{isCameraOn ? <FiVideo /> : <FiVideoOff />} 카메라</button>
+                <button onClick={toggleMic} className={`flex-1 py-2 px-3 rounded text-sm font-medium ${isMicOn ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}>{isMicOn ? <FiMic /> : <FiMicOff />} 마이크</button>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            
-            {/* 왼쪽: 지원자 정보 및 동영상 */}
-            <div className="xl:col-span-1 space-y-6">
-              
-              {/* 지원자 정보 */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <FiUser />
-                  지원자 정보
-                </h3>
-                {applicant && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 font-semibold">
-                          {applicant.name?.charAt(0) || 'A'}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{applicant.email || 'hong41@example.com'}</p>
-                        <p className="text-sm text-gray-500">경력: N/A</p>
-                        <p className="text-sm text-gray-500">학력: N/A</p>
-                      </div>
-                    </div>
-                      </div>
-                )}
-                      </div>
-
-              {/* 동영상 뷰 */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <FiVideo />
-                    면접 동영상
-                  </h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={selectDriveVideo}
-                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
-                    >
-                      Drive 연동
-                    </button>
-                    <button
-                      onClick={() => document.getElementById('video-upload').click()}
-                      className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                    >
-                      로컬 업로드
-                    </button>
-                    <input
-                      id="video-upload"
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                    />
-                    </div>
-                </div>
-
-                {/* 폴더 동영상 선택 모달 */}
-                {showFolderVideos && (
-                  <div className="mb-4 bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-800 flex items-center gap-2">
-                        <FiFolder />
-                        폴더 내 동영상 선택
-                      </h4>
-                      <button
-                        onClick={closeFolderVideos}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    
-                    {isLoadingFolder ? (
-                      <div className="text-center py-4">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                        <p className="text-sm text-gray-600">폴더를 불러오는 중...</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {folderVideos.map((video) => (
-                          <div
-                            key={video.id}
-                            onClick={() => selectVideoFromFolder(video)}
-                            className="flex items-center justify-between p-3 bg-white rounded border cursor-pointer hover:bg-blue-50 transition-colors"
-                          >
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-800 truncate">{video.name}</p>
-                              <div className="flex gap-4 text-xs text-gray-500 mt-1">
-                                <span>{formatFileSize(video.size)}</span>
-                                <span>{formatDate(video.createdTime)}</span>
-                              </div>
-                            </div>
-                            <FiPlay className="text-blue-500" />
-                          </div>
-                        ))}
-                  </div>
-                )}
+          {/* 가운데: 질문-답변 스크립트 */}
+          <div className="flex-1 mb-4 md:mb-0 flex flex-col h-full">
+            <div className="bg-white rounded-lg shadow-md p-4 md:p-6 flex-1 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2"><FiTarget />질문-답변 스크립트</h3>
+                <button onClick={toggleScripts} className="text-blue-500 hover:text-blue-700 text-sm">{showScripts ? '숨기기' : '보기'}</button>
               </div>
-                )}
-                
-                <div className="relative bg-black rounded-lg overflow-hidden">
-                  {videoFile ? (
-                    <>
-                  <video
-                    ref={videoRef}
-
-                        src={videoFile}
-                        className="w-full h-64 object-cover"
-                        onTimeUpdate={handleVideoTimeUpdate}
-                        onLoadedMetadata={handleVideoLoadedMetadata}
-                        onEnded={handleVideoEnded}
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <button
-                          onClick={toggleVideoPlay}
-                          className="bg-black bg-opacity-50 text-white p-3 rounded-full hover:bg-opacity-70"
-                        >
-                          {isVideoPlaying ? <FiPause size={24} /> : <FiPlay size={24} />}
-                        </button>
+              {showScripts && (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {questionScripts.length > 0 ? questionScripts.map((script, index) => (
+                    <div key={script.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <span className="text-sm font-medium text-blue-600">질문 {script.id}</span>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{script.category}</span>
                       </div>
-                      {/* 진행률 바 */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-2">
-                        <div className="w-full bg-gray-600 rounded-full h-1">
-                          <div 
-                            className="bg-blue-500 h-1 rounded-full transition-all"
-                            style={{ width: `${videoProgress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      {/* 동영상 소스 표시 */}
-                      <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                        {driveVideoId ? 'Google Drive' : '로컬 파일'}
-                      </div>
-                      
-                      {/* 선택된 동영상 정보 */}
-                      {selectedVideoFromFolder && (
-                        <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                          {selectedVideoFromFolder.name}
+                      <p className="text-gray-800 mb-3 font-medium">{script.question}</p>
+                      {script.answer ? (
+                        <div className="mb-2"><span className="text-green-700 font-semibold">답변:</span><p className="text-gray-700 mt-1 whitespace-pre-line">{script.answer}</p></div>
+                      ) : (
+                        <div className="mb-2 text-gray-400 italic">아직 답변이 없습니다.</div>
+                      )}
+                      {script.answer_audio_url && (<audio controls src={script.answer_audio_url} className="mt-2 w-full">오디오 답변을 지원하지 않는 브라우저입니다.</audio>)}
+                      {script.answer_video_url && (<video controls src={script.answer_video_url} className="mt-2 w-full h-40">비디오 답변을 지원하지 않는 브라우저입니다.</video>)}
+                      {script.timestamp && (<p className="text-xs text-gray-500 mt-1">답변 시간: {new Date(script.timestamp).toLocaleTimeString()}</p>)}
                     </div>
-                  )}
-                    </>
-                  ) : (
-                    <div className="w-full h-64 flex items-center justify-center text-gray-400">
-                      <div className="text-center">
-                        <FiVideo size={48} className="mx-auto mb-2" />
-                        <p>동영상을 업로드하거나 Drive에서 연동하세요</p>
-                        <div className="mt-2 text-xs text-gray-500">
-                          <p>• Google Drive: 공유 링크로 연동</p>
-                          <p>• 로컬 파일: 직접 업로드</p>
-                        </div>
-                      </div>
-                    </div>
+                  )) : (
+                    <div className="text-center text-gray-500 py-8"><FiTarget size={48} className="mx-auto mb-2" /><p>질문-답변 스크립트가 없습니다</p></div>
                   )}
                 </div>
-                  
-                  {/* 카메라/마이크 컨트롤 */}
-                <div className="mt-4 flex gap-2">
-                    <button
-                      onClick={toggleCamera}
-                    className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
-                        isCameraOn 
-                          ? 'bg-green-500 text-white' 
-                        : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                    {isCameraOn ? <FiVideo /> : <FiVideoOff />} 카메라
-                    </button>
-                    <button
-                      onClick={toggleMic}
-                    className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
-                        isMicOn 
-                          ? 'bg-green-500 text-white' 
-                        : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                    {isMicOn ? <FiMic /> : <FiMicOff />} 마이크
-                    </button>
-                  </div>
-                </div>
-                
-                {/* 카메라/마이크 컨트롤 */}
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={toggleCamera}
-                    className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
-                      isCameraOn 
-                        ? 'bg-green-500 text-white' 
-                        : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {isCameraOn ? <FiVideo /> : <FiVideoOff />} 카메라
-                  </button>
-                  <button
-                    onClick={toggleMic}
-                    className={`flex-1 py-2 px-3 rounded text-sm font-medium ${
-                      isMicOn 
-                        ? 'bg-green-500 text-white' 
-                        : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {isMicOn ? <FiMic /> : <FiMicOff />} 마이크
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
+          </div>
 
-            {/* 중앙: 질문-답변 스크립트 */}
-            <div className="xl:col-span-1">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <FiTarget />
-                    질문-답변 스크립트
-                  </h3>
-                  <button
-                    onClick={toggleScripts}
-                    className="text-blue-500 hover:text-blue-700 text-sm"
-                  >
-                    {showScripts ? '숨기기' : '보기'}
-                  </button>
-                </div>
-                
-                {showScripts && questionScripts.length > 0 && (
-                  <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {questionScripts.map((script, index) => (
-                      <div key={script.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-sm font-medium text-blue-600">질문 {script.id}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            {script.category}
-                          </span>
-                        </div>
-                        <p className="text-gray-800 mb-3 font-medium">{script.question}</p>
-                        <textarea
-                          value={script.answer}
-                          onChange={(e) => handleAnswerInput(script.id, e.target.value)}
-                          placeholder="답변을 입력하세요..."
-                          className="w-full p-2 border border-gray-300 rounded text-sm resize-none"
-                          rows="3"
-                        />
-                        {script.timestamp && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            답변 시간: {new Date(script.timestamp).toLocaleTimeString()}
-                          </p>
-                        )}
+          {/* 오른쪽: 평가/점수/피드백 */}
+          <div className="flex-1 flex flex-col h-full">
+            <div className="bg-white rounded-lg shadow-md p-4 md:p-6 flex-1 flex flex-col h-full">
+              {evalLoading ? (
+                <div className="flex-1 flex items-center justify-center text-gray-400">AI 평가 결과 로딩 중...</div>
+              ) : evalError ? (
+                <div className="flex-1 flex items-center justify-center text-red-400">{evalError}</div>
+              ) : evaluation ? (
+                <>
+                  {/* 최종 점수 */}
+                  <div className="mb-6 text-center">
+                    <div className="text-4xl font-bold text-blue-600">{evaluation.total_score}점</div>
+                    <div className="text-sm text-gray-500">최종 점수</div>
+                  </div>
+                  {/* 평가 항목별 점수 (스크롤) */}
+                  <div className="flex-1 overflow-y-auto mb-4">
+                    {evaluation.evaluation_items && evaluation.evaluation_items.length > 0 ? evaluation.evaluation_items.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between py-2 border-b">
+                        <span className="font-medium truncate max-w-[60%]">{item.evaluate_type}</span>
+                        <span className="text-blue-700 font-bold">{item.evaluate_score}점</span>
+                        {item.comment && <span className="ml-2 text-xs text-gray-400">{item.comment}</span>}
                       </div>
-                    ))}
+                    )) : (
+                      <div className="text-gray-400 text-center py-8">평가 항목이 없습니다.</div>
+                    )}
                   </div>
-                )}
-                
-                {(!showScripts || questionScripts.length === 0) && (
-                  <div className="text-center text-gray-500 py-8">
-                    <FiTarget size={48} className="mx-auto mb-2" />
-                    <p>질문-답변 스크립트가 없습니다</p>
+                  {/* AI 피드백 */}
+                  <div className="mt-4">
+                    <div className="text-sm text-gray-500 mb-1">AI 피드백</div>
+                    <div className="bg-gray-50 rounded p-3 text-gray-700 text-sm min-h-[60px] whitespace-pre-line">{evaluation.summary || '피드백이 없습니다.'}</div>
                   </div>
-                )}
-              </div>
-
-            {/* 중앙: 질문-답변 스크립트 */}
-            <div className="xl:col-span-1">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <FiTarget />
-                    질문-답변 스크립트
-                  </h3>
-                  <button
-                    onClick={toggleScripts}
-                    className="text-blue-500 hover:text-blue-700 text-sm"
-                  >
-                    {showScripts ? '숨기기' : '보기'}
-                  </button>
-                </div>
-                
-                {showScripts && questionScripts.length > 0 && (
-                  <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {questionScripts.map((script, index) => (
-                      <div key={script.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-sm font-medium text-blue-600">질문 {script.id}</span>
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                            {script.category}
-                          </span>
-                        </div>
-                        <p className="text-gray-800 mb-3 font-medium">{script.question}</p>
-                        {script.answer ? (
-                          <div className="mb-2">
-                            <span className="text-green-700 font-semibold">답변:</span>
-                            <p className="text-gray-700 mt-1 whitespace-pre-line">{script.answer}</p>
-                          </div>
-                        ) : (
-                          <div className="mb-2 text-gray-400 italic">아직 답변이 없습니다.</div>
-                        )}
-                        {/* 오디오 답변 */}
-                        {script.answer_audio_url && (
-                          <audio controls src={script.answer_audio_url} className="mt-2 w-full">
-                            오디오 답변을 지원하지 않는 브라우저입니다.
-                          </audio>
-                        )}
-                        {/* 비디오 답변 */}
-                        {script.answer_video_url && (
-                          <video controls src={script.answer_video_url} className="mt-2 w-full h-40">
-                            비디오 답변을 지원하지 않는 브라우저입니다.
-                          </video>
-                        )}
-                        {script.timestamp && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            답변 시간: {new Date(script.timestamp).toLocaleTimeString()}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                {(!showScripts || questionScripts.length === 0) && (
-                  <div className="text-center text-gray-500 py-8">
-                    <FiTarget size={48} className="mx-auto mb-2" />
-                    <p>질문-답변 스크립트가 없습니다</p>
-                  </div>
-                )}
-              </div>
-
-              {/* 면접 컨트롤 */}
-              <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">면접 컨트롤</h3>
-                <div className="space-y-3">
-                  {interviewState === 'preparation' && (
-                    <button
-                      onClick={startInterview}
-                      className="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <FiPlay />
-                      면접 시작
-                    </button>
-                  )}
-                  
-                  {interviewState === 'active' && (
-                    <>
-                      <button
-                        onClick={nextQuestion}
-                        className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors"
-                      >
-                        다음 질문
-                      </button>
-                      <button
-                        onClick={completeInterview}
-                        className="w-full bg-red-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-600 transition-colors"
-                      >
-                        면접 종료
-                      </button>
-                    </>
-                  )}
-                  
-                  {interviewState === 'completed' && (
-                    <button
-                      onClick={() => navigate(`/interview-progress/${jobPostId}/ai`)}
-                      className="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors"
-                    >
-                      면접 목록으로 돌아가기
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 오른쪽: 실시간 평가 및 채점기준 */}
-            <div className="xl:col-span-1 space-y-6">
-              
-              {/* 실시간 평가 */}
-                <div className="bg-white rounded-lg shadow-md p-6">
-
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                    <FiTrendingUp />
-                    실시간 평가
-                  </h3>
-                      <button
-                    onClick={toggleScoringCriteria}
-                    className="text-blue-500 hover:text-blue-700 text-sm"
-                      >
-                    채점기준
-                      </button>
-            </div>
-
-                
-                <div className="space-y-4">
-                  {Object.entries(evaluationMetrics).map(([category, data]) => (
-                    <div key={category} className="border border-gray-200 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-
-                        <span className="text-sm font-medium text-gray-700">
-                          {category === 'language_ability' && '언어능력'}
-                          {category === 'non_verbal_behavior' && '비언어행동'}
-                          {category === 'psychological_traits' && '심리성향'}
-                          {category === 'cognitive_ability' && '인지능력'}
-                          {category === 'job_fit' && '직무적합도'}
-                          {category === 'interview_reliability' && '면접신뢰도'}
-                      </span>
-                        <span className="text-sm font-bold text-blue-600">{data.score.toFixed(1)}점</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                          className="bg-blue-500 h-2 rounded-full transition-all"
-                          style={{ width: `${data.score}%` }}
-                      ></div>
-                    </div>
-                    </div>
-                  ))}
-                    </div>
-                  </div>
-
-
-              {/* 채점기준 상세 */}
-              {showScoringCriteria && (
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FiAward />
-                    채점기준 상세
-                  </h3>
-                  <div className="space-y-4 max-h-64 overflow-y-auto">
-                    {Object.entries(scoringCriteria).map(([category, criteria]) => (
-                      <div key={category} className="border border-gray-200 rounded-lg p-3">
-                        <h4 className="font-medium text-gray-800 mb-2">
-                          {category === 'language_ability' && '언어능력'}
-                          {category === 'non_verbal_behavior' && '비언어행동'}
-                          {category === 'psychological_traits' && '심리성향'}
-                          {category === 'cognitive_ability' && '인지능력'}
-                          {category === 'job_fit' && '직무적합도'}
-                          {category === 'interview_reliability' && '면접신뢰도'}
-                        </h4>
-                        {Object.entries(criteria).map(([subCategory, details]) => (
-                          <div key={subCategory} className="mb-2">
-                            <p className="text-sm text-gray-600 mb-1">{details.description}</p>
-                            <div className="flex gap-2 text-xs">
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                                상: {details.excellent}점 이상
-                              </span>
-                              <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                                중: {details.good}점 이상
-                              </span>
-                              <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
-                                하: {details.poor}점 미만
-                              </span>
-                      </div>
-                    </div>
-                        ))}
-                        </div>
-
-                    ))}
-                  </div>
-                </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-gray-400">AI 평가 결과가 없습니다.</div>
               )}
             </div>
           </div>
         </div>
       </div>
+      {modal}
     </div>
   );
 }

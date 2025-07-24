@@ -25,9 +25,6 @@ import json
 
 from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
 from app.models.interview_question_log import InterviewQuestionLog, InterviewType
-from agent.tools.speech_recognition_tool import SpeechRecognitionTool
-from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
-from agent.tools.answer_grading_tool import grade_written_test_answer
 import tempfile
 import os
 
@@ -1852,24 +1849,11 @@ def get_interview_question_logs_by_application(
     interview_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """특정 지원자의 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환 (오디오 분석/점수화 포함)"""
-    from agent.tools.speech_recognition_tool import SpeechRecognitionTool
-    from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
-    from agent.tools.answer_grading_tool import grade_written_test_answer
-    import random
-    import os
-
+    """특정 지원자의 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환 (DB에서 읽기만)"""
     query = db.query(InterviewQuestionLog).filter(InterviewQuestionLog.application_id == application_id)
     if interview_type:
         query = query.filter(InterviewQuestionLog.interview_type == interview_type)
     logs = query.order_by(InterviewQuestionLog.created_at).all()
-
-    # 오디오 분석 예시 3개만 무작위 선택 (오디오가 있는 것 중)
-    audio_logs = [log for log in logs if log.answer_audio_url]
-    audio_logs_to_analyze = set(random.sample(audio_logs, min(3, len(audio_logs))))
-
-    speech_tool = SpeechRecognitionTool()
-    realtime_tool = RealtimeInterviewEvaluationTool()
 
     result = []
     for log in logs:
@@ -1880,35 +1864,14 @@ def get_interview_question_logs_by_application(
             "answer_text": log.answer_text,
             "answer_audio_url": log.answer_audio_url,
             "answer_video_url": log.answer_video_url,
+            "answer_text_transcribed": log.answer_text_transcribed,
+            "emotion": log.emotion,
+            "attitude": log.attitude,
+            "answer_score": log.answer_score,
+            "answer_feedback": log.answer_feedback,
             "created_at": log.created_at,
             "updated_at": log.updated_at
         }
-        # 오디오가 있고, 예시 3개 중 하나라면 오디오 분석
-        if log in audio_logs_to_analyze and log.answer_audio_url and os.path.exists(log.answer_audio_url):
-            # 1. 오디오→텍스트 변환
-            trans_result = speech_tool.transcribe_audio(log.answer_audio_url)
-            trans_text = trans_result.get("text", "")
-            item["answer_text_transcribed"] = trans_text
-            # 2. 감정/태도 분석 (간단화: 긍정/보통/부정)
-            eval_result = realtime_tool._evaluate_realtime_content(trans_text, "applicant", 0)
-            sentiment = eval_result.get("sentiment", "neutral")
-            if sentiment == "positive":
-                emotion = attitude = "긍정"
-            elif sentiment == "negative":
-                emotion = attitude = "부정"
-            else:
-                emotion = attitude = "보통"
-            item["emotion"] = emotion
-            item["attitude"] = attitude
-            # 3. 답변 점수화 (오디오→텍스트 기준)
-            grade = grade_written_test_answer(log.question_text, trans_text)
-            item["answer_score"] = grade.get("score")
-            item["answer_feedback"] = grade.get("feedback")
-        else:
-            # 오디오 없으면 텍스트 답변만 점수화
-            grade = grade_written_test_answer(log.question_text, log.answer_text or "")
-            item["answer_score"] = grade.get("score")
-            item["answer_feedback"] = grade.get("feedback")
         result.append(item)
     return result
 
@@ -1950,55 +1913,47 @@ async def evaluate_audio(
     audio_file: UploadFile = File(...)
 ):
     """
-    오디오 파일을 받아 실시간으로 STT, 감정/태도, 답변 점수화 결과를 반환
+    오디오 파일을 받아 agent 컨테이너에 전달하여 실시간 분석 후 결과 반환
     """
+    import httpx
+    
     # 1. 임시 파일로 저장
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(await audio_file.read())
         tmp_path = tmp.name
 
     try:
-        # 2. 오디오→텍스트(STT)
-        speech_tool = SpeechRecognitionTool()
-        trans_result = speech_tool.transcribe_audio(tmp_path)
-        trans_text = trans_result.get("text", "")
-
-        # 3. 감정/태도 분석
-        realtime_tool = RealtimeInterviewEvaluationTool()
-        eval_result = realtime_tool._evaluate_realtime_content(trans_text, "applicant", 0)
-        sentiment = eval_result.get("sentiment", "neutral")
-        if sentiment == "positive":
-            emotion = attitude = "긍정"
-        elif sentiment == "negative":
-            emotion = attitude = "부정"
-        else:
-            emotion = attitude = "보통"
-
-        # 4. 답변 점수화
-        grade = grade_written_test_answer(question_text, trans_text)
-        answer_score = grade.get("score")
-        answer_feedback = grade.get("feedback")
-
-        # DB 저장
+        # 2. agent 컨테이너에 HTTP 요청으로 분석 요청
+        async with httpx.AsyncClient() as client:
+            with open(tmp_path, "rb") as f:
+                files = {"audio_file": f}
+                data = {
+                    "application_id": application_id,
+                    "question_id": question_id,
+                    "question_text": question_text
+                }
+                response = await client.post(
+                    "http://agent:8001/evaluate-audio",
+                    files=files,
+                    data=data
+                )
+                result = response.json()
+        
+        # 3. DB 저장
         db = next(get_db())  # Depends 사용 불가 시 직접 호출
         log = db.query(InterviewQuestionLog).filter(
             InterviewQuestionLog.application_id == application_id,
             InterviewQuestionLog.question_id == question_id
         ).first()
         if log:
-            log.answer_text_transcribed = trans_text
-            log.emotion = emotion
-            log.attitude = attitude
-            log.answer_score = answer_score
-            log.answer_feedback = answer_feedback
+            log.answer_text_transcribed = result.get("answer_text_transcribed")
+            log.emotion = result.get("emotion")
+            log.attitude = result.get("attitude")
+            log.answer_score = result.get("answer_score")
+            log.answer_feedback = result.get("answer_feedback")
             db.commit()
-        return {
-            "answer_text_transcribed": trans_text,
-            "emotion": emotion,
-            "attitude": attitude,
-            "answer_score": answer_score,
-            "answer_feedback": answer_feedback,
-        }
+        
+        return result
     finally:
         # 임시 파일 삭제
         if os.path.exists(tmp_path):

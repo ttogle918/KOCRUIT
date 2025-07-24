@@ -18,6 +18,13 @@ import os
 from fastapi import HTTPException
 from langchain_openai import ChatOpenAI
 import json
+from fastapi import FastAPI, File, UploadFile, Form
+from fastapi.middleware.cors import CORSMiddleware
+import tempfile
+import os
+from agent.tools.speech_recognition_tool import SpeechRecognitionTool
+from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
+from agent.tools.answer_grading_tool import grade_written_test_answer
 
 load_dotenv()
 
@@ -751,6 +758,55 @@ async def ai_interview_evaluation_api(request: Request):
             "success": False,
             "error": str(e)
         }
+
+@app.post("/evaluate-audio")
+async def evaluate_audio(
+    application_id: int = Form(...),
+    question_id: int = Form(...),
+    question_text: str = Form(...),
+    audio_file: UploadFile = File(...)
+):
+    """
+    오디오 파일을 받아 실시간으로 STT, 감정/태도, 답변 점수화 결과를 반환
+    """
+    # 1. 임시 파일로 저장
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(await audio_file.read())
+        tmp_path = tmp.name
+
+    try:
+        # 2. 오디오→텍스트(STT)
+        speech_tool = SpeechRecognitionTool()
+        trans_result = speech_tool.transcribe_audio(tmp_path)
+        trans_text = trans_result.get("text", "")
+
+        # 3. 감정/태도 분석
+        realtime_tool = RealtimeInterviewEvaluationTool()
+        eval_result = realtime_tool._evaluate_realtime_content(trans_text, "applicant", 0)
+        sentiment = eval_result.get("sentiment", "neutral")
+        if sentiment == "positive":
+            emotion = attitude = "긍정"
+        elif sentiment == "negative":
+            emotion = attitude = "부정"
+        else:
+            emotion = attitude = "보통"
+
+        # 4. 답변 점수화
+        grade = grade_written_test_answer(question_text, trans_text)
+        answer_score = grade.get("score")
+        answer_feedback = grade.get("feedback")
+
+        return {
+            "answer_text_transcribed": trans_text,
+            "emotion": emotion,
+            "attitude": attitude,
+            "answer_score": answer_score,
+            "answer_feedback": answer_feedback,
+        }
+    finally:
+        # 임시 파일 삭제
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 if __name__ == "__main__":
     import uvicorn

@@ -541,9 +541,20 @@ async def upload_interview_audio(
             content = await audio_file.read()
             buffer.write(content)
         
-        # 데이터베이스에 녹음 파일 정보 저장 (필요시)
-        # 여기서는 파일 경로를 application 테이블에 저장하거나 별도 테이블에 저장할 수 있습니다.
+        # 2. DB 기록 (status='pending')
+        log = InterviewQuestionLog(
+            application_id=application_id,
+            question_id=question_id,
+            answer_audio_url=file_path,
+            status='pending',
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
         
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+
         return {
             "message": "녹음 파일이 성공적으로 업로드되었습니다.",
             "filename": unique_filename,
