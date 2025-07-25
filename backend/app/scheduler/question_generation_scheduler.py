@@ -7,6 +7,8 @@ question_generation_scheduler.py
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from pytz import timezone
+KST = timezone('Asia/Seoul')
 from app.core.database import SessionLocal
 from app.models.job import JobPost
 from app.models.application import Application, DocumentStatus, InterviewStatus
@@ -120,12 +122,12 @@ class QuestionGenerationScheduler:
             from apscheduler.schedulers.background import BackgroundScheduler
             from apscheduler.triggers.cron import CronTrigger
             
-            scheduler = BackgroundScheduler()
+            scheduler = BackgroundScheduler(timezone=KST)
             
             # 공통 질문 생성: 매일 새벽 2시
             scheduler.add_job(
                 QuestionGenerationScheduler.generate_common_questions_for_new_job_posts,
-                CronTrigger(hour=2, minute=0),
+                CronTrigger(hour=2, minute=0, timezone=KST),
                 id='generate_common_questions',
                 replace_existing=True
             )
@@ -133,7 +135,7 @@ class QuestionGenerationScheduler:
             # 개별 질문 생성: 매시간
             scheduler.add_job(
                 QuestionGenerationScheduler.generate_individual_questions_for_scheduled_interviews,
-                CronTrigger(minute=0),  # 매시간 정각
+                CronTrigger(minute=0, timezone=KST),  # 매시간 정각
                 id='generate_individual_questions',
                 replace_existing=True
             )

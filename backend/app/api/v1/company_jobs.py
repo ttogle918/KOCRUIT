@@ -20,6 +20,8 @@ from app.api.v1.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
 from app.models.application import ApplyStatus, InterviewStatus
 from app.models.schedule import ScheduleInterview
+from pytz import timezone
+KST = timezone('Asia/Seoul')
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -271,19 +273,16 @@ def create_company_job_post(
                 interview_date = schedule_data.interview_date
                 interview_time = schedule_data.interview_time
                 location = schedule_data.location
-            
             # 날짜와 시간을 합쳐서 datetime 객체 생성
             if interview_date and interview_time:
                 try:
-                    # YYYY-MM-DD HH:MM 형식으로 합치기
                     datetime_str = f"{interview_date} {interview_time}:00"
                     scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                    scheduled_at = KST.localize(scheduled_at)
                 except ValueError:
-                    # 기본값으로 현재 시간 사용
-                    scheduled_at = datetime.utcnow()
+                    scheduled_at = datetime.now(KST)
             else:
-                scheduled_at = datetime.utcnow()
-            
+                scheduled_at = datetime.now(KST)
             # Schedule 테이블에 저장
             interview_schedule = Schedule(
                 schedule_type="interview",
@@ -642,10 +641,11 @@ def update_company_job_post(
                     try:
                         datetime_str = f"{interview_date} {interview_time}:00"
                         scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                        scheduled_at = KST.localize(scheduled_at)
                     except ValueError:
-                        scheduled_at = datetime.utcnow()
+                        scheduled_at = datetime.now(KST)
                 else:
-                    scheduled_at = datetime.utcnow()
+                    scheduled_at = datetime.now(KST)
                 
                 # Schedule 테이블에 저장
                 interview_schedule = Schedule(

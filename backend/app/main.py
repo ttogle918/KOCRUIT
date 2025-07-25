@@ -28,6 +28,7 @@ logging.basicConfig(
 from app.scheduler.job_status_scheduler import JobStatusScheduler
 from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
 from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
+from app.scheduler.interview_reminder_scheduler import start_interview_reminder_scheduler
 
 
 def safe_create_tables():
@@ -112,6 +113,14 @@ async def lifespan(app: FastAPI):
         print("면접 질문 생성 스케줄러 시작 완료")
     except Exception as e:
         print(f"면접 질문 생성 스케줄러 시작 실패: {e}")
+    
+    # 면접 일정 리마인더 스케줄러 시작
+    print("Starting Interview Reminder scheduler...")
+    try:
+        start_interview_reminder_scheduler()
+        print("면접 일정 리마인더 스케줄러 시작 완료")
+    except Exception as e:
+        print(f"면접 일정 리마인더 스케줄러 시작 실패: {e}")
     
     # 시드 데이터 실행
     try:

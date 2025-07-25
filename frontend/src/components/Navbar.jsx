@@ -31,14 +31,12 @@ function NavBar() {
       if (!isGuest && user?.id) {
         try {
           setLoading(true);
-          console.log(`🔔 알림 개수 조회 시작 - 사용자: ${user.email}, ID: ${user.id}`);
           
           const response = await fetchUnreadCount();
           const count = response.data?.count || 0;
           
           // 컴포넌트가 여전히 마운트되어 있는지 확인
           if (isMounted) {
-            console.log(`🔔 알림 개수 조회 완료 - ${count}개`);
             setUnreadCount(count);
           }
         } catch (error) {

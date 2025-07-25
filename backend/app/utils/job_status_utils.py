@@ -1,5 +1,7 @@
 from datetime import datetime
 from typing import Optional
+from pytz import timezone
+KST = timezone('Asia/Seoul')
 
 def determine_job_status(start_date: Optional[str], end_date: Optional[str]) -> str:
     """
@@ -12,7 +14,7 @@ def determine_job_status(start_date: Optional[str], end_date: Optional[str]) -> 
     Returns:
         str: "SCHEDULED", "RECRUITING", "SELECTING", "CLOSED" 중 하나
     """
-    now = datetime.now()
+    now = datetime.now(KST)
     
     # 날짜 파싱 (여러 형식 지원)
     start_dt = None
@@ -22,14 +24,17 @@ def determine_job_status(start_date: Optional[str], end_date: Optional[str]) -> 
         try:
             # 먼저 %Y-%m-%d %H:%M:%S 형식 시도
             start_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            start_dt = KST.localize(start_dt)
         except ValueError:
             try:
                 # %Y-%m-%d %H:%M 형식 시도
                 start_dt = datetime.strptime(start_date, "%Y-%m-%d %H:%M")
+                start_dt = KST.localize(start_dt)
             except ValueError:
                 try:
                     # %Y-%m-%d 형식 시도
                     start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                    start_dt = KST.localize(start_dt)
                 except ValueError:
                     # 모든 형식이 실패하면 None
                     start_dt = None
@@ -38,14 +43,17 @@ def determine_job_status(start_date: Optional[str], end_date: Optional[str]) -> 
         try:
             # 먼저 %Y-%m-%d %H:%M:%S 형식 시도
             end_dt = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S")
+            end_dt = KST.localize(end_dt)
         except ValueError:
             try:
                 # %Y-%m-%d %H:%M 형식 시도
                 end_dt = datetime.strptime(end_date, "%Y-%m-%d %H:%M")
+                end_dt = KST.localize(end_dt)
             except ValueError:
                 try:
                     # %Y-%m-%d 형식 시도
                     end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+                    end_dt = KST.localize(end_dt)
                 except ValueError:
                     # 모든 형식이 실패하면 None
                     end_dt = None

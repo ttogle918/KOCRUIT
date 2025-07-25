@@ -127,3 +127,19 @@ class NotificationService:
         
         db.commit()
         return deleted_count 
+
+    @staticmethod
+    def create_reminder_notification(db: Session, user_id: int, message: str):
+        """
+        Create a reminder notification for an interviewer.
+        """
+        from app.models.notification import Notification
+        notification = Notification(
+            message=message,
+            user_id=user_id,
+            type="INTERVIEW_REMINDER",
+            is_read=False
+        )
+        db.add(notification)
+        db.flush()
+        return notification 
