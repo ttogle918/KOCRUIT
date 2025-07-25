@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.database import engine, Base
+
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
 except ImportError:
@@ -28,7 +29,6 @@ logging.basicConfig(
 from app.scheduler.job_status_scheduler import JobStatusScheduler
 from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
 from app.scheduler.interview_reminder_scheduler import start_interview_reminder_scheduler
-
 
 def safe_create_tables():
     """안전한 테이블 생성 - 기존 테이블은 건드리지 않고 새로운 테이블만 생성"""
