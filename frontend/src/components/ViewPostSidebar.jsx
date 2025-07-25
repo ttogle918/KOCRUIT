@@ -166,7 +166,7 @@ export default function ViewPostSidebar({ jobPost }) {
               ${interviewReportDone ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}
               ${interviewReportDone ? 'hover:bg-blue-200 dark:hover:bg-blue-800' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}
               ${!interviewReportDone ? 'opacity-60 cursor-not-allowed' : ''}`}
-            onClick={() => interviewReportDone && navigate('/interview-report')}
+            onClick={() => interviewReportDone && navigate(`/interview-report?job_post_id=${effectiveJobPostId}`)}
             disabled={!interviewReportDone}
           >
             {interviewReportDone ? <MdCheckCircle size={18} /> : <MdRadioButtonUnchecked size={18} />}

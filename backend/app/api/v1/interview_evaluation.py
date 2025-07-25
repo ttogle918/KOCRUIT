@@ -53,6 +53,13 @@ def create_evaluation(evaluation: InterviewEvaluationCreate, db: Session = Depen
         
         db.commit()
         db.refresh(db_evaluation)
+
+        # ★ 실무진 평가 저장 후 application.practical_score 자동 업데이트
+        if evaluation.evaluation_type == EvaluationType.PRACTICAL:
+            application = db.query(Application).filter(Application.id == evaluation.interview_id).first()
+            if application:
+                application.practical_score = evaluation.total_score if evaluation.total_score is not None else 0
+                db.commit()
         
         # 캐시 무효화: 새로운 평가가 생성되었으므로 관련 캐시 무효화
         try:
