@@ -440,8 +440,6 @@ async def extract_weights(request: Request):
         }
 
 
-
-
 @app.post("/evaluate-application/")
 async def evaluate_application_api(request: Request):
     """지원자의 서류를 AI로 평가합니다."""

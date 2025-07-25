@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.database import engine, Base
+
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
 except ImportError:
