@@ -1,14 +1,66 @@
 # KOSA-FINAL-PROJECT-02
 
+## 🚀 Docker 배포 방법
+
+### 자동 배포 (GitHub Actions CI/CD) ✅
+**main 브랜치에 푸시하면 자동으로 GitHub Container Registry에 이미지가 빌드되고 푸시됩니다!**
+
+#### 배포된 이미지
+- **Backend**: `ghcr.io/{username}/kocruit-backend:latest`
+- **Agent**: `ghcr.io/{username}/kocruit-agent:latest`
+- **Frontend**: `ghcr.io/{username}/kocruit-frontend:latest`
+
+#### 자동 배포 조건
+- main 브랜치에 푸시
+- 다음 파일이 변경된 경우:
+  - `backend/**`
+  - `agent/**`
+  - `frontend/**`
+  - `requirements.txt`
+  - `package.json`
+
+### 로컬 개발 환경
+```bash
+# 전체 서비스 빌드 및 실행
+docker-compose build
+docker-compose up -d
+
+# 또는 한 번에 빌드 및 실행
+docker-compose up --build
 ```
-myproject/
- ├─ backend/        # FastAPI
- ├─ frontend/       # React + Vite
- ├─ agent/          # AI Agent (Python)
- ├─ initdb/         # 초기 DB 데이터(dump.sql 등)
- ├─ docker-compose.yml
- ├─ README.md
+
+### 프로덕션 환경 (GHCR 이미지 사용)
+```bash
+# GitHub Container Registry에서 이미지 가져오기
+docker pull ghcr.io/{username}/kocruit-backend:latest
+docker pull ghcr.io/{username}/kocruit-agent:latest
+docker pull ghcr.io/{username}/kocruit-frontend:latest
+
+# 프로덕션용 실행
+docker-compose -f docker-compose.prod.yml up -d
 ```
+
+### 특정 서비스만 빌드
+```bash
+# Backend만 빌드
+docker-compose build backend
+
+# Agent만 빌드
+docker-compose build agent
+
+# Frontend만 빌드
+docker-compose build frontend
+```
+
+### 환경별 설정
+- **개발**: `docker-compose.yml` (기본)
+- **로컬 DB**: `docker-compose -f docker-compose.local.yml up -d`
+- **프로덕션**: `docker-compose -f docker-compose.prod.yml up -d`
+
+### GitHub Secrets 설정
+CI/CD가 작동하려면 다음 GitHub Secrets가 필요합니다:
+- `GH_USERNAME`: GitHub 사용자명
+- `CR_PAT`: GitHub Container Registry Personal Access Token
 
 ---
 
