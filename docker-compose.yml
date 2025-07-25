@@ -16,11 +16,11 @@ services:
       DB_NAME: kocruit
       DB_USER: admin
       DB_PASSWORD: kocruit1234!
-      # t3.small 최적화 설정 (비용 효율적 + 성능 향상)
-      MYSQL_CONNECT_TIMEOUT: 15
-      MYSQL_READ_TIMEOUT: 15
-      MYSQL_WRITE_TIMEOUT: 15
-      MYSQL_MAX_CONNECTIONS: 15  # t3.small 최적화
+      # MySQL 연결 안정성 향상 설정
+      MYSQL_CONNECT_TIMEOUT: 30
+      MYSQL_READ_TIMEOUT: 30
+      MYSQL_WRITE_TIMEOUT: 30
+      MYSQL_MAX_CONNECTIONS: 10  # 연결 풀 크기 줄임
       MYSQL_WAIT_TIMEOUT: 28800
       MYSQL_INTERACTIVE_TIMEOUT: 28800
       # Redis 캐싱 설정 (t3.small용 적극적 캐싱)
@@ -28,15 +28,15 @@ services:
       REDIS_PORT: 6379
       REDIS_DB: 0
       # 애플리케이션 성능 설정 (t3.small용)
-      WORKERS: 3  # t3.small에 적합한 워커 수
-      WORKER_CONNECTIONS: 750
+      WORKERS: 2  # 워커 수 줄임 (연결 부하 감소)
+      WORKER_CONNECTIONS: 500
     networks:
       - app-net
     volumes:
       - ./backend:/app
       - ./agent:/app/agent
       - ./initdb:/app/initdb
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 3
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 2
     restart: unless-stopped
     depends_on:
       redis:

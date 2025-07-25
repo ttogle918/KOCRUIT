@@ -204,8 +204,8 @@ def create_interview_schedule(
     )
     db.add(db_interview)
     
-    # 면접 일정 생성 시 interview_status를 SCHEDULED로 변경
-    application.interview_status = InterviewStatus.SCHEDULED.value
+    # 면접 일정 생성 시 interview_status를 AI_INTERVIEW_SCHEDULED로 변경
+    application.interview_status = InterviewStatus.AI_INTERVIEW_SCHEDULED.value
     
     db.commit()
     db.refresh(db_interview)
@@ -285,7 +285,7 @@ def update_interview_status(
     application.interview_status = interview_status
     
     # 면접 완료 시 최종 상태 결정 로직
-    if interview_status == InterviewStatus.COMPLETED.value:
+    if interview_status == InterviewStatus.AI_INTERVIEW_COMPLETED.value:
         # 여기서 면접 평가 결과에 따라 최종 합격/불합격 결정
         # 실제로는 면접 평가 점수를 확인해야 함
         application.status = ApplyStatus.IN_PROGRESS.value  # 임시로 진행 중으로 설정

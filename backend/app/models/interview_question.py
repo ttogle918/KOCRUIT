@@ -4,14 +4,14 @@ from app.core.database import Base
 import enum
 
 class QuestionType(enum.Enum):
-    COMMON = "common"  # 공통질문 (회사/공고 기반)
-    PERSONAL = "personal"  # 개별질문 (이력서 기반)
-    COMPANY = "company"  # 회사 관련 질문
-    JOB = "job"  # 직무 관련 질문
-    EXECUTIVE = "executive"  # 임원면접 질문
-    SECOND = "second"  # 2차 면접 질문
-    FINAL = "final"  # 최종 면접 질문
-    AI_INTERVIEW = "ai_interview"  # AI 면접 질문
+    COMMON = "COMMON"  # 공통질문 (회사/공고 기반)
+    PERSONAL = "PERSONAL"  # 개별질문 (이력서 기반)
+    COMPANY = "COMPANY"  # 회사 관련 질문
+    JOB = "JOB"  # 직무 관련 질문
+    EXECUTIVE = "EXECUTIVE"  # 임원면접 질문
+    SECOND = "SECOND"  # 2차 면접 질문
+    FINAL = "FINAL"  # 최종 면접 질문
+    AI_INTERVIEW = "AI_INTERVIEW"  # AI 면접 질문
 
 class InterviewQuestion(Base):
     __tablename__ = 'interview_question'
@@ -19,7 +19,7 @@ class InterviewQuestion(Base):
     application_id = Column(Integer, ForeignKey('application.id'), nullable=True)  # 개별 질문용
     job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=True)  # 직무별 질문용
     company_id = Column(Integer, ForeignKey('company.id'), nullable=True)  # 공통 질문용
-    type = Column(Enum(QuestionType), nullable=False)  # 질문 유형
+    type = Column("type", Enum(QuestionType, native_enum=False), nullable=False)  # 질문 유형 (DB 컬럼명과 일치)
     question_text = Column(Text, nullable=False)  # 질문 내용
     category = Column(String(50), nullable=True)  # 질문 카테고리 (common, personal, company, job, game_test 등)
     difficulty = Column(String(20), nullable=True)  # 난이도 (easy, medium, hard)

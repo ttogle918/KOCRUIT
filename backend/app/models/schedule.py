@@ -15,7 +15,7 @@ class Schedule(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     schedule_type = Column(String(255))
-    user_id = Column(Integer, ForeignKey('company_user.id'))
+    user_id = Column(Integer, ForeignKey('company_user.id'), nullable=True)  # AI 면접을 위해 nullable로 변경
     job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=True)  # For interview schedules
     title = Column(String(255))
     description = Column(Text)
@@ -36,10 +36,29 @@ class ScheduleInterview(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     schedule_id = Column(Integer, ForeignKey('schedule.id'))
-    user_id = Column(Integer, ForeignKey('company_user.id'))
+    user_id = Column(Integer, ForeignKey('company_user.id'), nullable=True)  # AI 면접을 위해 nullable로 변경
     schedule_date = Column(DateTime)
     status = Column(SqlEnum(InterviewScheduleStatus), default=InterviewScheduleStatus.SCHEDULED, nullable=False)
     
     # Relationships
     schedule = relationship("Schedule", back_populates="interviews")
-    user = relationship("CompanyUser") 
+    user = relationship("CompanyUser")
+
+
+# AI 면접 전용 테이블
+class AIInterviewSchedule(Base):
+    __tablename__ = "ai_interview_schedule"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(Integer, ForeignKey('application.id'), nullable=False)
+    job_post_id = Column(Integer, ForeignKey('jobpost.id'), nullable=False)
+    applicant_user_id = Column(Integer, ForeignKey('users.id'), nullable=False)  # 지원자 ID
+    scheduled_at = Column(DateTime, default=datetime.now)
+    status = Column(String(255), default="SCHEDULED")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    application = relationship("Application")
+    job_post = relationship("JobPost")
+    applicant = relationship("User") 

@@ -4,15 +4,15 @@ import api from '../api/api';
 
 const InterviewStatusCard = ({ applicant, onStatusChange }) => {
   const [updating, setUpdating] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState(applicant?.interview_status || 'AI_INTERVIEW_NOT_SCHEDULED');
+  const [currentStatus, setCurrentStatus] = useState(applicant?.interview_status || 'AI_INTERVIEW_PENDING');
 
   // 면접 단계별 상태 매핑
   const getStatusConfig = (status) => {
     // AI 면접
     if (status?.includes('AI_INTERVIEW')) {
       return {
-        AI_INTERVIEW_NOT_SCHEDULED: {
-          label: 'AI 면접 미일정',
+        AI_INTERVIEW_PENDING: {
+          label: 'AI 면접 대기',
           icon: <FaClock className="text-gray-400" />,
           color: 'bg-gray-100 text-gray-600',
           nextStatus: 'AI_INTERVIEW_SCHEDULED'
@@ -33,7 +33,7 @@ const InterviewStatusCard = ({ applicant, onStatusChange }) => {
           label: 'AI 면접 완료',
           icon: <FaCheck className="text-green-500" />,
           color: 'bg-green-100 text-green-600',
-          nextStatus: 'FIRST_INTERVIEW_NOT_SCHEDULED'
+          nextStatus: 'FIRST_INTERVIEW_SCHEDULED'
         },
         AI_INTERVIEW_CANCELLED: {
           label: 'AI 면접 취소',
@@ -154,8 +154,8 @@ const InterviewStatusCard = ({ applicant, onStatusChange }) => {
     
     // 기본값 (AI 면접)
     return {
-      AI_INTERVIEW_NOT_SCHEDULED: {
-        label: 'AI 면접 미일정',
+      AI_INTERVIEW_PENDING: {
+        label: 'AI 면접 대기',
         icon: <FaClock className="text-gray-400" />,
         color: 'bg-gray-100 text-gray-600',
         nextStatus: 'AI_INTERVIEW_SCHEDULED'

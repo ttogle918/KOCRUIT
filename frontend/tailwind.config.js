@@ -10,6 +10,10 @@ export default {
       fontFamily: {
         sans: ['Your Preferred Font', 'sans-serif'],
       },
+      spacing: {
+        '90': '90px', // 사이드바 기본 너비
+        '180': '180px', // 사이드바 확장 너비
+      },
       animation: {
         'fadeIn': 'fadeIn 0.3s ease-out',
         'bounce': 'bounce 1s infinite',

@@ -44,12 +44,12 @@ class QuestionGenerationScheduler:
                     if applications:
                         # 첫 번째 지원자에게 공통 질문이 있는지 확인
                         first_app = applications[0]
-                        existing_common_questions = db.query(InterviewQuestion).filter(
+                        existing_questions = db.query(InterviewQuestion).filter(
                             InterviewQuestion.application_id == first_app.id,
                             InterviewQuestion.type == QuestionType.COMMON
                         ).count()
                         
-                        if existing_common_questions == 0:
+                        if existing_questions == 0:
                             # 공통 질문 생성
                             company_name = job_post.company.name if job_post.company else ""
                             from app.api.v1.interview_question import parse_job_post_data
