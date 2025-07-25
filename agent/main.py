@@ -10,8 +10,8 @@ from redis_monitor import RedisMonitor
 from scheduler import RedisScheduler
 from tools.weight_extraction_tool import weight_extraction_tool
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
-from tools.form_field_tool import form_field_update_tool, form_status_check_tool
-from tools.form_field_improve_tool import form_field_improve_tool
+from tools.form_edit_tool import form_edit_tool, form_status_check_tool
+from tools.form_improve_tool import form_improve_tool
 from agents.application_evaluation_agent import evaluate_application
 from tools.speech_recognition_tool import speech_recognition_tool
 from tools.highlight_resume_tool import get_highlight_tool
@@ -29,9 +29,9 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
-from agent.tools.speech_recognition_tool import SpeechRecognitionTool
-from agent.tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
-from agent.tools.answer_grading_tool import grade_written_test_answer
+from tools.speech_recognition_tool import SpeechRecognitionTool
+from tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
+from tools.answer_grading_tool import grade_written_test_answer
 
 # Python 경로에 현재 디렉토리 추가
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -550,7 +550,7 @@ async def ai_form_field_update(request: Request):
             "new_value": new_value,
             "current_form_data": current_form_data
         }
-        result = form_field_update_tool(state)
+        result = form_edit_tool(state)
         return result
     except Exception as e:
         return {"error": f"Form field update failed: {str(e)}"}
@@ -589,7 +589,7 @@ async def ai_field_improve(request: Request):
             "user_request": user_request,
             "form_context": form_context
         }
-        result = form_field_improve_tool(state)
+        result = form_improve_tool(state)
         return result
     except Exception as e:
         return {"error": f"Field improve failed: {str(e)}"}
