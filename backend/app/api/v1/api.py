@@ -8,6 +8,7 @@ from app.api.v1.growth_prediction import router as growth_prediction_router
 from .realtime_interview import router as realtime_interview_router
 from .ai_interview_questions import router as ai_interview_questions_router
 from .statistics_analysis import router as statistics_analysis_router
+from app.api.v1.written_test import router as written_test_router
 
 
 api_router = APIRouter()
@@ -24,8 +25,6 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(interview_evaluation.router, prefix="/interview-evaluation", tags=["interview-evaluation"])
 api_router.include_router(interview_question.router, prefix="/interview-questions", tags=["interview-questions"])
 api_router.include_router(interview_panel.router, prefix="/interview-panel", tags=["interview-panel"])
-#api_router.include_router(ai_evaluate_router, prefix="/api/v1")
-api_router.include_router(ai_evaluate_router)
 api_router.include_router(growth_prediction_router, prefix="/growth-prediction", tags=["growth-prediction"])
 api_router.include_router(ai_evaluate_router, prefix="/ai-evaluate", tags=["ai-evaluate"])
 api_router.include_router(job_status.router, prefix="/job-status", tags=["job-status"])
@@ -35,3 +34,4 @@ api_router.include_router(job_aptitude_reports.router, prefix="/report", tags=["
 api_router.include_router(realtime_interview_router, prefix="/realtime-interview", tags=["realtime-interview"])
 api_router.include_router(ai_interview_questions_router, prefix="/ai-interview", tags=["ai-interview"])
 api_router.include_router(statistics_analysis_router, prefix="/statistics", tags=["statistics-analysis"])
+api_router.include_router(written_test_router, prefix="/written-test", tags=["written-test"])

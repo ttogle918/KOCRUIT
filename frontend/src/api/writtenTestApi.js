@@ -4,7 +4,8 @@ import axios from './axiosInstance';
 export const generateWrittenTest = async ({ jobPostId, jobTitle, department }) => {
   // 실제 API 엔드포인트는 추후 백엔드 구현에 맞게 수정
   const res = await axios.post('/written-test/generate', {
-    jobPostId, jobTitle, department
+    job_post_id: jobPostId, // snake_case로 변경
+    jobTitle, department
   });
   return res.data;
 };
@@ -13,7 +14,8 @@ export const generateWrittenTest = async ({ jobPostId, jobTitle, department }) =
 export const submitWrittenTest = async ({ jobPostId, questions }) => {
   // 실제 API 엔드포인트는 추후 백엔드 구현에 맞게 수정
   const res = await axios.post('/written-test/submit', {
-    jobPostId, questions
+    job_post_id: jobPostId, // snake_case로 변경
+    questions
   });
   return res.data;
 };

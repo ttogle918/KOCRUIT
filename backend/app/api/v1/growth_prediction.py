@@ -41,7 +41,8 @@ def predict_growth(
         "kpi_score_mean": stats.get("kpi_score_mean", 0),
         "promotion_speed_years_mean": stats.get("promotion_speed_years_mean", 0),
         "degree_mean": stats.get("degree_mean", 0),
-        "certifications_count_mean": stats.get("certifications_count_mean", 0)
+        "certifications_count_mean": stats.get("certifications_count_mean", 0),
+        "total_experience_years_mean": stats.get("total_experience_years_mean", 0)
     }
     # 3. 지원자-고성과자 비교/스코어링
     high_performer_members = pattern_result["cluster_patterns"][0]["members"]
@@ -122,5 +123,8 @@ def predict_growth(
         message="성장 가능성 예측 완료",
         comparison_chart_data=result.get("comparison_chart_data"),
         reasons=result.get("reasons"),
-        boxplot_data=boxplot_data
+        boxplot_data=boxplot_data,
+        detail_explanation=result.get("detail_explanation"),
+        item_table=result.get("item_table"),
+        narrative=result.get("narrative")
     ) 

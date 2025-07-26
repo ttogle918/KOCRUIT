@@ -55,7 +55,8 @@ class InterviewQuestionApi {
    */
   static async generateCommonQuestions(jobPostId) {
     try {
-      const response = await api.post(`/interview-questions/job/${jobPostId}/generate-common-questions`);
+      // body를 명시적으로 빈 객체로 보냄
+      const response = await api.post(`/interview-questions/job/${jobPostId}/generate-common-questions`, {});
       return response.data;
     } catch (error) {
       console.error('공통 질문 생성 실패:', error);

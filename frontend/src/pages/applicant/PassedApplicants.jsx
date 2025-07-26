@@ -31,7 +31,7 @@ export default function PassedApplicants() {
       try {
         const res = await api.get(`/applications/job/${jobPostId}/applicants`);
         const data = res.data;
-        const filtered = data.filter(app => app.status === 'PASSED');
+        const filtered = data.filter(app => app.document_status === 'PASSED');
         setPassedApplicants(filtered);
         setBookmarkedList(filtered.map(app => app.isBookmarked === 'Y'));
         setCurrentPage(1);
@@ -145,6 +145,16 @@ export default function PassedApplicants() {
           >
             목록으로 돌아가기
           </button>
+        </div>
+        {/* 안내 멘트 */}
+        <div className="w-full flex justify-center items-center py-2">
+          {typeof jobPost?.headcount === 'number' ? (
+            <span className="text-2xl font-bold text-gray-700 dark:text-gray-200">
+              지원자 {passedApplicants?.length ?? '-'}명 중 최종 선발인원의 10배수({jobPost.headcount * 10}명) 기준, 동점자를 포함하여 총 {passedApplicants.length}명이 서류 합격되었습니다.
+            </span>
+          ) : (
+            <span className="text-xl font-bold text-gray-400">합격자/정원 정보를 불러오는 중...</span>
+          )}
         </div>
 
         {/* Main Content Area */}
@@ -269,7 +279,7 @@ export default function PassedApplicants() {
           </div>
         </div>
         {/* Floating Action Buttons */}
-        <div className="fixed bottom-8 right-8 flex flex-row gap-4 z-50">
+        <div className="fixed bottom-8 right-16 flex flex-row gap-4 z-50">
           <button 
             className="w-14 h-14 flex items-center justify-center rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition text-2xl"
             onClick={handleEmailClick}
