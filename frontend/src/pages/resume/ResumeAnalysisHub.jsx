@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import api from '../../api/api';
 import ResumeAnalysisToolbar from '../../components/ResumeAnalysisToolbar';
 
-export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApplicantSelect }) {
+export default function ResumeAnalysisHub({ resumeId, applicationId, onApplicantSelect }) {
   const [toolbarResults, setToolbarResults] = useState({});
   const [selectedTool, setSelectedTool] = useState(null);
 
@@ -124,6 +124,16 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
                 {analysisData.job_matching_details && (
                   <p className="text-xs text-gray-500 mt-1">{analysisData.job_matching_details}</p>
                 )}
+                <div className="mt-2 p-2 bg-white rounded border">
+                  <h5 className="text-xs font-semibold text-gray-600 mb-1">📊 평가 기준</h5>
+                  <ul className="text-xs text-gray-600 space-y-0.5">
+                    <li>• 기술 스택 매칭 (30%): 요구 기술과 보유 기술 일치도</li>
+                    <li>• 경험 관련성 (25%): 직무와 관련된 경험의 적합성</li>
+                    <li>• 자격 요건 매칭 (20%): 요구 자격증 및 학력 조건</li>
+                    <li>• 키워드 매칭 (15%): 공고 키워드와 이력서 내용 일치</li>
+                    <li>• 배경 적합성 (10%): 전반적인 배경과 직무의 부합성</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -284,6 +294,16 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
                   />
                 )}
                 <p className="text-sm text-gray-600 mt-2">직무 적합성</p>
+                <div className="mt-2 p-2 bg-white rounded border">
+                  <h5 className="text-xs font-semibold text-gray-600 mb-1">📊 AI 평가 기준</h5>
+                  <ul className="text-xs text-gray-600 space-y-0.5">
+                    <li>• 학력 (20점): 대학/전공/성적</li>
+                    <li>• 경험 (25점): 관련 업계 경력</li>
+                    <li>• 기술 (25점): 기술 스택 보유도</li>
+                    <li>• 자격증 (15점): 관련 자격증</li>
+                    <li>• 수상/프로젝트 (25점): 성과 및 경험</li>
+                  </ul>
+                </div>
               </div>
               <div className="space-y-2">
                 {overall_assessment.overall_rating && (

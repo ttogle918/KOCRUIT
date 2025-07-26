@@ -48,40 +48,23 @@ def generate_highlight_criteria(state: Dict[str, Any]) -> Dict[str, Any]:
     highlight_criteria = {
         "red": {
             "name": "위험 요소 (Risk)",
-            "description": "직무 적합성 우려, 인재상 충돌, 부정적 태도 등 잠재적 위험 요소",
-            "keywords": [
-                "부족", "미흡", "제한", "어려움", "실패", "학습 중", "준비 중", "관련 없음",
-                "개인주의", "협업 거부", "부정적", "자신감 부족", "회사 비판", "직무 부적합"
-            ]
+            "description": "직무 적합성 우려, 인재상 충돌, 부정적 태도 등 잠재적 위험 요소"
         },
         "gray": {
             "name": "추상표현/면접 추가 확인 필요 (Vague)",
-            "description": "구체성 부족, 검증 필요, 추가 질문이 필요한 추상적 표현",
-            "keywords": [
-                "예정", "하려고", "계획", "노력", "최선", "열심히", "성실", "좋은", "나쁜", "훌륭한",
-                "성과", "증가", "감소", "향상", "개선", "추진", "경험", "활용", "참여"
-            ]
+            "description": "구체성 부족, 검증 필요, 추가 질문이 필요한 추상적 표현"
         },
         "purple": {
             "name": "경험/성과 (Experience)",
-            "description": "구체적이고 의미 있는 경험, 성과, 문제 해결, 리더십 등",
-            "keywords": [
-                "프로젝트", "성과", "문제 해결", "리더십", "매출", "증가", "감소", "완료", "이끌다", "주도", "성장"
-            ]
+            "description": "구체적이고 의미 있는 경험, 성과, 문제 해결, 리더십 등"
         },
         "yellow": {
             "name": "인재상 매칭 (Value Fit)",
-            "description": "회사 인재상 가치가 실제 행동/사례로 구현된 구절",
-            "keywords": [
-                "공익", "책임", "혁신", "소통", "협업", "신뢰", "도전", "창의", "성실", "봉사", "공감", "협력"
-            ]
+            "description": "회사 인재상 가치가 실제 행동/사례로 구현된 구절"
         },
         "blue": {
             "name": "기술 매칭 (Skill Fit)",
-            "description": "채용공고의 핵심 기술과 직접적으로 매칭되는 표현",
-            "keywords": [
-                "Python", "Java", "JavaScript", "React", "Node.js", "AWS", "Docker", "Git", "SQL", "API", "Spring", "Kubernetes"
-            ]
+            "description": "채용공고의 핵심 기술과 직접적으로 매칭되는 표현"
         }
     }
     
@@ -425,8 +408,8 @@ def perform_advanced_highlighting(state: Dict[str, Any]) -> Dict[str, Any]:
         
         # 각 카테고리별 분석 태스크 생성
         for color, criteria in highlight_criteria.items():
-            keywords = criteria.get("keywords", [])
-            task = analyze_category_with_llm(resume_content, color, keywords)
+            # 키워드 대신 빈 배열 전달 (LLM이 문맥으로 판단)
+            task = analyze_category_with_llm(resume_content, color, [])
             tasks.append((color, task))
         
         # 모든 분석 실행
@@ -473,7 +456,7 @@ def perform_advanced_highlighting(state: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 def perform_basic_highlighting(resume_content: str, highlight_criteria: Dict[str, Any]) -> Dict[str, Any]:
-    """기본 키워드 매칭 (fallback용)"""
+    """기본 키워드 매칭 (fallback용) - 키워드 없이 빈 결과 반환"""
     highlights = {
         "yellow": [],
         "red": [],
@@ -482,25 +465,8 @@ def perform_basic_highlighting(resume_content: str, highlight_criteria: Dict[str
         "blue": []
     }
     
-    # 문장 단위로 분리
-    sentences = re.split(r'[.!?]\s+', resume_content)
-    
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-            
-        # 각 색상별 키워드 매칭
-        for color, criteria in highlight_criteria.items():
-            keywords = criteria.get("keywords", [])
-            for keyword in keywords:
-                if keyword.lower() in sentence.lower():
-                    highlights[color].append({
-                        "sentence": sentence,
-                        "category": color,
-                        "reason": f"키워드 '{keyword}' 매칭"
-                    })
-                    break
+    # 키워드가 없으므로 빈 결과 반환
+    print("키워드 매칭 비활성화됨 - LLM 기반 분석만 사용")
     
     return highlights
 

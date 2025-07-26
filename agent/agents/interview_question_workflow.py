@@ -15,7 +15,7 @@ from agent.agents.interview_question_node import (
     generate_final_interview_questions,
     generate_advanced_competency_questions
 )
-from agent.tools.resume_analysis_tool import generate_resume_analysis_report
+from agent.tools.comprehensive_analysis_tool import generate_comprehensive_analysis_report
 import json
 
 # LLM 초기화
@@ -97,7 +97,7 @@ def resume_analyzer(state: Dict[str, Any]) -> Dict[str, Any]:
     
     try:
         # 이력서 분석 도구 직접 호출
-        analysis_result = generate_resume_analysis_report(
+        analysis_result = generate_comprehensive_analysis_report(
             resume_text=resume_text,
             job_info=job_info,
             portfolio_info=portfolio_info,

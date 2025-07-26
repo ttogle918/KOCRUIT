@@ -1,13 +1,13 @@
 import React from "react";
 
 // highlights: [{ start: number, end: number }] 또는 하이라이트할 단어 배열 등 다양한 방식 지원 가능
-// 🔄 우선순위 기반 하이라이트 카테고리 상수 정의 (빨간색→회색→보라색→노란색→파란색)
+// 🔄 우선순위 기반 하이라이트 카테고리 상수 정의 (빨간색→회색→보라색→파란색→노란색)
 export const HIGHLIGHT_CATEGORIES = [
   { key: 'risk', label: '주의 표현', color: '#E53935', bg_color: '#fee2e2', description: '가치·직무와 충돌 or 부정적 태도', priority: 1, emoji: '❤️' },
   { key: 'vague', label: '추상 표현', color: '#222', bg_color: '#d1d5db', description: '근거 없는 추상 표현', priority: 2, emoji: '🩶' },
   { key: 'experience', label: '성과/수상/경험/경력', color: '#8B5CF6', bg_color: '#EDE9FE', description: '실제 수행한 경험/프로젝트/활동', priority: 3, emoji: '💜' },
-  { key: 'value_fit', label: '인재상 매칭', color: '#ff9800', bg_color: '#fef9c3', description: '회사 인재상 키워드와 직접 매칭', priority: 4, emoji: '💛' },
-  { key: 'skill_fit', label: '기술 매칭', color: '#1976D2', bg_color: '#e0f2fe', description: 'JD 핵심 기술과 직접 매칭', priority: 5, emoji: '💙' }
+  { key: 'skill_fit', label: '기술 매칭', color: '#1976D2', bg_color: '#e0f2fe', description: 'JD 핵심 기술과 직접 매칭', priority: 4, emoji: '💙' },
+  { key: 'value_fit', label: '인재상 매칭', color: '#ff9800', bg_color: '#fef9c3', description: '회사 인재상 키워드와 직접 매칭', priority: 5, emoji: '💛' }
 ];
 
 // experience 하이라이트를 sub_label별로 분리
@@ -22,8 +22,8 @@ function getPriority(category) {
     'risk': 1,
     'vague': 2,
     'experience': 3,
-    'value_fit': 4,
-    'skill_fit': 5
+    'skill_fit': 4,
+    'value_fit': 5
   };
   return priorityMap[category] || 999;
 }
@@ -47,19 +47,41 @@ function HighlightedText({ text, highlights }) {
   let lastIndex = 0;
   const elements = [];
   
-  // 🆕 하이라이트를 위치 순서로 정렬
-  const sortedHighlights = [...highlights].sort((a, b) => a.start - b.start);
+  // 🆕 하이라이트를 위치 순서로 정렬하고 중복 제거
+  const sortedHighlights = [...highlights]
+    .sort((a, b) => a.start - b.start)
+    .filter((highlight, index, array) => {
+      // 같은 위치의 중복 하이라이트 제거
+      if (index > 0) {
+        const prev = array[index - 1];
+        return !(highlight.start === prev.start && highlight.end === prev.end);
+      }
+      return true;
+    });
+  
+  console.log('정렬된 하이라이트:', sortedHighlights.map(h => ({
+    start: h.start,
+    end: h.end,
+    category: h.category,
+    text: h.text || h.sentence
+  })));
   
   sortedHighlights.forEach((highlight, idx) => {
     const { start, end } = highlight;
     const categoryKey = getHighlightCategoryKey(highlight);
     const catObj = HIGHLIGHT_CATEGORIES.find(c => c.key === categoryKey);
     
+    // 시작 위치가 이전 하이라이트와 겹치는 경우 처리
+    if (start < lastIndex) {
+      console.warn(`하이라이트 겹침 감지: 현재 start=${start}, lastIndex=${lastIndex}`);
+      return; // 겹치는 하이라이트는 건너뛰기
+    }
+    
     if (lastIndex < start) {
       // 원본 텍스트 포맷팅 보존
       const originalText = text.slice(lastIndex, start);
       elements.push(
-        <span key={lastIndex} style={{ whiteSpace: 'pre-wrap' }}>
+        <span key={`text-${lastIndex}`} style={{ whiteSpace: 'pre-wrap' }}>
           {originalText}
         </span>
       );
@@ -70,7 +92,8 @@ function HighlightedText({ text, highlights }) {
     const categoryDots = highlight.category_dots || '';
     
     // 🆕 전환어 여부 확인
-    const isTransition = isTransitionWord(highlight.text);
+    const highlightText = highlight.text || highlight.sentence || '';
+    const isTransition = isTransitionWord(highlightText);
     
     // 툴팁 텍스트 생성
     let tooltipText = categoryKey === 'experience' ? '성과/수상/프로젝트 경험/경력' : (catObj ? catObj.label : '');
@@ -83,8 +106,8 @@ function HighlightedText({ text, highlights }) {
     
     // 🆕 전환어인 경우 스타일 조정
     const highlightStyle = {
-      backgroundColor: highlight.bg_color || (catObj ? catObj.bg_color : '#FFD600'),
-      color: highlight.color || (catObj ? catObj.color : '#222'),
+      backgroundColor: catObj ? catObj.bg_color : '#FFD600',
+      color: catObj ? catObj.color : '#222',
       padding: '2px 4px',
       borderRadius: '3px',
       fontWeight: isTransition ? 400 : 600, // 전환어는 얇게
@@ -97,9 +120,11 @@ function HighlightedText({ text, highlights }) {
       fontFamily: 'inherit' // 부모 요소의 글씨체 상속
     };
     
+    console.log(`하이라이팅 렌더링: category=${categoryKey}, color=${catObj?.color}, bg_color=${catObj?.bg_color}, text="${highlightText}"`);
+    
     elements.push(
       <span
-        key={start + '-' + end}
+        key={`highlight-${start}-${end}`}
         style={highlightStyle}
         title={tooltipText}
       >
@@ -140,7 +165,7 @@ function HighlightedText({ text, highlights }) {
     // 마지막 부분도 원본 텍스트 포맷팅 보존
     const remainingText = text.slice(lastIndex);
     elements.push(
-      <span key={lastIndex} style={{ whiteSpace: 'pre-wrap' }}>
+      <span key={`text-${lastIndex}`} style={{ whiteSpace: 'pre-wrap' }}>
         {remainingText}
       </span>
     );
@@ -153,12 +178,23 @@ export default HighlightedText;
 
 // 🔄 우선순위 기반 하이라이팅 통계 컴포넌트
 export function HighlightStats({ highlights = [], categories = {} }) {
+  // 입력 데이터 검증
+  if (!Array.isArray(highlights) || highlights.length === 0) {
+    console.log('HighlightStats: 하이라이트 데이터가 없습니다');
+    return null;
+  }
+  
   // 중복 제거를 위한 Set 사용
   const uniqueHighlights = new Map(); // key: category_text, value: highlight
   
   highlights.forEach(h => {
+    // 유효한 하이라이트 데이터인지 확인
+    if (!h || (!h.text && !h.sentence) || !h.category) {
+      return; // 건너뛰기
+    }
+    
     const key = getHighlightCategoryKey(h);
-    const text = h.text || '';
+    const text = h.text || h.sentence || '';
     
     // 카테고리별로 고유한 키 생성
     let uniqueKey;
@@ -187,7 +223,13 @@ export function HighlightStats({ highlights = [], categories = {} }) {
     stats[key] = (stats[key] || 0) + 1;
   });
   
-  // 🆕 우선순위 순서로 정렬 (빨간색→회색→보라색→노란색→파란색)
+  console.log('하이라이팅 통계 계산:', { 
+    inputHighlights: highlights.length, 
+    uniqueHighlights: uniqueHighlights.size, 
+    stats 
+  });
+  
+  // 🆕 우선순위 순서로 정렬 (빨간색→회색→보라색→파란색→노란색)
   const sortedCategories = HIGHLIGHT_CATEGORIES.sort((a, b) => a.priority - b.priority);
   
   return (
@@ -198,7 +240,7 @@ export function HighlightStats({ highlights = [], categories = {} }) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {sortedCategories.map(catDef => {
           const key = catDef.key;
-          const cat = categories[key] || catDef;
+          const count = stats[key] || 0;
           return (
             <div key={key} className="text-center">
               <div className="flex items-center justify-center mb-1">
@@ -206,19 +248,17 @@ export function HighlightStats({ highlights = [], categories = {} }) {
                 <span className="text-xs mr-1">{catDef.emoji}</span>
                 <div
                   className="w-3 h-3 rounded-sm"
-                  style={{ backgroundColor: cat.bg_color || cat.color || '#FFD600' }}
+                  style={{ backgroundColor: catDef.bg_color }}
                 ></div>
               </div>
-              <div className="text-xs font-medium" style={{ color: cat.color || '#FFD600' }}>
-                {stats[key] || 0}
+              <div className="text-xs font-medium" style={{ color: catDef.color }}>
+                {count}
               </div>
-              <div className="text-xs text-gray-500">{cat.label || cat.name || key}</div>
+              <div className="text-xs text-gray-500">{catDef.label}</div>
             </div>
           );
         })}
       </div>
-      
-
     </div>
   );
 } 

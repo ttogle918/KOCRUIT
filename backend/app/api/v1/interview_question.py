@@ -98,6 +98,62 @@ class InterviewChecklistResponse(BaseModel):
     red_flags_to_watch: List[str]
     green_flags_to_confirm: List[str]
 
+# 새로운 분석 툴들을 위한 스키마 추가
+class ResumeOrchestratorRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_id: Optional[int] = None
+    jobpost_id: Optional[int] = None
+    enable_tools: Optional[List[str]] = None  # ['highlight', 'comprehensive', 'detailed', 'competitiveness', 'keyword_matching']
+
+class ResumeOrchestratorResponse(BaseModel):
+    metadata: Dict[str, Any]
+    results: Dict[str, Any]
+    errors: Dict[str, Any]
+    summary: Dict[str, Any]
+
+class DetailedAnalysisRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+
+class DetailedAnalysisResponse(BaseModel):
+    core_competencies: Dict[str, Any]
+    experience_analysis: Dict[str, Any]
+    growth_potential: Dict[str, Any]
+    problem_solving: Dict[str, Any]
+    leadership_collaboration: Dict[str, Any]
+    specialization: Dict[str, Any]
+    improvement_areas: Dict[str, Any]
+    overall_assessment: Dict[str, Any]
+
+class CompetitivenessComparisonRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+
+class CompetitivenessComparisonResponse(BaseModel):
+    market_competitiveness: Dict[str, Any]
+    strength_areas: Dict[str, Any]
+    weakness_areas: Dict[str, Any]
+    differentiation_factors: Dict[str, Any]
+    competitive_analysis: Dict[str, Any]
+    sustainability: Dict[str, Any]
+    improvement_strategy: Dict[str, Any]
+    hiring_recommendation: Dict[str, Any]
+
+class KeywordMatchingRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+
+class KeywordMatchingResponse(BaseModel):
+    technical_skills_matching: Dict[str, Any]
+    experience_matching: Dict[str, Any]
+    qualification_matching: Dict[str, Any]
+    soft_skills_matching: Dict[str, Any]
+    keyword_gaps: Dict[str, Any]
+    unexpected_strengths: Dict[str, Any]
+    matching_summary: Dict[str, Any]
+    improvement_roadmap: Dict[str, Any]
+
 class StrengthsWeaknessesRequest(BaseModel):
     resume_id: int
     application_id: Optional[int] = None
@@ -493,9 +549,9 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
                     job_matching_info = analyze_job_matching(resume_text, job_info)
         # 포트폴리오 정보 수집 (임시로 빈 문자열)
         portfolio_info = ""
-        # LangGraph 기반 이력서 분석 (항상 직접 수행)
-        from agent.tools.resume_analysis_tool import generate_resume_analysis_report
-        analysis_result = generate_resume_analysis_report(
+        # LangGraph 기반 종합 분석 (항상 직접 수행)
+        from agent.tools.comprehensive_analysis_tool import generate_comprehensive_analysis_report
+        analysis_result = generate_comprehensive_analysis_report(
             resume_text=resume_text,
             job_info=job_info,
             portfolio_info=portfolio_info,
