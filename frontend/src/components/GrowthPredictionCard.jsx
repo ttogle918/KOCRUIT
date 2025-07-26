@@ -162,7 +162,6 @@ const GrowthPredictionCard = ({ applicationId }) => {
               <div className="flex-1 text-center py-2 text-gray-400 font-semibold text-base">(합격/불합격 등 다른 탭 필요시 여기에)</div>
             </div>
           </div>
-<<<<<<< HEAD
           {/* 표 + 설명 */}
           {result.item_table && (
             <div className="pb-4">
@@ -190,7 +189,6 @@ const GrowthPredictionCard = ({ applicationId }) => {
               </table>
               {result.narrative && (
                 <div className="text-base text-blue-800 font-semibold mt-4 whitespace-pre-line">{result.narrative}</div>
-=======
           {/* 기존 상세/그래프 UI */}
           <button
             className="mt-3 bg-gray-100 hover:bg-gray-200 text-blue-700 px-3 py-1 rounded text-sm mr-2"
@@ -333,7 +331,6 @@ const GrowthPredictionCard = ({ applicationId }) => {
                     );
                   })}
                 </div>
->>>>>>> main
               )}
             </div>
           )}
