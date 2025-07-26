@@ -19,14 +19,14 @@ function JobAptitudeReport() {
   useEffect(() => {
     if (jobPostId) {
       // 직무적성평가 보고서 데이터 조회
-      axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`)
+      axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`)
         .then((res) => setData(res.data))
         .catch((error) => {
           console.error('직무적성평가 보고서 데이터 조회 실패:', error);
         });
       
-      // 필기불합격자 데이터 조회
-      axiosInstance.get(`/written-test/failed/${jobPostId}`)
+      // 필기불합격자 데이터 조회 - 올바른 엔드포인트로 수정
+      axiosInstance.get(`/v1/written-test/failed/${jobPostId}`)
         .then((res) => setFailedApplicants(res.data))
         .catch((error) => {
           console.error('필기불합격자 데이터 조회 실패:', error);
@@ -51,7 +51,7 @@ function JobAptitudeReport() {
 
   const handleDownload = () => {
     const token = localStorage.getItem('token');
-    const url = `http://localhost:8000/api/v1/report/job-aptitude/pdf?job_post_id=${jobPostId}`;
+    const url = `/api/v1/report/job-aptitude/pdf?job_post_id=${jobPostId}`;
     
     // 새 창에서 PDF 다운로드
     const newWindow = window.open('', '_blank');

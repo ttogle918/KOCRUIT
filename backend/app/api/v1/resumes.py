@@ -331,7 +331,7 @@ async def generate_detailed_analysis(request: ResumeAnalysisRequest, db: Session
                     job_info = f"직무: {job_post.title}\n설명: {job_post.job_details or '상세 설명 없음'}"
         
         # resume_orchestrator를 사용한 상세 분석
-        from agent.tools.resume_orchestrator import analyze_resume_selective
+        from agent.agents.resume_orchestrator import analyze_resume_selective
         result = analyze_resume_selective(
             resume_text=resume_text,
             tools_to_run=['detailed'],
@@ -388,6 +388,52 @@ async def generate_competitiveness_comparison(request: ResumeAnalysisRequest, db
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/comprehensive-analysis", response_model=ResumeAnalysisResponse)
+async def generate_comprehensive_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """종합 분석 리포트 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집 (application_id가 있는 경우)
+        job_info = ""
+        job_matching_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application and application.job_post_id:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = f"직무: {job_post.title}\n설명: {job_post.job_details or '상세 설명 없음'}"
+                    job_matching_info = f"직무 매칭 정보: {job_post.title}"
+        
+        # 포트폴리오 정보 수집 (임시로 빈 문자열)
+        portfolio_info = ""
+        
+        # 종합 분석 도구 호출
+        from agent.tools.comprehensive_analysis_tool import generate_comprehensive_analysis_report
+        analysis_result = generate_comprehensive_analysis_report(
+            resume_text=resume_text,
+            job_info=job_info,
+            portfolio_info=portfolio_info,
+            job_matching_info=job_matching_info
+        )
+        
+        # ResumeAnalysisResponse 형식에 맞게 변환
+        return ResumeAnalysisResponse(
+            results={'comprehensive': analysis_result},
+            errors={},
+            summary={'job_matching_score': analysis_result.get('job_matching_score', 0.0)},
+            metadata={'tool_used': 'comprehensive_analysis'}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/keyword-matching", response_model=ResumeAnalysisResponse)
 async def generate_keyword_matching_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
     """키워드 매칭 분석 생성 API"""
@@ -410,7 +456,7 @@ async def generate_keyword_matching_analysis(request: ResumeAnalysisRequest, db:
                     job_info = f"직무: {job_post.title}\n설명: {job_post.job_details or '상세 설명 없음'}"
         
         # resume_orchestrator를 사용한 키워드 매칭 분석
-        from agent.tools.resume_orchestrator import analyze_resume_selective
+        from agent.agents.resume_orchestrator import analyze_resume_selective
         result = analyze_resume_selective(
             resume_text=resume_text,
             tools_to_run=['keyword_matching'],

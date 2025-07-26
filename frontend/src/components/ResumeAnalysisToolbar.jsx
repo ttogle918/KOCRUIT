@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../api/api';
+import axiosInstance from '../api/axiosInstance';
 
 export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnalysisResult, onToolChange }) {
   const [loading, setLoading] = useState({});
@@ -11,7 +11,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'comprehensive',
       name: '종합 분석',
       description: '전체적인 이력서 분석',
-      endpoint: '/interview-questions/resume-analysis',
+      endpoint: '/v1/resumes/comprehensive-analysis',
       icon: '📊',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -19,7 +19,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'detailed',
       name: '상세 분석',
       description: '심도있는 역량 분석',
-      endpoint: '/resumes/detailed-analysis',
+      endpoint: '/v1/resumes/detailed-analysis',
       icon: '🔍',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -27,7 +27,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'applicant_comparison',
       name: '지원자 비교',
       description: '해당 공고 지원자 비교',
-      endpoint: '/resumes/applicant-comparison',
+      endpoint: '/v1/resumes/applicant-comparison',
       icon: '👥',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -35,7 +35,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'keyword_matching',
       name: '키워드 매칭',
       description: '직무 요구사항 매칭',
-      endpoint: '/resumes/keyword-matching',
+      endpoint: '/v1/resumes/keyword-matching',
       icon: '🔗',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     }
@@ -63,7 +63,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
         application_id: applicationId || null
       };
 
-      const response = await api.post(tool.endpoint, requestData);
+      const response = await axiosInstance.post(tool.endpoint, requestData);
       
       setResults({ [tool.id]: response.data });
 

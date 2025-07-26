@@ -358,24 +358,6 @@ def get_written_test_passed_applicants(jobpost_id: int, db: Session = Depends(ge
         for app in passed_apps
     ]
 
-@router.get('/written-test/failed/{jobpost_id}')
-def get_written_test_failed_applicants(jobpost_id: int, db: Session = Depends(get_db)):
-    from app.models.application import Application, WrittenTestStatus
-    failed_apps = db.query(Application).filter(
-        Application.job_post_id == jobpost_id,
-        Application.written_test_status == WrittenTestStatus.FAILED
-    ).all()
-    return [
-        {
-            "id": app.id,  # 지원자 ID 추가
-            "user_id": app.user.id if app.user else None,
-            "user_name": app.user.name if app.user else None,
-            "written_test_score": app.written_test_score,
-            "evaluation_date": app.applied_at.strftime('%Y-%m-%d') if app.applied_at else None,
-        }
-        for app in failed_apps
-    ]
-
 @router.post('/written-test/update-status-and-score')
 def update_written_test_status_and_score(
     req: WrittenTestStatusUpdateRequest = Body(...),

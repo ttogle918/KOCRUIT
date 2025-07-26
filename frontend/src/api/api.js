@@ -3,7 +3,7 @@ import axiosInstance from './axiosInstance'; // 이 줄 추가!
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1', // 백엔드 주소에 맞게 수정
+  baseURL: '/api/v1', // 프록시를 통해 백엔드로 전달
   withCredentials: false, // 쿠키 인증 시 필요
   headers: {
     'Content-Type': 'application/json',

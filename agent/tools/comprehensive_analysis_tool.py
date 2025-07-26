@@ -287,19 +287,23 @@ comprehensive_analysis_prompt = PromptTemplate.from_template(
 # LLM 체인 초기화
 comprehensive_analysis_chain = LLMChain(llm=llm, prompt=comprehensive_analysis_prompt)
 
-@redis_cache()
 def generate_comprehensive_analysis_report(resume_text: str, job_info: str = "", portfolio_info: str = "", job_matching_info: str = ""):
     """종합 분석 리포트 생성"""
     try:
+        print(f"🔍 종합 분석 시작 - resume_text 길이: {len(resume_text)}, job_info 길이: {len(job_info)}")
+        
         # 객관적인 매칭 점수 계산
         calculated_score = calculate_job_matching_score(resume_text, job_info) if job_info else 0.5
+        print(f"📊 계산된 매칭 점수: {calculated_score}")
         
+        print(f"🤖 LLM 체인 호출 시작...")
         result = comprehensive_analysis_chain.invoke({
             "resume_text": resume_text,
             "job_info": job_info or "직무 정보가 없습니다.",
             "portfolio_info": portfolio_info or "포트폴리오 정보가 없습니다.",
             "job_matching_info": job_matching_info or "직무 매칭 정보가 없습니다."
         })
+        print(f"✅ LLM 체인 호출 완료")
         
         # JSON 파싱 (더 안전한 방식)
         text = result.get("text", "")

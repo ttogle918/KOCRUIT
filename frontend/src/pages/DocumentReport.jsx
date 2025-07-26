@@ -12,7 +12,7 @@ function DocumentReport() {
 
   useEffect(() => {
     if (jobPostId) {
-      axiosInstance.get(`/report/document?job_post_id=${jobPostId}`)
+      axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`)
         .then((res) => setData(res.data))
         .catch((error) => {
           console.error('서류 보고서 데이터 조회 실패:', error);
@@ -37,7 +37,7 @@ function DocumentReport() {
 
   const handleDownload = () => {
     const token = localStorage.getItem('token');
-    const url = `http://localhost:8000/api/v1/report/document/pdf?job_post_id=${jobPostId}`;
+    const url = `/api/v1/report/document/pdf?job_post_id=${jobPostId}`;
     
     // 새 창에서 PDF 다운로드
     const newWindow = window.open('', '_blank');

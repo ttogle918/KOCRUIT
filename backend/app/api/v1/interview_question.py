@@ -567,7 +567,20 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
             portfolio_info=portfolio_info,
             job_matching_info=job_matching_info
         )
-        return analysis_result
+        
+        # ResumeAnalysisResponse 형식에 맞게 변환
+        return ResumeAnalysisResponse(
+            resume_summary=analysis_result.get("resume_summary", ""),
+            key_projects=analysis_result.get("key_projects", []),
+            technical_skills=analysis_result.get("technical_skills", []),
+            soft_skills=analysis_result.get("soft_skills", []),
+            experience_highlights=analysis_result.get("experience_highlights", []),
+            potential_concerns=analysis_result.get("potential_concerns", []),
+            interview_focus_areas=analysis_result.get("interview_focus_areas", []),
+            portfolio_analysis=analysis_result.get("portfolio_analysis"),
+            job_matching_score=analysis_result.get("job_matching_score"),
+            job_matching_details=analysis_result.get("job_matching_details")
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1947,7 +1960,7 @@ async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_d
         client = openai.OpenAI(api_key=api_key)
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": ai_tools_prompt}],
             temperature=0.7,
             max_tokens=3000
