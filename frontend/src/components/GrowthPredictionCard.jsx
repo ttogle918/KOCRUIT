@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchGrowthPrediction } from '../api/growthPredictionApi';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as BarTooltip, Legend as BarLegend } from 'recharts';
-import Plot from 'react-plotly.js';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as BarTooltip, Legend as BarLegend, ComposedChart, Line, Area } from 'recharts';
 
 const GrowthPredictionCard = ({ applicationId }) => {
   const [loading, setLoading] = useState(false);
@@ -256,47 +255,62 @@ const GrowthPredictionCard = ({ applicationId }) => {
               {/* Box plot: 고성과자 분포 + 지원자 위치 */}
               {result.boxplot_data && (
                 <div className="mt-6">
-                  <h4 className="font-semibold text-base mb-2">고성과자 분포와 지원자 위치 (Box Plot)</h4>
+                  <h4 className="font-semibold text-base mb-2">고성과자 분포와 지원자 위치</h4>
                   {Object.entries(result.boxplot_data).map(([label, stats]) => {
                     const meta = boxplotLabels[label] || { label, unit: '', desc: '' };
+                    
+                    // Box plot 데이터 생성
+                    const boxData = [
+                      { name: '최저값', value: stats.min, type: 'min' },
+                      { name: '25%', value: stats.q1, type: 'q1' },
+                      { name: '중간값', value: stats.median, type: 'median' },
+                      { name: '75%', value: stats.q3, type: 'q3' },
+                      { name: '최고값', value: stats.max, type: 'max' }
+                    ];
+                    
                     return (
                       <div key={label} className="mb-6">
                         <div className="font-semibold mb-1">
                           {meta.label} <span className="text-xs text-gray-500">({meta.desc}{meta.unit ? `, 단위: ${meta.unit}` : ''})</span>
                         </div>
-                        <Plot
-                          data={[
-                            {
-                              y: [stats.min, stats.q1, stats.median, stats.q3, stats.max],
-                              type: 'box',
-                              name: '고성과자 분포',
-                              boxpoints: false,
-                              marker: { color: '#2563eb' }
-                            },
-                            {
-                              y: [stats.applicant],
-                              type: 'scatter',
-                              mode: 'markers',
-                              name: '지원자',
-                              marker: { color: 'red', size: 14, symbol: 'circle' }
-                            }
-                          ]}
-                          layout={{
-                            title: `${meta.label} 분포`,
-                            yaxis: { title: `${meta.label}${meta.unit ? ` (${meta.unit})` : ''}` },
-                            showlegend: true,
-                            height: 320,
-                            margin: { l: 60, r: 30, t: 40, b: 40 }
-                          }}
-                          config={{ displayModeBar: false }}
-                          style={{ width: '100%', maxWidth: 500 }}
-                        />
+                        <ResponsiveContainer width="100%" height={200}>
+                          <ComposedChart data={boxData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <BarTooltip 
+                              formatter={(value, name) => [
+                                `${value}${meta.unit ? ` ${meta.unit}` : ''}`, 
+                                name
+                              ]}
+                            />
+                            <BarLegend />
+                            <Bar dataKey="value" fill="#2563eb" name="고성과자 분포" />
+                            <Line 
+                              type="monotone" 
+                              dataKey="value" 
+                              stroke="#2563eb" 
+                              strokeWidth={2}
+                              dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
+                            />
+                            {/* 지원자 위치 표시 */}
+                            <Line 
+                              type="monotone" 
+                              data={[{ name: '지원자', value: stats.applicant }]}
+                              dataKey="value" 
+                              stroke="red" 
+                              strokeWidth={3}
+                              dot={{ fill: 'red', strokeWidth: 2, r: 6 }}
+                              name="지원자"
+                            />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                        <div className="text-xs text-gray-500 mt-2">
+                          파란 막대는 고성과자 집단의 분포(최저~최고, 25%~75%, 중간값), 빨간 점은 지원자의 위치입니다.
+                        </div>
                       </div>
                     );
                   })}
-                  <div className="text-xs text-gray-500 mt-2">
-                    파란 박스는 고성과자 집단의 분포(최저~최고, 25%~75%, 중간값), 빨간 점은 지원자의 위치입니다.
-                  </div>
                 </div>
               )}
             </>
