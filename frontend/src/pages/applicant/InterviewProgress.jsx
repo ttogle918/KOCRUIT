@@ -187,14 +187,8 @@ function InterviewProgress() {
         };
         
         try {
-          // 면접 도구들을 병렬로 프리로딩
-          await Promise.allSettled([
-            api.post('/interview-questions/interview-checklist', workflowRequest),
-            api.post('/interview-questions/strengths-weaknesses', workflowRequest),
-            api.post('/interview-questions/interview-guideline', workflowRequest),
-            api.post('/interview-questions/evaluation-criteria', workflowRequest)
-          ]);
-          console.log('✅ 면접 도구 프리로딩 완료');
+          // 면접 도구 프리로딩 제거 (DB에서 조회하므로 불필요)
+          console.log('✅ 면접 도구 프리로딩 스킵 (DB 조회 사용)');
         } catch (error) {
           console.warn('면접 도구 프리로딩 실패:', error);
         }
@@ -304,9 +298,21 @@ function InterviewProgress() {
         setQuestions(res.data.questions ? res.data.questions.split('\n') : []);
         console.log(`✅ AI 면접 질문 ${res.data.saved_questions_count}개 생성 및 저장 완료`);
       } else if (isFirstInterview) {
-        endpoint = '/interview-questions/project-questions';
-        const res = await api.post(endpoint, requestData);
-        setQuestions(res.data.questions || []);
+        // 실무진 면접: DB에서 기존 질문 조회
+        try {
+          const res = await api.get(`/interview-questions/application/${applicationId}/practical-questions`);
+          setQuestions(res.data.questions || []);
+          console.log(`✅ 실무진 면접 질문 ${res.data.questions?.length || 0}개 로드 (${res.data.source})`);
+        } catch (error) {
+          console.log('실무진 면접 질문 조회 실패, 기본 질문 사용');
+          setQuestions([
+            "지원자의 주요 프로젝트 경험에 대해 설명해주세요.",
+            "기술적 문제를 해결한 경험이 있다면 구체적으로 설명해주세요.",
+            "팀 프로젝트에서 본인의 역할과 기여도는 어떻게 되었나요?",
+            "최근 관심 있는 기술이나 트렌드가 있다면 무엇인가요?",
+            "직무와 관련된 본인의 강점과 개선점은 무엇인가요?"
+          ]);
+        }
       } else {
         endpoint = '/interview-questions/executive-interview';
         const res = await api.post(endpoint, requestData);
@@ -339,7 +345,26 @@ function InterviewProgress() {
       if (isAiInterview) {
         endpoint = '/interview-questions/ai-tools';
       } else if (isFirstInterview) {
-        endpoint = '/interview-questions/project-questions';
+        // 실무진 면접: 평가 기준 조회 API 사용
+        try {
+          const criteriaRes = await api.post('/interview-questions/evaluation-items/interview', {
+            resume_id: resumeId,
+            application_id: applicationId,
+            interview_stage: 'practical'
+          });
+          
+          if (criteriaRes.data.evaluation_items) {
+            setEvaluationCriteria({
+              evaluation_items: criteriaRes.data.evaluation_items,
+              total_weight: criteriaRes.data.total_weight,
+              max_total_score: criteriaRes.data.max_total_score
+            });
+            console.log(`✅ 실무진 평가 기준 ${criteriaRes.data.evaluation_items.length}개 로드`);
+          }
+          return; // 평가 기준만 로드하고 종료
+        } catch (error) {
+          console.log('실무진 평가 기준 조회 실패');
+        }
       } else {
         endpoint = '/interview-questions/executive-tools';
       }
@@ -355,22 +380,12 @@ function InterviewProgress() {
         setInterviewGuideline(workflowData.evaluation_tools.guideline || null);
         setEvaluationCriteria(workflowData.evaluation_tools.evaluation_criteria || null);
       } else {
-        // 기존 방식으로 폴백
-        const [
-          checklistRes,
-          strengthsRes,
-          guidelineRes,
-          criteriaRes
-        ] = await Promise.allSettled([
-          api.post('/interview-questions/interview-checklist', workflowRequest),
-          api.post('/interview-questions/strengths-weaknesses', workflowRequest),
-          api.post('/interview-questions/interview-guideline', workflowRequest),
-          api.post('/interview-questions/evaluation-criteria', workflowRequest)
-        ]);
-        setInterviewChecklist(checklistRes.status === 'fulfilled' ? checklistRes.value.data : null);
-        setStrengthsWeaknesses(strengthsRes.status === 'fulfilled' ? strengthsRes.value.data : null);
-        setInterviewGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
-        setEvaluationCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
+        // 실시간 생성 대신 DB에서 조회 (이미 생성된 데이터 사용)
+        console.log('📝 실시간 생성 대신 DB 조회 사용');
+        setInterviewChecklist(null);
+        setStrengthsWeaknesses(null);
+        setInterviewGuideline(null);
+        setEvaluationCriteria(null);
       }
     } catch (e) {
       console.error('면접 도구 생성 오류:', e);
@@ -644,38 +659,92 @@ function InterviewProgress() {
 
   // 면접 상태별 라벨 반환 함수
   const getInterviewStatusLabel = (status, compact = false) => {
+    // status가 undefined나 null인 경우 처리
+    if (!status) {
+      const paddingClass = compact ? 'px-1 py-0.5' : 'px-2 py-1';
+      const textClass = compact ? 'text-xs' : 'text-xs';
+      return (
+        <span className={`inline-block ${paddingClass} rounded-full ${textClass} font-medium text-gray-500 bg-gray-100`}>
+          미진행
+        </span>
+      );
+    }
+    
+    // AI 면접에서 합격/불합격 판단 로직 수정
+    // AI_INTERVIEW_PASSED이거나 다음 단계로 진행된 경우만 합격으로 처리
+    const isAIPassed = status === 'AI_INTERVIEW_PASSED' || 
+                      (status && status.includes('FIRST_INTERVIEW')) || 
+                      (status && status.includes('SECOND_INTERVIEW')) || 
+                      (status && status.includes('FINAL_INTERVIEW'));
+    
+    // 실무진 면접(1차)에서 합격/불합격 판단
+    const isFirstPassed = status === 'FIRST_INTERVIEW_PASSED' || 
+                         (status && status.includes('SECOND_INTERVIEW')) || 
+                         (status && status.includes('FINAL_INTERVIEW'));
+    
+    // 임원진 면접(2차)에서 합격/불합격 판단
+    const isSecondPassed = status === 'SECOND_INTERVIEW_PASSED' || 
+                          (status && status.includes('FINAL_INTERVIEW'));
+    
     const statusLabels = {
+      // AI 면접 상태
       'AI_INTERVIEW_PENDING': { label: '미진행', color: 'text-gray-500 bg-gray-100' },
       'AI_INTERVIEW_SCHEDULED': { label: '일정 확정', color: 'text-blue-600 bg-blue-100' },
       'AI_INTERVIEW_IN_PROGRESS': { label: '진행중', color: 'text-yellow-600 bg-yellow-100' },
       'AI_INTERVIEW_COMPLETED': { label: '완료', color: 'text-green-600 bg-green-100' },
       'AI_INTERVIEW_PASSED': { label: '합격', color: 'text-green-700 bg-green-200' },
       'AI_INTERVIEW_FAILED': { label: '불합격', color: 'text-red-600 bg-red-100' },
+      
+      // 실무진 면접(1차) 상태
       'FIRST_INTERVIEW_SCHEDULED': { label: '1차 일정 확정', color: 'text-blue-600 bg-blue-100' },
       'FIRST_INTERVIEW_IN_PROGRESS': { label: '1차 진행중', color: 'text-yellow-600 bg-yellow-100' },
       'FIRST_INTERVIEW_COMPLETED': { label: '1차 완료', color: 'text-green-600 bg-green-100' },
       'FIRST_INTERVIEW_PASSED': { label: '1차 합격', color: 'text-green-700 bg-green-200' },
       'FIRST_INTERVIEW_FAILED': { label: '1차 불합격', color: 'text-red-600 bg-red-100' },
+      
+      // 임원진 면접(2차) 상태
       'SECOND_INTERVIEW_SCHEDULED': { label: '2차 일정 확정', color: 'text-purple-600 bg-purple-100' },
       'SECOND_INTERVIEW_IN_PROGRESS': { label: '2차 진행중', color: 'text-yellow-600 bg-yellow-100' },
       'SECOND_INTERVIEW_COMPLETED': { label: '2차 완료', color: 'text-green-600 bg-green-100' },
       'SECOND_INTERVIEW_PASSED': { label: '2차 합격', color: 'text-green-700 bg-green-200' },
       'SECOND_INTERVIEW_FAILED': { label: '2차 불합격', color: 'text-red-600 bg-red-100' },
+      
+      // 최종 면접 상태
       'FINAL_INTERVIEW_SCHEDULED': { label: '최종 일정 확정', color: 'text-indigo-600 bg-indigo-100' },
       'FINAL_INTERVIEW_IN_PROGRESS': { label: '최종 진행중', color: 'text-yellow-600 bg-yellow-100' },
       'FINAL_INTERVIEW_COMPLETED': { label: '최종 완료', color: 'text-green-600 bg-green-100' },
       'FINAL_INTERVIEW_PASSED': { label: '최종 합격', color: 'text-green-700 bg-green-200' },
       'FINAL_INTERVIEW_FAILED': { label: '최종 불합격', color: 'text-red-600 bg-red-100' },
+      
+      // 기타
       'CANCELLED': { label: '취소', color: 'text-gray-500 bg-gray-100' }
     };
     
-    const statusInfo = statusLabels[status] || { label: '알 수 없음', color: 'text-gray-500 bg-gray-100' };
+    // AI 면접에서 합격/불합격 판단 로직 적용
+    let finalLabel = statusLabels[status]?.label || '알 수 없음';
+    let finalColor = statusLabels[status]?.color || 'text-gray-500 bg-gray-100';
+    
+    // AI 면접 단계에서 합격/불합격 판단
+    if (status === 'AI_INTERVIEW_PENDING') {
+      finalLabel = '미진행';
+      finalColor = 'text-gray-500 bg-gray-100';
+    } else if (status === 'AI_INTERVIEW_FAILED') {
+      finalLabel = '불합격';
+      finalColor = 'text-red-600 bg-red-100';
+    } else if (status === 'AI_INTERVIEW_PASSED' || isAIPassed) {
+      finalLabel = '합격';
+      finalColor = 'text-green-700 bg-green-200';
+    }
+    
+    // 디버깅용 로그
+    console.log(`Interview Status Debug - Status: ${status}, isAIPassed: ${isAIPassed}, Final Label: ${finalLabel}, Final Color: ${finalColor}`);
+    
     const paddingClass = compact ? 'px-1 py-0.5' : 'px-2 py-1';
     const textClass = compact ? 'text-xs' : 'text-xs';
     
     return (
-      <span className={`inline-block ${paddingClass} rounded-full ${textClass} font-medium ${statusInfo.color}`}>
-        {statusInfo.label}
+      <span className={`inline-block ${paddingClass} rounded-full ${textClass} font-medium ${finalColor}`}>
+        {finalLabel}
       </span>
     );
   };
@@ -957,10 +1026,8 @@ function InterviewProgress() {
     setCommonQuestionsError(null);
     
     try {
-      console.log('📡 공통 질문 API 호출 시작');
-      const res = await api.post('/interview-questions/job-common-questions', null, {
-        params: { job_post_id: jobPostId, company_name: jobPost.company.name }
-      });
+      console.log('📡 공통 질문 DB 조회 시작');
+      const res = await api.get(`/interview-questions/job/${jobPostId}/common-questions`);
       
       console.log('✅ 공통 질문 API 응답 성공:', res.data);
       
@@ -1002,18 +1069,9 @@ function InterviewProgress() {
       setCommonToolsLoading(true);
       const requestData = { job_post_id: jobPostId, company_name: jobPost.company.name };
       
-      // 면접 도구 fetch
-      Promise.allSettled([
-        api.post('/interview-questions/interview-checklist/job-based', requestData),
-        api.post('/interview-questions/strengths-weaknesses/job-based', requestData),
-        api.post('/interview-questions/interview-guideline/job-based', requestData),
-        api.post('/interview-questions/evaluation-criteria/job-based', requestData)
-      ]).then(([checklistRes, strengthsRes, guidelineRes, criteriaRes]) => {
-        setCommonChecklist(checklistRes.status === 'fulfilled' ? checklistRes.value.data : null);
-        setCommonStrengths(strengthsRes.status === 'fulfilled' ? strengthsRes.value.data : null);
-        setCommonGuideline(guidelineRes.status === 'fulfilled' ? guidelineRes.value.data : null);
-        setCommonCriteria(criteriaRes.status === 'fulfilled' ? criteriaRes.value.data : null);
-      }).finally(() => setCommonToolsLoading(false));
+      // 면접 도구 fetch 제거 (DB에서 조회하므로 불필요)
+      console.log('📝 공고 기반 면접 도구 프리로딩 스킵 (DB 조회 사용)');
+      setCommonToolsLoading(false);
       
       // 공통 질문 fetch
       fetchCommonQuestions();
@@ -1040,21 +1098,21 @@ function InterviewProgress() {
       if (error.response?.status === 404) {
         console.log('📝 DB에 평가항목이 없습니다. 새로 생성합니다.');
         
-        // DB에 없으면 새로 생성
-        try {
-          const createResponse = await api.post('/interview-questions/evaluation-criteria/job-based', {
-            job_post_id: jobPostId,
-            company_name: jobPost?.company?.name || '회사'
-          });
-          
-          setJobBasedEvaluationCriteria(createResponse.data);
-          initializeEvaluationScores(createResponse.data); // 평가 점수 초기화
-          console.log('✅ 공고 기반 평가항목 생성 및 저장 완료:', createResponse.data);
-          return createResponse.data;
-        } catch (createError) {
-          console.error('❌ 평가항목 생성 실패:', createError);
-          return null;
-        }
+        // DB에 없으면 기본 평가항목 사용
+        console.log('📝 DB에 평가항목이 없습니다. 기본 평가항목 사용');
+        const defaultCriteria = {
+          suggested_criteria: [
+            { criterion: "기술적 역량", description: "지원자의 기술적 능력", max_score: 10 },
+            { criterion: "문제해결 능력", description: "문제 상황 대처 능력", max_score: 10 },
+            { criterion: "팀워크", description: "협업 및 소통 능력", max_score: 10 },
+            { criterion: "학습 의지", description: "새로운 기술 학습 의지", max_score: 10 },
+            { criterion: "업무 적응력", description: "회사 문화 적응 능력", max_score: 10 }
+          ]
+        };
+        setJobBasedEvaluationCriteria(defaultCriteria);
+        initializeEvaluationScores(defaultCriteria);
+        console.log('✅ 기본 평가항목 설정 완료');
+        return defaultCriteria;
       } else {
         console.error('❌ 평가항목 조회 실패:', error);
         return null;

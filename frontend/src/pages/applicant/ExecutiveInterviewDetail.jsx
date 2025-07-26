@@ -11,7 +11,10 @@ import TextareaAutosize from '@mui/material/TextareaAutosize';
 import InputLabel from '@mui/material/InputLabel';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import Typography from '@mui/material/Typography';
 import { MdPerson, MdDescription, MdStar, MdBusiness, MdArrowBack, MdSave, MdRemoveRedEye, MdEdit } from 'react-icons/md';
+import InterviewEvaluationItems from '../../components/InterviewEvaluationItems';
+import { saveExecutiveInterviewEvaluation } from '../../api/api';
 
 const ExecutiveInterviewDetail = () => {
   const { applicationId } = useParams();
@@ -91,12 +94,14 @@ const ExecutiveInterviewDetail = () => {
 
   const handleSave = async () => {
     try {
-      await axios.post(`/api/executive-interview/evaluate/${applicationId}`, {
+      const evaluationData = {
         total_score: evaluation.total_score,
         summary: evaluation.summary,
         evaluation_items: evaluation.evaluation_items,
         evaluator_id: 1 // 임시 평가자 ID
-      });
+      };
+      
+      await saveExecutiveInterviewEvaluation(applicationId, evaluationData);
       
       setIsEditing(false);
       fetchCandidateDetails(); // 데이터 새로고침
@@ -200,13 +205,63 @@ const ExecutiveInterviewDetail = () => {
             <CardContent>
               {isEditing ? (
                 <div className="space-y-6">
-                  {/* 평가 항목들 */}
+                  {/* AI 생성 평가 항목 */}
+                  {candidate && candidate.resume ? (
+                    <InterviewEvaluationItems
+                      resumeId={candidate.resume.id}
+                      applicationId={parseInt(applicationId)}
+                      interviewStage="executive"
+                      onScoreChange={(scores) => {
+                        console.log('임원진 평가 점수:', scores);
+                        // AI 생성 평가 점수를 기존 평가 시스템과 통합
+                        const newEvaluationItems = [...evaluation.evaluation_items];
+                        
+                        // AI 평가 점수를 기존 항목에 매핑
+                        Object.entries(scores).forEach(([itemName, score]) => {
+                          const existingItem = newEvaluationItems.find(item => 
+                            item.evaluate_type === itemName
+                          );
+                          if (existingItem) {
+                            existingItem.evaluate_score = score;
+                            // 등급 자동 계산
+                            if (score >= 9) existingItem.grade = 'A+';
+                            else if (score >= 8) existingItem.grade = 'A';
+                            else if (score >= 7) existingItem.grade = 'B+';
+                            else if (score >= 6) existingItem.grade = 'B';
+                            else if (score >= 5) existingItem.grade = 'C+';
+                            else existingItem.grade = 'C';
+                          }
+                        });
+                        
+                        // 총점 재계산
+                        const totalScore = newEvaluationItems.reduce((sum, item) => 
+                          sum + (item.evaluate_score || 0), 0
+                        ) / newEvaluationItems.length;
+                        
+                        setEvaluation({
+                          ...evaluation,
+                          evaluation_items: newEvaluationItems,
+                          total_score: totalScore
+                        });
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      이력서 정보가 없어 평가 항목을 불러올 수 없습니다.
+                    </div>
+                  )}
+                  
+                  {/* 기존 평가 항목들 (백업용) */}
+                  <div className="border-t pt-6">
+                    <Typography variant="h6" gutterBottom>
+                      기존 평가 항목 (백업)
+                    </Typography>
                   {evaluation.evaluation_items.map((item, index) => (
                     <div key={index} className="border rounded-lg p-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <InputLabel className="text-lg font-medium">{item.evaluate_type}</InputLabel>
+                          <InputLabel className="text-lg font-medium">{item.evaluate_type}</InputLabel>
                         <div className="flex items-center gap-2">
-                          <TextField
+                            <TextField
                             type="number"
                             min="0"
                             max="100"
@@ -218,7 +273,7 @@ const ExecutiveInterviewDetail = () => {
                           <Badge variant="outline">{item.grade}</Badge>
                         </div>
                       </div>
-                      <TextareaAutosize
+                        <TextareaAutosize
                         placeholder={`${item.evaluate_type}에 대한 평가 코멘트를 입력하세요...`}
                         value={item.comment}
                         onChange={(e) => handleCommentChange(index, e.target.value)}
@@ -226,6 +281,7 @@ const ExecutiveInterviewDetail = () => {
                       />
                     </div>
                   ))}
+                  </div>
                   
                   {/* 총점 */}
                   <div className="border-t pt-4">
@@ -299,29 +355,23 @@ const ExecutiveInterviewDetail = () => {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <MdDescription className="h-5 w-5" />
-                실무진 평가 결과
+                실무진 평가 항목
               </div>
             </CardHeader>
             <CardContent>
-              {candidate.practical_evaluation ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-medium">총점</span>
-                    <Badge variant="outline" className="text-lg">
-                      {candidate.practical_evaluation.total_score}점
-                    </Badge>
-                  </div>
-                  
-                  {candidate.practical_evaluation.summary && (
-                    <div className="p-4 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium mb-2">평가 코멘트</h4>
-                      <p className="text-gray-700">{candidate.practical_evaluation.summary}</p>
-                    </div>
-                  )}
-                </div>
+              {candidate && candidate.resume ? (
+                <InterviewEvaluationItems
+                  resumeId={candidate.resume.id}
+                  applicationId={parseInt(applicationId)}
+                  interviewStage="practical"
+                  onScoreChange={(scores) => {
+                    console.log('실무진 평가 점수:', scores);
+                    // 여기서 점수를 저장하거나 다른 처리를 할 수 있습니다
+                  }}
+                />
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  실무진 평가 결과가 없습니다.
+                  이력서 정보가 없어 평가 항목을 불러올 수 없습니다.
                 </div>
               )}
             </CardContent>

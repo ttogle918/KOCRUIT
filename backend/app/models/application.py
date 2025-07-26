@@ -74,6 +74,12 @@ class WrittenTestStatus(enum.Enum):
     FAILED = "FAILED"
 
 
+class FinalStatus(str, enum.Enum):
+    PENDING = "PENDING"          # 최종 선발 대기
+    SELECTED = "SELECTED"        # 최종 선발됨
+    NOT_SELECTED = "NOT_SELECTED" # 최종 선발되지 않음
+
+
 class Application(Base):
     __tablename__ = "application"
     
@@ -95,6 +101,7 @@ class Application(Base):
     pass_reason = Column(Text)
     fail_reason = Column(Text)
     ai_interview_score = Column(Numeric(5, 2))  # AI 면접 전용 점수
+    final_status = Column(SqlEnum(FinalStatus), default=FinalStatus.PENDING, nullable=False)  # 최종 선발 상태
     
     # Relationships with back_populates
     user = relationship("User", back_populates="applications")

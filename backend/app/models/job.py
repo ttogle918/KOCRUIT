@@ -27,6 +27,8 @@ class JobPost(Base):
     team_members = Column(Text)
     weights = Column(Text)
     status = Column(String(20), default="SCHEDULED")
+    interview_report_done = Column(Boolean, default=False)  # 면접 보고서 완료 여부
+    final_report_done = Column(Boolean, default=False)      # 최종 보고서 완료 여부
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

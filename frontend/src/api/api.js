@@ -121,12 +121,87 @@ export const highlightResumeText = async (text, jobDescription = "", companyValu
 };
 
 export async function getResumeHighlights(text) {
-  const res = await fetch('/api/v1/highlight', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text })
-  });
-  if (!res.ok) throw new Error('Failed to fetch highlights');
-  const data = await res.json();
-  return data.highlights;
+  try {
+    const response = await api.post('/ai-evaluate/highlight-resume', {
+      text: text
+    });
+    return response.data;
+  } catch (error) {
+    console.error('이력서 하이라이트 실패:', error);
+    throw error;
+  }
 }
+
+// 면접 평가 항목 조회 API
+export const getInterviewEvaluationItems = async (resumeId, applicationId = null, interviewStage) => {
+  try {
+    const response = await api.post('/interview-questions/evaluation-items/interview', {
+      resume_id: resumeId,
+      application_id: applicationId,
+      interview_stage: interviewStage // "practical" 또는 "executive"
+    });
+    return response.data;
+  } catch (error) {
+    console.error('면접 평가 항목 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 이력서 기반 평가 기준 조회 API
+export const getResumeBasedEvaluationCriteria = async (resumeId, applicationId = null, interviewStage = null) => {
+  try {
+    const params = new URLSearchParams();
+    if (applicationId) params.append('application_id', applicationId);
+    if (interviewStage) params.append('interview_stage', interviewStage);
+    
+    const response = await api.get(`/interview-questions/evaluation-criteria/resume/${resumeId}?${params}`);
+    return response.data;
+  } catch (error) {
+    console.error('이력서 기반 평가 기준 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 면접 평가 저장 API
+export const saveInterviewEvaluation = async (evaluationData) => {
+  try {
+    const response = await api.post('/interview-evaluation/', evaluationData);
+    return response.data;
+  } catch (error) {
+    console.error('면접 평가 저장 실패:', error);
+    throw error;
+  }
+};
+
+// 임원진 면접 평가 저장 API
+export const saveExecutiveInterviewEvaluation = async (applicationId, evaluationData) => {
+  try {
+    const response = await api.post(`/executive-interview/evaluate/${applicationId}`, evaluationData);
+    return response.data;
+  } catch (error) {
+    console.error('임원진 면접 평가 저장 실패:', error);
+    throw error;
+  }
+};
+
+// 면접 평가 결과 조회 API
+export const getInterviewEvaluation = async (applicationId, interviewType = 'practical') => {
+  try {
+    const response = await api.get(`/interview-evaluation/${applicationId}/${interviewType}`);
+    return response.data;
+  } catch (error) {
+    console.error('면접 평가 결과 조회 실패:', error);
+    throw error;
+  }
+};
+
+// 지원자 정보 조회 API
+export const getApplication = async (applicationId) => {
+  try {
+    const response = await api.get(`/applications/${applicationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('지원자 정보 조회 실패:', error);
+    throw error;
+  }
+};

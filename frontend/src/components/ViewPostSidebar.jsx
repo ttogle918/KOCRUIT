@@ -14,6 +14,24 @@ export default function ViewPostSidebar({ jobPost }) {
   const effectiveJobPostId = urlJobPostId || jobPost?.id || '';
   const interviewReportDone = jobPost?.interviewReportDone;
   const finalReportDone = jobPost?.finalReportDone;
+  
+  // 면접 진행 상태 확인 (서류 합격자가 있고 면접이 진행되었는지)
+  const hasInterviewProgress = jobPost?.applications?.some(app => 
+    app.status === 'PASSED' || app.interview_status?.includes('INTERVIEW')
+  );
+  
+  // 면접 보고서 활성화 조건: 면접 보고서 완료 또는 면접 진행 중
+  const canViewInterviewReport = interviewReportDone || hasInterviewProgress;
+  
+  // 디버깅용 로그
+  console.log("🔍 ViewPostSidebar 상태:", {
+    jobPostId: effectiveJobPostId,
+    interviewReportDone,
+    finalReportDone,
+    hasInterviewProgress,
+    canViewInterviewReport,
+    applicationsCount: jobPost?.applications?.length || 0
+  });
 
   // 각 버튼의 경로
   const applicantListPath = `/applicantlist/${effectiveJobPostId}`;
@@ -163,13 +181,13 @@ export default function ViewPostSidebar({ jobPost }) {
           <button
             className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm
               ${isHovered ? 'justify-start' : 'justify-center'}
-              ${interviewReportDone ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}
-              ${interviewReportDone ? 'hover:bg-blue-200 dark:hover:bg-blue-800' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}
-              ${!interviewReportDone ? 'opacity-60 cursor-not-allowed' : ''}`}
-            onClick={() => interviewReportDone && navigate(`/interview-report?job_post_id=${effectiveJobPostId}`)}
-            disabled={!interviewReportDone}
+              ${canViewInterviewReport ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}
+              ${canViewInterviewReport ? 'hover:bg-blue-200 dark:hover:bg-blue-800' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}
+              ${!canViewInterviewReport ? 'opacity-60 cursor-not-allowed' : ''}`}
+            onClick={() => canViewInterviewReport && navigate(`/interview-report?job_post_id=${effectiveJobPostId}`)}
+            disabled={!canViewInterviewReport}
           >
-            {interviewReportDone ? <MdCheckCircle size={18} /> : <MdRadioButtonUnchecked size={18} />}
+            {canViewInterviewReport ? <MdCheckCircle size={18} /> : <MdRadioButtonUnchecked size={18} />}
             {isHovered && <span className="ml-2 text-sm">면접 보고서</span>}
           </button>
           <button

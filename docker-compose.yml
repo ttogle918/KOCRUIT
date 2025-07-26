@@ -67,6 +67,8 @@ services:
       - ./agent:/app/agent
       - ./backend:/app/backend
       - ./.env:/app/.env
+      - ./data:/app/data
+      - ./initdb:/app/initdb
     networks:
       - app-net
     command: uvicorn agent.main:app --host 0.0.0.0 --port 8001 --reload
