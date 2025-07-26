@@ -7,6 +7,7 @@ const GrowthPredictionCard = ({ applicationId }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [showDetail, setShowDetail] = useState(false);
   // 그래프 모드: 'ratio' | 'normalized' | 'raw'
   const [chartMode, setChartMode] = useState('ratio'); // 기본값: 비율(고성과자=100)
 
@@ -15,6 +16,7 @@ const GrowthPredictionCard = ({ applicationId }) => {
     setResult(null);
     setError(null);
     setChartMode('ratio');
+    setShowDetail(false);
     setLoading(false);
   }, [applicationId]);
 
@@ -189,6 +191,9 @@ const GrowthPredictionCard = ({ applicationId }) => {
               </table>
               {result.narrative && (
                 <div className="text-base text-blue-800 font-semibold mt-4 whitespace-pre-line">{result.narrative}</div>
+              )}
+            </div>
+          )}
           {/* 기존 상세/그래프 UI */}
           <button
             className="mt-3 bg-gray-100 hover:bg-gray-200 text-blue-700 px-3 py-1 rounded text-sm mr-2"
@@ -332,7 +337,7 @@ const GrowthPredictionCard = ({ applicationId }) => {
                   })}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       )}
