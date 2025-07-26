@@ -113,7 +113,7 @@ export default function WrittenTestPassedPage() {
   useEffect(() => {
     const fetchApplicants = async () => {
       try {
-        const res = await api.get(`/written-test/passed/${jobpostId}`);
+        const res = await api.get(`/ai-evaluate/written-test/passed/${jobpostId}`);
         const data = res.data;
         setPassedApplicants(data);
         setBookmarkedList(data.map(() => false));

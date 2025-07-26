@@ -124,9 +124,9 @@ export default function ApplicantList() {
         ]);
         const applicants = appRes.data;
         setApplicants(applicants);
-        setWaitingApplicants(applicants.filter(app => app.status === 'WAITING'));
-        setPassedCount(applicants.filter(app => app.status === 'PASSED').length);
-        setRejectedCount(applicants.filter(app => app.status === 'REJECTED').length);
+        setWaitingApplicants(applicants.filter(app => app.document_status === 'WAITING'));
+        setPassedCount(applicants.filter(app => app.document_status === 'PASSED').length);
+        setRejectedCount(applicants.filter(app => app.document_status === 'REJECTED').length);
         setBookmarkedList(applicants.map(app => app.isBookmarked === 'Y'));
         setHeadcount(postRes.data?.headcount ?? 0);
       } catch (err) {
@@ -214,6 +214,94 @@ export default function ApplicantList() {
     const nextGlobalIndex = applicants.findIndex(app => app.id === nextApplicant.id);
     
     handleApplicantClick(nextApplicant, nextGlobalIndex);
+  };
+
+  // 합격 처리 함수
+  const handlePass = async () => {
+    if (!selectedApplicant) {
+      alert('선택된 지원자가 없습니다.');
+      return;
+    }
+
+    if (window.confirm(`${selectedApplicant.name} 지원자를 서류 합격 처리하시겠습니까?`)) {
+      try {
+        await api.put(`/applications/${selectedApplicant.application_id || selectedApplicant.id}/status`, {
+          document_status: 'PASSED'
+        });
+        
+        alert('서류 합격 처리되었습니다.');
+        
+        // 목록 새로고침
+        const fetchData = async () => {
+          try {
+            const [appRes, postRes] = await Promise.all([
+              api.get(`/applications/job/${effectiveJobPostId}/applicants`),
+              api.get(`/company/jobposts/${effectiveJobPostId}`)
+            ]);
+            const applicants = appRes.data;
+            setApplicants(applicants);
+            setWaitingApplicants(applicants.filter(app => app.document_status === 'WAITING'));
+            setPassedCount(applicants.filter(app => app.document_status === 'PASSED').length);
+            setRejectedCount(applicants.filter(app => app.document_status === 'REJECTED').length);
+            setBookmarkedList(applicants.map(app => app.isBookmarked === 'Y'));
+            setHeadcount(postRes.data?.headcount ?? 0);
+          } catch (err) {
+            console.error('지원자/공고 데이터 불러오기 실패:', err);
+          }
+        };
+        fetchData();
+        
+        // 다음 지원자로 이동
+        handleSkip();
+      } catch (error) {
+        console.error('서류 합격 처리 실패:', error);
+        alert('서류 합격 처리 중 오류가 발생했습니다.');
+      }
+    }
+  };
+
+  // 불합격 처리 함수
+  const handleReject = async () => {
+    if (!selectedApplicant) {
+      alert('선택된 지원자가 없습니다.');
+      return;
+    }
+
+    if (window.confirm(`${selectedApplicant.name} 지원자를 서류 불합격 처리하시겠습니까?`)) {
+      try {
+        await api.put(`/applications/${selectedApplicant.application_id || selectedApplicant.id}/status`, {
+          document_status: 'REJECTED'
+        });
+        
+        alert('서류 불합격 처리되었습니다.');
+        
+        // 목록 새로고침
+        const fetchData = async () => {
+          try {
+            const [appRes, postRes] = await Promise.all([
+              api.get(`/applications/job/${effectiveJobPostId}/applicants`),
+              api.get(`/company/jobposts/${effectiveJobPostId}`)
+            ]);
+            const applicants = appRes.data;
+            setApplicants(applicants);
+            setWaitingApplicants(applicants.filter(app => app.document_status === 'WAITING'));
+            setPassedCount(applicants.filter(app => app.document_status === 'PASSED').length);
+            setRejectedCount(applicants.filter(app => app.document_status === 'REJECTED').length);
+            setBookmarkedList(applicants.map(app => app.isBookmarked === 'Y'));
+            setHeadcount(postRes.data?.headcount ?? 0);
+          } catch (err) {
+            console.error('지원자/공고 데이터 불러오기 실패:', err);
+          }
+        };
+        fetchData();
+        
+        // 다음 지원자로 이동
+        handleSkip();
+      } catch (error) {
+        console.error('서류 불합격 처리 실패:', error);
+        alert('서류 불합격 처리 중 오류가 발생했습니다.');
+      }
+    }
   };
 
   // 지원자 클릭 시 실행되는 함수 （ 이력서 상세 보기－ 열림 ）
@@ -493,9 +581,9 @@ export default function ApplicantList() {
                 <div className="p-4 border-t bg-white dark:bg-gray-800">
                   {/* 합격/불합격/건너뛰기 버튼 */}
                   <div className="flex justify-between items-center gap-4">
-                    <button className="flex-1 py-3 rounded-full border-2 border-blue-400 text-blue-500 font-bold text-lg bg-white hover:bg-blue-50 transition">합격</button>
+                    <button className="flex-1 py-3 rounded-full border-2 border-blue-400 text-blue-500 font-bold text-lg bg-white hover:bg-blue-50 transition" onClick={handlePass}>합격</button>
                     <button className="flex-1 py-3 rounded-full border-2 border-gray-400 text-gray-700 font-bold text-lg bg-white hover:bg-gray-50 transition" onClick={handleSkip}>건너뛰기</button>
-                    <button className="flex-1 py-3 rounded-full border-2 border-red-400 text-red-500 font-bold text-lg bg-white hover:bg-red-50 transition">불합격</button>
+                    <button className="flex-1 py-3 rounded-full border-2 border-red-400 text-red-500 font-bold text-lg bg-white hover:bg-red-50 transition" onClick={handleReject}>불합격</button>
                   </div>
                 </div>
               </div>

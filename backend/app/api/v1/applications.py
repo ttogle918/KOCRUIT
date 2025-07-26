@@ -888,7 +888,7 @@ def get_passed_applicants(
         )
         .filter(
             Application.job_post_id == job_post_id,
-            Application.status == ApplyStatus.PASSED
+            Application.document_status == DocumentStatus.PASSED
         )
         .all()
     )

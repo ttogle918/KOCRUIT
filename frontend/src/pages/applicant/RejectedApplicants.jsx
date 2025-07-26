@@ -26,7 +26,7 @@ export default function RejectedApplicants() {
       try {
         const res = await api.get(`/applications/job/${jobPostId}/applicants`);
         const data = res.data;
-        const filtered = data.filter(app => app.status === 'REJECTED');
+        const filtered = data.filter(app => app.document_status === 'REJECTED');
         setRejectedApplicants(filtered);
         setBookmarkedList(filtered.map(app => app.isBookmarked === 'Y'));
         setCurrentPage(1); // 페이지 이동 시 초기화

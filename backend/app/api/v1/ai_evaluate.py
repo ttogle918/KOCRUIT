@@ -20,6 +20,8 @@ from app.schemas.written_test_answer import WrittenTestAnswerCreate, WrittenTest
 import openai
 import re
 from app.models.application import Application, WrittenTestStatus
+from app.schemas.ai_evaluate import PassReasonSummaryRequest, PassReasonSummaryResponse
+from app.services.llm_service import summarize_pass_reason
 
 router = APIRouter()
 
@@ -393,3 +395,26 @@ def update_written_test_status_and_score(
     application.written_test_score = req.score
     db.commit()
     return {"message": "Written test status and score updated successfully."}
+
+@router.post("/summary", response_model=PassReasonSummaryResponse)
+def summarize_pass_reason_api(req: PassReasonSummaryRequest):
+    try:
+        if not req.pass_reason or not req.pass_reason.strip():
+            raise HTTPException(status_code=422, detail="pass_reason이 비어있습니다.")
+        
+        summary = summarize_pass_reason(req.pass_reason)
+        if not summary:
+            raise HTTPException(status_code=500, detail="요약 생성에 실패했습니다.")
+        
+        return PassReasonSummaryResponse(summary=summary)
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except EnvironmentError as ee:
+        raise HTTPException(status_code=500, detail=f"환경 설정 오류: {str(ee)}")
+    except RuntimeError as re:
+        raise HTTPException(status_code=500, detail=f"요약 처리 오류: {str(re)}")
+    except Exception as e:
+        print(f"합격 요약 API 오류: {e}")
+        raise HTTPException(status_code=500, detail="서버 내부 오류가 발생했습니다.")

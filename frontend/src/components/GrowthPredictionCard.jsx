@@ -15,8 +15,8 @@ const GrowthPredictionCard = ({ applicationId }) => {
   useEffect(() => {
     setResult(null);
     setError(null);
-    setShowDetail(false);
     setChartMode('ratio');
+    setShowDetail(false);
     setLoading(false);
   }, [applicationId]);
 
@@ -126,50 +126,74 @@ const GrowthPredictionCard = ({ applicationId }) => {
   };
 
   return (
-    <div className="border rounded-lg p-4 shadow-md bg-white max-w-md mx-auto my-4">
-      <h3 className="text-lg font-bold mb-2">📊 성장 가능성 예측 (고성과자 패턴 기반)</h3>
-      {!result && (
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
-          onClick={handlePredict}
-          disabled={loading}
-        >
-          {loading ? '분석 중...' : '성장 가능성 예측하기'}
-        </button>
-      )}
-      {error && <div className="text-red-500 mb-2">{error}</div>}
-      {result && (
-        <div>
-          {/* 설명형 요약 카드 */}
-          <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
-            <div className="text-xl font-bold text-blue-800 mb-1">
-              성장 점수: {result.total_score ?? result.growth_score} / 100
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              {result.high_performer_group && (
-                <span className="text-sm text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                  고성과자 그룹 {result.high_performer_group}과{' '}
-                  {result.similarity ? (
-                    <span className="font-bold">{Math.round((result.similarity ?? 0) * 100)}% 유사</span>
-                  ) : null}
-                </span>
-              )}
-              {!result.high_performer_group && result.similarity && (
-                <span className="text-sm text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                  고성과자와 {Math.round((result.similarity ?? 0) * 100)}% 유사
-                </span>
-              )}
-            </div>
-            {result.expected_growth_path && (
-              <div className="text-base text-blue-900 font-semibold mb-1">
-                예상 성장 경로: {result.expected_growth_path}
-              </div>
+    <>
+      {!result ? (
+        <div className="flex justify-center my-6">
+          <button
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            onClick={handlePredict}
+            disabled={loading}
+            style={{ minWidth: 220 }}
+          >
+            {loading && (
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
             )}
-            <div className="mb-1">
-              <span className="font-semibold">주요 근거:</span>
-              {renderReasons(result.reasons || [])}
+            {loading ? 'AI 성장 예측 분석 중...' : 'AI 성장 가능성 예측'}
+          </button>
+        </div>
+      ) : (
+        <div className="px-0 py-0">
+          {/* 상단 탭/타이틀 */}
+          <div className="flex items-center gap-2 mb-2 mt-2">
+            <span className="inline-block bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full p-2 shadow">
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/></svg>
+            </span>
+            <span className="text-lg font-bold text-blue-800">AI 성장 가능성 예측</span>
+          </div>
+          {/* 점수 및 탭 바 */}
+          <div className="flex flex-col items-center justify-center px-0 pt-2 pb-4">
+            <div className="flex items-end gap-2">
+              <span className="text-5xl font-extrabold text-blue-600 drop-shadow-sm">{result.total_score ?? result.growth_score}</span>
+              <span className="text-xl font-bold text-blue-500 mb-1">점</span>
+            </div>
+            <div className="flex w-full mt-4 rounded-lg overflow-hidden border border-blue-100 shadow-sm">
+              <div className="flex-1 text-center py-2 bg-blue-50 text-blue-700 font-semibold text-base border-r border-blue-100">AI 성장 예측</div>
+              <div className="flex-1 text-center py-2 text-gray-400 font-semibold text-base">(합격/불합격 등 다른 탭 필요시 여기에)</div>
             </div>
           </div>
+          {/* 표 + 설명 */}
+          {result.item_table && (
+            <div className="pb-4">
+              <table className="w-full text-sm border rounded bg-gray-50 mb-2 mt-2">
+                <thead>
+                  <tr>
+                    <th className="border-b p-2 text-left">항목</th>
+                    <th className="border-b p-2 text-left">지원자</th>
+                    <th className="border-b p-2 text-left">고성과자평균</th>
+                    <th className="border-b p-2 text-left">항목점수</th>
+                    <th className="border-b p-2 text-left">비중(%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.item_table.map((row, i) => (
+                    <tr key={i}>
+                      <td className="border-b p-2 font-semibold text-blue-900">{row["항목"]}</td>
+                      <td className="border-b p-2">{row["지원자"]}</td>
+                      <td className="border-b p-2">{row["고성과자평균"]}</td>
+                      <td className="border-b p-2">{row["항목점수"]}</td>
+                      <td className="border-b p-2">{row["비중"]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {result.narrative && (
+                <div className="text-base text-blue-800 font-semibold mt-4 whitespace-pre-line">{result.narrative}</div>
+              )}
+            </div>
+          )}
           {/* 기존 상세/그래프 UI */}
           <button
             className="mt-3 bg-gray-100 hover:bg-gray-200 text-blue-700 px-3 py-1 rounded text-sm mr-2"
@@ -317,7 +341,7 @@ const GrowthPredictionCard = ({ applicationId }) => {
           )}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
