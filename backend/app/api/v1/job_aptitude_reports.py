@@ -142,9 +142,50 @@ def generate_detailed_analysis(job_post, applications, passed_applicants, writte
 각 항목별로 구체적이고 전문적인 분석을 제공해주세요. 특히 4번 평가 결과 해석에서는 정답률 상위/하위 문항에 대한 구체적인 분석을 포함해주세요. 총 1000-1200자 내외로 작성해주세요.
 """
         
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
-        response = llm.invoke(prompt)
-        detailed_analysis = response.content.strip()
+        # LLM 호출에 타임아웃 추가 (Windows 호환)
+        try:
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as ThreadTimeoutError
+            import threading
+            
+            def call_llm():
+                llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7, request_timeout=25)
+                response = llm.invoke(prompt)
+                return response.content.strip()
+            
+            # ThreadPoolExecutor로 타임아웃 처리 (Windows 호환)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(call_llm)
+                try:
+                    detailed_analysis = future.result(timeout=30)  # 30초 타임아웃
+                except ThreadTimeoutError:
+                    print("[LLM분석] 30초 타임아웃 발생")
+                    raise TimeoutError("LLM API 호출 타임아웃")
+            
+        except (TimeoutError, Exception) as e:
+            print(f"[LLM분석] 타임아웃 또는 오류 발생: {e}")
+            # Fallback 분석 사용
+            detailed_analysis = f"""
+## 직무적성평가 상세 분석 (자동 생성)
+
+### 전체 평가 현황
+이번 {job_post.title} 채용에서 총 {total_applicants}명이 직무적성평가에 참여하여, {len(passed_applicants)}명이 합격했습니다. 
+평균 점수는 {round(average_written_score, 1)}점(5점 만점)이며, 전체 지원자 대비 {pass_rate}%의 합격률을 보였습니다.
+
+### 점수 분포 분석
+{''.join([f"- {k}: {v}명ㄴ" for k, v in score_distribution.items()])}
+
+점수 분포를 통해 지원자들의 실력 수준을 파악할 수 있었습니다.
+
+상위 지원자들의 성과가 우수하며, 전반적으로 양질의 지원자 풀을 확보했습니다.
+
+### 평가 결과 해석
+직무적성평가를 통해 지원자들의 기본 역량과 직무 적합성을 객관적으로 평가할 수 있었습니다. 
+합격자들은 해당 직무에 필요한 기본 소양과 전문성을 갖추고 있음을 확인할 수 있었습니다.
+
+### 향후 개선 방향
+다음 채용에서는 평가 문항의 난이도 조정과 평가 기준의 세분화를 통해 더욱 정확한 인재 선발이 가능할 것으로 기대됩니다.
+"""
         
         return detailed_analysis
         
@@ -175,6 +216,16 @@ async def get_job_aptitude_report_data(
     db: Session = Depends(get_db)
     # current_user: User = Depends(get_current_user)  # 임시로 인증 제거
 ):
+    # Redis 캐시 확인
+    from app.core.cache import redis_client
+    import json
+    
+    cache_key = f"job_aptitude_report:{job_post_id}"
+    cached_result = redis_client.get(cache_key)
+    if cached_result:
+        print(f"[JOB-APTITUDE-REPORT] 캐시에서 조회: {job_post_id}")
+        return json.loads(cached_result.decode('utf-8'))
+    
     try:
         # 공고 정보 조회
         job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
@@ -330,7 +381,7 @@ async def get_job_aptitude_report_data(
             db=db
         )
         
-        return {
+        result = {
             "job_post": {
                 "title": job_post.title,
                 "department": job_post.department,
@@ -353,6 +404,12 @@ async def get_job_aptitude_report_data(
             },
             "detailed_analysis": detailed_analysis
         }
+        
+        # 결과를 캐시에 저장 (10분간 유효)
+        redis_client.setex(cache_key, 600, json.dumps(result, default=str))
+        print(f"[JOB-APTITUDE-REPORT] 결과를 캐시에 저장: {job_post_id}")
+        
+        return result
     except Exception as e:
         print(f"필기합격자 평가 보고서 생성 중 에러 발생: {str(e)}")
         import traceback

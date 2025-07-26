@@ -117,7 +117,10 @@ const ApplicantCard = forwardRef(({
           ${isSelected ? 'border-2 border-blue-500 ring-1 ring-blue-300 bg-blue-50 dark:bg-blue-900 shadow-lg scale-[1.01]' : 'border border-gray-200'}
         `}
         style={isSelected ? { boxShadow: '0 0 0 2px #3b82f6, 0 2px 12px 0 rgba(59,130,246,0.10)' } : {}}
-        onClick={() => { onClick && onClick(); }}
+        onClick={() => { 
+          console.log('🖱️ ApplicantCard div 클릭됨');
+          onClick && onClick(); 
+        }}
       >
         {/* 번호 */}
         <div className={`absolute top-1 left-2 text-xs font-bold text-blue-600 ${compact ? 'text-[10px]' : ''}`}>{index}</div>

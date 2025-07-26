@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.core.database import get_db
 from app.schemas.resume import (
     ResumeCreate, ResumeUpdate, ResumeDetail, ResumeList,
@@ -11,8 +11,28 @@ from app.models.user import User
 from app.models.application import Application
 from app.api.v1.auth import get_current_user
 from app.utils.llm_cache import redis_cache
+from pydantic import BaseModel
+from typing import Dict, Any
+from app.models.job import JobPost
+from app.models.application import Application
+from app.models.resume import Spec
+
+# 공통 유틸리티 import
+from agent.utils.resume_utils import combine_resume_and_specs
+import time
 
 router = APIRouter()
+
+# 이력서 분석 도구를 위한 스키마
+class ResumeAnalysisRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+
+class ResumeAnalysisResponse(BaseModel):
+    results: Dict[str, Any]
+    errors: Dict[str, Any]
+    summary: Dict[str, Any]
+    metadata: Dict[str, Any]
 
 
 @router.get("/", response_model=List[ResumeList])
@@ -153,3 +173,251 @@ def update_resume_memo(
     db.commit()
     db.refresh(db_memo)
     return db_memo 
+
+# combine_resume_and_specs 함수는 comprehensive_analysis_tool에서 import하여 사용
+
+@router.post("/applicant-comparison", response_model=ResumeAnalysisResponse)
+async def generate_applicant_comparison_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """해당 공고 내 지원자들 간 비교 분석 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 및 공고 ID 수집
+        job_info = ""
+        job_post_id = None
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application and application.job_post_id:
+                job_post_id = application.job_post_id
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = f"직무: {job_post.title}\n설명: {job_post.job_details or '상세 설명 없음'}"
+        
+        if not job_post_id:
+            raise HTTPException(status_code=400, detail="Job post information is required for applicant comparison")
+        
+        # 같은 공고의 다른 지원자들 데이터 수집
+        from sqlalchemy.orm import joinedload
+        from app.models.applicant_user import ApplicantUser
+        
+        other_applications = (
+            db.query(Application)
+            .options(
+                joinedload(Application.user),
+                joinedload(Application.resume).joinedload(Resume.specs)
+            )
+            .filter(Application.job_post_id == job_post_id)
+            .filter(Application.id != request.application_id)
+            .limit(5)
+            .all()
+        )
+        
+        other_applicants = []
+        for app in other_applications:
+            try:
+                # ApplicantUser 확인
+                is_applicant = db.query(ApplicantUser).filter(ApplicantUser.id == app.user_id).first()
+                if not is_applicant or not app.user or not app.resume:
+                    continue
+                
+                # 이력서 텍스트 생성
+                app_resume_text = combine_resume_and_specs(app.resume, app.resume.specs)
+                
+                # 기본 정보 추출
+                education = "정보 없음"
+                major = "정보 없음"
+                
+                if app.resume.specs:
+                    # 학력 정보 추출
+                    edu_specs = [s for s in app.resume.specs if s.spec_type == "education" and s.spec_title == "institution"]
+                    if edu_specs:
+                        education = edu_specs[0].spec_description or "정보 없음"
+                    
+                    # 전공 정보 추출
+                    degree_specs = [s for s in app.resume.specs if s.spec_type == "education" and s.spec_title == "degree"]
+                    if degree_specs:
+                        degree_raw = degree_specs[0].spec_description or ""
+                        if degree_raw:
+                            import re
+                            m = re.match(r"(.+?)\((.+?)\)", degree_raw)
+                            if m:
+                                major = m.group(1).strip()
+                            else:
+                                major = degree_raw.strip()
+                
+                applicant_data = {
+                    "application_id": app.id,
+                    "name": app.user.name or f"지원자 {app.id}",
+                    "education": education,
+                    "major": major,
+                    "status": app.status or "서류 검토 중",
+                    "resume_text": app_resume_text,
+                    "summary": app_resume_text[:300] + "..." if len(app_resume_text) > 300 else app_resume_text
+                }
+                other_applicants.append(applicant_data)
+            except Exception as e:
+                print(f"개별 지원자 처리 오류 (application_id: {app.id}): {str(e)}")
+                continue
+        
+        # 새로운 지원자 비교 분석 도구 사용 (other_applicants 데이터를 직접 전달)
+        from agent.tools.competitiveness_comparison_tool import generate_applicant_comparison_analysis_with_data
+        
+        # 새로운 함수가 없으면 기존 함수 사용
+        try:
+            result = generate_applicant_comparison_analysis_with_data(
+                current_resume_text=resume_text,
+                other_applicants=other_applicants,
+                job_info=job_info,
+                job_post_id=job_post_id
+            )
+        except (ImportError, AttributeError):
+            # Fallback to original function
+            from agent.tools.competitiveness_comparison_tool import generate_applicant_comparison_analysis
+            result = generate_applicant_comparison_analysis(
+                current_resume_text=resume_text,
+                job_post_id=job_post_id,
+                application_id=request.application_id,
+                job_info=job_info,
+                db=None,  # None으로 전달하여 Mock 데이터 대신 API에서 가져온 데이터 사용
+                comparison_count=5
+            )
+        
+        # ResumeAnalysisResponse 형태로 감싸서 반환
+        wrapped_result = {
+            'results': {'applicant_comparison': result},
+            'errors': {},
+            'summary': {
+                'analysis_type': 'applicant_comparison',
+                'total_applicants': result.get('competition_analysis', {}).get('total_applicants_analyzed', 0),
+                'competitiveness_grade': result.get('competition_analysis', {}).get('competitiveness_grade', 'N/A')
+            },
+            'metadata': {
+                'job_post_id': job_post_id,
+                'application_id': request.application_id,
+                'analysis_timestamp': time.time()
+            }
+        }
+        
+        return ResumeAnalysisResponse(**wrapped_result)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/detailed-analysis", response_model=ResumeAnalysisResponse)
+async def generate_detailed_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """상세 분석 리포트 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집 (application_id가 있는 경우)
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application and application.job_post_id:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = f"직무: {job_post.title}\n설명: {job_post.job_details or '상세 설명 없음'}"
+        
+        # resume_orchestrator를 사용한 상세 분석
+        from agent.tools.resume_orchestrator import analyze_resume_selective
+        result = analyze_resume_selective(
+            resume_text=resume_text,
+            tools_to_run=['detailed'],
+            job_info=job_info
+        )
+        
+        return ResumeAnalysisResponse(**result)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/competitiveness-comparison", response_model=ResumeAnalysisResponse)
+async def generate_competitiveness_comparison(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """경쟁력 비교 분석 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집 (application_id가 있는 경우)
+        job_info = ""
+        job_post_id = None
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application and application.job_post_id:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = f"직무: {job_post.title}\n설명: {job_post.job_details or '상세 설명 없음'}"
+                    job_post_id = application.job_post_id
+        
+        # 직접 competitiveness_comparison_tool 호출 (application_id 전달)
+        from agent.tools.competitiveness_comparison_tool import generate_applicant_comparison_analysis
+        result = generate_applicant_comparison_analysis(
+            current_resume_text=resume_text,
+            job_post_id=job_post_id,
+            application_id=request.application_id,
+            job_info=job_info,
+            db=db,
+            comparison_count=5
+        )
+        
+        # ResumeAnalysisResponse 형식에 맞게 변환
+        return ResumeAnalysisResponse(
+            results={'competitiveness': result},
+            errors={},
+            summary={'competitiveness_grade': result.get('competition_analysis', {}).get('competitiveness_grade', 'N/A')},
+            metadata={'tool_used': 'competitiveness_comparison'}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/keyword-matching", response_model=ResumeAnalysisResponse)
+async def generate_keyword_matching_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """키워드 매칭 분석 생성 API"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집 (application_id가 있는 경우)
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application and application.job_post_id:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = f"직무: {job_post.title}\n설명: {job_post.job_details or '상세 설명 없음'}"
+        
+        # resume_orchestrator를 사용한 키워드 매칭 분석
+        from agent.tools.resume_orchestrator import analyze_resume_selective
+        result = analyze_resume_selective(
+            resume_text=resume_text,
+            tools_to_run=['keyword_matching'],
+            job_info=job_info
+        )
+        
+        return ResumeAnalysisResponse(**result)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) 

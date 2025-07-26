@@ -93,12 +93,20 @@ export default function ViewPostSidebar({ jobPost }) {
         console.error('[ViewPostSidebar] 에러 상세:', {
           message: error.message,
           status: error.response?.status,
-          data: error.response?.data
+          data: error.response?.data,
+          code: error.code
         });
-        setHasWrittenTestPassed(false);
         
-        // 에러가 발생해도 확인한 것으로 표시 (재시도 방지)
-        checkedJobPostIdsRef.current.add(effectiveJobPostId);
+        // 타임아웃 오류인 경우 특별 처리
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+          console.warn('[ViewPostSidebar] 타임아웃 발생 - 잠시 후 재시도 가능');
+          // 타임아웃의 경우 재시도 허용을 위해 캐시에서 제거
+          checkedJobPostIdsRef.current.delete(effectiveJobPostId);
+        } else {
+          setHasWrittenTestPassed(false);
+          // 다른 에러의 경우 확인한 것으로 표시 (재시도 방지)
+          checkedJobPostIdsRef.current.add(effectiveJobPostId);
+        }
       }
     };
 

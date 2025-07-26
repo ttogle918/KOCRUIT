@@ -8,7 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 600000, // 10분 타임아웃 (하이라이팅 분석 시간 고려)
+  timeout: 45000, // 45초로 증가 (복잡한 쿼리 고려)
 });
 
 // 요청 전 인터셉터: 토큰이 있다면 자동으로 추가
@@ -49,6 +49,17 @@ api.interceptors.response.use(
         localStorage.removeItem('user');
         // You might want to redirect to login here
         window.location.href = '/login';
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('⏰ 요청 타임아웃:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        timeout: error.config?.timeout
+      });
+      
+      // 타임아웃 오류에 대한 사용자 친화적 메시지
+      if (error.message.includes('timeout')) {
+        console.warn('🔄 서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
       }
     }
     return Promise.reject(error);

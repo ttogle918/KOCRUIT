@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
-import requests
-import json
 import time
+import requests
 from pydantic import BaseModel
 
 from app.core.database import get_db
@@ -11,6 +10,10 @@ from app.models.application import Application
 from app.models.job import JobPost
 from app.models.company import Company
 from app.models.highlight_result import HighlightResult
+from app.models.resume import Resume, Spec
+
+# 공통 유틸리티 import 추가
+from agent.utils.resume_utils import combine_resume_and_specs
 
 router = APIRouter()
 
@@ -40,35 +43,35 @@ async def highlight_resume_by_application(
         
         print(f"✅ Application found: {application.id}")
         
-        # 이력서 내용 가져오기
-        resume_content = application.resume.content if application.resume else ""
-        if not resume_content:
-            print(f"❌ Resume content not found for application: {request.application_id}")
-            raise HTTPException(status_code=404, detail="Resume content not found")
+        # 🚀 개선: Resume + Spec 통합 데이터 사용 (기존 content만 사용하던 방식 개선)
+        if not application.resume:
+            print(f"❌ Resume not found for application: {request.application_id}")
+            raise HTTPException(status_code=404, detail="Resume not found")
         
-        print(f"✅ Resume content found: {len(resume_content)} characters")
+        # Resume와 Spec 데이터 조회
+        specs = db.query(Spec).filter(Spec.resume_id == application.resume.id).all()
         
-        # AI Agent 서버로 요청 (Docker 네트워크에서는 컨테이너 이름 사용)
-        agent_url = "http://kocruit_agent:8001/highlight-resume"
-        payload = {
-            "application_id": request.application_id,
-            "jobpost_id": request.jobpost_id,
-            "company_id": request.company_id,
-            "resume_content": resume_content  # 이력서 내용을 직접 전달
-        }
+        # 완전한 이력서 데이터 생성 (프로젝트, 교육, 자격증, 기술스택 등 포함)
+        resume_content = combine_resume_and_specs(application.resume, specs)
         
-        print(f"🚀 AI Agent 서버로 요청: {agent_url}")
-        print(f"📦 Payload: {payload}")
+        if not resume_content or len(resume_content.strip()) == 0:
+            print(f"❌ Resume content is empty for application: {request.application_id}")
+            raise HTTPException(status_code=404, detail="Resume content is empty")
         
-        # 타임아웃을 5분으로 증가 (AI 분석 시간 고려)
-        response = requests.post(agent_url, json=payload, timeout=300)
-        print(f"📡 AI Agent 응답 상태: {response.status_code}")
+        print(f"✅ Complete resume data found: {len(resume_content)} characters (Resume + Specs included)")
         
-        if response.status_code != 200:
-            print(f"❌ AI Agent 오류 응답: {response.text}")
-            raise HTTPException(status_code=500, detail=f"AI Agent 서버 오류: {response.text}")
+        # 새로운 형광펜 도구 사용
+        from agent.tools.highlight_tool import highlight_resume_by_application_id
         
-        result = response.json()
+        print(f"🚀 형광펜 하이라이팅 도구 호출")
+        
+        # 형광펜 도구로 하이라이팅 수행
+        result = highlight_resume_by_application_id(
+            application_id=request.application_id,
+            resume_content=resume_content,  # ← 완전한 이력서 데이터 사용
+            jobpost_id=request.jobpost_id,
+            company_id=request.company_id
+        )
         analysis_duration = time.time() - start_time
         print(f"✅ 하이라이팅 분석 완료: {len(result.get('highlights', []))} highlights (소요시간: {analysis_duration:.2f}초)")
         

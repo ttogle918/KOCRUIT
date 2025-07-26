@@ -11,7 +11,8 @@ from app.core.database import SessionLocal
 from app.models.job import JobPost
 from app.models.application import Application, InterviewStatus
 from app.models.interview_question import InterviewQuestion, QuestionType
-from app.api.v1.interview_question import parse_job_post_data, combine_resume_and_specs
+from app.api.v1.interview_question import parse_job_post_data
+from agent.utils.resume_utils import combine_resume_and_specs
 from app.models.resume import Resume, Spec
 
 def generate_questions_manual():
