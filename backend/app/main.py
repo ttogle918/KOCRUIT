@@ -29,6 +29,7 @@ logging.basicConfig(
 from app.scheduler.job_status_scheduler import JobStatusScheduler
 from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
 from app.scheduler.interview_reminder_scheduler import start_interview_reminder_scheduler
+from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
 
 def safe_create_tables():
     """안전한 테이블 생성 - 기존 테이블은 건드리지 않고 새로운 테이블만 생성"""
