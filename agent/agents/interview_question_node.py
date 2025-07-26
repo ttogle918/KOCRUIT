@@ -28,7 +28,7 @@ FIXED_QUESTIONS = {
     ]
 }
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="gpt-4o")
 
 # Tavily 검색 도구 초기화
 search_tool = TavilySearchResults()
@@ -583,7 +583,7 @@ interview_guideline_prompt = PromptTemplate.from_template(
     """
 )
 
-# 평가 기준 제안 프롬프트
+# 평가 기준 제안 프롬프트 (면접관이 실제로 점수를 매길 수 있는 구체적 항목)
 evaluation_criteria_prompt = PromptTemplate.from_template(
     """
     다음은 지원자의 이력서 정보입니다:
@@ -598,30 +598,172 @@ evaluation_criteria_prompt = PromptTemplate.from_template(
     
     회사명: {company_name}
     
-    위 정보를 바탕으로 면접 평가 기준을 제안해 주세요.
-    다음 항목들을 포함해서 작성해 주세요:
+    위 정보를 바탕으로 **이 지원자에게 특화된 구체적인 평가 항목**을 제안해 주세요.
     
-    1. 제안 평가 기준 (구체적인 평가 항목들)
-    2. 가중치 권장사항 (각 항목별 중요도)
-    3. 평가 질문들 (각 기준별 확인 질문들)
-    4. 채점 가이드라인 (점수 부여 기준)
+    **중요: 이 지원자의 구체적인 경험, 기술 스택, 프로젝트를 기반으로 한 맞춤형 평가 기준을 작성해 주세요.**
+    
+    **평가 방식 선택 가이드라인:**
+    - 기본 평가: 5개 핵심 항목 (기술역량, 경험성과, 문제해결, 의사소통, 성장의지)
+    - 추가 평가: 지원자 특화 항목 1-2개 (선택적)
+    - 총 평가 항목: 5-7개로 제한하여 실용성 확보
+    
+    **평가 항목 다양성 가이드라인:**
+    1. 지원자의 주요 기술 스택에 특화된 항목 (예: React 전문가 → React 고급 기능 활용도)
+    2. 지원자의 프로젝트 경험에 기반한 항목 (예: PM 경험 → 프로젝트 관리 역량)
+    3. 지원자의 역할과 기여도에 맞는 항목 (예: 팀장 경험 → 리더십 역량)
+    4. 직무 요구사항과 지원자 경험의 매칭도 (예: 클라우드 경험 → AWS/Azure 활용도)
+    5. 지원자만의 고유한 강점이나 특별한 경험 (예: 해외 경험 → 글로벌 역량)
+    6. 지원자의 학력/자격증에 기반한 항목 (예: 석사 학위 → 연구 역량)
+    7. 지원자의 업계 경험에 기반한 항목 (예: 금융권 경험 → 도메인 지식)
+    8. 지원자의 성과 지표에 기반한 항목 (예: 매출 증대 → 비즈니스 임팩트)
+    
+    **면접관이 객관적으로 점수를 매길 수 있도록 매우 구체적인 평가 기준을 작성해 주세요.**
     
     JSON 형식으로 응답해 주세요:
     {{
         "suggested_criteria": [
-            {{"criterion": "기술력", "description": "설명", "max_score": 10}}
+            {{"criterion": "기술 역량", "description": "기술적 능력과 실무 적용 가능성", "max_score": 5}},
+            {{"criterion": "경험 및 성과", "description": "프로젝트 경험과 성과", "max_score": 5}},
+            {{"criterion": "문제해결 능력", "description": "문제 인식 및 해결 능력", "max_score": 5}},
+            {{"criterion": "의사소통 및 협업", "description": "팀워크와 의사소통 능력", "max_score": 5}},
+            {{"criterion": "성장 의지", "description": "학습 의지와 성장 가능성", "max_score": 5}}
         ],
         "weight_recommendations": [
-            {{"criterion": "기술력", "weight": 0.4, "reason": "이유"}}
+            {{"criterion": "기술 역량", "weight": 0.30, "reason": "직무 수행의 핵심 요소"}},
+            {{"criterion": "경험 및 성과", "weight": 0.25, "reason": "업무 적응력과 성과 예측"}},
+            {{"criterion": "문제해결 능력", "weight": 0.20, "reason": "실무에서의 문제 대응 능력"}},
+            {{"criterion": "의사소통 및 협업", "weight": 0.15, "reason": "팀워크와 소통 능력"}},
+            {{"criterion": "성장 의지", "weight": 0.10, "reason": "장기적 성장 가능성"}}
         ],
-        "evaluation_questions": ["평가질문1", "평가질문2"],
+        "evaluation_questions": [
+            "주요 기술 스택에 대한 깊이 있는 이해도를 보여주세요.",
+            "가장 성공적이었던 프로젝트 경험을 구체적으로 설명해주세요.",
+            "팀 프로젝트에서 갈등 상황을 어떻게 해결했는지 예시를 들어주세요.",
+            "새로운 기술을 학습한 경험과 적용 방법을 설명해주세요.",
+            "우리 회사의 가치관과 본인의 가치관이 어떻게 일치하는지 설명해주세요.",
+            "앞으로 3년간의 성장 계획과 목표를 구체적으로 제시해주세요."
+        ],
         "scoring_guidelines": {{
-            "excellent": "9-10점 기준",
-            "good": "7-8점 기준",
-            "average": "5-6점 기준",
-            "poor": "3-4점 기준"
-        }}
+            "excellent": "9-10점: 모든 기준을 충족하고 뛰어난 역량 보유",
+            "good": "7-8점: 대부분의 기준을 충족하고 양호한 역량 보유",
+            "average": "5-6점: 기본적인 기준은 충족하나 개선 필요",
+            "poor": "3-4점: 기준 미달로 추가 개발 필요"
+        }},
+        "evaluation_items": [
+            {{
+                "item_name": "기술 역량",
+                "description": "지원자의 기술적 능력과 실무 적용 가능성",
+                "max_score": 5,
+                "scoring_criteria": {{
+                    "5점": "우수 - 해당 분야 전문가 수준",
+                    "4점": "양호 - 실무 가능한 수준",
+                    "3점": "보통 - 기본적인 수준",
+                    "2점": "미흡 - 개선 필요",
+                    "1점": "부족 - 학습 필요"
+                }},
+                "evaluation_questions": [
+                    "주요 기술 스택에 대한 이해도를 설명해주세요",
+                    "실무에서 해당 기술을 어떻게 활용하시겠습니까?"
+                ],
+                "weight": 0.30
+            }},
+            {{
+                "item_name": "경험 및 성과",
+                "description": "지원자의 프로젝트 경험과 성과",
+                "max_score": 5,
+                "scoring_criteria": {{
+                    "5점": "우수 - 뛰어난 성과와 경험",
+                    "4점": "양호 - 충분한 경험과 성과",
+                    "3점": "보통 - 기본적인 경험",
+                    "2점": "미흡 - 경험 부족",
+                    "1점": "부족 - 경험 없음"
+                }},
+                "evaluation_questions": [
+                    "가장 성공적이었던 프로젝트 경험을 설명해주세요",
+                    "본인의 기여도와 성과를 구체적으로 설명해주세요"
+                ],
+                "weight": 0.25
+            }},
+            {{
+                "item_name": "문제해결 능력",
+                "description": "지원자의 문제 인식 및 해결 능력",
+                "max_score": 5,
+                "scoring_criteria": {{
+                    "5점": "우수 - 창의적이고 효과적인 해결",
+                    "4점": "양호 - 논리적이고 체계적인 해결",
+                    "3점": "보통 - 기본적인 해결 능력",
+                    "2점": "미흡 - 해결 능력 부족",
+                    "1점": "부족 - 문제 인식 어려움"
+                }},
+                "evaluation_questions": [
+                    "어려운 문제를 해결한 경험을 설명해주세요",
+                    "예상치 못한 상황에 어떻게 대응하시겠습니까?"
+                ],
+                "weight": 0.20
+            }},
+            {{
+                "item_name": "의사소통 및 협업",
+                "description": "지원자의 팀워크와 의사소통 능력",
+                "max_score": 5,
+                "scoring_criteria": {{
+                    "5점": "우수 - 뛰어난 소통과 리더십",
+                    "4점": "양호 - 원활한 소통과 협업",
+                    "3점": "보통 - 기본적인 소통 능력",
+                    "2점": "미흡 - 소통 능력 부족",
+                    "1점": "부족 - 소통 어려움"
+                }},
+                "evaluation_questions": [
+                    "팀 프로젝트에서의 역할과 기여도를 설명해주세요",
+                    "갈등 상황을 어떻게 해결하시겠습니까?"
+                ],
+                "weight": 0.15
+            }},
+            {{
+                "item_name": "성장 의지",
+                "description": "지원자의 학습 의지와 성장 가능성",
+                "max_score": 5,
+                "scoring_criteria": {{
+                    "5점": "우수 - 뛰어난 학습 의지와 계획",
+                    "4점": "양호 - 적극적인 학습 의지",
+                    "3점": "보통 - 기본적인 학습 의지",
+                    "2점": "미흡 - 학습 의지 부족",
+                    "1점": "부족 - 학습 의지 없음"
+                }},
+                "evaluation_questions": [
+                    "새로운 기술을 학습한 경험을 설명해주세요",
+                    "앞으로의 성장 계획을 구체적으로 제시해주세요"
+                ],
+                "weight": 0.10
+            }}
+            }},
+            {{
+                "item_name": "팀워크 및 커뮤니케이션",
+                "description": "지원자의 협업 경험과 의사소통 능력",
+                "max_score": 10,
+                "scoring_criteria": {{
+                    "9-10점": "뛰어난 리더십과 팀워크, 효과적인 의사소통으로 팀 성과 향상",
+                    "7-8점": "양호한 협업 능력, 명확한 의사소통으로 팀에 기여",
+                    "5-6점": "기본적인 협업 가능, 일반적인 의사소통 능력",
+                    "3-4점": "협업 경험 부족, 의사소통에 어려움",
+                    "1-2점": "협업 경험 없음, 의사소통 능력 부족"
+                }},
+                "evaluation_questions": [
+                    "팀 프로젝트에서 갈등 상황을 어떻게 해결했는지 구체적인 예시를 들어주세요",
+                    "복잡한 기술적 내용을 비전문가에게 설명하는 방법은 무엇인가요?",
+                    "팀원들과의 협업에서 본인의 역할과 기여도를 설명해주세요"
+                ],
+                "weight": 0.20
+            }}
+        ]
     }}
+    
+    **중요: evaluation_items는 이 지원자의 구체적인 경험과 기술 스택을 반영하여 면접관이 객관적으로 점수를 매길 수 있도록 매우 구체적이고 명확한 기준을 작성해 주세요.**
+    
+    **다양성 확보를 위한 지침:**
+    - 지원자의 주요 기술 스택에 특화된 항목을 포함하세요
+    - 지원자의 프로젝트 경험에서 나온 구체적인 문제해결 사례를 반영하세요
+    - 지원자만의 고유한 경험이나 강점을 평가할 수 있는 항목을 포함하세요
+    - 직무 요구사항과 지원자 경험의 구체적인 매칭 포인트를 평가하세요
     """
 )
 
@@ -829,14 +971,50 @@ def generate_interview_guideline(resume_text: str, job_info: str = "", company_n
         }
 
 @redis_cache()
-def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_name: str = ""):
-    """평가 기준 자동 제안"""
+def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_name: str = "", focus_area: str = ""):
+    """평가 기준 자동 제안 (면접 단계별 맞춤형)"""
+    print(f"🚀 LangGraph 호출 시작 - focus_area: {focus_area}")
+    print(f"📝 이력서 길이: {len(resume_text)} 문자")
+    print(f"🏢 회사명: {company_name}")
+    
     try:
+        # 면접 단계별 프롬프트 조정
+        if focus_area == "technical_skills":
+            # 실무진 면접: 기술적 역량 중심
+            prompt_context = f"""
+            다음은 실무진 면접을 위한 평가 기준입니다.
+            기술적 역량과 실무 경험에 중점을 두어 평가 기준을 제안해주세요.
+            
+            지원자 이력서: {resume_text}
+            직무 정보: {job_info or "직무 정보가 없습니다."}
+            회사명: {company_name or "회사 정보가 없습니다."}
+            """
+        elif focus_area == "leadership_potential":
+            # 임원진 면접: 리더십/인성 중심
+            prompt_context = f"""
+            다음은 임원진 면접을 위한 평가 기준입니다.
+            리더십 역량, 인성, 조직 적합성에 중점을 두어 평가 기준을 제안해주세요.
+            
+            지원자 이력서: {resume_text}
+            직무 정보: {job_info or "직무 정보가 없습니다."}
+            회사명: {company_name or "회사 정보가 없습니다."}
+            """
+        else:
+            # 기본: 종합적 평가
+            prompt_context = f"""
+            지원자 이력서: {resume_text}
+            직무 정보: {job_info or "직무 정보가 없습니다."}
+            회사명: {company_name or "회사 정보가 없습니다."}
+            """
+        
+        print(f"🤖 LLM 호출 시작 - 모델: Claude 3.5 Sonnet")
         result = evaluation_criteria_chain.invoke({
             "resume_text": resume_text,
             "job_info": job_info or "직무 정보가 없습니다.",
-            "company_name": company_name or "회사 정보가 없습니다."
+            "company_name": company_name or "회사 정보가 없습니다.",
+            "prompt_context": prompt_context
         })
+        print(f"✅ LLM 호출 완료 - 응답 길이: {len(str(result))} 문자")
         
         # JSON 파싱
         import json
@@ -862,19 +1040,28 @@ def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_na
         # 기본 응답 반환
         return {
             "suggested_criteria": [
-                {"criterion": "기술력", "description": "기술적 역량과 문제해결 능력", "max_score": 10},
-                {"criterion": "경험", "description": "실무 경험과 프로젝트 성과", "max_score": 10},
-                {"criterion": "인성", "description": "커뮤니케이션과 팀워크 능력", "max_score": 10}
+                {"criterion": "기술적 역량", "description": "필요한 기술 스택과 문제해결 능력", "max_score": 10},
+                {"criterion": "실무 경험", "description": "관련 프로젝트 경험과 업무 성과", "max_score": 10},
+                {"criterion": "커뮤니케이션", "description": "의사소통 능력과 팀워크", "max_score": 10},
+                {"criterion": "적응력", "description": "새로운 기술 학습과 변화 대응 능력", "max_score": 10},
+                {"criterion": "조직 적합성", "description": "회사 문화와 가치관의 일치도", "max_score": 10},
+                {"criterion": "성장 잠재력", "description": "개발 가능성과 동기부여 수준", "max_score": 10}
             ],
             "weight_recommendations": [
-                {"criterion": "기술력", "weight": 0.4, "reason": "직무 수행에 핵심적인 요소"},
-                {"criterion": "경험", "weight": 0.3, "reason": "실무 적응력과 성과 예측"},
-                {"criterion": "인성", "weight": 0.3, "reason": "조직 적합성과 팀워크"}
+                {"criterion": "기술적 역량", "weight": 0.25, "reason": "직무 수행의 핵심 요소"},
+                {"criterion": "실무 경험", "weight": 0.20, "reason": "업무 적응력과 성과 예측"},
+                {"criterion": "커뮤니케이션", "weight": 0.15, "reason": "팀 협업과 의사소통 능력"},
+                {"criterion": "적응력", "weight": 0.15, "reason": "변화하는 환경 대응 능력"},
+                {"criterion": "조직 적합성", "weight": 0.15, "reason": "조직 문화 적합도"},
+                {"criterion": "성장 잠재력", "weight": 0.10, "reason": "장기적 성장 가능성"}
             ],
             "evaluation_questions": [
-                "기술적 문제를 어떻게 해결하시나요?",
-                "팀 프로젝트에서의 역할은 무엇이었나요?",
-                "스트레스 상황에서 어떻게 대처하시나요?"
+                "주요 기술 스택에 대한 깊이 있는 이해도를 보여주세요.",
+                "가장 성공적이었던 프로젝트 경험을 구체적으로 설명해주세요.",
+                "팀 프로젝트에서 갈등 상황을 어떻게 해결했는지 예시를 들어주세요.",
+                "새로운 기술을 학습한 경험과 적용 방법을 설명해주세요.",
+                "우리 회사의 가치관과 본인의 가치관이 어떻게 일치하는지 설명해주세요.",
+                "앞으로 3년간의 성장 계획과 목표를 구체적으로 제시해주세요."
             ],
             "scoring_guidelines": {
                 "excellent": "9-10점: 모든 기준을 충족하고 뛰어난 역량 보유",
@@ -883,7 +1070,7 @@ def suggest_evaluation_criteria(resume_text: str, job_info: str = "", company_na
                 "poor": "3-4점: 기준 미달로 추가 개발 필요"
             }
         }
-    return questions_by_category
+    return criteria_data
 
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain

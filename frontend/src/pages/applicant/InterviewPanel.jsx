@@ -26,6 +26,8 @@ import {
   FaMapMarkerAlt,
   FaCalendarAlt
 } from 'react-icons/fa';
+import InterviewEvaluationItems from '../../components/InterviewEvaluationItems';
+import { saveInterviewEvaluation, getInterviewEvaluation, getApplication } from '../../api/api';
 
 const InterviewPanel = ({
   questions = [],
@@ -72,6 +74,11 @@ const InterviewPanel = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState(null);
   
+  // 평가 결과 조회 관련 상태
+  const [evaluationResult, setEvaluationResult] = useState(null);
+  const [isEvaluationCompleted, setIsEvaluationCompleted] = useState(false);
+  const [isLoadingResult, setIsLoadingResult] = useState(false);
+  
   // 실시간 오디오 관련
   const mediaRecorderRef = useRef(null);
   // [WebSocket 및 실시간 음성 관련 코드 전체 주석 처리]
@@ -87,6 +94,59 @@ const InterviewPanel = ({
     interviewers: ['면접관_1', '면접관_2', '면접관_3'],
     applicants: ['지원자_1', '지원자_2', '지원자_3']
   });
+
+  // 평가 결과 조회 (interview_status 기반)
+  useEffect(() => {
+    const checkEvaluationStatus = async () => {
+      if (!applicationId) return;
+      
+      try {
+        setIsLoadingResult(true);
+        
+        // 1. 먼저 application 정보 조회하여 interview_status 확인
+        const applicationData = await getApplication(applicationId);
+          const interviewStatus = applicationData.interview_status;
+          
+          console.log('현재 interview_status:', interviewStatus);
+          
+          // 2. interview_status로 완료 여부 판단
+          const isCompleted = interviewStatus === 'FIRST_INTERVIEW_COMPLETED' || 
+                             interviewStatus === 'FIRST_INTERVIEW_PASSED' || 
+                             interviewStatus === 'FIRST_INTERVIEW_FAILED' ||
+                             interviewStatus === 'SECOND_INTERVIEW_COMPLETED' ||
+                             interviewStatus === 'SECOND_INTERVIEW_PASSED' ||
+                             interviewStatus === 'SECOND_INTERVIEW_FAILED';
+          
+          if (isCompleted) {
+            // 3. 완료된 경우 평가 결과 조회
+            try {
+              const result = await getInterviewEvaluation(applicationId, 'practical');
+              if (result) {
+                setEvaluationResult(result);
+                setIsEvaluationCompleted(true);
+                console.log('기존 평가 결과 발견:', result);
+              }
+            } catch (evalError) {
+              console.log('평가 결과 조회 실패:', evalError);
+              // interview_status는 완료이지만 평가 결과가 없는 경우
+              setIsEvaluationCompleted(false);
+            }
+          } else {
+            // 4. 미완료인 경우
+            setIsEvaluationCompleted(false);
+            console.log('면접 평가 미완료 상태');
+          }
+
+      } catch (error) {
+        console.log('평가 상태 확인 실패:', error);
+        setIsEvaluationCompleted(false);
+      } finally {
+        setIsLoadingResult(false);
+      }
+    };
+
+    checkEvaluationStatus();
+  }, [applicationId]);
 
   // 평가 항목들
   const evaluationItems = [
@@ -599,52 +659,107 @@ const InterviewPanel = ({
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            {/* 평가 항목 */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900">평가 항목</h3>
-              {evaluationItems.map((item) => (
-                <div key={item.id} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-sm font-medium text-gray-700">{item.label}</label>
-                    <span className="text-sm text-gray-500">{evaluationScores[item.id] || 0}/10</span>
+            {/* 로딩 상태 */}
+            {isLoadingResult && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600">평가 결과를 확인하는 중...</p>
+              </div>
+            )}
+
+            {/* 평가 완료 후 결과 표시 */}
+            {!isLoadingResult && isEvaluationCompleted && evaluationResult && (
+              <div className="space-y-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <FaCheck className="text-green-600 mr-2" />
+                    <h3 className="font-semibold text-green-800">평가 완료</h3>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="10"
-                      value={evaluationScores[item.id] || 0}
-                      onChange={(e) => handleScoreChange(item.id, parseInt(e.target.value))}
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <button
-                      onClick={() => handleScoreChange(item.id, (evaluationScores[item.id] || 0) + 1)}
-                      className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
-                      disabled={(evaluationScores[item.id] || 0) >= 10}
-                    >
-                      +
-                    </button>
-                    <button
-                      onClick={() => handleScoreChange(item.id, (evaluationScores[item.id] || 0) - 1)}
-                      className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
-                      disabled={(evaluationScores[item.id] || 0) <= 0}
-                    >
-                      -
-                    </button>
+                  <p className="text-green-700 text-sm mt-1">
+                    이 지원자의 실무진 면접 평가가 완료되었습니다.
+                  </p>
+                </div>
+
+                {/* 평가 결과 요약 */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-4">평가 결과 요약</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">총점</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {evaluationResult.total_score || 0}점
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">평가일</p>
+                      <p className="text-sm font-medium">
+                        {evaluationResult.created_at ? 
+                          new Date(evaluationResult.created_at).toLocaleDateString() : 
+                          '날짜 정보 없음'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 상세 평가 항목 */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-4">상세 평가 항목</h3>
+                  <div className="space-y-3">
+                    {evaluationResult.evaluation_items?.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <div>
+                          <p className="font-medium text-gray-900">{item.evaluate_type}</p>
+                          {item.comment && (
+                            <p className="text-sm text-gray-600 mt-1">{item.comment}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-blue-600">{item.evaluate_score}점</p>
                   </div>
                 </div>
               ))}
-              
-              {/* 총점 */}
+                  </div>
+                </div>
+
+                {/* 전체 메모 */}
+                {evaluationResult.summary && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2">전체 메모</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap">{evaluationResult.summary}</p>
+                  </div>
+                )}
+
+                {/* 평가 수정 버튼 */}
               <div className="pt-4 border-t border-gray-200">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-900">총점</span>
-                  <span className="text-lg font-bold text-blue-600">
-                    {Object.values(evaluationScores).reduce((sum, score) => sum + (score || 0), 0)}/80
-                  </span>
+                  <button
+                    onClick={() => setIsEvaluationCompleted(false)}
+                    className="w-full px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium transition-colors"
+                  >
+                    평가 수정하기
+                  </button>
                 </div>
               </div>
+            )}
+
+            {/* 평가 입력 폼 (평가 미완료 시) */}
+            {!isLoadingResult && !isEvaluationCompleted && (
+              <>
+                {/* AI 생성 평가 항목 */}
+                {resumeId && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-gray-900">실무진 평가 항목</h3>
+                    <InterviewEvaluationItems
+                      resumeId={resumeId}
+                      applicationId={applicationId}
+                      interviewStage="practical"
+                      onScoreChange={(scores) => {
+                        console.log('실무진 평가 점수:', scores);
+                        setEvaluationScores(scores);
+                      }}
+                    />
             </div>
+                )}
 
             {/* 전체 메모 */}
             <div className="space-y-2">
@@ -657,6 +772,8 @@ const InterviewPanel = ({
                 className="w-full p-3 border border-gray-300 rounded-md text-sm resize-none"
               />
             </div>
+              </>
+            )}
 
             {/* 녹음 파일 목록 */}
             <div className="space-y-2">
@@ -708,27 +825,50 @@ const InterviewPanel = ({
               </div>
             </div>
 
-            {/* 평가 저장 버튼 */}
+            {/* 평가 저장 버튼 (평가 미완료 시만 표시) */}
+            {!isLoadingResult && !isEvaluationCompleted && (
             <div className="pt-4 border-t border-gray-200">
               <button
-                onClick={() => {
-                  // 평가 결과를 부모 컴포넌트로 전달
+                  onClick={async () => {
+                    try {
+                      // 평가 결과 데이터 구성
                   const evaluationData = {
-                    scores: evaluationScores,
-                    totalScore: Object.values(evaluationScores).reduce((sum, score) => sum + (score || 0), 0),
-                    memo: overallMemo,
-                    questionNotes: questionNotes,
-                    recordedFiles: recordedFiles
-                  };
-                  console.log('평가 결과:', evaluationData);
-                  // TODO: 실제 저장 로직 구현
-                  alert('평가가 저장되었습니다!');
+                        application_id: applicationId,
+                        resume_id: resumeId,
+                        interview_type: 'practical',
+                        total_score: Object.values(evaluationScores).reduce((sum, score) => sum + (score || 0), 0),
+                        summary: overallMemo,
+                        evaluation_items: Object.entries(evaluationScores).map(([itemName, score]) => ({
+                          evaluate_type: itemName,
+                          evaluate_score: score,
+                          comment: questionNotes[itemName] || ''
+                        })),
+                        evaluator_id: 1, // 임시 평가자 ID
+                        status: 'completed'
+                      };
+                      
+                      console.log('실무진 평가 결과:', evaluationData);
+                      
+                      // API로 평가 저장
+                      await saveInterviewEvaluation(evaluationData);
+                      
+                      // 저장 후 결과 다시 조회
+                      const result = await getInterviewEvaluation(applicationId, 'practical');
+                      setEvaluationResult(result);
+                      setIsEvaluationCompleted(true);
+                      
+                      alert('실무진 평가가 성공적으로 저장되었습니다!');
+                    } catch (error) {
+                      console.error('평가 저장 실패:', error);
+                      alert('평가 저장에 실패했습니다. 다시 시도해주세요.');
+                    }
                 }}
                 className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
               >
-                평가 저장
+                  실무진 평가 저장
               </button>
             </div>
+            )}
           </div>
         </div>
       </div>
