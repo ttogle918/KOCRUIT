@@ -6,6 +6,7 @@ import enum
 class InterviewType(str, enum.Enum):
     AI_INTERVIEW = "AI_INTERVIEW"      # AI 면접
     FIRST_INTERVIEW = "FIRST_INTERVIEW"   # 1차 면접 (실무진)
+    EXECUTIVE_INTERVIEW = "EXECUTIVE_INTERVIEW"  # 임원진 면접
     SECOND_INTERVIEW = "SECOND_INTERVIEW"  # 2차 면접 (임원)
     FINAL_INTERVIEW = "FINAL_INTERVIEW"   # 최종 면접
 

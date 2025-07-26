@@ -171,7 +171,7 @@ async def lifespan(app: FastAPI):
     print("=== AI 평가 실행 시작 ===")
     try:
         print("서버 시작 시 AI 평가를 실행합니다...")
-        run_auto_process()
+        # run_auto_process()  # 임시로 비활성화
         print("AI 평가 실행 완료!")
     except Exception as e:
         print(f"AI 평가 실행 중 오류: {e}")

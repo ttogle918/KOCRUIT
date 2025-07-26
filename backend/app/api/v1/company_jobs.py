@@ -154,11 +154,23 @@ def get_company_job_post(
         "deadline": job_post.deadline,
         "status": job_post.status,
         "companyName": job_post.company.name if job_post.company else None,
+        "interviewReportDone": job_post.interview_report_done,
+        "finalReportDone": job_post.final_report_done,
         "created_at": job_post.created_at,
         "updated_at": job_post.updated_at,
         "teamMembers": team_members,
         "weights": weights_list,
-        "interview_schedules": interview_schedules
+        "interview_schedules": interview_schedules,
+        "applications": [
+            {
+                "id": app.id,
+                "status": app.status.value if app.status else None,
+                "document_status": app.document_status.value if app.document_status else None,
+                "interview_status": app.interview_status.value if app.interview_status else None,
+                "final_status": app.final_status.value if app.final_status else None
+            }
+            for app in job_post.applications
+        ] if job_post.applications else []
     }
     
     return job_post_dict
@@ -770,6 +782,10 @@ def update_company_job_post(
         Schedule.schedule_type == "interview"
     ).all()
     db_job_post.interview_schedules = interview_schedules
+    
+    # 보고서 상태 필드 추가
+    db_job_post.interviewReportDone = db_job_post.interview_report_done
+    db_job_post.finalReportDone = db_job_post.final_report_done
     
     return db_job_post
 
