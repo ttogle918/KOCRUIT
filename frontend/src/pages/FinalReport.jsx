@@ -11,6 +11,136 @@ import {
   MdCheckCircle, MdRadioButtonUnchecked, MdCached
 } from 'react-icons/md';
 
+// 종합 평가 코멘트 컴포넌트
+const ComprehensiveEvaluation = ({ jobPostId, applicantName, documentData, writtenTestData, interviewData }) => {
+  const [evaluation, setEvaluation] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (jobPostId && applicantName && documentData && writtenTestData && interviewData) {
+      // 1. 먼저 캐시에서 확인
+      const finalCache = getReportCache('final', jobPostId);
+      const cachedEval = finalCache?.comprehensiveEvaluations?.[applicantName];
+      
+      if (cachedEval) {
+        console.log(`📋 ${applicantName} 종합 평가 캐시에서 로드:`, cachedEval);
+        setEvaluation(cachedEval);
+        return;
+      }
+      
+      // 2. 캐시에 없으면 API 호출
+      generateComprehensiveEvaluation();
+    }
+  }, [jobPostId, applicantName, documentData, writtenTestData, interviewData]);
+
+  const generateComprehensiveEvaluation = async () => {
+    // Check if we have the necessary data
+    if (!documentData || !writtenTestData || !interviewData) {
+      setError('종합 평가를 생성하기 위해 필요한 데이터가 없습니다. 모든 보고서 데이터를 먼저 로드해주세요.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`🔄 ${applicantName} 종합 평가 생성 시작...`);
+      // NOTE: Backend expects /report/comprehensive-evaluation (not plural)
+      const response = await axiosInstance.post('/report/comprehensive-evaluation', {
+        job_post_id: jobPostId,
+        applicant_name: applicantName
+      }, { timeout: 60000 }); // 60초로 증가
+      
+      console.log(`✅ ${applicantName} 종합 평가 생성 완료:`, response.data);
+      const newEvaluation = response.data.comprehensive_evaluation;
+      setEvaluation(newEvaluation);
+      
+      // 3. 새로 받아온 평가를 캐시에 저장
+      try {
+        // 개별 comprehensive 캐시에 저장
+        setReportCache('comprehensive', `${jobPostId}_${applicantName}`, {
+          comprehensive_evaluation: newEvaluation,
+          timestamp: Date.now()
+        });
+        
+        // final 캐시의 comprehensiveEvaluations도 업데이트
+        const finalCache = getReportCache('final', jobPostId);
+        if (finalCache) {
+          const updatedCache = {
+            ...finalCache,
+            comprehensiveEvaluations: {
+              ...finalCache.comprehensiveEvaluations,
+              [applicantName]: newEvaluation
+            }
+          };
+          setReportCache('final', jobPostId, updatedCache);
+          console.log(`💾 ${applicantName} 종합 평가 캐시에 저장 완료`);
+        }
+      } catch (cacheError) {
+        console.warn('캐시 저장 중 오류:', cacheError);
+      }
+    } catch (error) {
+      console.error(`❌ ${applicantName} 종합 평가 생성 실패:`, error);
+      if (error.code === 'ECONNABORTED') {
+        setError('요청 시간이 초과되었습니다. 다시 시도해주세요.');
+      } else if (error.response?.status === 404) {
+        setError('지원자 정보를 찾을 수 없습니다. 해당 지원자의 데이터가 없거나 아직 평가가 완료되지 않았습니다.');
+      } else {
+        setError('종합 평가 생성에 실패했습니다.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">종합 평가 생성 중...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-sm text-red-600 dark:text-red-400 mb-2">{error}</p>
+        <button 
+          onClick={generateComprehensiveEvaluation}
+          className="text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors"
+        >
+          다시 시도
+        </button>
+      </div>
+    );
+  }
+
+  if (!evaluation) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400">종합 평가를 불러올 수 없습니다.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 mt-1">
+          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            "{evaluation}"
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function FinalReport() {
   const [documentData, setDocumentData] = useState(null);
   const [writtenTestData, setWrittenTestData] = useState(null);
@@ -172,12 +302,23 @@ function FinalReport() {
       console.log('📦 저장할 documentData:', documentData);
       console.log('📦 저장할 writtenTestData:', writtenTestData);
       console.log('📦 저장할 interviewData:', interviewData);
-      
+
+      // 종합 평가 코멘트 수집 (최종 선발자 기준)
+      let comprehensiveEvaluations = {};
+      if (interviewData?.final?.evaluations?.length > 0) {
+        for (const applicant of interviewData.final.evaluations) {
+          // 이미 캐시에 있으면 사용, 없으면 null
+          const cached = getReportCache('comprehensive', `${jobPostId}_${applicant.applicant_name}`);
+          comprehensiveEvaluations[applicant.applicant_name] = cached?.comprehensive_evaluation || null;
+        }
+      }
+
       const finalReportData = {
         jobPostData: jobPostData,
         documentData: documentData,
         writtenTestData: writtenTestData,
         interviewData: interviewData,
+        comprehensiveEvaluations: comprehensiveEvaluations,
         timestamp: Date.now()
       };
       
@@ -262,7 +403,7 @@ function FinalReport() {
   const handleRefreshFinalCache = async () => {
     if (window.confirm('최종 보고서 캐시를 새로고침하시겠습니까?')) {
       setIsRefreshing(true);
-      clearReportCache('final', jobPostId);
+      clearAllReportCache('final', jobPostId);
       
       try {
         console.log('🌐 최종 보고서 API 재호출');
@@ -316,8 +457,9 @@ function FinalReport() {
 
   const handleRefreshDocumentCache = async () => {
     if (window.confirm('서류 보고서 캐시를 새로고침하시겠습니까?')) {
+      setIsRefreshing(true);
       try {
-        clearReportCache('document', jobPostId);
+        clearAllReportCache('document', jobPostId);
         console.log('🌐 서류 보고서 API 재호출');
         const response = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 15000 });
         setDocumentData(response.data);
@@ -327,14 +469,17 @@ function FinalReport() {
       } catch (error) {
         console.error('서류 보고서 캐시 새로고침 실패:', error);
         alert('서류 보고서 캐시 새로고침에 실패했습니다.');
+      } finally {
+        setIsRefreshing(false);
       }
     }
   };
 
   const handleRefreshWrittenCache = async () => {
     if (window.confirm('직무적성평가 보고서 캐시를 새로고침하시겠습니까?')) {
+      setIsRefreshing(true);
       try {
-        clearReportCache('written', jobPostId);
+        clearAllReportCache('written', jobPostId);
         console.log('🌐 직무적성평가 보고서 API 재호출');
         const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
         setWrittenTestData({ data: response.data });
@@ -344,14 +489,17 @@ function FinalReport() {
       } catch (error) {
         console.error('직무적성평가 보고서 캐시 새로고침 실패:', error);
         alert('직무적성평가 보고서 캐시 새로고침에 실패했습니다.');
+      } finally {
+        setIsRefreshing(false);
       }
     }
   };
 
   const handleRefreshInterviewCache = async () => {
     if (window.confirm('면접 보고서 캐시를 새로고침하시겠습니까?')) {
+      setIsRefreshing(true);
       try {
-        clearReportCache('interview', jobPostId);
+        clearAllReportCache('interview', jobPostId);
         console.log('🌐 면접 보고서 API 재호출');
         
         // AI 면접 데이터 조회
@@ -384,6 +532,8 @@ function FinalReport() {
       } catch (error) {
         console.error('면접 보고서 캐시 새로고침 실패:', error);
         alert('면접 보고서 캐시 새로고침에 실패했습니다.');
+      } finally {
+        setIsRefreshing(false);
       }
     }
   };
@@ -692,7 +842,6 @@ function FinalReport() {
                           })()}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">서류 점수</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500">(100점 만점)</div>
                       </div>
                       
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
@@ -713,7 +862,6 @@ function FinalReport() {
                           })()}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">필기 점수</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500">(5점 만점)</div>
                       </div>
                       
                       <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
@@ -721,33 +869,19 @@ function FinalReport() {
                           {applicant.final_score?.toFixed(1) || 0}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">면접 점수</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500">(100점 만점)</div>
                       </div>
                     </div>
                     
-                    {/* 면접 세부 점수 */}
+                    {/* 종합 평가 코멘트 */}
                     <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">면접 세부 점수</h4>
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {applicant.ai_interview_score?.toFixed(1) || 0}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">AI 면접</div>
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {applicant.practical_score?.toFixed(1) || 0}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">실무진</div>
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {applicant.executive_score?.toFixed(1) || 0}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">임원진</div>
-                        </div>
-                      </div>
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">종합 평가 코멘트</h4>
+                      <ComprehensiveEvaluation 
+                        jobPostId={jobPostId} 
+                        applicantName={applicant.applicant_name}
+                        documentData={documentData}
+                        writtenTestData={writtenTestData}
+                        interviewData={interviewData}
+                      />
                     </div>
                     
                     {applicant.evaluation_comment && (
@@ -840,86 +974,7 @@ function FinalReport() {
               </div>
             </div>
             
-            {/* 단계별 진행 상황 */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">단계별 진행 상황</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                    <div>
-                      <span className="font-medium text-gray-900 dark:text-white">서류 전형</span>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">100점 만점</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{documentPassed}명</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">합격</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                      {totalApplicants > 0 ? ((documentPassed / totalApplicants) * 100).toFixed(1) : 0}%
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                    <div>
-                      <span className="font-medium text-gray-900 dark:text-white">직무적성평가</span>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">5점 만점</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-green-600 dark:text-green-400">{writtenTestPassed}명</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">합격</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                      {documentPassed > 0 ? ((writtenTestPassed / documentPassed) * 100).toFixed(1) : 0}%
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-                    <div>
-                      <span className="font-medium text-gray-900 dark:text-white">면접</span>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">100점 만점</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-purple-600 dark:text-purple-400">{finalSelected}명</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">최종 선발</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                      {writtenTestPassed > 0 ? ((finalSelected / writtenTestPassed) * 100).toFixed(1) : 0}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* 채용 완료 요약 */}
-              <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900 dark:to-blue-900 rounded-lg border border-green-200 dark:border-green-700">
-                <div className="flex items-center gap-3 mb-2">
-                  <MdCheckCircle size={20} className="text-green-600 dark:text-green-400" />
-                  <h4 className="font-semibold text-gray-900 dark:text-white">채용 완료 요약</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-400">모집 인원: </span>
-                    <span className="font-medium text-gray-900 dark:text-white">{jobPostData?.recruit_count || 0}명</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-400">최종 선발: </span>
-                    <span className="font-medium text-gray-900 dark:text-white">{finalSelected}명</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600 dark:text-gray-400">달성률: </span>
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {jobPostData?.recruit_count > 0 ? ((finalSelected / jobPostData.recruit_count) * 100).toFixed(1) : 0}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+
           </div>
 
           {/* Report Sections */}
@@ -1082,57 +1137,7 @@ function FinalReport() {
           </div>
 
           {/* Final Summary */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">채용 과정 요약</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">전형 단계별 현황</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">1단계: 서류 전형</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {documentPassed}/{totalApplicants} ({documentPassRate}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">2단계: 필기시험</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {writtenTestPassed}/{documentPassed} ({writtenTestPassRate}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">3단계: 면접</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {finalSelected}/{writtenTestPassed} ({finalPassRate}%)
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">최종 결과</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">전체 합격률</span>
-                    <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                      {totalApplicants > 0 ? ((finalSelected / totalApplicants) * 100).toFixed(1) : 0}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">모집 인원 대비</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {finalSelected}/{jobPostData?.headcount || 0}명
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">채용 완료율</span>
-                    <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                      {jobPostData?.headcount > 0 ? ((finalSelected / jobPostData.headcount) * 100).toFixed(1) : 0}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* 채용 과정 요약 section removed */}
         </div>
       </div>
     </Layout>

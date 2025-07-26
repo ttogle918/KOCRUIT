@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import tempfile
 from weasyprint import HTML
 from jinja2 import Template
 import json
 from langchain_openai import ChatOpenAI
 import re
+from pydantic import BaseModel
+from app.core.config import settings
 
 from app.core.database import get_db
 from app.models.application import Application, ApplyStatus
@@ -15,6 +17,10 @@ from app.models.job import JobPost
 from app.models.resume import Resume
 from app.models.user import User
 from app.api.v1.auth import get_current_user
+from app.models.written_test_answer import WrittenTestAnswer
+from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
+from app.models.schedule import AIInterviewSchedule
+from app.schemas.report import DocumentReportResponse, WrittenTestReportResponse
 
 router = APIRouter()
 
@@ -345,5 +351,130 @@ async def download_document_report_pdf(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"PDF 생성 중 오류가 발생했습니다: {str(e)}")
+
+class ComprehensiveEvaluationRequest(BaseModel):
+    job_post_id: int
+    applicant_name: str
+
+@router.post("/comprehensive-evaluation")
+async def generate_comprehensive_evaluation(
+    request: ComprehensiveEvaluationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    job_post_id = request.job_post_id
+    applicant_name = request.applicant_name
+    """
+    GPT-4o-mini를 사용하여 지원자의 서류 평가, 필기 점수, 면접 평가를 종합한 최종 평가 코멘트 생성
+    """
+    try:
+        # 1. 서류 평가 코멘트 조회
+        application = db.query(Application).join(User).filter(
+            Application.job_post_id == job_post_id,
+            User.name == applicant_name
+        ).first()
+        
+        if not application:
+            raise HTTPException(status_code=404, detail="지원자 정보를 찾을 수 없습니다.")
+        
+        # 서류 평가 코멘트: pass_reason 또는 fail_reason 사용
+        if application.status == ApplyStatus.PASSED and application.pass_reason:
+            document_comment = application.pass_reason
+        elif application.status == ApplyStatus.REJECTED and application.fail_reason:
+            document_comment = application.fail_reason
+        else:
+            document_comment = "서류 평가 코멘트 없음"
+        
+        # 2. 필기 점수 조회
+        written_test = db.query(WrittenTestAnswer).filter(
+            WrittenTestAnswer.user_id == application.user_id,
+            WrittenTestAnswer.jobpost_id == application.job_post_id
+        ).first()
+        
+        written_score = written_test.score if written_test else "필기 점수 없음"
+        
+        # 3. 면접 평가 코멘트 조회 (여러 단계 종합)
+        # AI 면접 일정을 통해 면접 평가 조회
+        ai_interview_schedule = db.query(AIInterviewSchedule).filter(
+            AIInterviewSchedule.application_id == application.id
+        ).first()
+        
+        interview_comments = []
+        
+        if ai_interview_schedule:
+            # AI 면접 평가 조회
+            ai_evaluation = db.query(InterviewEvaluation).filter(
+                InterviewEvaluation.interview_id == ai_interview_schedule.id,
+                InterviewEvaluation.evaluation_type == EvaluationType.AI
+            ).first()
+            
+            if ai_evaluation and ai_evaluation.summary:
+                interview_comments.append(f"AI 면접: {ai_evaluation.summary}")
+            
+            # 실무진 면접 평가 조회
+            practical_evaluation = db.query(InterviewEvaluation).filter(
+                InterviewEvaluation.interview_id == ai_interview_schedule.id,
+                InterviewEvaluation.evaluation_type == EvaluationType.PRACTICAL
+            ).first()
+            
+            if practical_evaluation and practical_evaluation.summary:
+                interview_comments.append(f"실무진 면접: {practical_evaluation.summary}")
+            
+            # 임원진 면접 평가 조회
+            executive_evaluation = db.query(InterviewEvaluation).filter(
+                InterviewEvaluation.interview_id == ai_interview_schedule.id,
+                InterviewEvaluation.evaluation_type == EvaluationType.EXECUTIVE
+            ).first()
+            
+            if executive_evaluation and executive_evaluation.summary:
+                interview_comments.append(f"임원진 면접: {executive_evaluation.summary}")
+        
+        # 면접 코멘트 종합
+        if interview_comments:
+            interview_comment = " | ".join(interview_comments)
+        else:
+            interview_comment = "면접 평가 코멘트 없음"
+        
+        # 4. GPT-4o-mini를 사용한 종합 평가 생성 (LangChain 패턴)
+        prompt = f"""
+다음은 한 지원자의 채용 과정에서의 평가 정보입니다. 이 정보를 종합하여 최종 평가 코멘트를 작성해주세요.
+
+**지원자**: {applicant_name}
+
+**서류 평가 코멘트**: {document_comment}
+
+**필기 점수**: {written_score}
+
+**면접 평가 코멘트**: {interview_comment}
+
+위의 세 가지 평가 정보를 종합하여, 해당 지원자의 전반적인 역량과 적합성을 평가하는 최종 코멘트를 작성해주세요. 
+다음 사항을 고려해주세요:
+- 각 단계별 평가의 일관성
+- 지원자의 강점과 개선점
+- 최종 선발 결정에 대한 근거
+- 향후 성장 가능성
+
+답변은 한국어로 작성하고, 200-300자 내외로 작성해주세요.
+"""
+
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+        response = llm.invoke(prompt)
+        comprehensive_comment = response.content.strip()
+        
+        return {
+            "applicant_name": applicant_name,
+            "comprehensive_evaluation": comprehensive_comment,
+            "source_data": {
+                "document_comment": document_comment,
+                "written_score": written_score,
+                "interview_comment": interview_comment
+            }
+        }
+        
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is to preserve status codes
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"종합 평가 생성 중 오류가 발생했습니다: {str(e)}")
 
  
