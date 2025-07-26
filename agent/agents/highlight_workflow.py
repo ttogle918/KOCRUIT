@@ -86,6 +86,8 @@ def get_yellow_prompt(values_keywords: List[str], candidates: List[Dict[str, Any
     ### 분석 기준 키워드
     {value_keywords_comma}
 
+
+
     ### 분석할 문장들
     {sentences_json}
 
