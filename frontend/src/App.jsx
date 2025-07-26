@@ -32,6 +32,7 @@ import ExecutiveInterviewList from './pages/applicant/ExecutiveInterviewList';
 import ExecutiveInterviewDetail from './pages/applicant/ExecutiveInterviewDetail';
 import DocumentReport from "./pages/DocumentReport.jsx";
 import JobAptitudeReport from "./pages/JobAptitudeReport.jsx";
+import FinalReport from "./pages/FinalReport.jsx";
 import WrittenTestPassedPage from './pages/written/WrittenTestPassedPage';
 import InterviewReport from './pages/InterviewReport';
 
@@ -144,6 +145,7 @@ function AppRoutes() {
                 <Route path="/applicant/executive-interview/:applicationId" element={<ProtectedRoute><ExecutiveInterviewDetail /></ProtectedRoute>} />
                 <Route path="/report/document" element={<ProtectedRoute><DocumentReport /></ProtectedRoute>} />
                 <Route path="/report/job-aptitude" element={<ProtectedRoute><JobAptitudeReport /></ProtectedRoute>} />
+                <Route path="/report/final" element={<ProtectedRoute><FinalReport /></ProtectedRoute>} />
                 <Route path="/written-test-passed/:jobpostId" element={<WrittenTestPassedPage />} />
                 <Route path="/interview-report" element={<InterviewReport />} />
               

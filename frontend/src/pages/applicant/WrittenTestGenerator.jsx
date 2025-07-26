@@ -4,6 +4,8 @@ import Navbar from '../../components/Navbar';
 import WrittenTestEditor from '../../components/WrittenTestEditor';
 import { generateWrittenTest, submitWrittenTest } from '../../api/writtenTestApi';
 import { getPublicJobPosts } from '../../api/jobApi';
+import Layout from '../../layout/Layout';
+import ViewPostSidebar from '../../components/ViewPostSidebar';
 
 const WrittenTestGenerator = () => {
   const navigate = useNavigate();
@@ -80,17 +82,12 @@ const WrittenTestGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#eef6ff]">
-      <Navbar />
-      <div className="flex-1 flex justify-center items-start py-20">
-        <div className="w-full max-w-4xl bg-white rounded-xl shadow-lg p-10 mt-8">
-          <button
-            className="mb-6 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium"
-            onClick={() => navigate(-1)}
-          >
-            ← 뒤로 가기
-          </button>
-          <h1 className="text-3xl font-bold mb-6 text-center">필기 문제 생성/제출</h1>
+    <Layout>
+      <ViewPostSidebar jobPost={selectedJobPost} />
+      <div className="min-h-screen bg-[#eef6ff] py-8 px-4" style={{ marginLeft: 90 }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="w-full bg-white rounded-xl shadow-lg p-10">
+            <h1 className="text-3xl font-bold mb-6 text-center">필기 문제 생성/제출</h1>
           <div className="flex flex-col md:flex-row md:items-end md:gap-6 mb-6">
             <div className="flex-1 mb-4 md:mb-0">
               <label className="block mb-1 font-medium">공고 선택</label>
@@ -133,9 +130,10 @@ const WrittenTestGenerator = () => {
               />
             </div>
           )}
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
