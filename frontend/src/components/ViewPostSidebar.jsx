@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CiSettings, CiUser, CiCalendar } from 'react-icons/ci';
 import { MdOutlinePlayCircle, MdCheckCircle } from 'react-icons/md';
 import { MdOutlineAutoAwesome, MdOutlineGroups, MdOutlineBusiness } from 'react-icons/md';
+import axiosInstance from '../api/axiosInstance';
 
 export default function ViewPostSidebar({ jobPost }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { jobPostId: urlJobPostId } = useParams();
   const [isHovered, setIsHovered] = useState(false);
+  const [hasWrittenTestPassed, setHasWrittenTestPassed] = useState(false);
+  const checkedJobPostIdsRef = useRef(new Set());
   const headerHeight = 64;
   // jobPost 객체의 id를 우선적으로 사용, 없으면 URL 파라미터 사용
   const effectiveJobPostId = jobPost?.id || urlJobPostId || '';

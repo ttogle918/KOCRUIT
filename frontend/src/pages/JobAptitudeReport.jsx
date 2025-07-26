@@ -19,11 +19,6 @@ function JobAptitudeReport() {
   const [searchParams] = useSearchParams();
   const jobPostId = searchParams.get("job_post_id");
 
-  
-  // 모달 상태 관리
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedApplicantId, setSelectedApplicantId] = useState(null);
-
   useEffect(() => {
     if (jobPostId) {
       // 직무적성평가 보고서 데이터 조회
