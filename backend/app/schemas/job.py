@@ -92,6 +92,8 @@ class JobPostDetail(BaseModel):
     deadline: Optional[str] = None
     status: Optional[str] = None
     companyName: Optional[str] = None
+    interviewReportDone: Optional[bool] = False  # 면접 보고서 완료 여부
+    finalReportDone: Optional[bool] = False      # 최종 보고서 완료 여부
     teamMembers: Optional[List[TeamMemberDto]] = None
     weights: Optional[List[WeightDto]] = None
     interview_schedules: Optional[List[InterviewScheduleDetail]] = None

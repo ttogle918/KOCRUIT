@@ -20,6 +20,8 @@ from app.api.v1.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
 from app.models.application import ApplyStatus, InterviewStatus
 from app.models.schedule import ScheduleInterview
+from pytz import timezone
+KST = timezone('Asia/Seoul')
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -152,11 +154,23 @@ def get_company_job_post(
         "deadline": job_post.deadline,
         "status": job_post.status,
         "companyName": job_post.company.name if job_post.company else None,
+        "interviewReportDone": job_post.interview_report_done,
+        "finalReportDone": job_post.final_report_done,
         "created_at": job_post.created_at,
         "updated_at": job_post.updated_at,
         "teamMembers": team_members,
         "weights": weights_list,
-        "interview_schedules": interview_schedules
+        "interview_schedules": interview_schedules,
+        "applications": [
+            {
+                "id": app.id,
+                "status": app.status.value if app.status else None,
+                "document_status": app.document_status.value if app.document_status else None,
+                "interview_status": app.interview_status.value if app.interview_status else None,
+                "final_status": app.final_status.value if app.final_status else None
+            }
+            for app in job_post.applications
+        ] if job_post.applications else []
     }
     
     return job_post_dict
@@ -271,19 +285,16 @@ def create_company_job_post(
                 interview_date = schedule_data.interview_date
                 interview_time = schedule_data.interview_time
                 location = schedule_data.location
-            
             # 날짜와 시간을 합쳐서 datetime 객체 생성
             if interview_date and interview_time:
                 try:
-                    # YYYY-MM-DD HH:MM 형식으로 합치기
                     datetime_str = f"{interview_date} {interview_time}:00"
                     scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                    scheduled_at = KST.localize(scheduled_at)
                 except ValueError:
-                    # 기본값으로 현재 시간 사용
-                    scheduled_at = datetime.utcnow()
+                    scheduled_at = datetime.now(KST)
             else:
-                scheduled_at = datetime.utcnow()
-            
+                scheduled_at = datetime.now(KST)
             # Schedule 테이블에 저장
             interview_schedule = Schedule(
                 schedule_type="interview",
@@ -642,10 +653,11 @@ def update_company_job_post(
                     try:
                         datetime_str = f"{interview_date} {interview_time}:00"
                         scheduled_at = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+                        scheduled_at = KST.localize(scheduled_at)
                     except ValueError:
-                        scheduled_at = datetime.utcnow()
+                        scheduled_at = datetime.now(KST)
                 else:
-                    scheduled_at = datetime.utcnow()
+                    scheduled_at = datetime.now(KST)
                 
                 # Schedule 테이블에 저장
                 interview_schedule = Schedule(
@@ -666,7 +678,7 @@ def update_company_job_post(
                     schedule_id=interview_schedule.id,
                     user_id=current_user.id,
                     schedule_date=scheduled_at,
-                    status=InterviewStatus.SCHEDULED
+                    status=InterviewStatus.AI_INTERVIEW_SCHEDULED
                 )
                 db.add(schedule_interview)
                 db.flush()
@@ -770,6 +782,10 @@ def update_company_job_post(
         Schedule.schedule_type == "interview"
     ).all()
     db_job_post.interview_schedules = interview_schedules
+    
+    # 보고서 상태 필드 추가
+    db_job_post.interviewReportDone = db_job_post.interview_report_done
+    db_job_post.finalReportDone = db_job_post.final_report_done
     
     return db_job_post
 

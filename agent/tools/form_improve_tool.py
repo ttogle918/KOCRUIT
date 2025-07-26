@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
 
-def form_field_improve_tool(state):
+def form_improve_tool(state):
     """
     특정 폼 필드를 AI가 개선하는 도구
     """

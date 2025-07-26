@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional, Dict, Any
 from app.core.database import get_db
 from app.api.v1.auth import get_current_user
@@ -23,6 +24,9 @@ import redis
 import json
 
 from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
+from app.models.interview_question_log import InterviewQuestionLog, InterviewType
+import tempfile
+import os
 
 redis_client = redis.Redis(host='redis', port=6379, db=0)
 
@@ -128,6 +132,8 @@ class EvaluationCriteriaRequest(BaseModel):
     application_id: Optional[int] = None
     company_name: Optional[str] = None
     name: Optional[str] = None
+    interview_stage: Optional[str] = None
+    save_to_db: bool = False  # DB 저장 여부 (기본값: False)
 
 class EvaluationCriteriaResponse(BaseModel):
     suggested_criteria: List[dict]
@@ -314,11 +320,13 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
     return db_question
 
 @router.get("/application/{application_id}", response_model=List[InterviewQuestionResponse])
+@redis_cache(expire=300)  # 5분 캐시 (질문 조회)
 def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
     from app.models.interview_question import InterviewQuestion
     return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
 
 @router.get("/application/{application_id}/by-type", response_model=InterviewQuestionResponse)
+@redis_cache(expire=300)  # 5분 캐시 (질문 타입별 조회)
 def get_questions_by_type(application_id: int, db: Session = Depends(get_db)):
     """지원서별 질문을 유형별로 분류하여 조회"""
     return InterviewQuestionService.get_questions_by_type(db, application_id)
@@ -330,6 +338,7 @@ def create_questions_bulk(bulk_data: InterviewQuestionBulkCreate, db: Session = 
 
 
 @router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_integrated_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
     """통합 면접 질문 생성 API - 이력서, 공고, 회사 정보를 모두 활용"""
 
@@ -471,6 +480,7 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/resume-analysis", response_model=ResumeAnalysisResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
     """이력서 분석 리포트 생성 API"""
     # 캐시 로직 완전히 제거!
@@ -610,7 +620,7 @@ async def generate_interview_guideline(request: InterviewGuidelineRequest, db: S
 @router.post("/evaluation-criteria", response_model=EvaluationCriteriaResponse)
 @redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Session = Depends(get_db)):
-    """평가 기준 자동 제안 API"""
+    """평가 기준 자동 제안 API (이력서 기반)"""
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -629,19 +639,111 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
                 if job_post:
                     job_info = parse_job_post_data(job_post)
         
-        # LangGraph 기반 평가 기준 제안
+        # 면접 단계별 평가 기준 생성
         from agent.agents.interview_question_node import suggest_evaluation_criteria
-        criteria_result = suggest_evaluation_criteria(
-            resume_text=resume_text,
-            job_info=job_info,
-            company_name=request.company_name or "회사"
-        )
+        
+        # 면접 단계별 프롬프트 조정
+        interview_stage = getattr(request, 'interview_stage', 'practical')  # 기본값: 실무진
+        
+        if interview_stage == 'practical':
+            # 실무진 면접: 기술적 역량 중심
+            criteria_result = await suggest_evaluation_criteria(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=request.company_name or "회사",
+                focus_area="technical_skills"  # 기술적 역량 중심
+            )
+        elif interview_stage == 'executive':
+            # 임원진 면접: 인성/리더십 중심
+            criteria_result = await suggest_evaluation_criteria(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=request.company_name or "회사",
+                focus_area="leadership_potential"  # 리더십/인성 중심
+            )
+        else:
+            # 기본: 종합적 평가
+            criteria_result = await suggest_evaluation_criteria(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=request.company_name or "회사"
+            )
+        
+        # DB 저장 옵션이 활성화된 경우 저장
+        if request.save_to_db:
+            try:
+                from app.services.evaluation_criteria_service import EvaluationCriteriaService
+                from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
+                
+                criteria_service = EvaluationCriteriaService(db)
+                
+                # LangGraph 결과를 스키마에 맞게 변환
+                suggested_criteria = []
+                for item in criteria_result.get("suggested_criteria", []):
+                    if isinstance(item, dict):
+                        suggested_criteria.append({
+                            "criterion": item.get("criterion", ""),
+                            "description": item.get("description", ""),
+                            "max_score": item.get("max_score", 10)
+                        })
+                
+                weight_recommendations = []
+                for item in criteria_result.get("weight_recommendations", []):
+                    if isinstance(item, dict):
+                        weight_recommendations.append({
+                            "criterion": item.get("criterion", ""),
+                            "weight": float(item.get("weight", 0.0)),
+                            "reason": item.get("reason", "")
+                        })
+                
+                evaluation_questions = criteria_result.get("evaluation_questions", [])
+                if not isinstance(evaluation_questions, list):
+                    evaluation_questions = []
+                
+                scoring_guidelines = criteria_result.get("scoring_guidelines", {})
+                if not isinstance(scoring_guidelines, dict):
+                    scoring_guidelines = {}
+
+                criteria_data = EvaluationCriteriaCreate(
+                    job_post_id=None,
+                    resume_id=request.resume_id,
+                    application_id=request.application_id,
+                    evaluation_type="resume_based",
+                    company_name=request.company_name,
+                    suggested_criteria=suggested_criteria,
+                    weight_recommendations=weight_recommendations,
+                    evaluation_questions=evaluation_questions,
+                    scoring_guidelines=scoring_guidelines
+                )
+                
+                # 기존 데이터 확인 및 저장/업데이트
+                existing_criteria = criteria_service.get_evaluation_criteria_by_resume(
+                    request.resume_id, 
+                    request.application_id,
+                    interview_stage
+                )
+                
+                if existing_criteria:
+                    criteria_service.update_evaluation_criteria_by_resume(
+                        request.resume_id, 
+                        criteria_data,
+                        request.application_id,
+                        interview_stage
+                    )
+                else:
+                    criteria_service.create_evaluation_criteria(criteria_data)
+                    
+            except Exception as db_error:
+                print(f"⚠️ DB 저장 중 오류 발생: {db_error}")
+                # DB 저장 실패해도 LangGraph 결과는 반환
+                pass
         
         return criteria_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/company-questions", response_model=CompanyQuestionResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (회사 정보 기반)
 async def generate_company_questions(request: CompanyQuestionRequest):
     """회사명 기반 면접 질문 생성 (인재상 + 뉴스 기반)"""
     # POST /api/v1/interview-questions/company-questions
@@ -660,6 +762,44 @@ async def generate_company_questions(request: CompanyQuestionRequest):
             questions = questions.strip().split("\n")
         
         return {"questions": questions}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/application/{application_id}/practical-questions")
+@redis_cache(expire=300)  # 5분 캐시 (실무진 질문 조회)
+async def get_practical_interview_questions(application_id: int, db: Session = Depends(get_db)):
+    """실무진 면접 질문 조회 (DB에서 기존 질문 가져오기)"""
+    try:
+        # application_id로 지원자 정보 조회
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        # 이력서 기반 평가 기준에서 질문 가져오기
+        resume_criteria = db.query(EvaluationCriteria).filter(
+            EvaluationCriteria.resume_id == application.resume_id,
+            EvaluationCriteria.evaluation_type == "resume_based",
+            EvaluationCriteria.interview_stage == "practical"
+        ).first()
+        
+        if resume_criteria and resume_criteria.evaluation_questions:
+            questions = resume_criteria.evaluation_questions
+        else:
+            # 기존 질문이 없으면 기본 질문 반환
+            questions = [
+                "지원자의 주요 프로젝트 경험에 대해 설명해주세요.",
+                "기술적 문제를 해결한 경험이 있다면 구체적으로 설명해주세요.",
+                "팀 프로젝트에서 본인의 역할과 기여도는 어떻게 되었나요?",
+                "최근 관심 있는 기술이나 트렌드가 있다면 무엇인가요?",
+                "직무와 관련된 본인의 강점과 개선점은 무엇인가요?"
+            ]
+        
+        return {
+            "application_id": application_id,
+            "resume_id": application.resume_id,
+            "questions": questions,
+            "source": "database" if resume_criteria else "default"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -717,11 +857,12 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
             "portfolio_info": portfolio_info
         }
         
-        return result
+        return ProjectQuestionResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/common-questions", response_model=Dict[str, Any])
+@redis_cache(expire=3600)  # 1시간 캐시 (공통 질문)
 async def generate_common_questions_endpoint(
     company_name: str = "",
     job_post_id: Optional[int] = None,
@@ -760,6 +901,7 @@ async def generate_common_questions_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/job-questions", response_model=JobQuestionResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_job_questions(request: JobQuestionRequest, db: Session = Depends(get_db)):
     """지원서 기반 직무 맞춤형 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     # POST /api/v1/interview-questions/job-questions
@@ -834,6 +976,7 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
 
 
 @router.post("/passed-applicants-questions", response_model=Dict[str, Any])
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_passed_applicants_questions(
     request: dict,
     db: Session = Depends(get_db)
@@ -977,6 +1120,7 @@ async def generate_passed_applicants_questions(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analysis-questions", response_model=Dict[str, Any])
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_analysis_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
     """
     다양한 직무 역량(실무, 문제해결, 커뮤니케이션, 성장 가능성 등) 평가 질문 통합 API
@@ -1072,6 +1216,7 @@ async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsReque
 
 # --- 공고 기반 가이드라인 ---
 @router.post("/interview-guideline/job-based", response_model=JobBasedGuidelineResponse)
+@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Session = Depends(get_db)):
     try:
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
@@ -1088,23 +1233,7 @@ async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Se
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 공고 기반 평가 기준 ---
-@router.post("/evaluation-criteria/job-based", response_model=JobBasedCriteriaResponse)
-async def suggest_job_based_evaluation_criteria(request: JobBasedCriteriaRequest, db: Session = Depends(get_db)):
-    try:
-        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
-        if not job_post:
-            raise HTTPException(status_code=404, detail="Job post not found")
-        job_info = parse_job_post_data(job_post)
-        from agent.agents.interview_question_node import suggest_evaluation_criteria
-        criteria_result = suggest_evaluation_criteria(
-            resume_text="",
-            job_info=job_info,
-            company_name=request.company_name or ""
-        )
-        return criteria_result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# --- 공고 기반 평가 기준 (중복 제거) ---
 
 # === 임원면접 질문 생성 API ===
 class ExecutiveInterviewRequest(BaseModel):
@@ -1142,6 +1271,7 @@ class AiInterviewSaveResponse(BaseModel):
     message: str
 
 @router.post("/ai-interview", response_model=AiInterviewResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_ai_interview_questions(request: AiInterviewRequest, db: Session = Depends(get_db)):
     """AI 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     try:
@@ -1332,6 +1462,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/application/{application_id}/ai-questions")
+@redis_cache(expire=300)  # 5분 캐시 (AI 질문 조회)
 def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db)):
     """특정 지원자의 AI 면접 질문 조회 (job_post_id 기반)"""
     try:
@@ -1374,6 +1505,7 @@ def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/job/{job_post_id}/ai-questions")
+@redis_cache(expire=300)  # 5분 캐시 (AI 질문 조회)
 def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 AI 면접 질문 조회 (공통 + 직무별 + 게임)"""
     try:
@@ -1392,16 +1524,16 @@ def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(ge
             InterviewQuestion.category == "job_specific"
         ).order_by(InterviewQuestion.id).all()
         
-        # 2. 공통 질문 조회 (company_id 기반)
+        # 2. 공통 질문 조회 (job_post_id 기반으로 변경)
         common_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.company_id == job.company_id,
+            InterviewQuestion.job_post_id == job_post_id,
             InterviewQuestion.type == QuestionType.AI_INTERVIEW,
             InterviewQuestion.category == "common"
         ).order_by(InterviewQuestion.id).all()
         
-        # 3. 게임 테스트 조회 (company_id 기반)
+        # 3. 게임 테스트 조회 (job_post_id 기반으로 변경)
         game_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.company_id == job.company_id,
+            InterviewQuestion.job_post_id == job_post_id,
             InterviewQuestion.type == QuestionType.AI_INTERVIEW,
             InterviewQuestion.category == "game_test"
         ).order_by(InterviewQuestion.id).all()
@@ -1444,7 +1576,7 @@ def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(ge
         
         return {
             "job_post_id": job_post_id,
-            "company_id": job.company_id,
+            "company_id": job.company_id if job else None,
             "interview_stage": "ai",
             "questions": grouped_questions,
             "total_count": total_count,
@@ -1458,6 +1590,7 @@ def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/job/{job_post_id}/common-questions")
+@redis_cache(expire=300)  # 5분 캐시 (공통 질문 조회)
 def get_common_questions_for_job_post(
     job_post_id: int,
     db: Session = Depends(get_db)
@@ -1495,6 +1628,7 @@ def get_common_questions_for_job_post(
         raise HTTPException(status_code=500, detail=f"공통 질문 조회 실패: {str(e)}")
 
 @router.get("/application/{application_id}/questions")
+@redis_cache(expire=300)  # 5분 캐시 (질문 조회)
 def get_questions_for_application(
     application_id: int,
     question_type: Optional[str] = None,
@@ -1611,6 +1745,7 @@ def generate_individual_questions_for_application(
         raise HTTPException(status_code=500, detail=f"개별 질문 생성 실패: {str(e)}")
 
 @router.get("/job/{job_post_id}/questions-status")
+@redis_cache(expire=60)  # 1분 캐시 (상태 조회)
 def get_questions_generation_status(
     job_post_id: int,
     db: Session = Depends(get_db)
@@ -1679,6 +1814,7 @@ class AiToolsResponse(BaseModel):
     questions: Optional[str] = None
 
 @router.post("/ai-tools", response_model=AiToolsResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_db)):
     """AI 면접을 위한 통합 도구 생성 (체크리스트, 강점/약점, 가이드라인, 평가 기준)"""
     try:
@@ -1819,3 +1955,667 @@ async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_d
     except Exception as e:
         print(f"AI 도구 생성 오류: {e}")
         raise HTTPException(status_code=500, detail=f"AI 도구 생성 실패: {str(e)}")
+
+@router.get("/application/{application_id}/logs")
+@redis_cache(expire=300)  # 5분 캐시 (로그 조회)
+def get_interview_question_logs_by_application(
+    application_id: int, 
+    interview_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """특정 지원자의 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환 (DB에서 읽기만)"""
+    query = db.query(InterviewQuestionLog).filter(InterviewQuestionLog.application_id == application_id)
+    if interview_type:
+        query = query.filter(InterviewQuestionLog.interview_type == interview_type)
+    logs = query.order_by(InterviewQuestionLog.created_at).all()
+
+    result = []
+    for log in logs:
+        item = {
+            "question_id": log.question_id,
+            "interview_type": log.interview_type.value if log.interview_type else "AI_INTERVIEW",
+            "question_text": log.question_text,
+            "answer_text": log.answer_text,
+            "answer_audio_url": log.answer_audio_url,
+            "answer_video_url": log.answer_video_url,
+            "answer_text_transcribed": log.answer_text_transcribed,
+            "emotion": log.emotion,
+            "attitude": log.attitude,
+            "answer_score": log.answer_score,
+            "answer_feedback": log.answer_feedback,
+            "created_at": log.created_at,
+            "updated_at": log.updated_at
+        }
+        result.append(item)
+    return result
+
+@router.get("/application/{application_id}/logs/statistics")
+@redis_cache(expire=300)  # 5분 캐시 (통계 조회)
+def get_interview_logs_statistics(application_id: int, db: Session = Depends(get_db)):
+    """특정 지원자의 면접 유형별 통계 반환"""
+    # 면접 유형별 개수 조회
+    stats = db.query(
+        InterviewQuestionLog.interview_type,
+        func.count(InterviewQuestionLog.id).label('count')
+    ).filter(
+        InterviewQuestionLog.application_id == application_id
+    ).group_by(
+        InterviewQuestionLog.interview_type
+    ).all()
+    
+    # 전체 통계
+    total_count = db.query(InterviewQuestionLog).filter(
+        InterviewQuestionLog.application_id == application_id
+    ).count()
+    
+    return {
+        "total_interviews": total_count,
+        "by_type": [
+            {
+                "interview_type": stat.interview_type.value if stat.interview_type else "AI_INTERVIEW",
+                "count": stat.count
+            }
+            for stat in stats
+        ]
+    }
+
+@router.post("/application/{application_id}/evaluate-audio")
+async def evaluate_audio(
+    application_id: int,
+    question_id: int,  # 질문 ID도 프론트에서 같이 보내야 DB 저장 가능
+    question_text: str,
+    audio_file: UploadFile = File(...)
+):
+    """
+    오디오 파일을 받아 agent 컨테이너에 전달하여 실시간 분석 후 결과 반환
+    """
+    import httpx
+    
+    # 1. 임시 파일로 저장
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+        tmp.write(await audio_file.read())
+        tmp_path = tmp.name
+
+    try:
+        # 2. agent 컨테이너에 HTTP 요청으로 분석 요청
+        async with httpx.AsyncClient() as client:
+            with open(tmp_path, "rb") as f:
+                files = {"audio_file": f}
+                data = {
+                    "application_id": application_id,
+                    "question_id": question_id,
+                    "question_text": question_text
+                }
+                response = await client.post(
+                    "http://agent:8001/evaluate-audio",
+                    files=files,
+                    data=data
+                )
+                result = response.json()
+        
+        # 3. DB 저장
+        db = next(get_db())  # Depends 사용 불가 시 직접 호출
+        log = db.query(InterviewQuestionLog).filter(
+            InterviewQuestionLog.application_id == application_id,
+            InterviewQuestionLog.question_id == question_id
+        ).first()
+        if log:
+            log.answer_text_transcribed = result.get("answer_text_transcribed")
+            log.emotion = result.get("emotion")
+            log.attitude = result.get("attitude")
+            log.answer_score = result.get("answer_score")
+            log.answer_feedback = result.get("answer_feedback")
+            db.commit()
+        
+        return result
+    finally:
+        # 임시 파일 삭제
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+# --- 공고 기반 평가 기준 ---
+@router.post("/evaluation-criteria/job-based", response_model=JobBasedCriteriaResponse)
+async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest, db: Session = Depends(get_db)):
+    """공고 기반 평가항목 생성 및 DB 저장"""
+    try:
+        job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="Job post not found")
+        
+        job_info = parse_job_post_data(job_post)
+        
+        # LangGraph를 통한 평가항목 생성
+        from agent.agents.interview_question_node import suggest_evaluation_criteria
+        criteria_result = suggest_evaluation_criteria(
+            resume_text="",
+            job_info=job_info,
+            company_name=request.company_name or ""
+        )
+        
+        # DB 저장은 임시로 제거 (에러 디버깅 중)
+        print(f"🔍 LangGraph 결과: {criteria_result}")
+        
+        # DB 저장 시도 (에러 발생 시 로그만 출력)
+        try:
+            from app.services.evaluation_criteria_service import EvaluationCriteriaService
+            from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
+            
+            print("🔍 EvaluationCriteriaService import 성공")
+            criteria_service = EvaluationCriteriaService(db)
+            print("🔍 EvaluationCriteriaService 인스턴스 생성 성공")
+            
+            # 기존 데이터가 있으면 업데이트, 없으면 새로 생성
+            existing_criteria = criteria_service.get_evaluation_criteria_by_job_post(request.job_post_id)
+            print(f"🔍 기존 데이터 확인: {existing_criteria}")
+            
+            # LangGraph 결과를 스키마에 맞게 변환
+            suggested_criteria = []
+            for item in criteria_result.get("suggested_criteria", []):
+                if isinstance(item, dict):
+                    suggested_criteria.append({
+                        "criterion": item.get("criterion", ""),
+                        "description": item.get("description", ""),
+                        "max_score": item.get("max_score", 10)
+                    })
+            
+            weight_recommendations = []
+            for item in criteria_result.get("weight_recommendations", []):
+                if isinstance(item, dict):
+                    weight_recommendations.append({
+                        "criterion": item.get("criterion", ""),
+                        "weight": float(item.get("weight", 0.0)),
+                        "reason": item.get("reason", "")
+                    })
+            
+            # Pydantic 모델을 딕셔너리로 변환 (JSON 직렬화를 위해)
+            suggested_criteria_dict = []
+            for item in suggested_criteria:
+                suggested_criteria_dict.append({
+                    "criterion": item["criterion"],
+                    "description": item["description"],
+                    "max_score": item["max_score"]
+                })
+            
+            weight_recommendations_dict = []
+            for item in weight_recommendations:
+                weight_recommendations_dict.append({
+                    "criterion": item["criterion"],
+                    "weight": item["weight"],
+                    "reason": item["reason"]
+                })
+            
+            evaluation_questions = criteria_result.get("evaluation_questions", [])
+            if not isinstance(evaluation_questions, list):
+                evaluation_questions = []
+            
+            scoring_guidelines = criteria_result.get("scoring_guidelines", {})
+            if not isinstance(scoring_guidelines, dict):
+                scoring_guidelines = {}
+            
+            # evaluation_items 처리 (새로운 구체적 평가 항목)
+            evaluation_items = criteria_result.get("evaluation_items", [])
+            if not isinstance(evaluation_items, list):
+                evaluation_items = []
+            
+            print(f"🔍 변환된 데이터:")
+            print(f"  - suggested_criteria: {suggested_criteria_dict}")
+            print(f"  - weight_recommendations: {weight_recommendations_dict}")
+            print(f"  - evaluation_questions: {evaluation_questions}")
+            print(f"  - scoring_guidelines: {scoring_guidelines}")
+            print(f"  - evaluation_items: {evaluation_items}")
+            
+            criteria_data = EvaluationCriteriaCreate(
+                job_post_id=request.job_post_id,
+                company_name=request.company_name,
+                suggested_criteria=suggested_criteria_dict,
+                weight_recommendations=weight_recommendations_dict,
+                evaluation_questions=evaluation_questions,
+                scoring_guidelines=scoring_guidelines,
+                evaluation_items=evaluation_items  # 새로운 구체적 평가 항목 추가
+            )
+            print(f"🔍 criteria_data 생성 성공: {criteria_data}")
+            
+            if existing_criteria:
+                # 기존 데이터 업데이트
+                criteria_service.update_evaluation_criteria(request.job_post_id, criteria_data)
+                print(f"✅ 평가항목 업데이트 완료: job_post_id={request.job_post_id}")
+            else:
+                # 새로 생성
+                criteria_service.create_evaluation_criteria(criteria_data)
+                print(f"✅ 평가항목 생성 완료: job_post_id={request.job_post_id}")
+                
+        except Exception as db_error:
+            print(f"⚠️ DB 저장 중 오류 발생: {db_error}")
+            print(f"⚠️ 오류 타입: {type(db_error)}")
+            import traceback
+            print(f"⚠️ 상세 오류: {traceback.format_exc()}")
+            # DB 저장 실패해도 LangGraph 결과는 반환
+            pass
+        
+        # evaluation_items가 포함된 응답 반환
+        return JobBasedCriteriaResponse(
+            suggested_criteria=criteria_result.get("suggested_criteria", []),
+            weight_recommendations=criteria_result.get("weight_recommendations", []),
+            evaluation_questions=criteria_result.get("evaluation_questions", []),
+            scoring_guidelines=criteria_result.get("scoring_guidelines", {}),
+            evaluation_items=criteria_result.get("evaluation_items", [])  # 새로운 구체적 평가 항목 추가
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/evaluation-criteria/job/{job_post_id}", response_model=JobBasedCriteriaResponse)
+@redis_cache(expire=300)  # 5분 캐시 (DB 조회)
+async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
+    """공고별 저장된 평가항목 조회"""
+    try:
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
+        
+        criteria_service = EvaluationCriteriaService(db)
+        criteria = criteria_service.get_evaluation_criteria_by_job_post(job_post_id)
+        
+        if not criteria:
+            raise HTTPException(status_code=404, detail="Evaluation criteria not found for this job post")
+        
+        return JobBasedCriteriaResponse(
+            suggested_criteria=criteria.suggested_criteria,
+            weight_recommendations=criteria.weight_recommendations,
+            evaluation_questions=criteria.evaluation_questions,
+            scoring_guidelines=criteria.scoring_guidelines,
+            evaluation_items=criteria.evaluation_items  # 새로운 구체적 평가 항목 추가
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/evaluation-criteria/job/{job_post_id}")
+async def delete_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
+    """공고별 평가항목 삭제"""
+    try:
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
+        
+        criteria_service = EvaluationCriteriaService(db)
+        success = criteria_service.delete_evaluation_criteria(job_post_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Evaluation criteria not found for this job post")
+        
+        return {"message": "Evaluation criteria deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/evaluation-criteria/resume-based", response_model=EvaluationCriteriaResponse)
+async def create_resume_based_evaluation_criteria(request: EvaluationCriteriaRequest, db: Session = Depends(get_db)):
+    """이력서 기반 평가 기준 생성 및 DB 저장"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # 면접 단계별 평가 기준 생성
+        from agent.agents.interview_question_node import suggest_evaluation_criteria
+        
+        # 면접 단계별 프롬프트 조정
+        interview_stage = getattr(request, 'interview_stage', 'practical')  # 기본값: 실무진
+        
+        if interview_stage == 'practical':
+            # 실무진 면접: 기술적 역량 중심
+            criteria_result = await suggest_evaluation_criteria(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=request.company_name or "회사",
+                focus_area="technical_skills"  # 기술적 역량 중심
+            )
+        elif interview_stage == 'executive':
+            # 임원진 면접: 인성/리더십 중심
+            criteria_result = await suggest_evaluation_criteria(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=request.company_name or "회사",
+                focus_area="leadership_potential"  # 리더십/인성 중심
+            )
+        else:
+            # 기본: 종합적 평가
+            criteria_result = await suggest_evaluation_criteria(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=request.company_name or "회사"
+            )
+        
+        # DB에 저장
+        print(f"🔍 LangGraph 결과: {criteria_result}")
+        try:
+            from app.services.evaluation_criteria_service import EvaluationCriteriaService
+            from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
+            
+            print("🔍 EvaluationCriteriaService import 성공")
+            criteria_service = EvaluationCriteriaService(db)
+            print("🔍 EvaluationCriteriaService 인스턴스 생성 성공")
+            
+            # 기존 데이터가 있으면 업데이트, 없으면 새로 생성
+            existing_criteria = criteria_service.get_evaluation_criteria_by_resume(
+                request.resume_id, 
+                request.application_id,
+                interview_stage
+            )
+            print(f"🔍 기존 데이터 확인: {existing_criteria}")
+            
+            # LangGraph 결과를 스키마에 맞게 변환
+            suggested_criteria = []
+            for item in criteria_result.get("suggested_criteria", []):
+                if isinstance(item, dict):
+                    suggested_criteria.append({
+                        "criterion": item.get("criterion", ""),
+                        "description": item.get("description", ""),
+                        "max_score": item.get("max_score", 10)
+                    })
+            
+            weight_recommendations = []
+            for item in criteria_result.get("weight_recommendations", []):
+                if isinstance(item, dict):
+                    weight_recommendations.append({
+                        "criterion": item.get("criterion", ""),
+                        "weight": float(item.get("weight", 0.0)),
+                        "reason": item.get("reason", "")
+                    })
+            
+            evaluation_questions = criteria_result.get("evaluation_questions", [])
+            if not isinstance(evaluation_questions, list):
+                evaluation_questions = []
+            
+            scoring_guidelines = criteria_result.get("scoring_guidelines", {})
+            if not isinstance(scoring_guidelines, dict):
+                scoring_guidelines = {}
+            
+            # evaluation_items 처리 (새로운 구체적 평가 항목)
+            evaluation_items = criteria_result.get("evaluation_items", [])
+            if not isinstance(evaluation_items, list):
+                evaluation_items = []
+            
+            print(f"🔍 변환된 데이터:")
+            print(f"  - suggested_criteria: {suggested_criteria}")
+            print(f"  - weight_recommendations: {weight_recommendations}")
+            print(f"  - evaluation_questions: {evaluation_questions}")
+            print(f"  - scoring_guidelines: {scoring_guidelines}")
+            print(f"  - evaluation_items: {evaluation_items}")
+
+            criteria_data = EvaluationCriteriaCreate(
+                job_post_id=None,  # 이력서 기반이므로 None
+                resume_id=request.resume_id,
+                application_id=request.application_id,
+                evaluation_type="resume_based",
+                company_name=request.company_name,
+                suggested_criteria=suggested_criteria,
+                weight_recommendations=weight_recommendations,
+                evaluation_questions=evaluation_questions,
+                scoring_guidelines=scoring_guidelines,
+                evaluation_items=evaluation_items  # 새로운 구체적 평가 항목 추가
+            )
+            print(f"🔍 criteria_data 생성 성공: {criteria_data}")
+            
+            if existing_criteria:
+                # 기존 데이터 업데이트
+                criteria_service.update_evaluation_criteria_by_resume(
+                    request.resume_id, 
+                    criteria_data,
+                    request.application_id,
+                    interview_stage
+                )
+                print(f"✅ 평가항목 업데이트 완료: resume_id={request.resume_id}")
+            else:
+                # 새로 생성
+                criteria_service.create_evaluation_criteria(criteria_data)
+                print(f"✅ 평가항목 생성 완료: resume_id={request.resume_id}")
+                
+        except Exception as db_error:
+            print(f"⚠️ DB 저장 중 오류 발생: {db_error}")
+            print(f"⚠️ 오류 타입: {type(db_error)}")
+            import traceback
+            print(f"⚠️ 상세 오류: {traceback.format_exc()}")
+            # DB 저장 실패해도 LangGraph 결과는 반환
+            pass
+        
+        return criteria_result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/evaluation-criteria/resume/{resume_id}", response_model=EvaluationCriteriaResponse)
+@redis_cache(expire=300)  # 5분 캐시 (DB 조회)
+async def get_resume_based_evaluation_criteria(
+    resume_id: int, 
+    application_id: Optional[int] = None,
+    interview_stage: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """이력서 기반 저장된 평가 기준 조회"""
+    try:
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
+        
+        criteria_service = EvaluationCriteriaService(db)
+        criteria = criteria_service.get_evaluation_criteria_by_resume(resume_id, application_id, interview_stage)
+        
+        if not criteria:
+            raise HTTPException(status_code=404, detail="Evaluation criteria not found for this resume")
+        
+        return EvaluationCriteriaResponse(
+            suggested_criteria=criteria.suggested_criteria,
+            weight_recommendations=criteria.weight_recommendations,
+            evaluation_questions=criteria.evaluation_questions,
+            scoring_guidelines=criteria.scoring_guidelines,
+            evaluation_items=criteria.evaluation_items  # 새로운 구체적 평가 항목 추가
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 새로운 API: 면접 단계별 평가 항목 조회 (Frontend용)
+class InterviewEvaluationItemsRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    interview_stage: str  # "practical" 또는 "executive"
+
+class InterviewEvaluationItemsResponse(BaseModel):
+    interview_stage: str
+    evaluation_items: List[Dict[str, Any]]
+    total_weight: float
+    max_total_score: int
+    message: str = "평가 항목을 성공적으로 조회했습니다."
+
+@router.post("/evaluation-items/interview", response_model=InterviewEvaluationItemsResponse)
+@redis_cache(expire=300)  # 5분 캐시
+async def get_interview_evaluation_items(
+    request: InterviewEvaluationItemsRequest,
+    db: Session = Depends(get_db)
+):
+    """면접 단계별 평가 항목 조회 (단순화된 기본 기준)"""
+    try:
+        # 단순화된 기본 평가 기준 반환 (DB 의존성 제거)
+        if request.interview_stage == "practical":
+            evaluation_items = [
+                {
+                    "item_name": "기술 역량",
+                    "description": "지원자의 기술적 능력과 실무 적용 가능성",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 해당 분야 전문가 수준",
+                        "4점": "양호 - 실무 가능한 수준",
+                        "3점": "보통 - 기본적인 수준",
+                        "2점": "미흡 - 개선 필요",
+                        "1점": "부족 - 학습 필요"
+                    },
+                    "evaluation_questions": [
+                        "주요 기술 스택에 대한 이해도를 설명해주세요",
+                        "실무에서 해당 기술을 어떻게 활용하시겠습니까?"
+                    ],
+                    "weight": 0.30
+                },
+                {
+                    "item_name": "경험 및 성과",
+                    "description": "지원자의 프로젝트 경험과 성과",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 뛰어난 성과와 경험",
+                        "4점": "양호 - 충분한 경험과 성과",
+                        "3점": "보통 - 기본적인 경험",
+                        "2점": "미흡 - 경험 부족",
+                        "1점": "부족 - 경험 없음"
+                    },
+                    "evaluation_questions": [
+                        "가장 성공적이었던 프로젝트 경험을 설명해주세요",
+                        "본인의 기여도와 성과를 구체적으로 설명해주세요"
+                    ],
+                    "weight": 0.25
+                },
+                {
+                    "item_name": "문제해결 능력",
+                    "description": "지원자의 문제 인식 및 해결 능력",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 창의적이고 효과적인 해결",
+                        "4점": "양호 - 논리적이고 체계적인 해결",
+                        "3점": "보통 - 기본적인 해결 능력",
+                        "2점": "미흡 - 해결 능력 부족",
+                        "1점": "부족 - 문제 인식 어려움"
+                    },
+                    "evaluation_questions": [
+                        "어려운 문제를 해결한 경험을 설명해주세요",
+                        "예상치 못한 상황에 어떻게 대응하시겠습니까?"
+                    ],
+                    "weight": 0.20
+                },
+                {
+                    "item_name": "의사소통 및 협업",
+                    "description": "지원자의 팀워크와 의사소통 능력",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 뛰어난 소통과 리더십",
+                        "4점": "양호 - 원활한 소통과 협업",
+                        "3점": "보통 - 기본적인 소통 능력",
+                        "2점": "미흡 - 소통 능력 부족",
+                        "1점": "부족 - 소통 어려움"
+                    },
+                    "evaluation_questions": [
+                        "팀 프로젝트에서의 역할과 기여도를 설명해주세요",
+                        "갈등 상황을 어떻게 해결하시겠습니까?"
+                    ],
+                    "weight": 0.15
+                },
+                {
+                    "item_name": "성장 의지",
+                    "description": "지원자의 학습 의지와 성장 가능성",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 뛰어난 학습 의지와 계획",
+                        "4점": "양호 - 적극적인 학습 의지",
+                        "3점": "보통 - 기본적인 학습 의지",
+                        "2점": "미흡 - 학습 의지 부족",
+                        "1점": "부족 - 학습 의지 없음"
+                    },
+                    "evaluation_questions": [
+                        "새로운 기술을 학습한 경험을 설명해주세요",
+                        "앞으로의 성장 계획을 구체적으로 제시해주세요"
+                    ],
+                    "weight": 0.10
+                }
+            ]
+        else:  # executive
+            evaluation_items = [
+                {
+                    "item_name": "리더십",
+                    "description": "팀 리딩과 의사결정 능력",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 뛰어난 리더십과 의사결정 능력",
+                        "4점": "양호 - 양호한 리더십과 의사결정 능력",
+                        "3점": "보통 - 일반적인 리더십과 의사결정 능력",
+                        "2점": "미흡 - 제한적인 리더십과 의사결정 능력",
+                        "1점": "부족 - 리더십과 의사결정 능력 부족"
+                    },
+                    "evaluation_questions": [
+                        "팀을 이끌어본 경험을 설명해주세요",
+                        "어려운 의사결정을 내린 경험을 설명해주세요"
+                    ],
+                    "weight": 0.30
+                },
+                {
+                    "item_name": "전략적 사고",
+                    "description": "비전 제시와 전략 수립 능력",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 뛰어난 전략적 사고와 비전 제시 능력",
+                        "4점": "양호 - 양호한 전략적 사고와 비전 제시 능력",
+                        "3점": "보통 - 일반적인 전략적 사고와 비전 제시 능력",
+                        "2점": "미흡 - 제한적인 전략적 사고와 비전 제시 능력",
+                        "1점": "부족 - 전략적 사고와 비전 제시 능력 부족"
+                    },
+                    "evaluation_questions": [
+                        "조직의 미래 비전을 어떻게 설정하시겠습니까?",
+                        "시장 변화에 대응하는 전략을 설명해주세요"
+                    ],
+                    "weight": 0.25
+                },
+                {
+                    "item_name": "인성과 가치관",
+                    "description": "윤리의식과 조직 문화 적합성",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 뛰어난 윤리의식과 조직 문화 적합성",
+                        "4점": "양호 - 양호한 윤리의식과 조직 문화 적합성",
+                        "3점": "보통 - 일반적인 윤리의식과 조직 문화 적합성",
+                        "2점": "미흡 - 제한적인 윤리의식과 조직 문화 적합성",
+                        "1점": "부족 - 윤리의식과 조직 문화 적합성 부족"
+                    },
+                    "evaluation_questions": [
+                        "윤리적 딜레마 상황을 어떻게 해결하시겠습니까?",
+                        "조직의 가치관과 본인의 가치관이 일치하는지 설명해주세요"
+                    ],
+                    "weight": 0.25
+                },
+                {
+                    "item_name": "성장 잠재력",
+                    "description": "미래 성장 가능성과 동기부여",
+                    "max_score": 5,
+                    "scoring_criteria": {
+                        "5점": "우수 - 뛰어난 성장 잠재력과 강한 동기부여",
+                        "4점": "양호 - 양호한 성장 잠재력과 동기부여",
+                        "3점": "보통 - 일반적인 성장 잠재력과 동기부여",
+                        "2점": "미흡 - 제한적인 성장 잠재력과 동기부여",
+                        "1점": "부족 - 성장 잠재력과 동기부여 부족"
+                    },
+                    "evaluation_questions": [
+                        "앞으로의 성장 계획을 설명해주세요",
+                        "이 직무에 지원한 동기를 설명해주세요"
+                    ],
+                    "weight": 0.20
+                }
+            ]
+        
+        # 총 가중치와 최대 점수 계산
+        total_weight = sum(item.get("weight", 0) for item in evaluation_items)
+        max_total_score = sum(item.get("max_score", 5) for item in evaluation_items)
+        
+        return InterviewEvaluationItemsResponse(
+            interview_stage=request.interview_stage,
+            evaluation_items=evaluation_items,
+            total_weight=total_weight,
+            max_total_score=max_total_score
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

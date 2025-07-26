@@ -47,7 +47,7 @@ manager = ConnectionManager()
 @router.post("/generate-ai-interview-questions")
 async def generate_ai_interview_questions(
     job_info: str = "",
-    interview_type: str = "ai_interview",
+    interview_type: str = "AI_INTERVIEW",
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """AI 면접용 시나리오 기반 질문 생성"""

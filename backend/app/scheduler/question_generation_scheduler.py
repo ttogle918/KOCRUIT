@@ -7,6 +7,8 @@ question_generation_scheduler.py
 import logging
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from pytz import timezone
+KST = timezone('Asia/Seoul')
 from app.core.database import SessionLocal
 from app.models.job import JobPost
 from app.models.application import Application, DocumentStatus, InterviewStatus
@@ -42,12 +44,12 @@ class QuestionGenerationScheduler:
                     if applications:
                         # 첫 번째 지원자에게 공통 질문이 있는지 확인
                         first_app = applications[0]
-                        existing_common_questions = db.query(InterviewQuestion).filter(
+                        existing_questions = db.query(InterviewQuestion).filter(
                             InterviewQuestion.application_id == first_app.id,
                             InterviewQuestion.type == QuestionType.COMMON
                         ).count()
                         
-                        if existing_common_questions == 0:
+                        if existing_questions == 0:
                             # 공통 질문 생성
                             company_name = job_post.company.name if job_post.company else ""
                             from app.api.v1.interview_question import parse_job_post_data
@@ -120,12 +122,12 @@ class QuestionGenerationScheduler:
             from apscheduler.schedulers.background import BackgroundScheduler
             from apscheduler.triggers.cron import CronTrigger
             
-            scheduler = BackgroundScheduler()
+            scheduler = BackgroundScheduler(timezone=KST)
             
             # 공통 질문 생성: 매일 새벽 2시
             scheduler.add_job(
                 QuestionGenerationScheduler.generate_common_questions_for_new_job_posts,
-                CronTrigger(hour=2, minute=0),
+                CronTrigger(hour=2, minute=0, timezone=KST),
                 id='generate_common_questions',
                 replace_existing=True
             )
@@ -133,7 +135,7 @@ class QuestionGenerationScheduler:
             # 개별 질문 생성: 매시간
             scheduler.add_job(
                 QuestionGenerationScheduler.generate_individual_questions_for_scheduled_interviews,
-                CronTrigger(minute=0),  # 매시간 정각
+                CronTrigger(minute=0, timezone=KST),  # 매시간 정각
                 id='generate_individual_questions',
                 replace_existing=True
             )

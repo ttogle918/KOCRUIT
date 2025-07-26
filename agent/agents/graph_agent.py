@@ -1,10 +1,10 @@
 from langgraph.graph import Graph, END
 from langchain_openai import ChatOpenAI
-from tools.job_posting_tool import job_posting_recommend_tool
 from agents.interview_question_node import generate_company_questions, generate_common_question_bundle
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
-from tools.form_field_tool import form_field_update_tool, form_status_check_tool
+from tools.form_edit_tool import form_edit_tool, form_status_check_tool
 from tools.spell_check_tool import spell_check_tool, apply_spell_corrections
+from tools.weight_extraction_tool import weight_extraction_tool
 import json
 import re
 import logging
@@ -48,7 +48,7 @@ def analyze_complex_command(message):
     
     중요:
     - 복합 요청인 경우 primary_action은 form_fill_tool로 설정
-    - 단순 필드 수정인 경우 primary_action은 form_field_update_tool로 설정
+    - 단순 필드 수정인 경우 primary_action은 form_edit_tool로 설정
     - 여러 필드가 언급된 경우 field_updates 배열에 모두 포함
     - 면접 관련 요청이 있으면 schedule_requests에 포함
     """
@@ -169,12 +169,11 @@ def router(state):
     1. form_fill_tool - 폼 전체를 채우거나 생성하는 요청
     2. form_improve_tool - 폼 개선이나 조언을 요청하는 경우
     3. form_status_check_tool - 현재 폼 상태를 확인하는 요청
-    4. form_field_update_tool - 특정 필드를 수정하거나 변경하는 요청
+    4. form_edit_tool - 특정 필드를 수정하거나 변경하는 요청
     5. spell_check_tool - 맞춤법 검사나 문법 수정 요청
-    6. job_posting_tool - 채용공고 관련 조언이나 추천
-    7. company_question_generator - 회사 관련 면접 질문 생성
-    8. project_question_generator - 프로젝트 기반 면접 질문 생성
-    9. info_tool - 정보성 안내/설명/FAQ 요청 (실제 행동 없이 설명만)
+    6. company_question_generator - 회사 관련 면접 질문 생성
+    7. project_question_generator - 프로젝트 기반 면접 질문 생성
+    8. info_tool - 정보성 안내/설명/FAQ 요청 (실제 행동 없이 설명만)
     
     분석 기준:
     - 폼 채우기/생성: "작성", "채워줘", "생성", "만들어줘", "공고 작성" 등의 키워드
@@ -188,11 +187,11 @@ def router(state):
     
     중요: 
     - 정보성 안내 요청의 경우 info_tool을 선택하세요 (실제 폼 작성/수정 없이 설명만)
-    - 필드 수정 요청의 경우, 사용자가 특정 필드명(제목, 부서, 부서명, 지원자격 등)과 새로운 값을 명시한 경우에만 form_field_update_tool을 선택하세요.
+    - 필드 수정 요청의 경우, 사용자가 특정 필드명(제목, 부서, 부서명, 지원자격 등)과 새로운 값을 명시한 경우에만 form_edit_tool을 선택하세요.
     - 맞춤법 검사 요청의 경우 spell_check_tool을 선택하세요.
     
     응답은 정확히 다음 중 하나만 반환하세요:
-    form_fill_tool, form_improve_tool, form_status_check_tool, form_field_update_tool, spell_check_tool, apply_spell_corrections, job_posting_tool, company_question_generator, project_question_generator, info_tool
+    form_fill_tool, form_improve_tool, form_status_check_tool, form_edit_tool, spell_check_tool, apply_spell_corrections, company_question_generator, project_question_generator, info_tool
     """
     
     try:
@@ -223,7 +222,7 @@ def router(state):
         
         if is_field_update:
             print(f"키워드 기반 필드 수정 감지: {message}")
-            return {"next": "form_field_update_tool", **state}
+            return {"next": "form_edit_tool", **state}
         
         # 폼 작성 키워드 체크
         form_fill_keywords = ["작성", "채워줘", "생성", "만들어줘", "공고 작성"]
@@ -245,7 +244,7 @@ def router(state):
         # 응답 검증
         valid_tools = [
             "form_fill_tool", "form_improve_tool", "form_status_check_tool", 
-            "form_field_update_tool", "spell_check_tool", "apply_spell_corrections", "job_posting_tool", 
+            "form_edit_tool", "spell_check_tool", "apply_spell_corrections", 
             "company_question_generator", "project_question_generator", "info_tool"
         ]
         
@@ -257,8 +256,6 @@ def router(state):
             # 기본값: 사용 가능한 데이터에 따라 결정
             if state.get("resume_text"):
                 return {"next": "project_question_generator", **state}
-            elif state.get("job_posting"):
-                return {"next": "job_posting_tool", **state}
             elif state.get("company_name"):
                 return {"next": "company_question_generator", **state}
             else:
@@ -269,8 +266,6 @@ def router(state):
         # 오류 시 기본값 반환
         if state.get("resume_text"):
             return {"next": "project_question_generator", **state}
-        elif state.get("job_posting"):
-            return {"next": "job_posting_tool", **state}
         elif state.get("company_name"):
             return {"next": "company_question_generator", **state}
         else:
@@ -336,14 +331,13 @@ def build_graph():
     
     # 노드 추가
     graph.add_node("router", router)
-    graph.add_node("job_posting_tool", job_posting_recommend_tool)
     graph.add_node("company_question_generator", company_question_generator)
     graph.add_node("portfolio_analyzer", portfolio_analyzer)
     graph.add_node("project_question_generator", project_question_generator)
     graph.add_node("form_fill_tool", form_fill_tool)
     graph.add_node("form_improve_tool", form_improve_tool)
     graph.add_node("form_status_check_tool", form_status_check_tool)
-    graph.add_node("form_field_update_tool", form_field_update_tool)
+    graph.add_node("form_edit_tool", form_edit_tool)
     graph.add_node("spell_check_tool", spell_check_tool)
     graph.add_node("apply_spell_corrections", apply_spell_corrections)
     graph.add_node("info_tool", info_tool)
@@ -356,13 +350,12 @@ def build_graph():
         "router",
         lambda x: x["next"],
         {
-            "job_posting_tool": "job_posting_tool",
             "company_question_generator": "company_question_generator",
             "project_question_generator": "project_question_generator",
             "form_fill_tool": "form_fill_tool",
             "form_improve_tool": "form_improve_tool",
             "form_status_check_tool": "form_status_check_tool",
-            "form_field_update_tool": "form_field_update_tool",
+            "form_edit_tool": "form_edit_tool",
             "spell_check_tool": "spell_check_tool",
             "apply_spell_corrections": "apply_spell_corrections",
             "info_tool": "info_tool"
@@ -371,25 +364,17 @@ def build_graph():
     
     # 모든 노드에서 END로 연결
     graph.add_edge("project_question_generator", END)
-    graph.add_edge("job_posting_tool", END)
     graph.add_edge("company_question_generator", END)
     graph.add_edge("form_fill_tool", END)
     graph.add_edge("form_improve_tool", END)
     graph.add_edge("form_status_check_tool", END)
-    graph.add_edge("form_field_update_tool", END)
+    graph.add_edge("form_edit_tool", END)
     graph.add_edge("spell_check_tool", END)
     graph.add_edge("apply_spell_corrections", END)
     graph.add_edge("info_tool", END)
     
     return graph.compile()
 
-def build_job_posting_graph():
-    """채용공고 개선 전용 그래프"""
-    graph = Graph()
-    graph.add_node("job_posting_tool", job_posting_recommend_tool)
-    graph.set_entry_point("job_posting_tool")
-    graph.set_finish_point("job_posting_tool")
-    return graph.compile()
 
 def build_company_question_graph():
     """회사 질문 생성 전용 그래프"""
@@ -410,19 +395,21 @@ def build_project_question_graph():
     return graph.compile()
 
 def build_form_graph():
-    """폼 관련 작업 전용 그래프"""
+    """폼 관련 작업 전용 그래프 (가중치 추출 통합)"""
     graph = Graph()
     graph.add_node("form_fill_tool", form_fill_tool)
     graph.add_node("form_improve_tool", form_improve_tool)
     graph.add_node("form_status_check_tool", form_status_check_tool)
-    graph.add_node("form_field_update_tool", form_field_update_tool)
+    graph.add_node("form_edit_tool", form_edit_tool)
     graph.add_node("spell_check_tool", spell_check_tool)
+    graph.add_node("weight_extraction_tool", weight_extraction_tool)
     graph.set_entry_point("form_fill_tool")
     graph.add_edge("form_fill_tool", "form_improve_tool")
     graph.add_edge("form_improve_tool", "form_status_check_tool")
-    graph.add_edge("form_status_check_tool", "form_field_update_tool")
-    graph.add_edge("form_field_update_tool", "spell_check_tool")
-    graph.set_finish_point("spell_check_tool")
+    graph.add_edge("form_status_check_tool", "form_edit_tool")
+    graph.add_edge("form_edit_tool", "spell_check_tool")
+    graph.add_edge("spell_check_tool", "weight_extraction_tool")
+    graph.set_finish_point("weight_extraction_tool")
     return graph.compile()
 
 async def process_audio_chunk(audio_path: str, timestamp: float) -> Dict[str, Any]:

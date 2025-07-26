@@ -1,14 +1,21 @@
 # 통계시각화 AI 분석 기능
 
-이 기능은 지원자 통계 차트에 대한 AI 기반 해석 및 분석 결과를 제공합니다.
+이 기능은 지원자 통계 차트에 대한 **실제 LLM 모델(GPT-4o-mini)**을 사용한 AI 기반 해석 및 분석 결과를 제공합니다.
 
 ## 🎯 기능 개요
 
-각 통계 차트별로 AI가 데이터를 분석하여 다음과 같은 정보를 제공합니다:
+각 통계 차트별로 **GPT-4o-mini 모델**이 데이터를 분석하여 다음과 같은 정보를 제공합니다:
 
 - **기본 분석 결과**: 차트 데이터의 핵심 통계 정보
 - **주요 인사이트**: 데이터에서 발견된 중요한 패턴과 의미
 - **권장사항**: 채용 전략 개선을 위한 구체적인 제안
+
+## 🤖 AI 모델 정보
+
+- **모델**: GPT-4o-mini (OpenAI)
+- **온도**: 0.3 (일관성 있는 분석을 위해 낮게 설정)
+- **폴백**: LLM 사용 불가 시 규칙 기반 분석으로 자동 전환
+- **캐싱**: 향후 Redis 캐싱 추가 예정
 
 ## 📊 지원하는 차트 타입
 
@@ -50,6 +57,9 @@
 backend/app/api/v1/statistics_analysis.py
 ├── StatisticsAnalysisRequest (Pydantic 모델)
 ├── StatisticsAnalysisResponse (Pydantic 모델)
+├── get_llm() - LLM 모델 초기화
+├── analyze_with_llm() - LLM 기반 분석 (메인)
+├── analyze_with_rules() - 규칙 기반 분석 (폴백)
 ├── analyze_trend_data() - 지원 시기별 추이 분석
 ├── analyze_age_data() - 연령대별 분석
 ├── analyze_gender_data() - 성별 분석
@@ -64,6 +74,7 @@ backend/app/api/v1/statistics_analysis.py
 ```
 frontend/src/components/StatisticsAnalysis.jsx
 ├── AI 분석 결과 표시 컴포넌트
+├── LLM 사용 여부 표시
 ├── 로딩 상태 관리
 ├── 에러 처리
 ├── 접기/펼치기 기능
@@ -72,14 +83,22 @@ frontend/src/components/StatisticsAnalysis.jsx
 
 ## 🚀 사용 방법
 
-### 1. 백엔드 서버 실행
+### 1. 환경 변수 설정
+
+`.env` 파일에 OpenAI API 키를 설정하세요:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+### 2. 백엔드 서버 실행
 
 ```bash
 cd backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### 2. 프론트엔드 서버 실행
+### 3. 프론트엔드 서버 실행
 
 ```bash
 cd frontend
@@ -87,11 +106,12 @@ npm install
 npm run dev
 ```
 
-### 3. 통계 모달창 접근
+### 4. 통계 모달창 접근
 
 1. 지원자 목록 페이지에서 통계 아이콘 클릭
 2. 각 차트를 확인하면서 AI 분석 결과 확인
 3. 분석 결과는 차트 아래에 자동으로 표시됨
+4. 🤖 아이콘으로 LLM 사용 여부 확인 가능
 
 ## 📡 API 엔드포인트
 
@@ -123,7 +143,8 @@ npm run dev
   "recommendations": [
     "🎯 피크 시기에 맞춰 추가 채용공고나 홍보를 계획해보세요.",
     "📢 채용공고 노출을 높이기 위해 다양한 채널을 활용해보세요."
-  ]
+  ],
+  "is_llm_used": true
 }
 ```
 
@@ -135,10 +156,13 @@ npm run dev
 python test_statistics_analysis.py
 ```
 
+테스트 결과에서 LLM 사용 여부와 성능을 확인할 수 있습니다.
+
 ## 🎨 UI/UX 특징
 
 ### 디자인 요소
 - **Material-UI 컴포넌트** 사용
+- **🤖 LLM 사용 표시**: GPT-4o-mini 모델 사용 시 로봇 아이콘 표시
 - **접기/펼치기 기능**으로 공간 효율성 확보
 - **로딩 상태** 표시로 사용자 경험 개선
 - **에러 처리** 및 사용자 친화적 메시지
@@ -147,23 +171,38 @@ python test_statistics_analysis.py
 - **분석 결과**: 파란색 (#1976d2)
 - **인사이트**: 주황색 (#ff9800)
 - **권장사항**: 초록색 (#4caf50)
+- **LLM 표시**: 청록색 (#00bcd4)
 
 ### 아이콘
 - 🧠 AI 분석 아이콘
+- 🤖 LLM 모델 사용 표시
 - 💡 인사이트 아이콘
 - ✅ 권장사항 아이콘
 - 📊 차트 타입별 아이콘
 
 ## 🔧 설정 및 커스터마이징
 
-### 분석 로직 수정
+### LLM 모델 설정
 
-각 차트 타입별 분석 함수를 수정하여 더 정교한 분석을 제공할 수 있습니다:
+`backend/app/api/v1/statistics_analysis.py`에서 모델 설정을 변경할 수 있습니다:
 
 ```python
-def analyze_trend_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> Dict[str, Any]:
-    # 여기에 커스텀 분석 로직 추가
-    pass
+def get_llm():
+    return ChatOpenAI(
+        model="gpt-4o-mini",  # 모델 변경 가능
+        temperature=0.3,      # 온도 조정 가능
+        api_key=api_key
+    )
+```
+
+### 프롬프트 커스터마이징
+
+각 차트 타입별 분석 프롬프트를 수정하여 더 정교한 분석을 제공할 수 있습니다:
+
+```python
+prompt = f"""
+사용자 정의 프롬프트...
+"""
 ```
 
 ### 프론트엔드 스타일링
@@ -183,44 +222,56 @@ def analyze_trend_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> D
 
 ## 📈 성능 최적화
 
-### 캐싱 전략
-- 분석 결과는 실시간으로 생성되므로 필요시 Redis 캐싱 추가 가능
-- 동일한 차트 데이터에 대한 중복 분석 방지
+### LLM 호출 최적화
+- **프롬프트 최적화**: 명확하고 간결한 프롬프트 사용
+- **응답 파싱**: JSON 형식으로 구조화된 응답 요청
+- **에러 처리**: LLM 실패 시 규칙 기반으로 자동 폴백
 
-### 비동기 처리
-- 대용량 데이터 분석 시 백그라운드 작업으로 처리 가능
-- 사용자 경험을 위한 로딩 상태 표시
+### 향후 개선 계획
+- **Redis 캐싱**: 동일한 차트 데이터에 대한 중복 분석 방지
+- **배치 처리**: 대용량 데이터 분석 시 백그라운드 작업
+- **토큰 사용량 최적화**: 프롬프트 길이 및 응답 크기 최적화
 
 ## 🔮 향후 개선 계획
 
 1. **더 정교한 AI 분석**
    - 머신러닝 모델을 활용한 예측 분석
    - 시계열 분석을 통한 트렌드 예측
+   - 다중 모델 앙상블 분석
 
 2. **인터랙티브 기능**
    - 분석 결과에 대한 사용자 피드백 수집
    - 맞춤형 분석 옵션 제공
+   - 실시간 분석 결과 업데이트
 
 3. **리포트 생성**
    - PDF 형태의 분석 리포트 생성
    - 이메일 발송 기능
+   - 대시보드 통합
 
 4. **다국어 지원**
    - 영어, 일본어 등 다국어 분석 결과 제공
+   - 지역별 맞춤 분석
 
 ## 🐛 문제 해결
 
 ### 일반적인 문제들
 
-1. **API 연결 실패**
+1. **LLM 분석이 작동하지 않음**
+   - OpenAI API 키가 올바르게 설정되었는지 확인
+   - API 키 잔액 및 사용량 확인
+   - 네트워크 연결 상태 확인
+
+2. **API 연결 실패**
    - 백엔드 서버가 실행 중인지 확인
    - 포트 8000이 사용 가능한지 확인
 
-2. **분석 결과가 표시되지 않음**
+3. **분석 결과가 표시되지 않음**
    - 차트 데이터가 올바른 형식인지 확인
    - 브라우저 개발자 도구에서 네트워크 오류 확인
 
-3. **로딩이 계속됨**
+4. **로딩이 계속됨**
+   - LLM 응답 시간 확인 (일반적으로 2-5초)
    - 네트워크 연결 상태 확인
    - 서버 로그에서 오류 메시지 확인
 
@@ -230,10 +281,27 @@ def analyze_trend_data(chart_data: List[Dict[str, Any]], job_post: JobPost) -> D
 # 백엔드 로그 확인
 tail -f backend/logs/app.log
 
+# LLM 사용 여부 확인
+curl -X POST "http://localhost:8000/statistics/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{"job_post_id": 1, "chart_type": "trend", "chart_data": [{"date": "2025-07-05", "count": 3}]}'
+
 # 프론트엔드 개발자 도구
 # Network 탭에서 API 요청/응답 확인
 # Console 탭에서 JavaScript 오류 확인
 ```
+
+## 💰 비용 고려사항
+
+### OpenAI API 비용
+- **GPT-4o-mini**: 입력 토큰당 $0.00015, 출력 토큰당 $0.0006
+- **예상 비용**: 차트 분석당 약 $0.01-0.05 (데이터 크기에 따라)
+- **월 예상 비용**: 1000회 분석 시 약 $10-50
+
+### 비용 최적화 방법
+- **프롬프트 최적화**: 불필요한 텍스트 제거
+- **응답 길이 제한**: JSON 형식으로 구조화
+- **캐싱 구현**: 동일 데이터 중복 분석 방지
 
 ## 📞 지원
 
@@ -241,6 +309,7 @@ tail -f backend/logs/app.log
 
 ---
 
-**버전**: 1.0.0  
+**버전**: 2.0.0 (LLM 통합)  
 **최종 업데이트**: 2025년 1월  
-**담당자**: AI 개발팀 
+**담당자**: AI 개발팀  
+**LLM 모델**: GPT-4o-mini (OpenAI) 

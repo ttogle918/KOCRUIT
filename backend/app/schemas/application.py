@@ -20,6 +20,7 @@ class ApplicationBase(BaseModel):
     pass_reason: Optional[str] = None
     fail_reason: Optional[str] = None
     applied_at: Optional[datetime] = None
+    ai_interview_score: Optional[float] = None
     class Config:
         alias_generator = to_camel
         populate_by_name = True

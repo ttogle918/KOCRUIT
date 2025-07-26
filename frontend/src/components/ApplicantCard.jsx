@@ -1,6 +1,9 @@
 // src/components/ApplicantCard.jsx
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useEffect, useRef } from 'react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
+import api from '../api/api';
+
+const plagiarismRequestCache = new Map(); // 중복 요청 방지용
 
 const ApplicantCard = forwardRef(({
   applicant,
@@ -12,7 +15,101 @@ const ApplicantCard = forwardRef(({
   onBookmarkToggle,
   calculateAge,
   compact = false,
+  resumeId, // 추가: resumeId prop
 }, ref) => {
+  const [plagiarism, setPlagiarism] = useState(null);
+  const [plagiarismLoading, setPlagiarismLoading] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    const rid = resumeId || applicant?.resumeId || applicant?.resume_id;
+    if (!rid) return;
+
+    // 이미 DB에 검사 결과가 있으면 바로 사용
+    if (applicant.plagiarism_checked_at) {
+      setPlagiarism({
+        input_resume_id: applicant.resume_id,
+        most_similar_resume: applicant.plagiarism_score > 0 ? {
+          similarity: applicant.plagiarism_score,
+          resume_id: applicant.most_similar_resume_id
+        } : null,
+        plagiarism_suspected: (applicant.plagiarism_score || 0) >= (applicant.similarity_threshold || 0.9),
+        similarity_threshold: applicant.similarity_threshold || 0.9,
+        checked: true
+      });
+      setPlagiarismLoading(false);
+      return;
+    }
+
+    // 이미 요청 중이면 기다림
+    if (plagiarismRequestCache.has(rid)) {
+      setPlagiarismLoading(true);
+      plagiarismRequestCache.get(rid).then((result) => {
+        if (isMountedRef.current) {
+          setPlagiarism(result);
+          setPlagiarismLoading(false);
+        }
+      });
+      return;
+    }
+
+    // 미검사면 API 호출
+    setPlagiarismLoading(true);
+    const req = api.post(`/resume-plagiarism/check-resume/${rid}`)
+      .then(res => {
+        const result = {
+          input_resume_id: rid,
+          most_similar_resume: res.data.most_similar_resume,
+          plagiarism_suspected: res.data.plagiarism_suspected,
+          similarity_threshold: res.data.similarity_threshold,
+          checked: true
+        };
+        if (isMountedRef.current) {
+          setPlagiarism(result);
+          setPlagiarismLoading(false);
+        }
+        return result;
+      })
+      .catch(() => {
+        if (isMountedRef.current) setPlagiarismLoading(false);
+        return null;
+      })
+      .finally(() => {
+        plagiarismRequestCache.delete(rid);
+      });
+    plagiarismRequestCache.set(rid, req);
+  }, [resumeId, applicant?.resumeId, applicant?.resume_id, applicant.plagiarism_checked_at]);
+
+  // 유사도 점수 계산 (실제 유사도)
+  const getSimilarityScore = () => {
+    if (!plagiarism || !plagiarism.most_similar_resume) return 0;
+    return Math.round(plagiarism.most_similar_resume.similarity * 100);
+  };
+
+  // 표절 위험도에 따른 색상 결정 (유사도 기준)
+  const getSimilarityColor = (similarityScore) => {
+    if (similarityScore >= 90) return '#e74c3c';
+    if (similarityScore >= 70) return '#f1c40f';
+    return '#2ecc40';
+  };
+
+  // 상태 텍스트 결정 (유사도 기준)
+  const getSimilarityStatus = (similarityScore) => {
+    if (plagiarismLoading) return '검사중';
+    if (!plagiarism?.checked) return '검사중';
+    if (similarityScore >= 90) return '표절';
+    if (similarityScore >= 70) return '의심';
+    return '안전';
+  };
+
+  const similarityScore = getSimilarityScore();
+  const similarityColor = getSimilarityColor(similarityScore);
+  const similarityStatus = getSimilarityStatus(similarityScore);
+
   return (
     <div ref={ref} className={`${compact ? 'p-1' : ''}`}> {/* 바깥 div는 padding/마진만 */}
       <div
@@ -47,9 +144,6 @@ const ApplicantCard = forwardRef(({
 
         {/* 중앙 텍스트 정보 */}
         <div className="flex flex-col flex-grow min-w-0">
-          <div className={`text-xs text-gray-500 dark:text-gray-400 text-right ${compact ? 'text-[10px]' : ''}`}>
-            {applicant.appliedAt ? new Date(applicant.appliedAt).toLocaleDateString() : 'Invalid Date'}
-          </div>
           <div className={`font-semibold text-gray-800 dark:text-white truncate ${compact ? 'text-xs' : 'text-base'}`}>
             {applicant.name} ({calculateAge(applicant.birthDate)}세)
           </div>
@@ -58,7 +152,48 @@ const ApplicantCard = forwardRef(({
           </div>
         </div>
 
-        {/* 점수 원 */}
+        {/* 날짜 및 표절률 영역 (점수 원 왼쪽에 위치) */}
+        <div className="flex flex-col items-center justify-between mr-3 self-stretch">
+          {/* 지원일 */}
+          <div className={`text-xs text-gray-500 dark:text-gray-400 ${compact ? 'text-[10px]' : ''} flex justify-end w-full`}>
+            <span>지원일: </span>
+            <span>
+              {applicant.appliedAt || applicant.applied_at ? 
+                new Date(applicant.appliedAt || applicant.applied_at).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit', 
+                  day: '2-digit'
+                }).replace(/\./g, '/').replace(/\s/g, '').slice(0, -1) : 
+                'Invalid Date'
+              }
+            </span>
+          </div>
+          
+          {/* 표절률 */}
+          <div className="flex flex-col items-center w-full">
+            <span className={`text-gray-500 font-medium ${compact ? 'text-[9px]' : 'text-xs'} mb-1 whitespace-nowrap`}>표절률</span>
+            <div className="flex items-center w-full max-w-[130px] ml-auto">
+              <div className="bg-gray-200 rounded-full h-1.5 flex-1 mr-2 min-w-[40px]">
+                <div 
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{ 
+                    width: `${similarityScore}%`, 
+                    backgroundColor: similarityColor 
+                  }}
+                ></div>
+              </div>
+              <span 
+                className="font-medium text-xs ml-1 whitespace-nowrap"
+                style={{ color: similarityColor }}
+              >
+                {similarityScore}%
+              </span>
+              <span className="text-xs text-gray-500 ml-1 min-w-[32px] text-center whitespace-nowrap">{similarityStatus}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 점수 원 (기존과 동일) */}
         <div className={`flex flex-col items-center justify-center ${compact ? 'w-12 h-12' : 'w-20 h-20'}`}>
           <div className={`font-bold text-gray-800 dark:text-white border-2 border-blue-300 rounded-full flex items-center justify-center ${compact ? 'w-10 h-10 text-xs' : 'w-16 h-16 text-sm'}`}>
             {applicant.ai_score || 0}점

@@ -5,6 +5,7 @@ import GrowthPredictionCard from '../../components/GrowthPredictionCard';
 import HighlightedText from '../../components/HighlightedText';
 import axios from 'axios';
 import { useState, useEffect } from 'react';
+import ResumePlagiarismAccordion from './ResumePlagiarismAccordion';
 
 // 예시: 자기소개서 하이라이트 표시용 코드 (기존 코드 아래에 추가)
 function ResumeSelfIntroHighlight({ selfIntroText }) {
@@ -34,6 +35,7 @@ export default function ResumePage({ resume, loading, error, jobpostId, applicat
         <div className="text-red-500">이력서 로드 실패: {error}</div>
       ) : resume ? (
         <>
+          <ResumePlagiarismAccordion resumeId={resume.id || resume.resume_id || resume.application_id} />
           <ResumeAnalysisAccordion resumeId={resume.id} />
           <ResumeCard resume={resume} loading={false} jobpostId={jobpostId} applicationId={effectiveApplicationId} />
           {/* 성장 가능성 예측 카드 삽입 */}

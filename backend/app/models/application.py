@@ -27,15 +27,8 @@ class DocumentStatus(str, enum.Enum):
 
 
 class InterviewStatus(str, enum.Enum):
-    # 기존 값들 (팀원 호환성 유지)
-    NOT_SCHEDULED = "NOT_SCHEDULED"           # 면접 미일정
-    SCHEDULED = "SCHEDULED"                   # 면접 일정 확정
-    IN_PROGRESS = "IN_PROGRESS"               # 면접 진행 중
-    COMPLETED = "COMPLETED"                   # 면접 완료
-    CANCELLED = "CANCELLED"                   # 면접 취소
-    
     # AI 면접
-    AI_INTERVIEW_NOT_SCHEDULED = "AI_INTERVIEW_NOT_SCHEDULED"     # AI 면접 미일정
+    AI_INTERVIEW_PENDING = "AI_INTERVIEW_PENDING"                 # AI 면접 대기
     AI_INTERVIEW_SCHEDULED = "AI_INTERVIEW_SCHEDULED"             # AI 면접 일정 확정
     AI_INTERVIEW_IN_PROGRESS = "AI_INTERVIEW_IN_PROGRESS"         # AI 면접 진행 중
     AI_INTERVIEW_COMPLETED = "AI_INTERVIEW_COMPLETED"             # AI 면접 완료
@@ -62,6 +55,9 @@ class InterviewStatus(str, enum.Enum):
     FINAL_INTERVIEW_COMPLETED = "FINAL_INTERVIEW_COMPLETED"       # 최종 면접 완료
     FINAL_INTERVIEW_PASSED = "FINAL_INTERVIEW_PASSED"             # 최종 면접 합격
     FINAL_INTERVIEW_FAILED = "FINAL_INTERVIEW_FAILED"             # 최종 면접 불합격
+    
+    # 기타
+    CANCELLED = "CANCELLED"                                       # 면접 취소
 
 
 class InterviewStage(str, enum.Enum):
@@ -78,6 +74,12 @@ class WrittenTestStatus(enum.Enum):
     FAILED = "FAILED"
 
 
+class FinalStatus(str, enum.Enum):
+    PENDING = "PENDING"          # 최종 선발 대기
+    SELECTED = "SELECTED"        # 최종 선발됨
+    NOT_SELECTED = "NOT_SELECTED" # 최종 선발되지 않음
+
+
 class Application(Base):
     __tablename__ = "application"
     
@@ -92,12 +94,14 @@ class Application(Base):
     written_test_score = Column(Numeric(5, 2))
     status = Column(SqlEnum(ApplyStatus), default=ApplyStatus.WAITING, nullable=False)
     document_status = Column(SqlEnum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
-    interview_status = Column(SqlEnum(InterviewStatus), default=InterviewStatus.NOT_SCHEDULED, nullable=False)
+    interview_status = Column(SqlEnum(InterviewStatus), default=InterviewStatus.AI_INTERVIEW_PENDING, nullable=False)
     written_test_status = Column(SqlEnum(WrittenTestStatus), default=WrittenTestStatus.PENDING, nullable=False)
     applied_at = Column(DateTime, default=datetime.utcnow)
     application_source = Column(String(255))
     pass_reason = Column(Text)
     fail_reason = Column(Text)
+    ai_interview_score = Column(Numeric(5, 2))  # AI 면접 전용 점수
+    final_status = Column(SqlEnum(FinalStatus), default=FinalStatus.PENDING, nullable=False)  # 최종 선발 상태
     
     # Relationships with back_populates
     user = relationship("User", back_populates="applications")

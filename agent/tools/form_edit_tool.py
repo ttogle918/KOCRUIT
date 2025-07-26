@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 import json
 
-def form_field_update_tool(state):
+def form_edit_tool(state):
     """
     특정 폼 필드를 수정하는 도구
     """

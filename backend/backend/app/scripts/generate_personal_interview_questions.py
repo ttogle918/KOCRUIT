@@ -5,7 +5,7 @@
 
 import sys
 import os
-sys.path.append('/app')
+sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
 from app.core.database import SessionLocal
 from app.models.job import JobPost
@@ -53,11 +53,6 @@ def generate_personal_interview_questions():
                     resume = db.query(Resume).filter(Resume.id == app.resume_id).first()
                     if resume and resume.content:
                         resume_text = resume.content
-                        print(f"  📄 이력서 내용 길이: {len(resume_text)}자")
-                    else:
-                        print(f"  ⚠️ 이력서 내용이 없습니다. (resume_id: {app.resume_id})")
-                else:
-                    print(f"  ⚠️ 이력서 ID가 없습니다. (application_id: {app.id})")
                 
                 # LangGraph 워크플로우 실행 (실무진 면접용)
                 workflow_result = generate_comprehensive_interview_questions(
@@ -70,37 +65,9 @@ def generate_personal_interview_questions():
                 
                 # 결과에서 실무진 면접 질문 추출
                 question_bundle = workflow_result.get("question_bundle", {})
-                print(f"  🔍 LangGraph 결과: {list(question_bundle.keys())}")
                 
                 # 질문 개수 계산 및 저장
                 questions_count = 0
-                
-                # 결과를 JSON 파일로 저장 (백업용)
-                import json
-                import os
-                from datetime import datetime
-                
-                backup_data = {
-                    "application_id": app.id,
-                    "resume_id": app.resume_id,
-                    "job_post_id": job.id,
-                    "company_name": company_name,
-                    "resume_text_length": len(resume_text),
-                    "generated_at": datetime.now().isoformat(),
-                    "question_bundle": question_bundle,
-                    "resume_summary": workflow_result.get("resume_summary", ""),
-                    "analysis_data": workflow_result.get("analysis_data", {})
-                }
-                
-                # 백업 디렉토리 생성
-                backup_dir = "/app/backup_interview_questions"
-                os.makedirs(backup_dir, exist_ok=True)
-                
-                # JSON 파일로 저장
-                backup_filename = f"{backup_dir}/personal_questions_app_{app.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                with open(backup_filename, 'w', encoding='utf-8') as f:
-                    json.dump(backup_data, f, ensure_ascii=False, indent=2)
-                print(f"  💾 백업 파일 저장: {backup_filename}")
                 
                 # 개인별 맞춤 질문 (application_id 기반)
                 personal_questions = question_bundle.get("personal", [])
@@ -109,7 +76,7 @@ def generate_personal_interview_questions():
                         application_id=app.id,
                         job_post_id=None,
                         company_id=None,
-                        type=QuestionType.PERSONAL,  # 실무진 면접 (개인별 맞춤)
+                        type=QuestionType.INTERVIEW,  # 실무진 면접
                         question_text=question_text,
                         category="personal_custom",
                         difficulty="medium"
@@ -124,7 +91,7 @@ def generate_personal_interview_questions():
                         application_id=app.id,
                         job_post_id=job.id,
                         company_id=None,
-                        type=QuestionType.JOB,  # 실무진 면접 (직무 맞춤)
+                        type=QuestionType.INTERVIEW,  # 실무진 면접
                         question_text=question_text,
                         category="job_custom",
                         difficulty="medium"
@@ -139,7 +106,7 @@ def generate_personal_interview_questions():
                         application_id=app.id,
                         job_post_id=None,
                         company_id=None,
-                        type=QuestionType.COMMON,  # 실무진 면접 (공통)
+                        type=QuestionType.INTERVIEW,  # 실무진 면접
                         question_text=question_text,
                         category="common",
                         difficulty="medium"
