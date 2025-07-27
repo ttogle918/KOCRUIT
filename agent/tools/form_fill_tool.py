@@ -238,11 +238,26 @@ def form_fill_tool(state):
         else:
             message = "AI가 폼을 자동으로 작성했습니다."
         
-        return {
+        # job_title을 state에 추가 (weight_extraction_tool에서 사용)
+        result_state = {
             **state, 
             "form_data": form_data,
-            "message": message
+            "message": message,
+            "job_title": form_data.get("title", ""),
+            "job_posting": f"""
+제목: {form_data.get("title", "")}
+부서: {form_data.get("department", "")}
+지원자격: {form_data.get("qualifications", "")}
+근무조건: {form_data.get("conditions", "")}
+모집분야: {form_data.get("job_details", "")}
+전형절차: {form_data.get("procedures", "")}
+근무지역: {form_data.get("location", "")}
+고용형태: {form_data.get("employment_type", "")}
+모집인원: {form_data.get("headcount", "")}명
+            """.strip()
         }
+        
+        return result_state
         
     except Exception as e:
         print(f"폼 채우기 중 오류 발생: {e}")
@@ -280,11 +295,26 @@ def form_fill_tool(state):
             "weights": []  # 가중치는 별도로 설정하도록 비워둠
         }
         
-        return {
+        # job_title을 state에 추가 (weight_extraction_tool에서 사용)
+        result_state = {
             **state, 
             "form_data": default_form_data,
-            "message": f"폼 채우기 중 오류가 발생했습니다: {str(e)}"
+            "message": f"폼 채우기 중 오류가 발생했습니다: {str(e)}",
+            "job_title": default_form_data.get("title", ""),
+            "job_posting": f"""
+제목: {default_form_data.get("title", "")}
+부서: {default_form_data.get("department", "")}
+지원자격: {default_form_data.get("qualifications", "")}
+근무조건: {default_form_data.get("conditions", "")}
+모집분야: {default_form_data.get("job_details", "")}
+전형절차: {default_form_data.get("procedures", "")}
+근무지역: {default_form_data.get("location", "")}
+고용형태: {default_form_data.get("employment_type", "")}
+모집인원: {default_form_data.get("headcount", "")}명
+            """.strip()
         }
+        
+        return result_state
 
 def form_improve_tool(state):
     """
