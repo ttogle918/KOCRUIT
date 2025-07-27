@@ -539,10 +539,10 @@ def ai_evaluate_application(
         
         result = response.json()
         
-        # 데이터베이스 업데이트
-        application.ai_score = result.get("ai_score", 0.0)
-        application.pass_reason = result.get("pass_reason", "")
-        application.fail_reason = result.get("fail_reason", "")
+        # 데이터베이스 업데이트 (AI 면접 전용 필드만 사용)
+        application.ai_interview_score = result.get("ai_score", 0.0)
+        application.ai_interview_pass_reason = result.get("pass_reason", "")
+        application.ai_interview_fail_reason = result.get("fail_reason", "")
         
         # AI가 제안한 서류 상태로 업데이트
         ai_suggested_document_status = result.get("document_status", "REJECTED")
@@ -557,10 +557,9 @@ def ai_evaluate_application(
         
         return {
             "message": "AI evaluation completed successfully",
-            "ai_score": application.ai_score,
-            "status": application.status,
-            "pass_reason": application.pass_reason,
-            "fail_reason": application.fail_reason,
+            "ai_interview_score": application.ai_interview_score,
+            "ai_interview_pass_reason": application.ai_interview_pass_reason,
+            "ai_interview_fail_reason": application.ai_interview_fail_reason,
             "scoring_details": result.get("scoring_details", {}),
             "confidence": result.get("confidence", 0.0)
         }
@@ -605,11 +604,10 @@ def reset_ai_scores_for_job(
     
     reset_count = 0
     for application in applications:
-        # AI 점수 및 관련 필드 초기화
-        application.ai_score = None
-        application.pass_reason = None
-        application.fail_reason = None
-        application.status = ApplyStatus.WAITING  # 상태도 대기로 초기화
+        # AI 면접 전용 필드만 초기화 (application 기본 필드는 건드리지 않음)
+        application.ai_interview_score = None
+        application.ai_interview_pass_reason = None
+        application.ai_interview_fail_reason = None
         reset_count += 1
     
     db.commit()

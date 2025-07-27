@@ -21,6 +21,8 @@ class ApplicationBase(BaseModel):
     fail_reason: Optional[str] = None
     applied_at: Optional[datetime] = None
     ai_interview_score: Optional[float] = None
+    ai_interview_pass_reason: Optional[str] = None
+    ai_interview_fail_reason: Optional[str] = None
     class Config:
         alias_generator = to_camel
         populate_by_name = True
@@ -79,6 +81,8 @@ class ApplicationList(BaseModel):
     pass_reason: Optional[str] = None
     fail_reason: Optional[str] = None
     applied_at: Optional[datetime] = None
+    ai_interview_pass_reason: Optional[str] = None
+    ai_interview_fail_reason: Optional[str] = None
     
     class Config:
         alias_generator = to_camel
