@@ -14,7 +14,7 @@ class AIInsightsState(TypedDict):
     basic_insights: Dict[str, Any]
     advanced_insights: Dict[str, Any]
     recommendations: List[Dict[str, Any]]
-    final_report: Dict[str, Any]
+    interview_report: Dict[str, Any]
     error: str
 
 # LangChain 모델 초기화
@@ -143,11 +143,11 @@ def generate_recommendations(state: AIInsightsState) -> AIInsightsState:
     
     return state
 
-def create_final_report(state: AIInsightsState) -> AIInsightsState:
-    """최종 보고서 생성"""
+def create_interview_report(state: AIInsightsState) -> AIInsightsState:
+    """면접 보고서 생성"""
     try:
-        # 최종 보고서 생성
-        final_report = {
+        # 면접 보고서 생성
+        interview_report = {
             "job_post_id": state["job_post_id"],
             "analysis_date": datetime.now().isoformat(),
             "analysis_summary": {
@@ -167,11 +167,11 @@ def create_final_report(state: AIInsightsState) -> AIInsightsState:
             }
         }
         
-        state["final_report"] = final_report
+        state["interview_report"] = interview_report
         state["analysis_stage"] = "completed"
         
     except Exception as e:
-        state["error"] = f"최종 보고서 생성 중 오류: {str(e)}"
+        state["error"] = f"면접 보고서 생성 중 오류: {str(e)}"
     
     return state
 
@@ -194,7 +194,7 @@ def create_ai_insights_workflow():
     workflow.add_node("analyze_patterns", analyze_interview_patterns)
     workflow.add_node("generate_advanced", generate_advanced_insights)
     workflow.add_node("generate_recommendations", generate_recommendations)
-    workflow.add_node("create_report", create_final_report)
+    workflow.add_node("create_report", create_interview_report)
     workflow.add_node("handle_error", error_handler)
     
     # 엣지 추가

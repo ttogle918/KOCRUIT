@@ -8,6 +8,7 @@ import InterviewPanelSelector from '../../components/InterviewPanelSelector';
 import InterviewerEvaluationPanel from '../../components/InterviewerEvaluationPanel';
 import DraggableResumeWindow from '../../components/DraggableResumeWindow';
 import AiInterviewSystem from './AiInterviewSystem';
+import InterviewLangGraphCard from '../../components/InterviewLangGraphCard';
 import api from '../../api/api';
 import AiInterviewApi from '../../api/aiInterviewApi';
 import { FiChevronLeft, FiChevronRight, FiSave, FiPlus, FiPlay } from 'react-icons/fi';
@@ -343,7 +344,8 @@ function InterviewProgress() {
       // 면접 단계에 따라 다른 엔드포인트 사용
       let endpoint;
       if (isAiInterview) {
-        endpoint = '/interview-questions/ai-tools';
+        // AI 면접: 랭그래프 워크플로우 사용
+        endpoint = '/interview-questions/langgraph/evaluation-tools';
       } else if (isFirstInterview) {
         // 실무진 면접: 평가 기준 조회 API 사용
         try {
@@ -366,22 +368,36 @@ function InterviewProgress() {
           console.log('실무진 평가 기준 조회 실패');
         }
       } else {
-        endpoint = '/interview-questions/executive-tools';
+        // 임원진 면접: 랭그래프 워크플로우 사용
+        endpoint = '/interview-questions/langgraph/evaluation-tools';
       }
       
-      // 워크플로우 결과에서 평가 도구 추출
+      // 랭그래프 워크플로우 실행
       const workflowRes = await api.post(endpoint, workflowRequest);
       const workflowData = workflowRes.data;
       
-      // 평가 도구가 포함된 경우 사용
-      if (workflowData.evaluation_tools) {
-        setInterviewChecklist(workflowData.evaluation_tools.checklist || null);
-        setStrengthsWeaknesses(workflowData.evaluation_tools.strengths_weaknesses || null);
-        setInterviewGuideline(workflowData.evaluation_tools.guideline || null);
-        setEvaluationCriteria(workflowData.evaluation_tools.evaluation_criteria || null);
+      // 랭그래프 워크플로우 결과 처리
+      if (workflowData.success && workflowData.result) {
+        const evaluationTools = workflowData.result.evaluation_tools || {};
+        
+        setInterviewChecklist(evaluationTools.checklist || null);
+        setStrengthsWeaknesses(evaluationTools.strengths_weaknesses || null);
+        setInterviewGuideline(evaluationTools.guideline || null);
+        
+        // 평가 기준이 있는 경우 설정
+        if (evaluationTools.evaluation_criteria) {
+          const criteria = evaluationTools.evaluation_criteria;
+          setEvaluationCriteria({
+            evaluation_items: criteria.suggested_criteria || [],
+            total_weight: 100,
+            max_total_score: 100
+          });
+        }
+        
+        console.log(`✅ ${currentConfig.title} 랭그래프 워크플로우 실행 완료`);
+        console.log(`⏱️ 실행 시간: ${workflowData.executed_at}`);
       } else {
-        // 실시간 생성 대신 DB에서 조회 (이미 생성된 데이터 사용)
-        console.log('📝 실시간 생성 대신 DB 조회 사용');
+        console.error('랭그래프 워크플로우 실행 실패:', workflowData.error);
         setInterviewChecklist(null);
         setStrengthsWeaknesses(null);
         setInterviewGuideline(null);
@@ -445,8 +461,8 @@ function InterviewProgress() {
         openResumeWindow(applicant, mappedResume);
       }
       
-      // LangGraph 워크플로우를 사용한 면접 도구 및 질문 생성
-      await fetchInterviewToolsWithWorkflow(
+      // DB에서 백그라운드 생성된 면접 도구 및 질문 조회
+      await fetchInterviewToolsFromDB(
         mappedResume.id,
         applicant.applicant_id || applicant.id,
         jobPost?.company?.name,
@@ -1120,6 +1136,133 @@ function InterviewProgress() {
     }
   };
 
+  // DB에서 면접 도구 조회 (백그라운드에서 생성된 데이터)
+  const fetchInterviewToolsFromDB = async (resumeId, applicationId, companyName, applicantName) => {
+    if (!applicationId) return;
+    setToolsLoading(true);
+    
+    try {
+      // 1. 백그라운드 작업 상태 확인
+      const statusRes = await api.get(`/interview-questions/background/status/${applicationId}`);
+      const status = statusRes.data.status;
+      
+      // 2. 백그라운드에서 생성되지 않은 경우 트리거
+      if (!status.interview_questions_generated || !status.analysis_tools_generated) {
+        console.log('🔄 백그라운드 작업 트리거 중...');
+        
+        // 면접 질문 생성 트리거
+        if (!status.interview_questions_generated) {
+          await api.post('/interview-questions/background/generate-interview-questions', {
+            resume_id: resumeId,
+            application_id: applicationId,
+            company_name: companyName,
+            applicant_name: applicantName
+          });
+        }
+        
+        // 이력서 분석 생성 트리거
+        if (!status.analysis_tools_generated) {
+          await api.post('/interview-questions/background/generate-resume-analysis', {
+            resume_id: resumeId,
+            application_id: applicationId,
+            company_name: companyName,
+            applicant_name: applicantName
+          });
+        }
+        
+        // 평가 도구 생성 트리거
+        await api.post('/interview-questions/background/generate-evaluation-tools', {
+          resume_id: resumeId,
+          application_id: applicationId,
+          company_name: companyName,
+          applicant_name: applicantName,
+          interview_stage: interviewStage,
+          evaluator_type: currentConfig.evaluatorType
+        });
+        
+        // 잠시 대기 후 다시 확인
+        setTimeout(() => {
+          fetchInterviewToolsFromDB(resumeId, applicationId, companyName, applicantName);
+        }, 3000);
+        return;
+      }
+      
+      // 3. DB에서 생성된 데이터 조회
+      console.log('📊 DB에서 생성된 데이터 조회 중...');
+      
+      // 면접 질문 조회
+      const questionsRes = await api.get(`/interview-questions/application/${applicationId}`);
+      const questions = questionsRes.data;
+      
+      // 이력서 분석 로그 조회
+      const analysisRes = await api.get(`/interview-questions/application/${applicationId}/logs?interview_type=resume_analysis`);
+      const analysisLogs = analysisRes.data;
+      
+      // 평가 도구 로그 조회
+      const toolsRes = await api.get(`/interview-questions/application/${applicationId}/logs?interview_type=evaluation_tools`);
+      const toolsLogs = toolsRes.data;
+      
+      // 데이터 설정
+      if (questions && questions.length > 0) {
+        // 질문을 카테고리별로 분류
+        const questionBundle = {};
+        questions.forEach(q => {
+          if (!questionBundle[q.category]) {
+            questionBundle[q.category] = [];
+          }
+          questionBundle[q.category].push(q.question_text);
+        });
+        
+        // 질문 번들 설정
+        setQuestionBundle(questionBundle);
+        console.log(`✅ DB에서 면접 질문 ${questions.length}개 로드`);
+      }
+      
+      // 이력서 분석 결과 설정
+      if (analysisLogs && analysisLogs.length > 0) {
+        try {
+          const analysisData = JSON.parse(analysisLogs[0].answer_text);
+          setResumeAnalysis(analysisData);
+          console.log('✅ DB에서 이력서 분석 로드');
+        } catch (e) {
+          console.log('이력서 분석 파싱 실패');
+        }
+      }
+      
+      // 평가 도구 결과 설정
+      if (toolsLogs && toolsLogs.length > 0) {
+        try {
+          const toolsData = JSON.parse(toolsLogs[0].answer_text);
+          setInterviewChecklist(toolsData.checklist || null);
+          setStrengthsWeaknesses(toolsData.strengths_weaknesses || null);
+          setInterviewGuideline(toolsData.guideline || null);
+          
+          if (toolsData.evaluation_criteria) {
+            setEvaluationCriteria({
+              evaluation_items: toolsData.evaluation_criteria.suggested_criteria || [],
+              total_weight: 100,
+              max_total_score: 100
+            });
+          }
+          console.log('✅ DB에서 평가 도구 로드');
+        } catch (e) {
+          console.log('평가 도구 파싱 실패');
+        }
+      }
+      
+      console.log(`✅ ${currentConfig.title} DB 데이터 로드 완료`);
+      
+    } catch (e) {
+      console.error('DB 데이터 로드 오류:', e);
+      setInterviewChecklist(null);
+      setStrengthsWeaknesses(null);
+      setInterviewGuideline(null);
+      setEvaluationCriteria(null);
+    } finally {
+      setToolsLoading(false);
+    }
+  };
+
   if (loading || jobPostLoading) {
     return (
       <div className="relative min-h-screen bg-[#f7faff] dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -1757,6 +1900,13 @@ function InterviewProgress() {
           }}
         >
 
+        </div>
+      )}
+
+      {/* 면접 랭그래프 카드 - 개발자 모드에서만 표시 */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-20 right-4 z-[9999] max-h-[calc(100vh-6rem)] overflow-y-auto">
+          <InterviewLangGraphCard />
         </div>
       )}
     </div>
