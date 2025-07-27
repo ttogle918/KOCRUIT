@@ -28,6 +28,7 @@ export const setReportCache = (reportType, jobPostId, data) => {
     };
     localStorage.setItem(cacheKey, JSON.stringify(cacheData));
     console.log(`📦 ${reportType} 보고서 캐시 저장 완료:`, cacheKey);
+    console.log(`📦 캐시 데이터:`, cacheData);
   } catch (error) {
     console.error('캐시 저장 실패:', error);
   }
@@ -44,12 +45,15 @@ export const getReportCache = (reportType, jobPostId) => {
     const cacheKey = getCacheKey(reportType, jobPostId);
     const cached = localStorage.getItem(cacheKey);
     
+    console.log(`🔍 ${reportType} 보고서 캐시 조회:`, { cacheKey, cached: !!cached });
+    
     if (!cached) {
       console.log(`❌ ${reportType} 보고서 캐시 없음:`, cacheKey);
       return null;
     }
 
     const cacheData = JSON.parse(cached);
+    console.log(`📦 ${reportType} 보고서 캐시 데이터:`, cacheData);
     
     // 캐시 만료 확인
     if (Date.now() - cacheData.timestamp > CACHE_EXPIRY) {

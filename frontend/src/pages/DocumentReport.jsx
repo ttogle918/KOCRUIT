@@ -17,8 +17,25 @@ function DocumentReport() {
 
   useEffect(() => {
     if (jobPostId) {
-      axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`)
-        .then((res) => setData(res.data))
+      console.log('📋 서류 보고서 데이터 로드 시작...');
+      
+      // 1. 먼저 캐시에서 확인
+      const cachedData = getReportCache('document', jobPostId);
+      if (cachedData) {
+        console.log('📦 서류 보고서 캐시 데이터 사용');
+        setData(cachedData.data || cachedData); // 기존 캐시와의 호환성을 위해 fallback
+        return;
+      }
+      
+      // 2. 캐시에 없으면 API 호출
+      console.log('🌐 서류 보고서 API 호출');
+      axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 })
+        .then((res) => {
+          setData(res.data);
+          // 캐시에 저장 (JobAptitudeReport와 일관된 구조)
+          setReportCache('document', jobPostId, { data: res.data });
+          console.log('💾 서류 보고서 캐시 저장 완료:', { jobPostId, data: res.data });
+        })
         .catch((error) => {
           console.error('서류 보고서 데이터 조회 실패:', error);
         });
@@ -107,10 +124,11 @@ function DocumentReport() {
       
       try {
         console.log('🌐 서류 보고서 API 재호출');
-        const response = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`);
+        const response = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 });
         setData(response.data);
-        setReportCache('document', jobPostId, response.data);
+        setReportCache('document', jobPostId, { data: response.data });
         console.log('✅ 서류 보고서 캐시 새로고침 완료');
+        console.log('💾 서류 보고서 캐시 저장 완료 (새로고침):', { jobPostId, data: response.data });
       } catch (error) {
         console.error('서류 보고서 캐시 새로고침 실패:', error);
         alert('캐시 새로고침에 실패했습니다.');
@@ -126,17 +144,18 @@ function DocumentReport() {
       const cachedData = getReportCache('document', jobPostId);
       if (cachedData) {
         console.log('📦 서류 보고서 캐시 데이터 사용');
-        setData(cachedData);
+        setData(cachedData.data || cachedData); // 기존 캐시와의 호환성을 위해 fallback
         return;
       }
 
       // 캐시에 없으면 API 호출
       console.log('🌐 서류 보고서 API 호출');
-      axiosInstance.get(`/report/document?job_post_id=${jobPostId}`)
-        .then((res) => {
+              axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 })
+          .then((res) => {
           setData(res.data);
-          // 캐시에 저장
-          setReportCache('document', jobPostId, res.data);
+          // 캐시에 저장 (JobAptitudeReport와 일관된 구조)
+          setReportCache('document', jobPostId, { data: res.data });
+          console.log('💾 서류 보고서 캐시 저장 완료:', { jobPostId, data: res.data });
         })
         .catch((error) => {
           console.error('서류 보고서 데이터 조회 실패:', error);
@@ -185,15 +204,15 @@ function DocumentReport() {
                 onClick={handleRefreshCache}
                 disabled={isRefreshing}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '36px', height: '36px',
                   background: isRefreshing ? '#9ca3af' : '#6b7280', color: 'white',
                   border: 'none', borderRadius: 8, cursor: isRefreshing ? 'not-allowed' : 'pointer',
-                  fontSize: 14, fontWeight: 500, transition: 'background-color 0.2s'
+                  transition: 'background-color 0.2s'
                 }}
                 title="캐시 새로고침"
               >
-                <MdCached size={16} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
-                {isRefreshing ? '새로고침 중...' : '캐시 새로고침'}
+                <MdCached size={18} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
               </button>
               <button
                 onClick={handleDownload}

@@ -32,7 +32,7 @@ api_router.include_router(ai_evaluate_router, prefix="/ai-evaluate", tags=["ai-e
 api_router.include_router(job_status.router, prefix="/job-status", tags=["job-status"])
 api_router.include_router(highlight_router, prefix="/ai", tags=["AI Highlight"])
 api_router.include_router(reports.router, prefix="/report", tags=["reports"])
-api_router.include_router(job_aptitude_reports.router, prefix="/report", tags=["job-aptitude-reports"])
+# job_aptitude_reports.router는 reports.router에 통합됨
 api_router.include_router(realtime_interview_router, prefix="/realtime-interview", tags=["realtime-interview"])
 api_router.include_router(ai_interview_questions_router, prefix="/ai-interview", tags=["ai-interview"])
 api_router.include_router(statistics_analysis_router, prefix="/statistics", tags=["statistics-analysis"])

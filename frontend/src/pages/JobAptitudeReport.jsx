@@ -22,14 +22,14 @@ function JobAptitudeReport() {
   useEffect(() => {
     if (jobPostId) {
       // 직무적성평가 보고서 데이터 조회
-      axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`)
+      axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 30000 })
         .then((res) => setData(res.data))
         .catch((error) => {
           console.error('직무적성평가 보고서 데이터 조회 실패:', error);
         });
       
       // 필기불합격자 데이터 조회 - 올바른 엔드포인트로 수정
-      axiosInstance.get(`/v1/written-test/failed/${jobPostId}`)
+      axiosInstance.get(`/v1/written-test/failed/${jobPostId}`, { timeout: 30000 })
         .then((res) => setFailedApplicants(res.data))
         .catch((error) => {
           console.error('필기불합격자 데이터 조회 실패:', error);
@@ -119,11 +119,11 @@ function JobAptitudeReport() {
       
       try {
         console.log('🌐 직무적성평가 보고서 API 재호출');
-        const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`);
+        const response = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 30000 });
         setData(response.data);
 
         // 필기불합격자 데이터 조회
-        const failedResponse = await axiosInstance.get(`/written-test/failed/${jobPostId}`);
+        const failedResponse = await axiosInstance.get(`/v1/written-test/failed/${jobPostId}`, { timeout: 30000 });
         setFailedApplicants(failedResponse.data);
 
         // 캐시에 저장 (두 데이터를 함께 저장)
@@ -168,12 +168,12 @@ function JobAptitudeReport() {
       console.log('🌐 직무적성평가 보고서 API 호출');
 
       // 직무적성평가 보고서 데이터 조회
-      axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`)
+      axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 30000 })
         .then((res) => {
           setData(res.data);
 
           // 필기불합격자 데이터 조회
-          axiosInstance.get(`/written-test/failed/${jobPostId}`)
+          axiosInstance.get(`/v1/written-test/failed/${jobPostId}`, { timeout: 30000 })
             .then((failedRes) => {
               setFailedApplicants(failedRes.data);
               // 캐시에 저장 (두 데이터를 함께 저장)
@@ -230,15 +230,15 @@ function JobAptitudeReport() {
                 onClick={handleRefreshCache}
                 disabled={isRefreshing}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '36px', height: '36px',
                   background: isRefreshing ? '#9ca3af' : '#6b7280', color: 'white',
                   border: 'none', borderRadius: 8, cursor: isRefreshing ? 'not-allowed' : 'pointer',
-                  fontSize: 14, fontWeight: 500, transition: 'background-color 0.2s'
+                  transition: 'background-color 0.2s'
                 }}
                 title="캐시 새로고침"
               >
-                <MdCached size={16} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
-                {isRefreshing ? '새로고침 중...' : '캐시 새로고침'}
+                <MdCached size={18} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
               </button>
               <button
                 onClick={handleDownload}
