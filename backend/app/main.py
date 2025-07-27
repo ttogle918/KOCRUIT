@@ -10,14 +10,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
 from app.core.database import engine, Base
-
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
 except ImportError:
     print("⚠️ APScheduler not available, using fallback")
     BackgroundScheduler = None
 from app.core.database import SessionLocal
-# from app.models.interview_evaluation import auto_process_applications # <- 제거
+from app.models.interview_evaluation import auto_process_applications
 from sqlalchemy import text, inspect
 import logging
 
@@ -70,9 +69,8 @@ def safe_create_tables():
             
     except Exception as e:
         print(f"❌ Safe table creation failed: {e}")
-from app.services.application_evaluation_service import auto_evaluate_all_applications
 # safe_create_tables 함수 제거 - Base.metadata.create_all()이 모든 테이블을 안전하게 생성함
-from app.models.interview_evaluation import auto_process_applications, auto_evaluate_all_applications
+from app.models.interview_evaluation import auto_process_applications
 from app.models.interview_question import InterviewQuestion, QuestionType
 
 
@@ -140,12 +138,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"시드 데이터 실행 중 오류: {e}")
     
-    # 서버 시작 시 즉시 AI 평가 실행
+    # 서버 시작 시 즉시 AI 평가 실행 (임시 비활성화)
     print("=== AI 평가 실행 시작 ===")
     try:
         print("서버 시작 시 AI 평가를 실행합니다...")
-        # run_auto_process()  # 임시로 비활성화
-        print("AI 평가 실행 완료!")
+        # run_auto_process()  # 임시로 비활성화 - final_status 데이터 보호
+        print("AI 평가 실행 완료! (비활성화됨)")
     except Exception as e:
         print(f"AI 평가 실행 중 오류: {e}")
         import traceback
@@ -291,10 +289,12 @@ def run_auto_process():
     """자동 처리 함수"""
     db = SessionLocal()
     try:
-        # 기존 자동 처리 (auto_process_applications) 제거
-        # auto_process_applications(db)
-        # AI 평가 배치 프로세스만 실행
-        auto_evaluate_all_applications(db)
+        # 기존 자동 처리
+        auto_process_applications(db)
+        
+        # AI 평가 배치 프로세스 추가 (임시 비활성화)
+        # auto_evaluate_all_applications(db)  # final_status 데이터 보호를 위해 비활성화
+        
         print("자동 처리 완료")
     except Exception as e:
         print(f"자동 처리 중 오류: {e}")
