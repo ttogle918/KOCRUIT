@@ -6,7 +6,7 @@ import re
 from agent.utils.llm_cache import redis_cache
 
 # LLM 초기화
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 
 # 임베딩 시스템 관련 코드 완전 제거
 

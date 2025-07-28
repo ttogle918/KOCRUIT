@@ -18,6 +18,7 @@ from .weight import Weight
 from .EmailVerificationToken import EmailVerificationToken
 from .highlight_result import HighlightResult
 from .analysis_result import AnalysisResult
+from .statistics_analysis import StatisticsAnalysis
 from app.core.database import Base
 
 from .evaluation_criteria import EvaluationCriteria
@@ -48,6 +49,7 @@ __all__ = [
     "EmailVerificationToken",
     "HighlightResult",
     "AnalysisResult",
+    "StatisticsAnalysis",
     "WrittenTestAnswer",
     "Notification",
     "ApplicantUser",

@@ -238,7 +238,7 @@ function FinalReport() {
         setDocumentData(documentData.data || documentData); // 기존 캐시와의 호환성을 위해 fallback
       } else {
         console.log('🌐 서류 보고서 API 호출');
-        const documentResponse = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 });
+        const documentResponse = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 90000 });
         documentData = documentResponse.data;
         setDocumentData(documentData);
         setReportCache('document', jobPostId, { data: documentData });
@@ -270,22 +270,22 @@ function FinalReport() {
       } else {
         console.log('🌐 면접 보고서 API 호출');
         // AI 면접 데이터 조회
-        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 30000 });
+        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 90000 });
         const aiData = aiResponse.data;
         setInterviewData(prev => ({ ...prev, ai: aiData }));
 
         // 실무진 면접 데이터 조회
-        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 30000 });
+        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 90000 });
         const practicalData = practicalResponse.data;
         setInterviewData(prev => ({ ...prev, practical: practicalData }));
 
         // 임원진 면접 데이터 조회
-        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 30000 });
+        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 90000 });
         const executiveData = executiveResponse.data;
         setInterviewData(prev => ({ ...prev, executive: executiveData }));
 
         // 최종 선발자 데이터 조회
-        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 30000 });
+        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 90000 });
         const finalData = finalResponse.data;
         setInterviewData(prev => ({ ...prev, final: finalData }));
 
@@ -417,7 +417,7 @@ function FinalReport() {
         setJobPostData(jobPostResponse.data);
         
         // 2. 서류 보고서 데이터 조회
-        const documentResponse = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 });
+        const documentResponse = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 90000 });
         setDocumentData(documentResponse.data);
         setReportCache('document', jobPostId, { data: documentResponse.data });
         
@@ -427,10 +427,10 @@ function FinalReport() {
         setReportCache('written', jobPostId, { data: writtenTestResponse.data });
         
         // 4. 면접 보고서 데이터 조회
-        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 30000 });
-        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 30000 });
-        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 30000 });
-        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 30000 });
+        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 90000 });
+        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 90000 });
+        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 90000 });
+        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 90000 });
         
         const interviewCacheData = {
           ai: aiResponse.data,
@@ -509,19 +509,19 @@ function FinalReport() {
         console.log('🌐 면접 보고서 API 재호출');
         
         // AI 면접 데이터 조회
-        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 30000 });
+        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 90000 });
         const aiData = aiResponse.data;
         
         // 실무진 면접 데이터 조회
-        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 30000 });
+        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 90000 });
         const practicalData = practicalResponse.data;
         
         // 임원진 면접 데이터 조회
-        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 30000 });
+        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 90000 });
         const executiveData = executiveResponse.data;
         
         // 최종 선발자 데이터 조회
-        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 30000 });
+        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 90000 });
         const finalData = finalResponse.data;
         
         // 면접 데이터 캐시 저장

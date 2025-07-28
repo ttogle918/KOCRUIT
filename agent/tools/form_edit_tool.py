@@ -12,7 +12,7 @@ def form_edit_tool(state):
     
     # field_name과 new_value가 없으면 메시지에서 추출
     if not field_name or not new_value:
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+        llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
         
         extract_prompt = f"""
         사용자의 메시지에서 수정하려는 필드명과 새로운 값을 추출해주세요.
