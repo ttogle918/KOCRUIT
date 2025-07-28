@@ -46,8 +46,8 @@ const ComprehensiveEvaluation = ({ jobPostId, applicantName, documentData, writt
     
     try {
       console.log(`🔄 ${applicantName} 종합 평가 생성 시작...`);
-      // NOTE: Backend expects /report/comprehensive-evaluation (not plural)
-      const response = await axiosInstance.post('/report/comprehensive-evaluation', {
+      // NOTE: Backend expects /v1/report/comprehensive-evaluation
+      const response = await axiosInstance.post('/v1/report/comprehensive-evaluation', {
         job_post_id: jobPostId,
         applicant_name: applicantName
       }, { timeout: 60000 }); // 60초로 증가
@@ -152,6 +152,7 @@ function FinalReport() {
   const [cacheStatus, setCacheStatus] = useState(''); // New state for cache status
   const [missingReports, setMissingReports] = useState([]); // 누락된 보고서 목록
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showCacheModal, setShowCacheModal] = useState(false); // 캐시 상태 모달
   const loadingInterval = useRef(null);
   const fullText = '최종 보고서 생성 중입니다...';
   const [searchParams] = useSearchParams();
@@ -210,7 +211,7 @@ function FinalReport() {
         console.log('📦 캐시된 interviewData:', cachedFinalReport.interviewData);
         setJobPostData(cachedFinalReport.jobPostData);
         setDocumentData(cachedFinalReport.documentData);
-        setWrittenTestData(cachedFinalReport.writtenTestData?.data);
+        setWrittenTestData(cachedFinalReport.writtenTestData?.data || cachedFinalReport.writtenTestData);
         setInterviewData(cachedFinalReport.interviewData || {
           ai: null,
           practical: null,
@@ -224,35 +225,38 @@ function FinalReport() {
       }
       
       // 1. Fetch job post data (always fresh)
-      const jobPostResponse = await axiosInstance.get(`/company/jobposts/${jobPostId}`, { timeout: 10000 });
+      const jobPostResponse = await axiosInstance.get(`/v1/company/jobposts/${jobPostId}`, { timeout: 10000 });
       console.log('[FinalReport] 공고 정보 API 응답:', jobPostResponse.data);
       setJobPostData(jobPostResponse.data);
       console.log('✅ 공고 정보 로드 완료');
 
       // 2. Document Report Data (cache first)
       let documentData = getReportCache('document', jobPostId);
+      console.log('🔍 서류 보고서 캐시 확인:', { jobPostId, documentData });
       if (documentData) {
         console.log('📦 서류 보고서 캐시 사용');
-        setDocumentData(documentData);
+        setDocumentData(documentData.data || documentData); // 기존 캐시와의 호환성을 위해 fallback
       } else {
         console.log('🌐 서류 보고서 API 호출');
-        const documentResponse = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const documentResponse = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 });
         documentData = documentResponse.data;
         setDocumentData(documentData);
-        setReportCache('document', jobPostId, documentData);
+        setReportCache('document', jobPostId, { data: documentData });
         console.log('✅ 서류 보고서 로드 완료');
       }
 
       // 3. Written Test Report Data (cache first)
       let writtenTestData = getReportCache('written', jobPostId);
+      console.log('🔍 직무적성평가 보고서 캐시 확인:', { jobPostId, writtenTestData });
       if (writtenTestData) {
         console.log('📦 직무적성평가 보고서 캐시 사용');
-        setWrittenTestData(writtenTestData.data);
+        console.log('📦 캐시된 데이터 구조:', writtenTestData);
+        setWrittenTestData(writtenTestData.data || writtenTestData);
       } else {
         console.log('🌐 직무적성평가 보고서 API 호출');
-        const writtenTestResponse = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const writtenTestResponse = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
         writtenTestData = { data: writtenTestResponse.data };
-        setWrittenTestData(writtenTestData.data);
+        setWrittenTestData(writtenTestResponse.data);
         setReportCache('written', jobPostId, writtenTestData);
         console.log('✅ 직무적성평가 보고서 로드 완료');
       }
@@ -266,22 +270,22 @@ function FinalReport() {
       } else {
         console.log('🌐 면접 보고서 API 호출');
         // AI 면접 데이터 조회
-        const aiResponse = await axiosInstance.get(`/ai-interview/evaluations/job-post/${jobPostId}`, { timeout: 15000 });
+        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 30000 });
         const aiData = aiResponse.data;
         setInterviewData(prev => ({ ...prev, ai: aiData }));
 
         // 실무진 면접 데이터 조회
-        const practicalResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 15000 });
+        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 30000 });
         const practicalData = practicalResponse.data;
         setInterviewData(prev => ({ ...prev, practical: practicalData }));
 
         // 임원진 면접 데이터 조회
-        const executiveResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 15000 });
+        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 30000 });
         const executiveData = executiveResponse.data;
         setInterviewData(prev => ({ ...prev, executive: executiveData }));
 
         // 최종 선발자 데이터 조회
-        const finalResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 15000 });
+        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 30000 });
         const finalData = finalResponse.data;
         setInterviewData(prev => ({ ...prev, final: finalData }));
 
@@ -316,7 +320,7 @@ function FinalReport() {
       const finalReportData = {
         jobPostData: jobPostData,
         documentData: documentData,
-        writtenTestData: writtenTestData,
+        writtenTestData: writtenTestData.data || writtenTestData, // 실제 데이터만 저장
         interviewData: interviewData,
         comprehensiveEvaluations: comprehensiveEvaluations,
         timestamp: Date.now()
@@ -409,22 +413,24 @@ function FinalReport() {
         console.log('🌐 최종 보고서 API 재호출');
         
         // 1. 공고 정보 조회
-        const jobPostResponse = await axiosInstance.get(`/company/jobposts/${jobPostId}`, { timeout: 10000 });
+        const jobPostResponse = await axiosInstance.get(`/v1/company/jobposts/${jobPostId}`, { timeout: 10000 });
         setJobPostData(jobPostResponse.data);
         
         // 2. 서류 보고서 데이터 조회
-        const documentResponse = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const documentResponse = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 });
         setDocumentData(documentResponse.data);
+        setReportCache('document', jobPostId, { data: documentResponse.data });
         
         // 3. 직무적성평가 보고서 데이터 조회
-        const writtenTestResponse = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
-        setWrittenTestData({ data: writtenTestResponse.data });
+        const writtenTestResponse = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
+        setWrittenTestData(writtenTestResponse.data);
+        setReportCache('written', jobPostId, { data: writtenTestResponse.data });
         
         // 4. 면접 보고서 데이터 조회
-        const aiResponse = await axiosInstance.get(`/ai-interview/evaluations/job-post/${jobPostId}`, { timeout: 15000 });
-        const practicalResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 15000 });
-        const executiveResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 15000 });
-        const finalResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 15000 });
+        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 30000 });
+        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 30000 });
+        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 30000 });
+        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 30000 });
         
         const interviewCacheData = {
           ai: aiResponse.data,
@@ -461,9 +467,9 @@ function FinalReport() {
       try {
         clearAllReportCache('document', jobPostId);
         console.log('🌐 서류 보고서 API 재호출');
-        const response = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const response = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 15000 });
         setDocumentData(response.data);
-        setReportCache('document', jobPostId, response.data);
+        setReportCache('document', jobPostId, { data: response.data });
         console.log('✅ 서류 보고서 캐시 새로고침 완료');
         alert('서류 보고서 캐시가 새로고침되었습니다.');
       } catch (error) {
@@ -481,8 +487,8 @@ function FinalReport() {
       try {
         clearAllReportCache('written', jobPostId);
         console.log('🌐 직무적성평가 보고서 API 재호출');
-        const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
-        setWrittenTestData({ data: response.data });
+        const response = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
+        setWrittenTestData(response.data);
         setReportCache('written', jobPostId, { data: response.data });
         console.log('✅ 직무적성평가 보고서 캐시 새로고침 완료');
         alert('직무적성평가 보고서 캐시가 새로고침되었습니다.');
@@ -503,19 +509,19 @@ function FinalReport() {
         console.log('🌐 면접 보고서 API 재호출');
         
         // AI 면접 데이터 조회
-        const aiResponse = await axiosInstance.get(`/ai-interview/evaluations/job-post/${jobPostId}`, { timeout: 15000 });
+        const aiResponse = await axiosInstance.get(`/v1/interview-evaluation/ai-interview/job-post/${jobPostId}`, { timeout: 30000 });
         const aiData = aiResponse.data;
         
         // 실무진 면접 데이터 조회
-        const practicalResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 15000 });
+        const practicalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/practical`, { timeout: 30000 });
         const practicalData = practicalResponse.data;
         
         // 임원진 면접 데이터 조회
-        const executiveResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 15000 });
+        const executiveResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/executive`, { timeout: 30000 });
         const executiveData = executiveResponse.data;
         
         // 최종 선발자 데이터 조회
-        const finalResponse = await axiosInstance.get(`/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 15000 });
+        const finalResponse = await axiosInstance.get(`/v1/interview-evaluation/job-post/${jobPostId}/final-selected`, { timeout: 30000 });
         const finalData = finalResponse.data;
         
         // 면접 데이터 캐시 저장
@@ -536,6 +542,136 @@ function FinalReport() {
         setIsRefreshing(false);
       }
     }
+  };
+
+  // 캐시 상태 모달 컴포넌트
+  const CacheStatusModal = () => {
+    if (!showCacheModal) return null;
+    
+    const cacheStatusData = getCacheStatus(jobPostId);
+    const cacheSummary = getCacheStatusSummary(jobPostId);
+    
+    // 남은 시간 계산 함수
+    const getRemainingTime = (timestamp) => {
+      if (!timestamp) return null;
+      const now = Date.now();
+      const expiryTime = timestamp + (24 * 60 * 60 * 1000); // 24시간
+      const remaining = expiryTime - now;
+      
+      if (remaining <= 0) return '만료됨';
+      
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      
+      if (hours > 0) {
+        return `${hours}시간 ${minutes}분`;
+      } else {
+        return `${minutes}분`;
+      }
+    };
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">캐시 상태</h3>
+            <button 
+              onClick={() => setShowCacheModal(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              ✕
+            </button>
+          </div>
+          
+          {cacheSummary && (
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                📦 전체 캐시 상태: {cacheSummary}
+              </p>
+            </div>
+          )}
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">서류 보고서</span>
+              <div className="flex items-center gap-2">
+                {cacheStatusData.document?.exists ? (
+                  <MdCheckCircle className="text-green-500" size={20} />
+                ) : (
+                  <MdRadioButtonUnchecked className="text-gray-400" size={20} />
+                )}
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {cacheStatusData.document?.exists 
+                    ? `캐시됨 (${getRemainingTime(cacheStatusData.document.timestamp)})`
+                    : '없음'
+                  }
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">직무적성평가 보고서</span>
+              <div className="flex items-center gap-2">
+                {cacheStatusData.written?.exists ? (
+                  <MdCheckCircle className="text-green-500" size={20} />
+                ) : (
+                  <MdRadioButtonUnchecked className="text-gray-400" size={20} />
+                )}
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {cacheStatusData.written?.exists 
+                    ? `캐시됨 (${getRemainingTime(cacheStatusData.written.timestamp)})`
+                    : '없음'
+                  }
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">면접 보고서</span>
+              <div className="flex items-center gap-2">
+                {cacheStatusData.interview?.exists ? (
+                  <MdCheckCircle className="text-green-500" size={20} />
+                ) : (
+                  <MdRadioButtonUnchecked className="text-gray-400" size={20} />
+                )}
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {cacheStatusData.interview?.exists 
+                    ? `캐시됨 (${getRemainingTime(cacheStatusData.interview.timestamp)})`
+                    : '없음'
+                  }
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">최종 보고서</span>
+              <div className="flex items-center gap-2">
+                {cacheStatusData.final?.exists ? (
+                  <MdCheckCircle className="text-green-500" size={20} />
+                ) : (
+                  <MdRadioButtonUnchecked className="text-gray-400" size={20} />
+                )}
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {cacheStatusData.final?.exists 
+                    ? `캐시됨 (${getRemainingTime(cacheStatusData.final.timestamp)})`
+                    : '없음'
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+            <button 
+              onClick={() => setShowCacheModal(false)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const navigateToReport = (reportType) => {
@@ -685,6 +821,7 @@ function FinalReport() {
   return (
     <Layout>
       <ViewPostSidebar jobPost={jobPostData || (jobPostId ? { id: jobPostId } : null)} />
+      <CacheStatusModal />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4" style={{ marginLeft: 90 }}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -697,26 +834,28 @@ function FinalReport() {
                 <p className="text-lg text-gray-600 dark:text-gray-400">
                   {jobPostData?.title} - {new Date().toLocaleDateString('ko-KR')}
                 </p>
-                {cacheStatus && (
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
-                    📦 캐시 상태: {cacheStatus}
-                  </p>
-                )}
+
               </div>
                               <div className="flex gap-3">
-                  <button 
-                    onClick={handleRefreshFinalCache}
-                    disabled={isRefreshing}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      isRefreshing 
-                        ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
-                        : 'bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-800'
-                    }`}
-                    title="캐시 새로고침"
-                  >
-                    <MdCached size={20} className={isRefreshing ? 'animate-spin' : ''} />
-                    {isRefreshing ? '새로고침 중...' : '캐시 새로고침'}
-                  </button>
+                <button 
+                  onClick={() => setShowCacheModal(true)}
+                  className="flex items-center justify-center w-9 h-9 bg-transparent border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="캐시 상태 확인"
+                >
+                  <MdSettings size={18} />
+                </button>
+                <button 
+                  onClick={handleRefreshFinalCache}
+                  disabled={isRefreshing}
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+                    isRefreshing 
+                      ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
+                      : 'bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-800'
+                  }`}
+                  title="캐시 새로고침"
+                >
+                  <MdCached size={18} className={isRefreshing ? 'animate-spin' : ''} />
+                </button>
                 <button 
                   onClick={handleDownload}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors"

@@ -531,15 +531,14 @@ function InterviewReport() {
                 <button 
                   onClick={handleRefreshCache}
                   disabled={isRefreshing}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
                     isRefreshing 
                       ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
                       : 'bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-800'
                   }`}
                   title="캐시 새로고침"
                 >
-                  <MdCached size={20} className={isRefreshing ? 'animate-spin' : ''} />
-                  {isRefreshing ? '새로고침 중...' : '캐시 새로고침'}
+                  <MdCached size={18} className={isRefreshing ? 'animate-spin' : ''} />
                 </button>
                 <button 
                   onClick={handleDownload}
