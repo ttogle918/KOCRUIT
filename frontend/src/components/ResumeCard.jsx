@@ -10,8 +10,15 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
   const [highlightLoading, setHighlightLoading] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
   const [highlightError, setHighlightError] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('all'); // 필터링 상태 추가
   
   useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
+
+  // 필터링 핸들러 추가
+  const handleFilterChange = (category) => {
+    setFilterCategory(category);
+    console.log('필터링 변경:', category);
+  };
 
   // application_id 기반 하이라이트 분석 (저장된 결과 우선 조회)
   const analyzeContentByApplicationId = async () => {
@@ -37,25 +44,129 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
         }
       }
       
+      // 🆕 데이터 구조 통합 처리
+      let allHighlights = [];
+      
+      // 백엔드에서 반환하는 다양한 데이터 구조 처리
+      if (result) {
+        console.log('원본 하이라이팅 결과:', result);
+        
+        // 1. 기존 구조: result.highlights (배열)
+        if (result.highlights && Array.isArray(result.highlights) && result.highlights.length > 0) {
+          allHighlights = result.highlights;
+          console.log('기존 구조 사용:', allHighlights.length);
+        }
+        // 2. 새로운 구조: result.all_highlights (배열)
+        else if (result.all_highlights && Array.isArray(result.all_highlights) && result.all_highlights.length > 0) {
+          allHighlights = result.all_highlights;
+          console.log('all_highlights 구조 사용:', allHighlights.length);
+        }
+        // 3. 색상별 구조: result.blue, result.red, result.gray, result.purple, result.yellow
+        else if (result.blue || result.red || result.gray || result.purple || result.yellow) {
+          const colorMapping = {
+            blue: 'skill_fit',
+            red: 'risk', 
+            gray: 'vague',
+            purple: 'experience',
+            yellow: 'value_fit'
+          };
+          
+          // abstract_expression을 보라색(experience)으로 매핑
+          if (result.abstract_expression && Array.isArray(result.abstract_expression)) {
+            console.log(`abstract_expression 하이라이트 ${result.abstract_expression.length}개 발견`);
+            result.abstract_expression.forEach(highlight => {
+              if (highlight && (highlight.text || highlight.sentence)) {
+                allHighlights.push({
+                  ...highlight,
+                  category: 'experience',  // 추상표현을 experience로 매핑
+                  color: 'purple'
+                });
+              }
+            });
+          }
+          
+          let totalColorHighlights = 0;
+          Object.entries(colorMapping).forEach(([color, category]) => {
+            if (result[color] && Array.isArray(result[color])) {
+              console.log(`${color} 하이라이트 ${result[color].length}개 발견`);
+              totalColorHighlights += result[color].length;
+              result[color].forEach(highlight => {
+                // 빈 객체가 아닌 실제 데이터가 있는 하이라이트만 추가
+                if (highlight && (highlight.text || highlight.sentence)) {
+                  allHighlights.push({
+                    ...highlight,
+                    category: category,  // 올바른 카테고리로 매핑
+                    color: color
+                  });
+                }
+              });
+            }
+          });
+          console.log('색상별 구조 사용:', allHighlights.length, `(총 ${totalColorHighlights}개 발견)`);
+        }
+        
+        // 4. 추가 검증: 하이라이트 데이터가 실제로 유효한지 확인
+        allHighlights = allHighlights.filter(highlight => {
+          const hasText = highlight.text || highlight.sentence;
+          const hasCategory = highlight.category;
+          return hasText && hasCategory;
+        });
+        
+        console.log('최종 유효한 하이라이트:', allHighlights.length);
+      }
+      
+      console.log('통합된 하이라이팅 데이터:', allHighlights);
+      
       // 결과를 문단별로 매핑
-      if (result && result.highlights && Array.isArray(result.highlights)) {
+      if (allHighlights.length > 0) {
+        // content 파싱 (함수 내부에서 처리)
+        let parsed = [];
+        try {
+          parsed = typeof resume.content === 'string' ? JSON.parse(resume.content) : Array.isArray(resume.content) ? resume.content : [];
+        } catch {
+          parsed = [];
+        }
+        
         // 전체 하이라이트를 각 문단의 텍스트에 맞게 분배
         const highlightsByParagraph = parsed.map((item, idx) => {
           const paragraphText = item.content;
-          const paragraphHighlights = result.highlights.filter(highlight => {
+          
+          // 중복 제거를 위한 Map 사용
+          const uniqueHighlights = new Map();
+          
+          allHighlights.forEach(highlight => {
             // 하이라이트된 텍스트가 현재 문단에 포함되는지 확인
-            return paragraphText.includes(highlight.text);
-          }).map(highlight => {
-            // 문단 내에서의 상대적 위치로 조정
-            const start = paragraphText.indexOf(highlight.text);
-            return {
-              ...highlight,
-              start: start,
-              end: start + highlight.text.length
-            };
+            const highlightText = highlight.text || highlight.sentence || '';
+            if (paragraphText.includes(highlightText)) {
+              // 문단 내에서의 상대적 위치로 조정
+              const start = paragraphText.indexOf(highlightText);
+              const key = `${start}-${start + highlightText.length}-${highlightText}`;
+              
+              // 중복 제거 (같은 위치, 같은 텍스트)
+              if (!uniqueHighlights.has(key)) {
+                uniqueHighlights.set(key, {
+                  ...highlight,
+                  text: highlightText,
+                  start: start,
+                  end: start + highlightText.length
+                });
+              }
+            }
           });
+          
+          const paragraphHighlights = Array.from(uniqueHighlights.values());
+          
+          if (paragraphHighlights.length > 0) {
+            console.log(`문단 ${idx} (${item.title}): ${paragraphHighlights.length}개 하이라이트`);
+            paragraphHighlights.forEach(h => {
+              console.log(`  - ${h.category}: "${h.text}"`);
+            });
+          }
+          
           return { highlights: paragraphHighlights };
         });
+        
+        console.log('문단별 하이라이팅 매핑 완료:', highlightsByParagraph.map((p, i) => `${i}: ${p.highlights.length}개`));
         setHighlightData(highlightsByParagraph);
       } else {
         console.warn('하이라이팅 결과가 올바르지 않습니다:', result);
@@ -99,10 +210,10 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
 
   // application_id가 있을 때만 하이라이트 분석 실행
   useEffect(() => {
-    // 자동으로 하이라이트 분석을 실행하지 않음 - 사용자가 버튼을 클릭할 때만 실행
-    // if (applicationId) {
-    //   analyzeContentByApplicationId();
-    // }
+    // applicationId가 있으면 자동으로 하이라이트 분석 실행
+    if (applicationId) {
+      analyzeContentByApplicationId();
+    }
   }, [applicationId, jobpostId]);
 
   // 전체 통계용 하이라이트 합치기
@@ -350,17 +461,58 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
               {highlightLoading ? '분석 중...' : (showHighlights ? '형광펜 끄기' : '형광펜 켜기')}
             </button>
             {highlightLoading && (
-              <span className="text-xs text-blue-500">분석 중...</span>
+              <div className="flex items-center gap-1 text-xs text-blue-500">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                분석 중...
+              </div>
             )}
             {highlightError && (
-              <span className="text-xs text-red-500">{highlightError}</span>
+              <div className="flex items-center gap-1 text-xs text-red-500">
+                <span>⚠️</span>
+                {highlightError}
+              </div>
+            )}
+            {allHighlights.length > 0 && !highlightLoading && !showHighlights && (
+              <div className="text-xs text-green-600 dark:text-green-400">
+                ✅ 분석 완료 ({allHighlights.length}개 하이라이트)
+              </div>
+            )}
+            {allHighlights.length > 0 && !highlightLoading && showHighlights && (
+              <div className="text-xs text-blue-600 dark:text-blue-400">
+                🔍 하이라이팅 표시 중
+              </div>
             )}
           </div>
         </div>
         
         {/* 전체 통계 */}
-        {highlightData.length > 0 && showHighlights && (
-          <HighlightStats highlights={allHighlights} />
+        {allHighlights.length > 0 && showHighlights && (
+          <>
+            <HighlightStats 
+              highlights={allHighlights} 
+              onFilterChange={handleFilterChange}
+            />
+            {/* 필터링 상태 표시 */}
+            {filterCategory !== 'all' && (
+              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-700">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                    🔍 필터링 중: {filterCategory === 'mismatch' ? '직무 불일치' :
+                                  filterCategory === 'negative_tone' ? '부정 태도' :
+                                  filterCategory === 'experience' ? '경험·성과·이력·경력' :
+                                  filterCategory === 'skill_fit' ? '기술 사용 경험' :
+                                  filterCategory === 'value_fit' ? '인재상 가치' : filterCategory}
+                  </span>
+                  <button
+                    onClick={() => handleFilterChange('all')}
+                    className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded transition-colors"
+                  >
+                    전체 보기
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* 문단별 하이라이트만 */}
@@ -371,6 +523,7 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
               <HighlightedText
                 text={item.content}
                 highlights={highlightData[idx].highlights || []}
+                filterCategory={filterCategory}
                 showLegend={false}
               />
             ) : (

@@ -280,7 +280,7 @@ export default function WrittenTestPassedPage() {
               서류 합격자 {documentPassedCount}명 중 최종 선발인원의 {passMultiplier}배수({jobPost.headcount * passMultiplier}명) 기준, 동점자를 포함하여 총 {passedApplicants.length}명이 필기 합격되었습니다.
             </span>
           ) : (
-            <span className="text-xl font-bold text-gray-400">서류 합격자/선발 인원 정보를 불러오는 중...</span>
+            <span className="text-xl font-bold text-gray-400">필기 합격자/선발 인원 정보를 불러오는 중...</span>
           )}
         </div>
         {/* Main Content Area */}
@@ -399,11 +399,12 @@ export default function WrittenTestPassedPage() {
           </div>
         </div>
         {/* Floating Action Buttons */}
-        <div className="fixed bottom-8 right-8 flex flex-row gap-4 z-50">
+        <div className="fixed bottom-4 right-16 flex flex-row gap-4 z-[9999]">
           <button 
             className="w-14 h-14 flex items-center justify-center rounded-full bg-green-500 text-white shadow-lg hover:bg-green-600 transition text-2xl"
             onClick={handleEmailClick}
             disabled={selectedApplicants.length === 0}
+            style={{ zIndex: 9999 }}
           >
             <FaEnvelope />
           </button>

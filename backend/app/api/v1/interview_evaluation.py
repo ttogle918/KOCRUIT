@@ -844,10 +844,9 @@ def update_final_selection(job_post_id: int, db: Session = Depends(get_db)):
                 Application.executive_score.isnot(None)
             ).order_by(Application.final_score.desc()).limit(additional_needed).all()
             
-            # 상태 업데이트
+            # 상태 업데이트 (final_status만 변경, pass_reason은 건드리지 않음)
             for candidate in candidates:
                 candidate.final_status = FinalStatus.SELECTED
-                candidate.pass_reason = f"임원 면접 통과 후 최종 선발 (점수: {round(candidate.final_score, 1)}점)"
             
             db.commit()
             
@@ -935,7 +934,8 @@ def get_final_selected_applicants(job_post_id: int, db: Session = Depends(get_db
                     "practical_score": practical_evaluation.total_score if practical_evaluation else 0,
                     "executive_score": executive_evaluation.total_score if executive_evaluation else 0,
                     "final_score": app.final_score or 0,
-                    "pass_reason": app.pass_reason or "",
+                    "ai_interview_pass_reason": app.ai_interview_pass_reason or "",
+                    "ai_interview_fail_reason": app.ai_interview_fail_reason or "",
                     "passed": True,  # final_status = 'SELECTED'이므로 항상 True
                     "ai_evaluation": {
                         "total_score": ai_evaluation.total_score if ai_evaluation else 0,

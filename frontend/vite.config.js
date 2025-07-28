@@ -53,15 +53,15 @@ export default defineConfig({
       },
       devOptions: {
         enabled: false, // 개발 중에는 PWA 비활성화
-        type: 'module'
+        type: 'module',
+        navigateFallback: false
       },
       workbox: {
-        // Workbox 로그 레벨 조정
+        // Workbox 설정
         clientsClaim: true,
         skipWaiting: true,
         cleanupOutdatedCaches: true,
-        // 개발 중 로그 최소화
-        verbose: false
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024 // 10MB로 증가
       }
     })
   ],
@@ -70,15 +70,16 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '/api': 'http://localhost:8000',
-      '/auth': 'http://localhost:8000',
-      '/admin': 'http://localhost:8000',
+      '/api': 'http://kocruit_fastapi:8000',
+      '/auth': 'http://kocruit_fastapi:8000',
+      '/admin': 'http://kocruit_fastapi:8000',
     },
     // WebSocket 프록시 설정
     ws: {
       proxy: {
         '/api': {
           target: 'ws://localhost:8000',
+          // target: 'ws://kocruit_fastapi:8000',
           ws: true
         }
       }

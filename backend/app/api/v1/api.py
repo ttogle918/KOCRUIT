@@ -11,6 +11,7 @@ from .resume_plagiarism import router as resume_plagiarism_router
 from .statistics_analysis import router as statistics_analysis_router
 from app.api.v1.written_test import router as written_test_router
 from .executive_interview import router as executive_interview_router
+from .analysis_results import router as analysis_results_router
 
 
 api_router = APIRouter()
@@ -32,10 +33,11 @@ api_router.include_router(ai_evaluate_router, prefix="/ai-evaluate", tags=["ai-e
 api_router.include_router(job_status.router, prefix="/job-status", tags=["job-status"])
 api_router.include_router(highlight_router, prefix="/ai", tags=["AI Highlight"])
 api_router.include_router(reports.router, prefix="/report", tags=["reports"])
-api_router.include_router(job_aptitude_reports.router, prefix="/report", tags=["job-aptitude-reports"])
+# job_aptitude_reports.router는 reports.router에 통합됨
 api_router.include_router(realtime_interview_router, prefix="/realtime-interview", tags=["realtime-interview"])
 api_router.include_router(ai_interview_questions_router, prefix="/ai-interview", tags=["ai-interview"])
 api_router.include_router(statistics_analysis_router, prefix="/statistics", tags=["statistics-analysis"])
 api_router.include_router(written_test_router, prefix="/written-test", tags=["written-test"])
 api_router.include_router(resume_plagiarism_router, prefix="/resume-plagiarism", tags=["resume-plagiarism"])
 api_router.include_router(executive_interview_router, prefix="/executive-interview", tags=["executive-interview"])
+api_router.include_router(analysis_results_router, prefix="/analysis-results", tags=["analysis-results"])

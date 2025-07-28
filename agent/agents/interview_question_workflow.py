@@ -6,7 +6,6 @@ from agent.agents.interview_question_node import (
     generate_common_questions,
     generate_company_questions,
     generate_job_question_bundle,
-    generate_resume_analysis_report,
     generate_interview_checklist,
     analyze_candidate_strengths_weaknesses,
     generate_interview_guideline,
@@ -16,6 +15,7 @@ from agent.agents.interview_question_node import (
     generate_final_interview_questions,
     generate_advanced_competency_questions
 )
+from agent.tools.comprehensive_analysis_tool import generate_comprehensive_analysis_report
 import json
 
 # LLM 초기화
@@ -96,23 +96,62 @@ def resume_analyzer(state: Dict[str, Any]) -> Dict[str, Any]:
     job_matching_info = state.get("job_matching_info", "")
     
     try:
-        # 이력서 분석 리포트 생성
-        analysis_result = generate_resume_analysis_report(
+        # 이력서 분석 도구 직접 호출
+        analysis_result = generate_comprehensive_analysis_report(
             resume_text=resume_text,
             job_info=job_info,
             portfolio_info=portfolio_info,
             job_matching_info=job_matching_info
         )
         
-        return {
+        # 결과를 상태에 추가
+        updated_state = {
             **state,
             "resume_analysis": analysis_result,
+            "resume_summary": analysis_result.get("resume_summary", ""),
+            "key_projects": analysis_result.get("key_projects", []),
+            "technical_skills": analysis_result.get("technical_skills", []),
+            "soft_skills": analysis_result.get("soft_skills", []),
+            "experience_highlights": analysis_result.get("experience_highlights", []),
+            "potential_concerns": analysis_result.get("potential_concerns", []),
+            "interview_focus_areas": analysis_result.get("interview_focus_areas", []),
+            "portfolio_analysis": analysis_result.get("portfolio_analysis", ""),
+            "job_matching_score": analysis_result.get("job_matching_score"),
+            "job_matching_details": analysis_result.get("job_matching_details", ""),
             "next": "question_generator"
         }
+        
+        print(f"이력서 분석 완료: {len(analysis_result.get('key_projects', []))}개 프로젝트 분석됨")
+        
+        return updated_state
+        
     except Exception as e:
+        print(f"이력서 분석 오류: {str(e)}")
+        # 오류 시 기본값으로 상태 반환
         return {
             **state,
-            "resume_analysis": {"error": f"이력서 분석 중 오류: {str(e)}"},
+            "resume_analysis": {
+                "resume_summary": "이력서 분석 중 오류가 발생했습니다.",
+                "key_projects": [],
+                "technical_skills": [],
+                "soft_skills": [],
+                "experience_highlights": [],
+                "potential_concerns": [],
+                "interview_focus_areas": ["기술력", "경험", "인성"],
+                "portfolio_analysis": portfolio_info or "포트폴리오 정보가 없습니다.",
+                "job_matching_score": None,
+                "job_matching_details": job_matching_info or "직무 매칭 정보가 없습니다."
+            },
+            "resume_summary": "이력서 분석 중 오류가 발생했습니다.",
+            "key_projects": [],
+            "technical_skills": [],
+            "soft_skills": [],
+            "experience_highlights": [],
+            "potential_concerns": [],
+            "interview_focus_areas": ["기술력", "경험", "인성"],
+            "portfolio_analysis": portfolio_info or "포트폴리오 정보가 없습니다.",
+            "job_matching_score": None,
+            "job_matching_details": job_matching_info or "직무 매칭 정보가 없습니다.",
             "next": "question_generator"
         }
 

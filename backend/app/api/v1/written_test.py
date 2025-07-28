@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 from agent.tools.written_test_generation_tool import generate_written_test_questions
 from app.models.job import JobPost  # 실제 공고 모델 import
+from app.models.application import Application, DocumentStatus, WrittenTestStatus
 import traceback
 
 router = APIRouter()
@@ -43,4 +44,50 @@ def generate_written_test(
     except Exception as e:
         print(traceback.format_exc())  # 전체 스택트레이스 출력
         raise HTTPException(status_code=500, detail=f"문제 생성 실패: {str(e)}")
-    return {"job_post_id": job_post_id, "questions": questions, "count": len(questions)} 
+    return {"job_post_id": job_post_id, "questions": questions, "count": len(questions)}
+
+@router.get("/failed/{jobpost_id}")
+def get_written_test_failed_applicants(jobpost_id: int, db: Session = Depends(get_db)):
+    """필기시험 불합격자 목록 조회"""
+    try:
+        failed_apps = db.query(Application).filter(
+            Application.job_post_id == jobpost_id,
+            Application.written_test_status == WrittenTestStatus.FAILED,
+            Application.document_status == DocumentStatus.PASSED
+
+        ).all()
+        
+        return [
+            {
+                "id": app.id,
+                "user_id": app.user.id if app.user else None,
+                "user_name": app.user.name if app.user else None,
+                "written_test_score": app.written_test_score,
+                "evaluation_date": app.applied_at.strftime('%Y-%m-%d') if app.applied_at else None,
+            }
+            for app in failed_apps
+        ]
+    except Exception as e:
+        print(f"필기불합격자 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="필기불합격자 데이터 조회 중 오류가 발생했습니다.")
+
+@router.get("/passed/{jobpost_id}")
+def get_written_test_passed_applicants(jobpost_id: int, db: Session = Depends(get_db)):
+    """필기시험 합격자 목록 조회"""
+    try:
+        passed_apps = db.query(Application).filter(
+            Application.job_post_id == jobpost_id,
+            Application.written_test_status == WrittenTestStatus.PASSED
+        ).all()
+        
+        return [
+            {
+                "user_id": app.user.id if app.user else None,
+                "user_name": app.user.name if app.user else None,
+                "written_test_score": app.written_test_score,
+            }
+            for app in passed_apps
+        ]
+    except Exception as e:
+        print(f"필기합격자 조회 오류: {e}")
+        raise HTTPException(status_code=500, detail="필기합격자 데이터 조회 중 오류가 발생했습니다.") 

@@ -101,6 +101,8 @@ class Application(Base):
     pass_reason = Column(Text)
     fail_reason = Column(Text)
     ai_interview_score = Column(Numeric(5, 2))  # AI 면접 전용 점수
+    ai_interview_pass_reason = Column(Text)  # AI 면접 합격 이유
+    ai_interview_fail_reason = Column(Text)  # AI 면접 불합격 이유
     final_status = Column(SqlEnum(FinalStatus), default=FinalStatus.PENDING, nullable=False)  # 최종 선발 상태
     
     # Relationships with back_populates
@@ -110,6 +112,7 @@ class Application(Base):
     field_scores = relationship("FieldNameScore", back_populates="application")
     memos = relationship("ResumeMemo", back_populates="application")
     highlight_results = relationship("HighlightResult", back_populates="application")
+    analysis_results = relationship("AnalysisResult", back_populates="application")
 
 
 class FieldNameScore(Base):

@@ -3,7 +3,7 @@ import { fetchGrowthPrediction } from '../api/growthPredictionApi';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as BarTooltip, Legend as BarLegend, ComposedChart, Line, Area } from 'recharts';
 
-const GrowthPredictionCard = ({ applicationId }) => {
+const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChange }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -28,6 +28,10 @@ const GrowthPredictionCard = ({ applicationId }) => {
     try {
       const data = await fetchGrowthPrediction(applicationId);
       setResult(data);
+      // 부모 컴포넌트에 결과 전달
+      if (onResultChange) {
+        onResultChange(data);
+      }
     } catch (err) {
       setError(err.message || '예측 실패');
     } finally {
@@ -127,6 +131,41 @@ const GrowthPredictionCard = ({ applicationId }) => {
     '자격증': { label: '자격증 개수', unit: '개', desc: '고성과자 자격증 보유 개수' },
   };
 
+  // 점수만 표시하는 간단한 버전 (위쪽 블록용)
+  if (!showDetails) {
+    return (
+      <>
+        {!result ? (
+          <div className="flex justify-center my-6">
+            <button
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              onClick={handlePredict}
+              disabled={loading}
+              style={{ minWidth: 220 }}
+            >
+              {loading && (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+              )}
+              {loading ? 'AI 성장 예측 분석 중...' : 'AI 성장 가능성 예측'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center px-0 pt-2 pb-4">
+            <div className="flex items-end gap-2">
+              <span className="text-5xl font-extrabold text-blue-600 drop-shadow-sm">{result.total_score ?? result.growth_score}</span>
+              <span className="text-xl font-bold text-blue-500 mb-1">점</span>
+            </div>
+            <div className="text-lg font-semibold text-blue-700 mt-2">AI 성장 예측</div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // 상세 버전 (아래쪽 블록용)
   return (
     <>
       {!result ? (
@@ -164,17 +203,6 @@ const GrowthPredictionCard = ({ applicationId }) => {
           
           {!collapsed ? (
             <>
-              {/* 점수 및 탭 바 */}
-              <div className="flex flex-col items-center justify-center px-0 pt-2 pb-4">
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-extrabold text-blue-600 drop-shadow-sm">{result.total_score ?? result.growth_score}</span>
-                  <span className="text-xl font-bold text-blue-500 mb-1">점</span>
-                </div>
-                <div className="flex w-full mt-4 rounded-lg overflow-hidden border border-blue-100 shadow-sm">
-                  <div className="flex-1 text-center py-2 bg-blue-50 text-blue-700 font-semibold text-base border-r border-blue-100">AI 성장 예측</div>
-                  <div className="flex-1 text-center py-2 text-gray-400 font-semibold text-base">(합격/불합격 등 다른 탭 필요시 여기에)</div>
-                </div>
-              </div>
               {/* 표 + 설명 */}
               {result.item_table && (
                 <div className="pb-4">
@@ -358,7 +386,7 @@ const GrowthPredictionCard = ({ applicationId }) => {
                 <span className="text-3xl font-extrabold text-blue-600 drop-shadow-sm">{result.total_score ?? result.growth_score}</span>
                 <span className="text-lg font-bold text-blue-500 mb-1">점</span>
               </div>
-              <div className="text-sm text-gray-500 mt-1">AI 성장 예측 완료</div>
+              <div className="text-sm text-blue-700 mt-1 font-semibold">AI 성장 예측</div>
             </div>
           )}
         </div>

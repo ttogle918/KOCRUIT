@@ -56,6 +56,7 @@ class ProjectQuestionRequest(BaseModel):
 class JobQuestionRequest(BaseModel):
     application_id: int
     company_name: str = ""
+    resume_data: Optional[Dict[str, Any]] = None
 
 class CompanyQuestionResponse(BaseModel):
     questions: list[str]
@@ -101,6 +102,62 @@ class InterviewChecklistResponse(BaseModel):
     post_interview_checklist: List[str]
     red_flags_to_watch: List[str]
     green_flags_to_confirm: List[str]
+
+# 새로운 분석 툴들을 위한 스키마 추가
+class ResumeOrchestratorRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+    company_id: Optional[int] = None
+    jobpost_id: Optional[int] = None
+    enable_tools: Optional[List[str]] = None  # ['highlight', 'comprehensive', 'detailed', 'competitiveness', 'keyword_matching']
+
+class ResumeOrchestratorResponse(BaseModel):
+    metadata: Dict[str, Any]
+    results: Dict[str, Any]
+    errors: Dict[str, Any]
+    summary: Dict[str, Any]
+
+class DetailedAnalysisRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+
+class DetailedAnalysisResponse(BaseModel):
+    core_competencies: Dict[str, Any]
+    experience_analysis: Dict[str, Any]
+    growth_potential: Dict[str, Any]
+    problem_solving: Dict[str, Any]
+    leadership_collaboration: Dict[str, Any]
+    specialization: Dict[str, Any]
+    improvement_areas: Dict[str, Any]
+    overall_assessment: Dict[str, Any]
+
+class CompetitivenessComparisonRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+
+class CompetitivenessComparisonResponse(BaseModel):
+    market_competitiveness: Dict[str, Any]
+    strength_areas: Dict[str, Any]
+    weakness_areas: Dict[str, Any]
+    differentiation_factors: Dict[str, Any]
+    competitive_analysis: Dict[str, Any]
+    sustainability: Dict[str, Any]
+    improvement_strategy: Dict[str, Any]
+    hiring_recommendation: Dict[str, Any]
+
+class KeywordMatchingRequest(BaseModel):
+    resume_id: int
+    application_id: Optional[int] = None
+
+class KeywordMatchingResponse(BaseModel):
+    technical_skills_matching: Dict[str, Any]
+    experience_matching: Dict[str, Any]
+    qualification_matching: Dict[str, Any]
+    soft_skills_matching: Dict[str, Any]
+    keyword_gaps: Dict[str, Any]
+    unexpected_strengths: Dict[str, Any]
+    matching_summary: Dict[str, Any]
+    improvement_roadmap: Dict[str, Any]
 
 class StrengthsWeaknessesRequest(BaseModel):
     resume_id: int
@@ -340,158 +397,17 @@ def create_questions_bulk(bulk_data: InterviewQuestionBulkCreate, db: Session = 
 @router.post("/integrated-questions", response_model=IntegratedQuestionResponse)
 @redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_integrated_questions(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
-    """통합 면접 질문 생성 API - 이력서, 공고, 회사 정보를 모두 활용"""
-
-
-    cache_key = f"integrated_questions:{request.resume_id}:{request.application_id}:{request.company_name}:{request.name}"
-    cached = redis_client.get(cache_key)
-    if cached:
-        return json.loads(cached.decode('utf-8'))
-
-    try:
-        resume_text = ""
-        job_info = ""
-        actual_company_name = request.company_name
-        job_matching_info = ""
-        portfolio_info = ""
-        
-        # 1. 이력서 정보 수집
-        resume_summary = ""
-        if request.resume_id:
-            resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
-            if not resume:
-                raise HTTPException(status_code=404, detail="Resume not found")
-            
-            specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
-            resume_text = combine_resume_and_specs(resume, specs)
-            
-                    # 자기소개서 요약 생성
-        from agent.agents.interview_question_node import generate_common_question_bundle, generate_resume_summary
-        resume_summary_result = generate_resume_summary.invoke({"resume_text": resume_text})
-        resume_summary = resume_summary_result.get("text", "")
-        
-        # 포트폴리오 정보 수집 (임시로 빈 문자열)
-        portfolio_info = ""
-        
-        # 2. 공고 정보 수집
-        if request.application_id:
-            application = db.query(Application).filter(Application.id == request.application_id).first()
-            if not application:
-                raise HTTPException(status_code=404, detail="Application not found")
-            
-            job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
-            if not job_post:
-                raise HTTPException(status_code=404, detail="Job post not found")
-            
-            job_info = parse_job_post_data(job_post)
-            actual_company_name = job_post.company.name if job_post.company else request.company_name
-            
-            # 직무 매칭 분석
-            if resume_text:
-                job_matching_info = analyze_job_matching(resume_text, job_info)
-        
-        # 3. 통합 질문 생성
-        from agent.agents.interview_question_node import generate_personal_questions, generate_job_question_bundle, generate_common_questions
-        
-        # 공통 질문 생성 (인성/동기 포함)
-        common_questions = generate_common_questions(
-            company_name=actual_company_name,
-            job_info=job_info
-        )
-        
-        # 개인별 맞춤형 질문 생성 (이력서 기반, 인성/동기 제외)
-        personal_questions = {}
-        if resume_text:
-            personal_questions = generate_personal_questions(
-                resume_text=resume_text,
-                company_name=actual_company_name,
-                portfolio_info=portfolio_info
-            )
-        
-        # 직무 맞춤형 질문 생성 (공고 기반)
-        job_questions = {}
-        if job_info and resume_text:
-            job_questions = generate_job_question_bundle(
-                resume_text=resume_text,
-                job_info=job_info,
-                company_name=actual_company_name,
-                job_matching_info=job_matching_info
-            )
-        
-        # 4. 질문 통합 및 정리
-        all_questions = []
-        question_bundle = {}
-        
-        # 공통 질문들 추가 (인성/동기 포함)
-        if common_questions:
-            question_bundle.update(common_questions)
-            all_questions.extend(common_questions.get("인성/동기", []))
-            all_questions.extend(common_questions.get("회사 관련", []))
-            all_questions.extend(common_questions.get("직무 이해", []))
-            all_questions.extend(common_questions.get("상황 대처", []))
-        
-        # 개인별 질문들 추가 (인성/동기 제외)
-        if personal_questions:
-            question_bundle.update(personal_questions)
-            all_questions.extend(personal_questions.get("프로젝트 경험", []))
-            all_questions.extend(personal_questions.get("회사 관련", []))
-            all_questions.extend(personal_questions.get("상황 대처", []))
-        
-        # 직무 맞춤형 질문들 추가
-        if job_questions:
-            question_bundle.update(job_questions)
-            all_questions.extend(job_questions.get("직무 적합성", []))
-            all_questions.extend(job_questions.get("기술 스택", []))
-            all_questions.extend(job_questions.get("업무 이해도", []))
-            all_questions.extend(job_questions.get("경력 활용", []))
-        
-        # 5. 요약 정보 생성
-        summary_info = {
-            "resume_used": bool(request.resume_id),
-            "job_post_used": bool(request.application_id),
-            "company_name": actual_company_name,
-            "job_matching_info": job_matching_info,
-            "portfolio_info": portfolio_info,
-            "resume_summary": resume_summary
-        }
-        
-        result = {
-            "questions": all_questions,
-            "question_bundle": question_bundle,
-            "summary_info": summary_info
-        }
-        
-        # DB에 질문 저장 (application_id가 있는 경우에만)
-        if request.application_id:
-            try:
-                InterviewQuestionService.save_langgraph_questions(
-                    db=db,
-                    application_id=request.application_id,
-                    questions_data=question_bundle
-                )
-            except Exception as e:
-                # DB 저장 실패해도 API 응답은 계속 진행
-                print(f"질문 DB 저장 실패: {str(e)}")
-        
-        redis_client.set(cache_key, json.dumps(result), ex=60*60*24)
-        return result
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/resume-analysis", response_model=ResumeAnalysisResponse)
-@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
-async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
-    """이력서 분석 리포트 생성 API"""
-    # 캐시 로직 완전히 제거!
+    """통합 면접 질문 생성 (LangGraph 워크플로우 사용, DB 저장 없음)"""
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
         if not resume:
             raise HTTPException(status_code=404, detail="Resume not found")
+        
         specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
         resume_text = combine_resume_and_specs(resume, specs)
-        # 직무 정보 수집 (application_id가 있는 경우)
+        
+        # 직무 정보 수집
         job_info = ""
         job_matching_info = ""
         if request.application_id:
@@ -501,17 +417,91 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
                 if job_post:
                     job_info = parse_job_post_data(job_post)
                     job_matching_info = analyze_job_matching(resume_text, job_info)
-        # 포트폴리오 정보 수집 (임시로 빈 문자열)
-        portfolio_info = ""
-        # LangGraph 기반 이력서 분석 (항상 직접 수행)
-        from agent.agents.interview_question_node import generate_resume_analysis_report
-        analysis_result = generate_resume_analysis_report(
+        
+        # LangGraph 워크플로우를 사용한 종합 질문 생성 (DB 저장 없음)
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
             resume_text=resume_text,
             job_info=job_info,
-            portfolio_info=portfolio_info,
+            company_name=request.company_name,
+            applicant_name=request.name,
+            interview_type="general",
             job_matching_info=job_matching_info
         )
-        return analysis_result
+        
+        # 결과에서 질문 추출
+        questions = workflow_result.get("questions", [])
+        question_bundle = workflow_result.get("question_bundle", {})
+        evaluation_tools = workflow_result.get("evaluation_tools", {})
+        resume_analysis = workflow_result.get("resume_analysis", {})
+        
+        # 요약 정보 구성
+        summary_info = {
+            "total_questions": len(questions),
+            "question_categories": list(question_bundle.keys()) if question_bundle else [],
+            "evaluation_tools_available": list(evaluation_tools.keys()) if evaluation_tools else [],
+            "resume_analysis_available": bool(resume_analysis),
+            "workflow_execution_time": workflow_result.get("execution_time", 0),
+            "generated_at": workflow_result.get("generated_at", "")
+        }
+        
+        return IntegratedQuestionResponse(
+            questions=questions,
+            question_bundle=question_bundle,
+            summary_info=summary_info
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/resume-analysis", response_model=ResumeAnalysisResponse)
+@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
+async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """이력서 분석 리포트 생성 (LangGraph 워크플로우 사용, DB 저장 없음)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        job_matching_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+                    job_matching_info = analyze_job_matching(resume_text, job_info)
+        
+        # LangGraph 워크플로우를 사용한 이력서 분석 (DB 저장 없음)
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행 (이력서 분석만)
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "",
+            applicant_name=request.name or "",
+            interview_type="general",
+            job_matching_info=job_matching_info
+        )
+        
+        # 이력서 분석 결과 추출
+        resume_analysis = workflow_result.get("resume_analysis", {})
+        
+        return ResumeAnalysisResponse(**resume_analysis)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -966,32 +956,46 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
             questions = workflow_result.get("questions", [])
             question_bundle = workflow_result.get("question_bundle", {})
             
-            # 개인별 질문 생성이 요청된 경우 추가 처리 (현재는 비활성화)
-            if False:  # request.include_personal_questions and request.resume_data:
+            # 개인별 질문 생성이 요청된 경우 추가 처리
+            if request.resume_data:
                 try:
+                    print(f"개인별 질문 생성 시작 - application_id: {request.application_id}")
+                    print(f"resume_data 키: {list(request.resume_data.keys()) if request.resume_data else 'None'}")
+                    print(f"job_info 길이: {len(job_info) if job_info else 0}")
+                    print(f"company_name: {actual_company_name}")
+                    
                     from agent.tools.personal_question_tool import generate_personal_interview_questions
                     
-                    # 개인별 질문 생성
+                    # 개인별 질문 생성 - tool 함수를 직접 호출
                     personal_result = generate_personal_interview_questions(
                         resume_data=request.resume_data,
                         job_posting=job_info,
                         company_name=actual_company_name
                     )
                     
+                    print(f"개인별 질문 생성 완료 - 결과 타입: {type(personal_result)}")
+                    print(f"개인별 질문 생성 완료 - 결과 키: {list(personal_result.keys()) if personal_result else 'None'}")
+                    
                     # 개인별 질문을 question_bundle에 추가
                     if personal_result and personal_result.get("questions"):
                         personal_questions = personal_result["questions"]
-                        for category, questions_list in personal_questions.items():
-                            if category not in question_bundle:
-                                question_bundle[category] = []
-                            question_bundle[category].extend(questions_list)
-                            
-                        # 전체 질문 목록에도 추가
+                        print(f"개인별 질문 카테고리: {list(personal_questions.keys())}")
+                        
+                        # 기존 question_bundle을 개인별 질문으로 완전히 교체
+                        question_bundle = personal_questions
+                        
+                        # 전체 질문 목록도 개인별 질문으로 교체
+                        questions = []
                         for questions_list in personal_questions.values():
                             questions.extend(questions_list)
                             
+                        print(f"개인별 질문으로 교체 완료 - 총 질문 수: {len(questions)}")
+                        print(f"개인별 질문 카테고리 수: {len(question_bundle)}")
+                            
                 except Exception as e:
                     print(f"개인별 질문 생성 중 오류: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
                     # 개인별 질문 생성 실패 시 기본 질문만 사용
             
             # 질문이 없으면 기본 질문 사용
@@ -1325,7 +1329,7 @@ class AiInterviewSaveResponse(BaseModel):
 @router.post("/ai-interview", response_model=AiInterviewResponse)
 @redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_ai_interview_questions(request: AiInterviewRequest, db: Session = Depends(get_db)):
-    """AI 면접 질문 생성 (LangGraph 워크플로우 사용)"""
+    """AI 면접 질문 생성 (LangGraph 워크플로우 사용, DB 저장 없음)"""
     try:
         # 이력서 정보 수집
         resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
@@ -1344,7 +1348,7 @@ async def generate_ai_interview_questions(request: AiInterviewRequest, db: Sessi
                 if job_post:
                     job_info = parse_job_post_data(job_post)
         
-        # LangGraph 워크플로우를 사용한 AI 면접 질문 생성
+        # LangGraph 워크플로우를 사용한 AI 면접 질문 생성 (DB 저장 없음)
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
@@ -1365,7 +1369,12 @@ async def generate_ai_interview_questions(request: AiInterviewRequest, db: Sessi
         
         return {
             "questions": question_text,
-            "interview_type": "ai"
+            "interview_type": "ai",
+            "workflow_result": {
+                "total_questions": len(questions),
+                "execution_time": workflow_result.get("execution_time", 0),
+                "generated_at": workflow_result.get("generated_at", "")
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1943,7 +1952,7 @@ async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_d
         client = openai.OpenAI(api_key=api_key)
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             messages=[{"role": "user", "content": ai_tools_prompt}],
             temperature=0.7,
             max_tokens=3000
@@ -2671,3 +2680,333 @@ async def get_interview_evaluation_items(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# 랭그래프 워크플로우 중심 API들 (DB 저장 없음)
+@router.post("/langgraph/interview-questions", response_model=Dict[str, Any])
+async def generate_interview_questions_with_langgraph(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
+    """랭그래프 워크플로우를 사용한 면접 질문 생성 (DB 저장 없음)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        job_matching_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+                    job_matching_info = analyze_job_matching(resume_text, job_info)
+        
+        # LangGraph 워크플로우 실행
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name,
+            applicant_name=request.name,
+            interview_type="general",
+            job_matching_info=job_matching_info
+        )
+        
+        return {
+            "success": True,
+            "workflow_type": "interview_question_generation",
+            "result": workflow_result,
+            "executed_at": workflow_result.get("generated_at", "")
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "workflow_type": "interview_question_generation"
+        }
+
+@router.post("/langgraph/resume-analysis", response_model=Dict[str, Any])
+async def generate_resume_analysis_with_langgraph(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """랭그래프 워크플로우를 사용한 이력서 분석 (DB 저장 없음)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        job_matching_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+                    job_matching_info = analyze_job_matching(resume_text, job_info)
+        
+        # LangGraph 워크플로우 실행
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "",
+            applicant_name=request.name or "",
+            interview_type="general",
+            job_matching_info=job_matching_info
+        )
+        
+        return {
+            "success": True,
+            "workflow_type": "resume_analysis",
+            "result": {
+                "resume_analysis": workflow_result.get("resume_analysis", {}),
+                "evaluation_tools": workflow_result.get("evaluation_tools", {})
+            },
+            "executed_at": workflow_result.get("generated_at", "")
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "workflow_type": "resume_analysis"
+        }
+
+@router.post("/langgraph/ai-interview", response_model=Dict[str, Any])
+async def generate_ai_interview_with_langgraph(request: AiInterviewRequest, db: Session = Depends(get_db)):
+    """랭그래프 워크플로우를 사용한 AI 면접 질문 생성 (DB 저장 없음)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 워크플로우 실행
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "회사",
+            applicant_name=request.name or "",
+            interview_type="ai"
+        )
+        
+        return {
+            "success": True,
+            "workflow_type": "ai_interview_question_generation",
+            "result": workflow_result,
+            "executed_at": workflow_result.get("generated_at", "")
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "workflow_type": "ai_interview_question_generation"
+        }
+
+@router.post("/langgraph/evaluation-tools", response_model=Dict[str, Any])
+async def generate_evaluation_tools_with_langgraph(request: AiToolsRequest, db: Session = Depends(get_db)):
+    """랭그래프 워크플로우를 사용한 평가 도구 생성 (DB 저장 없음)"""
+    try:
+        # 이력서 정보 수집
+        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+        resume_text = combine_resume_and_specs(resume, specs)
+        
+        # 직무 정보 수집
+        job_info = ""
+        if request.application_id:
+            application = db.query(Application).filter(Application.id == request.application_id).first()
+            if application:
+                job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
+                if job_post:
+                    job_info = parse_job_post_data(job_post)
+        
+        # LangGraph 워크플로우 실행
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 워크플로우 실행
+        workflow_result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=request.company_name or "회사",
+            applicant_name=request.name or "",
+            interview_type=request.interview_stage or "general"
+        )
+        
+        return {
+            "success": True,
+            "workflow_type": "evaluation_tools_generation",
+            "result": {
+                "evaluation_tools": workflow_result.get("evaluation_tools", {}),
+                "resume_analysis": workflow_result.get("resume_analysis", {})
+            },
+            "executed_at": workflow_result.get("generated_at", "")
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "workflow_type": "evaluation_tools_generation"
+        }
+
+# 백그라운드 에이전트 실행 API들
+@router.post("/background/generate-interview-questions")
+async def trigger_background_interview_questions_generation(request: IntegratedQuestionRequest, db: Session = Depends(get_db)):
+    """백그라운드에서 면접 질문 생성 트리거"""
+    try:
+        if not request.application_id:
+            raise HTTPException(status_code=400, detail="application_id가 필요합니다")
+        
+        # 백그라운드 작업 트리거
+        import asyncio
+        from ..scheduler.langgraph_background_scheduler import generate_interview_questions_for_application_async
+        
+        # 비동기로 백그라운드 작업 실행
+        asyncio.create_task(generate_interview_questions_for_application_async(request.application_id))
+        
+        return {
+            "success": True,
+            "message": f"지원 {request.application_id}에 대한 면접 질문 생성이 백그라운드에서 시작되었습니다.",
+            "task_type": "interview_questions_generation",
+            "application_id": request.application_id
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "task_type": "interview_questions_generation"
+        }
+
+@router.post("/background/generate-resume-analysis")
+async def trigger_background_resume_analysis_generation(request: ResumeAnalysisRequest, db: Session = Depends(get_db)):
+    """백그라운드에서 이력서 분석 생성 트리거"""
+    try:
+        if not request.application_id:
+            raise HTTPException(status_code=400, detail="application_id가 필요합니다")
+        
+        # 백그라운드 작업 트리거
+        import asyncio
+        from ..scheduler.langgraph_background_scheduler import generate_resume_analysis_for_application_async
+        
+        # 비동기로 백그라운드 작업 실행
+        asyncio.create_task(generate_resume_analysis_for_application_async(request.application_id))
+        
+        return {
+            "success": True,
+            "message": f"지원 {request.application_id}에 대한 이력서 분석이 백그라운드에서 시작되었습니다.",
+            "task_type": "resume_analysis_generation",
+            "application_id": request.application_id
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "task_type": "resume_analysis_generation"
+        }
+
+@router.post("/background/generate-evaluation-tools")
+async def trigger_background_evaluation_tools_generation(request: AiToolsRequest, db: Session = Depends(get_db)):
+    """백그라운드에서 평가 도구 생성 트리거"""
+    try:
+        if not request.application_id:
+            raise HTTPException(status_code=400, detail="application_id가 필요합니다")
+        
+        # 백그라운드 작업 트리거
+        import asyncio
+        from ..scheduler.langgraph_background_scheduler import generate_evaluation_tools_for_application_async
+        
+        # 비동기로 백그라운드 작업 실행
+        asyncio.create_task(generate_evaluation_tools_for_application_async(request.application_id))
+        
+        return {
+            "success": True,
+            "message": f"지원 {request.application_id}에 대한 평가 도구 생성이 백그라운드에서 시작되었습니다.",
+            "task_type": "evaluation_tools_generation",
+            "application_id": request.application_id
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "task_type": "evaluation_tools_generation"
+        }
+
+@router.get("/background/status/{application_id}")
+async def get_background_task_status(application_id: int, db: Session = Depends(get_db)):
+    """백그라운드 작업 상태 확인"""
+    try:
+        # DB에서 생성된 데이터 확인
+        questions_count = db.query(InterviewQuestion).filter(
+            InterviewQuestion.application_id == application_id
+        ).count()
+        
+        analysis_logs = db.query(InterviewQuestionLog).filter(
+            InterviewQuestionLog.application_id == application_id,
+            InterviewQuestionLog.interview_type.in_(["resume_analysis", "evaluation_tools"])
+        ).count()
+        
+        return {
+            "application_id": application_id,
+            "status": {
+                "interview_questions_generated": questions_count > 0,
+                "questions_count": questions_count,
+                "analysis_tools_generated": analysis_logs > 0,
+                "analysis_logs_count": analysis_logs
+            },
+            "last_updated": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {
+            "application_id": application_id,
+            "error": str(e),
+            "status": "error"
+        }

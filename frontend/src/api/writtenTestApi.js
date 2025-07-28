@@ -10,8 +10,8 @@ export const generateWrittenTest = async ({ jobPostId, jobTitle, department }) =
 
 // 필기 문제 제출 요청
 export const submitWrittenTest = async ({ jobPostId, questions }) => {
-  const res = await axios.post('/written-test/submit', {
-    jobPostId, // camelCase로 유지
+  const res = await axios.post('/ai-evaluate/written-test/submit', {
+    jobPostId, // camelCase로 유지 (백엔드에서 jobPostId로 받음)
     questions
   });
   return res.data;

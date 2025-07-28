@@ -1,24 +1,47 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axiosInstance from "../api/axiosInstance";
 import { useSearchParams } from "react-router-dom";
+import { getReportCache, setReportCache, clearReportCache } from "../utils/reportCache";
+import Layout from "../layout/Layout";
+import ViewPostSidebar from "../components/ViewPostSidebar";
+import { MdRefresh, MdCached } from 'react-icons/md';
 
 function DocumentReport() {
   const [data, setData] = useState(null);
-  const [loadingText, setLoadingText] = useState('');
+  const [loadingText, setLoadingText] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const loadingInterval = useRef(null);
-  const fullText = '서류보고서 생성 중입니다...';
+  const fullText = "서류 보고서 생성 중입니다...";
   const [searchParams] = useSearchParams();
   const jobPostId = searchParams.get("job_post_id");
 
   useEffect(() => {
     if (jobPostId) {
-      axiosInstance.get(`/report/document?job_post_id=${jobPostId}`)
-        .then((res) => setData(res.data))
+      console.log('📋 서류 보고서 데이터 로드 시작...');
+      
+      // 1. 먼저 캐시에서 확인
+      const cachedData = getReportCache('document', jobPostId);
+      if (cachedData) {
+        console.log('📦 서류 보고서 캐시 데이터 사용');
+        setData(cachedData.data || cachedData); // 기존 캐시와의 호환성을 위해 fallback
+        return;
+      }
+      
+      // 2. 캐시에 없으면 API 호출
+      console.log('🌐 서류 보고서 API 호출');
+      axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 })
+        .then((res) => {
+          setData(res.data);
+          // 캐시에 저장 (JobAptitudeReport와 일관된 구조)
+          setReportCache('document', jobPostId, { data: res.data });
+          console.log('💾 서류 보고서 캐시 저장 완료:', { jobPostId, data: res.data });
+        })
         .catch((error) => {
           console.error('서류 보고서 데이터 조회 실패:', error);
         });
     }
   }, [jobPostId]);
+
 
   // 로딩 텍스트 애니메이션
   useEffect(() => {
@@ -37,7 +60,7 @@ function DocumentReport() {
 
   const handleDownload = () => {
     const token = localStorage.getItem('token');
-    const url = `http://localhost:8000/api/v1/report/document/pdf?job_post_id=${jobPostId}`;
+    const url = `/api/v1/report/document/pdf?job_post_id=${jobPostId}`;
     
     // 새 창에서 PDF 다운로드
     const newWindow = window.open('', '_blank');
@@ -94,22 +117,71 @@ function DocumentReport() {
     }
   };
 
+  const handleRefreshCache = async () => {
+    if (window.confirm('서류 보고서 캐시를 새로고침하시겠습니까?')) {
+      setIsRefreshing(true);
+      clearReportCache('document', jobPostId);
+      
+      try {
+        console.log('🌐 서류 보고서 API 재호출');
+        const response = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 });
+        setData(response.data);
+        setReportCache('document', jobPostId, { data: response.data });
+        console.log('✅ 서류 보고서 캐시 새로고침 완료');
+        console.log('💾 서류 보고서 캐시 저장 완료 (새로고침):', { jobPostId, data: response.data });
+      } catch (error) {
+        console.error('서류 보고서 캐시 새로고침 실패:', error);
+        alert('캐시 새로고침에 실패했습니다.');
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (jobPostId) {
+      // 먼저 캐시에서 데이터 확인
+      const cachedData = getReportCache('document', jobPostId);
+      if (cachedData) {
+        console.log('📦 서류 보고서 캐시 데이터 사용');
+        setData(cachedData.data || cachedData); // 기존 캐시와의 호환성을 위해 fallback
+        return;
+      }
+
+      // 캐시에 없으면 API 호출
+      console.log('🌐 서류 보고서 API 호출');
+              axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 30000 })
+          .then((res) => {
+          setData(res.data);
+          // 캐시에 저장 (JobAptitudeReport와 일관된 구조)
+          setReportCache('document', jobPostId, { data: res.data });
+          console.log('💾 서류 보고서 캐시 저장 완료:', { jobPostId, data: res.data });
+        })
+        .catch((error) => {
+          console.error('서류 보고서 데이터 조회 실패:', error);
+        });
+    }
+  }, [jobPostId]);
+
   if (!data) return (
-    <div style={{
-      minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      background: '#f9fafb', borderRadius: 18, boxShadow: '0 4px 24px #e0e7ef', margin: '40px auto', maxWidth: 900
-    }}>
-      <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', marginBottom: 32, textAlign: 'center', letterSpacing: '1px', minHeight: 40 }}>
-        {loadingText}
+    <Layout>
+      <ViewPostSidebar jobPost={jobPostId ? { id: jobPostId } : null} />
+      <div style={{
+        minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        background: '#f9fafb', borderRadius: 18, boxShadow: '0 4px 24px #e0e7ef', margin: '40px auto', maxWidth: 900
+      }}>
+        <div style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', marginBottom: 32, textAlign: 'center', letterSpacing: '1px', minHeight: 40 }}>
+          {loadingText}
+        </div>
+        <div style={{ fontSize: 18, color: '#64748b', textAlign: 'center' }}>잠시만 기다려 주세요.</div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
-      <div style={{ fontSize: 18, color: '#64748b', textAlign: 'center' }}>잠시만 기다려 주세요.</div>
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+    </Layout>
   );
 
   const { job_post, stats } = data;
@@ -119,20 +191,53 @@ function DocumentReport() {
   const rejectedApplicants = stats.applicants.filter(a => a.status === 'REJECTED');
 
   return (
-    <div style={{ maxWidth: 1200, margin: "40px auto", background: "#f9fafb", padding: 40, borderRadius: 18, boxShadow: "0 4px 24px #e0e7ef", border: '1px solid #e5e7eb' }}>
-      <div style={{ borderBottom: '2px solid #2563eb', paddingBottom: 16, marginBottom: 24 }}>
-        <h2 style={{ fontWeight: 800, fontSize: 30, color: '#2563eb', letterSpacing: '-1px', marginBottom: 8 }}>{job_post.title} <span style={{ color: '#64748b', fontWeight: 600, fontSize: 20 }}>- 서류 전형 보고서</span></h2>
-        <div style={{ color: '#64748b', fontSize: 16, marginBottom: 4 }}>
-          모집 기간: <b>{job_post.start_date}</b> ~ <b>{job_post.end_date}</b>
+    <Layout>
+      <ViewPostSidebar jobPost={data?.job_post ? { id: jobPostId, ...data.job_post } : (jobPostId ? { id: jobPostId } : null)} />
+      <div style={{ maxWidth: 1200, margin: "40px auto", background: "#f9fafb", padding: 40, borderRadius: 18, boxShadow: "0 4px 24px #e0e7ef", border: '1px solid #e5e7eb' }}>
+        <div style={{ borderBottom: '2px solid #2563eb', paddingBottom: 16, marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+            <h2 style={{ fontWeight: 800, fontSize: 30, color: '#2563eb', letterSpacing: '-1px' }}>
+              {job_post.title} <span style={{ color: '#64748b', fontWeight: 600, fontSize: 20 }}>- 서류 전형 보고서</span>
+            </h2>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={handleRefreshCache}
+                disabled={isRefreshing}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '36px', height: '36px',
+                  background: isRefreshing ? '#9ca3af' : '#6b7280', color: 'white',
+                  border: 'none', borderRadius: 8, cursor: isRefreshing ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                title="캐시 새로고침"
+              >
+                <MdCached size={18} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
+              </button>
+              <button
+                onClick={handleDownload}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
+                  background: '#2563eb', color: 'white', border: 'none', borderRadius: 8,
+                  cursor: 'pointer', fontSize: 14, fontWeight: 500, transition: 'background-color 0.2s'
+                }}
+              >
+                <MdRefresh size={16} />
+                PDF 다운로드
+              </button>
+            </div>
+          </div>
+          <div style={{ color: '#64748b', fontSize: 16, marginBottom: 4 }}>
+            모집 기간: <b>{job_post.start_date}</b> ~ <b>{job_post.end_date}</b>
+          </div>
+          <div style={{ color: '#64748b', fontSize: 16 }}>
+            모집 부서: <b>{typeof job_post.department === 'object' && job_post.department !== null ? (job_post.department.name || JSON.stringify(job_post.department)) : (job_post.department || '')}</b>
+            <span style={{ margin: '0 8px', color: '#cbd5e1' }}>|</span>
+            직무: <b>{typeof job_post.position === 'object' && job_post.position !== null ? (job_post.position.name || JSON.stringify(job_post.position)) : (job_post.position || '')}</b>
+            <span style={{ margin: '0 8px', color: '#cbd5e1' }}>|</span>
+            채용 인원: <b>{job_post.recruit_count}명</b>
+          </div>
         </div>
-        <div style={{ color: '#64748b', fontSize: 16 }}>
-          모집 부서: <b>{typeof job_post.department === 'object' && job_post.department !== null ? (job_post.department.name || JSON.stringify(job_post.department)) : (job_post.department || '')}</b>
-          <span style={{ margin: '0 8px', color: '#cbd5e1' }}>|</span>
-          직무: <b>{typeof job_post.position === 'object' && job_post.position !== null ? (job_post.position.name || JSON.stringify(job_post.position)) : (job_post.position || '')}</b>
-          <span style={{ margin: '0 8px', color: '#cbd5e1' }}>|</span>
-          채용 인원: <b>{job_post.recruit_count}명</b>
-        </div>
-      </div>
       <div style={{ display: 'flex', gap: 24, marginBottom: 32 }}>
         <div style={{ flex: 1, background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 20, textAlign: 'center' }}>
           <div style={{ fontSize: 18, color: '#64748b', marginBottom: 4 }}>총 지원자</div>
@@ -234,7 +339,8 @@ function DocumentReport() {
         onMouseOut={e => e.currentTarget.style.background = '#2563eb'}>
         📥 PDF 다운로드
       </button>
-    </div>
+      </div>
+    </Layout>
   );
 }
 

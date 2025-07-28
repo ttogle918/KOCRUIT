@@ -11,6 +11,11 @@ import json
 import logging
 import asyncio
 from datetime import datetime
+import sys
+import os
+
+# LangGraph 워크플로우 import를 위한 경로 추가
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
 
 from ...core.database import get_db
 from ...models.interview_question import InterviewQuestion, QuestionType
@@ -43,6 +48,216 @@ class ConnectionManager:
             await connection.send_text(message)
 
 manager = ConnectionManager()
+
+# 면접 랭그래프 확인 및 연결 API
+@router.get("/langgraph-status")
+async def get_langgraph_status():
+    """면접 랭그래프 상태 확인"""
+    try:
+        # LangGraph 워크플로우 import 시도
+        from agent.agents.ai_interview_workflow import ai_interview_workflow
+        from agent.agents.interview_question_workflow import interview_workflow
+        
+        return {
+            "status": "available",
+            "workflows": {
+                "ai_interview_workflow": "available",
+                "interview_question_workflow": "available"
+            },
+            "message": "면접 랭그래프 워크플로우가 정상적으로 로드되었습니다."
+        }
+    except ImportError as e:
+        return {
+            "status": "error",
+            "error": f"LangGraph 워크플로우 import 실패: {str(e)}",
+            "message": "면접 랭그래프 워크플로우를 로드할 수 없습니다."
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"예상치 못한 오류: {str(e)}",
+            "message": "면접 랭그래프 상태 확인 중 오류가 발생했습니다."
+        }
+
+@router.post("/langgraph/run-interview-workflow")
+async def run_interview_langgraph_workflow(
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """면접 질문 생성 랭그래프 워크플로우 실행"""
+    try:
+        from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+        
+        # 요청 데이터 추출
+        resume_text = request.get("resume_text", "")
+        job_info = request.get("job_info", "")
+        company_name = request.get("company_name", "")
+        applicant_name = request.get("applicant_name", "")
+        interview_type = request.get("interview_type", "general")
+        first_interview_feedback = request.get("first_interview_feedback", "")
+        previous_feedback = request.get("previous_feedback", "")
+        job_matching_info = request.get("job_matching_info", "")
+        
+        # 워크플로우 실행
+        result = generate_comprehensive_interview_questions(
+            resume_text=resume_text,
+            job_info=job_info,
+            company_name=company_name,
+            applicant_name=applicant_name,
+            interview_type=interview_type,
+            first_interview_feedback=first_interview_feedback,
+            previous_feedback=previous_feedback,
+            job_matching_info=job_matching_info
+        )
+        
+        return {
+            "success": True,
+            "workflow_type": "interview_question_generation",
+            "result": result,
+            "executed_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"면접 랭그래프 워크플로우 실행 오류: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "workflow_type": "interview_question_generation"
+        }
+
+@router.post("/langgraph/run-ai-interview-workflow")
+async def run_ai_interview_langgraph_workflow(
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """AI 면접 평가 랭그래프 워크플로우 실행"""
+    try:
+        from agent.agents.ai_interview_workflow import run_ai_interview
+        
+        # 요청 데이터 추출
+        session_id = request.get("session_id", f"session_{datetime.now().timestamp()}")
+        job_info = request.get("job_info", "")
+        audio_data = request.get("audio_data", {})
+        behavior_data = request.get("behavior_data", {})
+        game_data = request.get("game_data", {})
+        
+        # 워크플로우 실행
+        result = run_ai_interview(
+            session_id=session_id,
+            job_info=job_info,
+            audio_data=audio_data,
+            behavior_data=behavior_data,
+            game_data=game_data
+        )
+        
+        return {
+            "success": True,
+            "workflow_type": "ai_interview_evaluation",
+            "result": result,
+            "session_id": session_id,
+            "executed_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"AI 면접 랭그래프 워크플로우 실행 오류: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "workflow_type": "ai_interview_evaluation"
+        }
+
+@router.get("/langgraph/workflow-info")
+async def get_langgraph_workflow_info():
+    """면접 랭그래프 워크플로우 정보 조회"""
+    try:
+        from agent.agents.ai_interview_workflow import ai_interview_workflow
+        from agent.agents.interview_question_workflow import interview_workflow
+        
+        # 워크플로우 구조 정보
+        ai_interview_nodes = list(ai_interview_workflow.nodes.keys())
+        interview_question_nodes = list(interview_workflow.nodes.keys())
+        
+        return {
+            "ai_interview_workflow": {
+                "name": "AI 면접 평가 워크플로우",
+                "description": "실시간 AI 면접 분석 및 평가를 위한 워크플로우",
+                "nodes": ai_interview_nodes,
+                "node_count": len(ai_interview_nodes),
+                "entry_point": "initialize_session",
+                "end_point": "calculate_final_score"
+            },
+            "interview_question_workflow": {
+                "name": "면접 질문 생성 워크플로우",
+                "description": "이력서 기반 맞춤형 면접 질문 생성을 위한 워크플로우",
+                "nodes": interview_question_nodes,
+                "node_count": len(interview_question_nodes),
+                "entry_point": "analyze_requirements",
+                "end_point": "result_integrator"
+            },
+            "total_workflows": 2,
+            "status": "available"
+        }
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "status": "error"
+        }
+
+@router.post("/langgraph/test-workflow")
+async def test_langgraph_workflow(
+    workflow_type: str = "interview_question",
+    test_data: Dict[str, Any] = None
+):
+    """면접 랭그래프 워크플로우 테스트"""
+    try:
+        if workflow_type == "interview_question":
+            from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
+            
+            # 테스트 데이터
+            test_data = test_data or {
+                "resume_text": "테스트 이력서 내용입니다. 3년간 개발 경험이 있으며, Java와 Python을 주로 사용합니다.",
+                "job_info": "백엔드 개발자 포지션입니다. Java, Spring Boot, MySQL 경험이 필요합니다.",
+                "company_name": "테스트 회사",
+                "applicant_name": "테스트 지원자",
+                "interview_type": "general"
+            }
+            
+            result = generate_comprehensive_interview_questions(**test_data)
+            
+        elif workflow_type == "ai_interview":
+            from agent.agents.ai_interview_workflow import run_ai_interview
+            
+            # 테스트 데이터
+            test_data = test_data or {
+                "session_id": f"test_session_{datetime.now().timestamp()}",
+                "job_info": "테스트 직무 정보",
+                "audio_data": {"transcript": "테스트 응답입니다."},
+                "behavior_data": {"eye_contact": 7, "posture": 8},
+                "game_data": {"focus_score": 8, "response_time_score": 7}
+            }
+            
+            result = run_ai_interview(**test_data)
+            
+        else:
+            return {
+                "success": False,
+                "error": f"지원하지 않는 워크플로우 타입: {workflow_type}"
+            }
+        
+        return {
+            "success": True,
+            "workflow_type": workflow_type,
+            "test_result": result,
+            "tested_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "workflow_type": workflow_type
+        }
 
 @router.post("/generate-ai-interview-questions")
 async def generate_ai_interview_questions(

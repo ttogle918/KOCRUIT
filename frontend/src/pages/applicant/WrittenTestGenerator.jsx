@@ -5,6 +5,7 @@ import ViewPostSidebar from '../../components/ViewPostSidebar';
 import WrittenTestEditor from '../../components/WrittenTestEditor';
 import { generateWrittenTest, submitWrittenTest } from '../../api/writtenTestApi';
 import { getPublicJobPosts } from '../../api/jobApi';
+import Layout from '../../layout/Layout';
 
 const WrittenTestGenerator = () => {
   const navigate = useNavigate();
@@ -81,70 +82,64 @@ const WrittenTestGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#eef6ff]">
-      <Navbar />
-      <div className="flex-1 flex">
-        {/* 사이드바 */}
-        <ViewPostSidebar jobPost={selectedJobPost} />
-        
-        {/* 메인 콘텐츠 */}
-        <div className="flex-1 ml-[90px] transition-all duration-300">
-          <div className="flex justify-center items-start py-20">
-            <div className="w-full max-w-4xl bg-white rounded-xl shadow-lg p-10 mt-8 max-h-[90vh] overflow-y-auto">
-              <button
-                className="mb-6 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium"
-                onClick={() => navigate(-1)}
-              >
-                ← 뒤로 가기
-              </button>
-              <h1 className="text-3xl font-bold mb-6 text-center">필기 문제 생성/제출</h1>
-              <div className="flex flex-col md:flex-row md:items-end md:gap-6 mb-6">
-                <div className="flex-1 mb-4 md:mb-0">
-                  <label className="block mb-1 font-medium">공고 선택</label>
-                  <select
-                    className="w-full border rounded p-2"
-                    value={selectedJobPostId}
-                    onChange={e => setSelectedJobPostId(e.target.value)}
-                    disabled={loading || jobPosts.length === 0}
-                  >
-                    <option value="">공고를 선택하세요</option>
-                    {jobPosts.map(j => (
-                      <option key={j.id} value={j.id}>
-                        {j.title}{j.department ? ` (${j.department})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 min-w-[160px]"
-                  onClick={handleGenerate}
-                  disabled={loading || !selectedJobPostId}
+    <Layout>
+      <ViewPostSidebar jobPost={selectedJobPost} />
+      <div className="min-h-screen bg-[#eef6ff] py-8 px-4" style={{ marginLeft: 90 }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="w-full bg-white rounded-xl shadow-lg p-10">
+            <button
+              className="mb-6 px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium"
+              onClick={() => navigate(-1)}
+            >
+              ← 뒤로 가기
+            </button>
+            <h1 className="text-3xl font-bold mb-6 text-center">필기 문제 생성/제출</h1>
+            <div className="flex flex-col md:flex-row md:items-end md:gap-6 mb-6">
+              <div className="flex-1 mb-4 md:mb-0">
+                <label className="block mb-1 font-medium">공고 선택</label>
+                <select
+                  className="w-full border rounded p-2"
+                  value={selectedJobPostId}
+                  onChange={e => setSelectedJobPostId(e.target.value)}
+                  disabled={loading || jobPosts.length === 0}
                 >
-                  {loading ? '생성 중...' : 'AI로 문제 생성하기'}
-                </button>
+                  <option value="">공고를 선택하세요</option>
+                  {jobPosts.map(j => (
+                    <option key={j.id} value={j.id}>
+                      {j.title}{j.department ? ` (${j.department})` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
-              {selectedJobPost && (
-                <div className="mb-4 text-gray-700 text-center">
-                  공고: <b>{selectedJobPost.title}</b>{selectedJobPost.department ? ` (${selectedJobPost.department})` : ''}
-                </div>
-              )}
-              {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
-              {success && <div className="text-green-600 mb-4 text-center">문제 제출이 완료되었습니다!</div>}
-              {questions.length > 0 && (
-                <div className="mt-8 pb-8">
-                  <WrittenTestEditor
-                    questions={questions}
-                    testType={testType}
-                    onSubmit={handleSubmit}
-                    loading={loading}
-                  />
-                </div>
-              )}
+              <button
+                className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 min-w-[160px]"
+                onClick={handleGenerate}
+                disabled={loading || !selectedJobPostId}
+              >
+                {loading ? '생성 중...' : 'AI로 문제 생성하기'}
+              </button>
             </div>
+            {selectedJobPost && (
+              <div className="mb-4 text-gray-700 text-center">
+                공고: <b>{selectedJobPost.title}</b>{selectedJobPost.department ? ` (${selectedJobPost.department})` : ''}
+              </div>
+            )}
+            {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
+            {success && <div className="text-green-600 mb-4 text-center">문제 제출이 완료되었습니다!</div>}
+            {questions.length > 0 && (
+              <div className="mt-8">
+                <WrittenTestEditor
+                  questions={questions}
+                  testType={testType}
+                  onSubmit={handleSubmit}
+                  loading={loading}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

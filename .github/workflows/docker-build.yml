@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend/**'
       - 'agent/**'
+      - 'frontend/**'
       - 'requirements.txt'
       - '.github/workflows/**'
 
@@ -16,6 +17,7 @@ jobs:
     env:
       GHCR_BACKEND: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-backend
       GHCR_AGENT: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-agent
+      GHCR_FRONTEND: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-frontend
 
     steps:
       - name: Checkout code

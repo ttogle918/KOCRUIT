@@ -1,6 +1,6 @@
 import axiosInstance from './axiosInstance';
 
-const INTERVIEW_PANEL_API = '/interview-panel';
+const INTERVIEW_PANEL_API = '/v1/interview-panel';
 
 export const interviewPanelApi = {
   // Assign interviewers for a job post
@@ -156,11 +156,30 @@ export const interviewPanelApi = {
   // Get my interview schedules for current user
   getMyInterviewSchedules: async () => {
     try {
+      // 먼저 메인 엔드포인트 시도
       const response = await axiosInstance.get(`${INTERVIEW_PANEL_API}/my-interview-schedules/`);
       return response.data;
     } catch (error) {
-      console.error('내 면접 일정 조회 실패:', error);
-      throw error;
+      console.error('메인 면접 일정 API 실패:', error);
+      
+      // 대안 엔드포인트 시도
+      try {
+        console.log('대안 엔드포인트 시도 중...');
+        const alternativeResponse = await axiosInstance.get('/schedules/interviews/');
+        return alternativeResponse.data;
+      } catch (alternativeError) {
+        console.error('대안 엔드포인트도 실패:', alternativeError);
+        
+        // 테스트 엔드포인트 시도 (인증 없음)
+        try {
+          console.log('테스트 엔드포인트 시도 중...');
+          const testResponse = await axiosInstance.get(`${INTERVIEW_PANEL_API}/my-interview-schedules-test/`);
+          return testResponse.data;
+        } catch (testError) {
+          console.error('모든 엔드포인트 실패:', testError);
+          throw error; // 원래 에러를 던짐
+        }
+      }
     }
   }
 };

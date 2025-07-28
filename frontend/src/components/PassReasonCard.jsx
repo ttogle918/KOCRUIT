@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaStar, FaRegStar, FaEnvelope } from 'react-icons/fa';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
 import api from '../api/api';
 import { calculateAge } from '../utils/resumeUtils';
 import GrowthPredictionCard from './GrowthPredictionCard';
 
 const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
+  const [growthResult, setGrowthResult] = useState(null);
+  const [growthDetailsCollapsed, setGrowthDetailsCollapsed] = useState(false);
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(applicant?.isBookmarked === 'Y');
@@ -21,6 +24,87 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
   const [showFullReason, setShowFullReason] = useState(false);
   const applicationId = applicant?.application_id || applicant?.applicationId;
   const passReason = applicant?.pass_reason || '';
+
+  // Box plot 항목별 단위/설명 매핑
+  const boxplotLabels = {
+    '경력(년)': { label: '경력(년)', unit: '년', desc: '고성과자 총 경력 연수 분포' },
+    '주요 프로젝트 경험 수': { label: '주요 프로젝트 경험 수', unit: '개', desc: '고성과자 주요 프로젝트 경험 개수' },
+    '학력': { label: '학력', unit: '레벨', desc: '학사=2, 석사=3, 박사=4' },
+    '자격증': { label: '자격증 개수', unit: '개', desc: '고성과자 자격증 보유 개수' },
+  };
+
+  // 레이더 차트 데이터 처리 함수들
+  const [chartMode, setChartMode] = useState('ratio'); // 'ratio' | 'normalized' | 'raw'
+
+  // 1. 비율(고성과자=100) 데이터 변환
+  const getRatioData = () => {
+    if (!growthResult || !growthResult.comparison_chart_data) return [];
+    const { labels, applicant, high_performer } = growthResult.comparison_chart_data;
+    return labels.map((label, idx) => {
+      const max = high_performer[idx] > 0 ? high_performer[idx] : 1;
+      const applicantNorm = (applicant[idx] / max) * 100;
+      return {
+        항목: label,
+        지원자: Math.min(applicantNorm, 100),
+        고성과자: 100,
+        raw_지원자: applicant[idx],
+        raw_고성과자: high_performer[idx],
+        지원자비율: applicantNorm,
+      };
+    });
+  };
+
+  // 2. 정규화(0~100) 데이터 변환 (항목별 최대값 기준)
+  const getNormalizedData = () => {
+    if (!growthResult || !growthResult.comparison_chart_data) return [];
+    const { labels, applicant, high_performer } = growthResult.comparison_chart_data;
+    return labels.map((label, idx) => {
+      const max = Math.max(applicant[idx], high_performer[idx], 1);
+      return {
+        항목: label,
+        지원자: (applicant[idx] / max) * 100,
+        고성과자: (high_performer[idx] / max) * 100,
+        raw_지원자: applicant[idx],
+        raw_고성과자: high_performer[idx],
+      };
+    });
+  };
+
+  // 3. 실제값 데이터 변환
+  const getRawData = () => {
+    if (!growthResult || !growthResult.comparison_chart_data) return [];
+    const { labels, applicant, high_performer } = growthResult.comparison_chart_data;
+    return labels.map((label, idx) => ({
+      항목: label,
+      지원자: applicant[idx],
+      고성과자: high_performer[idx],
+    }));
+  };
+
+  // 실제값 모드에서 최대값 계산 (축 범위용)
+  const getMaxValue = () => {
+    if (!growthResult || !growthResult.comparison_chart_data) return 100;
+    const { applicant, high_performer } = growthResult.comparison_chart_data;
+    return Math.ceil(Math.max(...applicant, ...high_performer, 1));
+  };
+
+  // 그래프 데이터 및 축/범위/설명 선택
+  let chartData = [];
+  let yDomain = [0, 100];
+  let chartDesc = '';
+  if (chartMode === 'ratio') {
+    chartData = getRatioData();
+    yDomain = [0, 100];
+    chartDesc = '고성과자=100%로 환산한 지원자 상대비율입니다. (실제값은 툴팁 참고)';
+  } else if (chartMode === 'normalized') {
+    chartData = getNormalizedData();
+    yDomain = [0, 100];
+    chartDesc = '각 항목별로 0~100으로 정규화한 값입니다. (실제값은 툴팁 참고)';
+  } else {
+    chartData = getRawData();
+    yDomain = [0, getMaxValue()];
+    chartDesc = '실제값(절대값) 비교입니다. 값의 편차가 클 수 있습니다.';
+  }
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -75,42 +159,97 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
     setAiQuestions([]);
     setQuestionRequested(true);
     
-    console.log('AI 질문 생성 시작:', {
+    console.log('AI 개인 질문 생성 시작:', {
       application_id: applicant.application_id || applicant.applicationId,
       company_name: applicant.companyName || applicant.company_name || '회사'
     });
     
     try {
+      console.log('AI 개인 질문 생성 시작 - 지원자 정보:', {
+        application_id: applicant.application_id || applicant.applicationId,
+        name: applicant.name,
+        education: applicant.education,
+        experience: applicant.experience,
+        skills: applicant.skills
+      });
+      
       // 개인별 맞춤형 질문 생성을 위한 API 호출
       const response = await api.post('/interview-questions/job-questions', {
         application_id: applicant.application_id || applicant.applicationId,
         company_name: applicant.companyName || applicant.company_name || '회사',
         // 개인별 질문 생성을 위한 추가 정보
-        include_personal_questions: true,
-        applicant_name: applicant.name,
         resume_data: {
           personal_info: {
-            name: applicant.name,
-            email: applicant.email,
-            birthDate: applicant.birthDate
+            name: applicant.name || '지원자',
+            email: applicant.email || '',
+            birthDate: applicant.birthDate || ''
           },
-          education: applicant.education || {},
-          experience: applicant.experience || {},
-          skills: applicant.skills || {},
-          projects: applicant.projects || [],
-          activities: applicant.activities || []
+          education: {
+            university: applicant.university || applicant.education?.university || '',
+            major: applicant.major || applicant.education?.major || '',
+            degree: applicant.degree || applicant.education?.degree || '',
+            gpa: applicant.gpa || applicant.education?.gpa || ''
+          },
+          experience: {
+            companies: Array.isArray(applicant.companies) ? applicant.companies : 
+                      Array.isArray(applicant.experience?.companies) ? applicant.experience.companies : [],
+            position: applicant.position || applicant.experience?.position || '',
+            duration: applicant.duration || applicant.experience?.duration || ''
+          },
+          skills: {
+            programming_languages: Array.isArray(applicant.programming_languages) ? applicant.programming_languages :
+                                 Array.isArray(applicant.skills?.programming_languages) ? applicant.skills.programming_languages : [],
+            frameworks: Array.isArray(applicant.frameworks) ? applicant.frameworks :
+                      Array.isArray(applicant.skills?.frameworks) ? applicant.skills.frameworks : [],
+            databases: Array.isArray(applicant.databases) ? applicant.databases :
+                      Array.isArray(applicant.skills?.databases) ? applicant.skills.databases : [],
+            tools: Array.isArray(applicant.tools) ? applicant.tools :
+                  Array.isArray(applicant.skills?.tools) ? applicant.skills.tools : []
+          },
+          projects: Array.isArray(applicant.projects) ? applicant.projects : [],
+          activities: Array.isArray(applicant.activities) ? applicant.activities : []
         }
       });
       
-      console.log('AI 질문 생성 응답:', response.data);
+      console.log('AI 개인 질문 생성 응답:', response.data);
+      console.log('응답 데이터 구조:', {
+        has_question_bundle: !!response.data?.question_bundle,
+        has_questions: !!response.data?.questions,
+        question_bundle_keys: response.data?.question_bundle ? Object.keys(response.data.question_bundle) : [],
+        questions_length: response.data?.questions ? response.data.questions.length : 0
+      });
       
-      // 개인별 질문 데이터 처리
+      // 개인별 질문 데이터 처리 - 개인 질문만 필터링
       let q = response.data?.question_bundle || response.data?.question_categories || response.data?.questions || {};
-      if (Array.isArray(q)) q = { "AI 질문": q };
+      
+      // 개인 질문만 필터링 - 모든 개인별 질문 카테고리 포함
+      if (typeof q === 'object' && q !== null) {
+        const personalQuestions = {};
+        Object.entries(q).forEach(([category, questions]) => {
+          // 개인별 질문 관련 카테고리들 모두 포함
+          if (category === 'personal' || 
+              category === '개인별 질문' || 
+              category === '프로젝트 경험' || 
+              category === '상황 대처' || 
+              category === '자기소개서 요약' || 
+              category === 'personal_questions' ||
+              category === '학력/전공' ||
+              category === '경력/직무' ||
+              category === '기술 스택' ||
+              category === '프로젝트 경험' ||
+              category === '인성/동기' ||
+              category === '회사/직무 적합성') {
+            personalQuestions[category] = questions;
+          }
+        });
+        q = personalQuestions;
+      }
+      
+      if (Array.isArray(q)) q = { "개인별 질문": q };
       setAiQuestions(q);
     } catch (err) {
-      console.error('AI 질문 생성 오류:', err);
-      setQuestionError('AI 질문 생성 중 오류가 발생했습니다.');
+      console.error('AI 개인 질문 생성 오류:', err);
+      setQuestionError('AI 개인 질문 생성 중 오류가 발생했습니다.');
     } finally {
       setQuestionLoading(false);
     }
@@ -156,18 +295,223 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
       </div>
 
       {/* 점수/합격/AI예측 강조 카드 */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl p-8 shadow-inner w-full overflow-visible flex-grow-0">
-        <div className="flex flex-col items-center flex-1 min-w-0">
-          <div className="text-4xl font-extrabold text-blue-600 dark:text-blue-300 mb-1 break-words">{aiScore}점</div>
-          <div className="text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">합격</div>
-          <div className="flex gap-2">
-            
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-2xl p-8 shadow-inner w-full overflow-visible flex-grow-0">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+          {/* AI 점수는 항상 표시 */}
+          <div className="flex flex-col items-center flex-1 min-w-0">
+            <div className="text-4xl font-extrabold text-blue-600 dark:text-blue-300 mb-1 break-words">{aiScore}점</div>
+            <div className="text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">합격</div>
           </div>
-        </div>
-        <div className="flex-1 flex flex-col items-center md:items-end min-w-0">
-          {applicationId && <GrowthPredictionCard applicationId={applicationId} />}
+          
+          {/* 성장 예측 점수는 결과가 있을 때만 표시 */}
+          {growthResult ? (
+            <div className="flex flex-col items-center flex-1 min-w-0">
+              <div className="flex items-end gap-2">
+                <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-300 mb-1 break-words">{growthResult.total_score ?? growthResult.growth_score}점</span>
+              </div>
+              <div className="text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">AI 성장 예측</div>
+            </div>
+          ) : (
+            /* 결과가 없을 때: 버튼 표시 */
+            <div className="flex flex-col items-center flex-1 min-w-0">
+              {applicationId && <GrowthPredictionCard applicationId={applicationId} onResultChange={setGrowthResult} />}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* AI 성장 예측 상세 내용 */}
+      {applicationId && growthResult && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-blue-100 dark:border-blue-900/40 shadow-sm mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-lg font-bold text-gray-800 dark:text-white">AI 성장 예측 상세 결과</div>
+            <button
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+              onClick={() => setGrowthDetailsCollapsed(!growthDetailsCollapsed)}
+            >
+              {growthDetailsCollapsed ? '펼치기' : '접기'}
+            </button>
+          </div>
+          {/* 표 + 설명 */}
+          {!growthDetailsCollapsed && (
+            <>
+              {growthResult.item_table && (
+                <div className="pb-4">
+                  <table className="w-full text-sm border rounded bg-gray-50 mb-2 mt-2">
+                    <thead>
+                      <tr>
+                        <th className="border-b p-2 text-left">항목</th>
+                        <th className="border-b p-2 text-left">지원자</th>
+                        <th className="border-b p-2 text-left">고성과자평균</th>
+                        <th className="border-b p-2 text-left">항목점수</th>
+                        <th className="border-b p-2 text-left">비중(%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {growthResult.item_table.map((row, i) => (
+                        <tr key={i}>
+                          <td className="border-b p-2 font-semibold text-blue-900">{row["항목"]}</td>
+                          <td className="border-b p-2">{row["지원자"]}</td>
+                          <td className="border-b p-2">{row["고성과자평균"]}</td>
+                          <td className="border-b p-2">{row["항목점수"]}</td>
+                          <td className="border-b p-2">{row["비중"]}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                                {growthResult.narrative && (
+                <div className="text-base text-blue-800 font-semibold mt-4 whitespace-pre-line">{growthResult.narrative}</div>
+              )}
+            </div>
+          )}
+
+          {/* 레이더 차트: 지원자 vs 고성과자 비교 */}
+          {growthResult.comparison_chart_data && (
+            <div className="mt-6">
+              <h4 className="font-semibold text-base mb-4 text-gray-800 dark:text-white">지원자 vs 고성과자 비교</h4>
+              
+              {/* 그래프 모드 선택 버튼 */}
+              <div className="flex gap-2 mb-2">
+                <button
+                  className={`px-2 py-1 rounded text-xs border ${chartMode === 'ratio' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                  onClick={() => setChartMode('ratio')}
+                >
+                  비율(고성과자=100) 보기
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs border ${chartMode === 'normalized' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                  onClick={() => setChartMode('normalized')}
+                >
+                  정규화(0~100) 보기
+                </button>
+                <button
+                  className={`px-2 py-1 rounded text-xs border ${chartMode === 'raw' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                  onClick={() => setChartMode('raw')}
+                >
+                  실제값 보기
+                </button>
+              </div>
+              <div className="text-xs text-gray-500 mb-2">{chartDesc}</div>
+              
+              <div className="mt-2">
+                {chartData.length > 0 ? (
+                  chartMode === 'ratio' || chartMode === 'normalized' ? (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <RadarChart data={chartData} outerRadius={100}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="항목" />
+                        <PolarRadiusAxis angle={30} domain={yDomain} />
+                        <Radar name="지원자" dataKey="지원자" stroke="#2563eb" fill="#2563eb" fillOpacity={0.4} />
+                        <Radar name="고성과자" dataKey="고성과자" stroke="#22c55e" fill="#22c55e" fillOpacity={0.2} />
+                        <Legend />
+                        <Tooltip
+                          formatter={(value, name, props) => {
+                            if (name === '지원자') {
+                              return [
+                                chartMode === 'ratio' || chartMode === 'normalized'
+                                  ? `${value.toFixed(1)}% (실제: ${props.payload.raw_지원자})`
+                                  : `${value} (실제값)`,
+                                '지원자',
+                              ];
+                            }
+                            if (name === '고성과자') {
+                              return [
+                                chartMode === 'ratio' || chartMode === 'normalized'
+                                  ? `${value.toFixed(1)}% (실제: ${props.payload.raw_고성과자})`
+                                  : `${value} (실제값)`,
+                                '고성과자',
+                              ];
+                            }
+                            return value;
+                          }}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="항목" />
+                        <YAxis domain={yDomain} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="지원자" fill="#2563eb" name="지원자" />
+                        <Bar dataKey="고성과자" fill="#22c55e" name="고성과자" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )
+                ) : (
+                  <div className="text-gray-400 text-center">비교 그래프 데이터를 불러올 수 없습니다.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Box plot: 고성과자 분포 + 지원자 위치 */}
+              {growthResult.boxplot_data && (
+                <div className="mt-6">
+                  <h4 className="font-semibold text-base mb-4 text-gray-800 dark:text-white">고성과자 분포와 지원자 위치</h4>
+                  {Object.entries(growthResult.boxplot_data).map(([label, stats]) => {
+                    const meta = boxplotLabels[label] || { label, unit: '', desc: '' };
+                    
+                    // Box plot 데이터 생성
+                    const boxData = [
+                      { name: '최저값', value: stats.min, type: 'min' },
+                      { name: '25%', value: stats.q1, type: 'q1' },
+                      { name: '중간값', value: stats.median, type: 'median' },
+                      { name: '75%', value: stats.q3, type: 'q3' },
+                      { name: '최고값', value: stats.max, type: 'max' }
+                    ];
+                    
+                    return (
+                      <div key={label} className="mb-6">
+                        <div className="font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                          {meta.label} <span className="text-xs text-gray-500">({meta.desc}{meta.unit ? `, 단위: ${meta.unit}` : ''})</span>
+                        </div>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <ComposedChart data={boxData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip 
+                              formatter={(value, name) => [
+                                `${value}${meta.unit ? ` ${meta.unit}` : ''}`, 
+                                name
+                              ]}
+                            />
+                            <Legend />
+                            <Bar dataKey="value" fill="#2563eb" name="고성과자 분포" />
+                            <Line 
+                              type="monotone" 
+                              dataKey="value" 
+                              stroke="#2563eb" 
+                              strokeWidth={2}
+                              dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
+                            />
+                            {/* 지원자 위치 표시 */}
+                            <Line 
+                              type="monotone" 
+                              data={[{ name: '지원자', value: stats.applicant }]}
+                              dataKey="value" 
+                              stroke="red" 
+                              strokeWidth={3}
+                              dot={{ fill: 'red', strokeWidth: 2, r: 6 }}
+                              name="지원자"
+                            />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                        <div className="text-xs text-gray-500 mt-2">
+                          파란 막대는 고성과자 집단의 분포(최저~최고, 25%~75%, 중간값), 빨간 점은 지원자의 위치입니다.
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* 합격 포인트 */}
       <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-blue-100 dark:border-blue-900/40 shadow-sm max-h-[300px] overflow-y-auto">
@@ -199,7 +543,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
       </div>
 
       {/* 이 지원자에게 물어볼 만한 질문 */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-900/40 shadow-sm max-w-full max-h-[800px] overflow-hidden">
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-900/40 shadow-sm max-w-full">
         <div className="text-base font-bold text-blue-700 dark:text-blue-300 mb-2">이 지원자에게 물어볼 만한 질문 (예시)</div>
         {/* 예시 질문 placeholder */}
         {!questionRequested && (
@@ -223,30 +567,43 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
               </svg>
             )}
-            {questionLoading ? 'AI 질문 생성 중...' : 'AI 질문 생성'}
+            {questionLoading ? 'AI 개인 질문 생성 중...' : 'AI 개인 질문 생성'}
           </button>
         ) : questionError ? (
           <div className="text-red-500 mt-2">{questionError}</div>
         ) : aiQuestions && Object.keys(aiQuestions).length > 0 ? (
-          <div className="max-h-[700px] overflow-y-auto pr-2 space-y-4 mt-2 pb-8">
+          <div className="max-h-[600px] overflow-y-auto pr-2 space-y-6 mt-4">
             {Object.entries(aiQuestions).map(([category, questions]) => (
-              <div key={category} className="border-b border-blue-200 pb-4 last:border-b-0">
-                <div className="font-semibold text-blue-700 dark:text-blue-300 mb-3 text-lg">
-                  {category === 'common' ? '공통 질문' : 
-                   category === 'personal' ? '개인별 질문' : 
-                   category === 'company' ? '회사 관련 질문' : 
-                   category}
+              <div key={category} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="font-semibold text-blue-700 dark:text-blue-300 text-lg">
+                    {category === 'personal' ? '개인별 질문' : 
+                     category === '프로젝트 경험' ? '프로젝트 경험' : 
+                     category === '상황 대처' ? '상황 대처' : 
+                     category === '자기소개서 요약' ? '자기소개서 요약' :
+                     category}
+                  </div>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                    {Array.isArray(questions) ? questions.length : 0}개
+                  </span>
                 </div>
-                <ul className="list-disc pl-6 space-y-2">
+                <div className="space-y-3">
                   {Array.isArray(questions) && questions.map((q, idx) => (
-                    <li key={idx} className="text-gray-700 dark:text-gray-300 break-words leading-relaxed">{q}</li>
+                    <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <span className="text-blue-500 dark:text-blue-400 font-semibold text-sm min-w-[20px]">
+                        {idx + 1}.
+                      </span>
+                      <span className="text-gray-700 dark:text-gray-300 break-words leading-relaxed flex-1">
+                        {q}
+                      </span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-gray-500 mt-2">AI 질문이 없습니다.</div>
+          <div className="text-gray-500 mt-2">AI 개인 질문이 없습니다.</div>
         )}
       </div>
     </div>

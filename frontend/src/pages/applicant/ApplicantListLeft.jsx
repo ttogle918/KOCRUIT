@@ -185,11 +185,24 @@ function ApplicantListLeft({
                   splitMode={splitMode}
                   bookmarked={bookmarkedList[globalIndex]}
                   onClick={() => {
-                    if (splitMode && isSelected) {
-                      handleCloseDetailedView();
-                    } else if (splitMode && !isSelected) {
-                      onSelectApplicant(applicant, globalIndex);
+                    console.log('🎯 ApplicantCard 클릭됨:', { 
+                      applicant: applicant.name, 
+                      globalIndex, 
+                      splitMode, 
+                      isSelected 
+                    });
+                    
+                    // 단순화된 클릭 핸들러
+                    if (splitMode) {
+                      if (isSelected) {
+                        console.log('📱 상세보기 닫기');
+                        handleCloseDetailedView();
+                      } else {
+                        console.log('📱 다른 지원자 선택');
+                        onSelectApplicant(applicant, globalIndex);
+                      }
                     } else {
+                      console.log('📱 이력서 상세보기 열기');
                       handleApplicantClick(applicant, globalIndex);
                     }
                   }}
