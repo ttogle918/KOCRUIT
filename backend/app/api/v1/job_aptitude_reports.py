@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 import re
 
 from app.core.database import get_db
-from app.models.application import Application, ApplyStatus, WrittenTestStatus
+from app.models.application import Application, ApplyStatus, WrittenTestStatus, DocumentStatus
 from app.models.job import JobPost
 from app.models.resume import Resume
 from app.models.user import User
@@ -268,7 +268,7 @@ async def get_job_aptitude_report_data(
         # 서류합격자 수 조회
         document_passed_applications = db.query(Application).filter(
             Application.job_post_id == job_post_id,
-            Application.status == "PASSED"
+            Application.document_status == DocumentStatus.PASSED
         ).all()
         document_passed_count = len(document_passed_applications)
         print(f"[JOB-APTITUDE-REPORT] 서류합격자 수: {document_passed_count}명")

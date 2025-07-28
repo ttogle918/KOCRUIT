@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Dict, Any, Optional
 import tempfile
 from weasyprint import HTML
@@ -22,6 +22,7 @@ from app.models.written_test_answer import WrittenTestAnswer
 from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
 from app.models.schedule import AIInterviewSchedule
 from app.schemas.report import DocumentReportResponse, WrittenTestReportResponse
+from app.utils.llm_cache import redis_cache
 
 router = APIRouter()
 
@@ -47,7 +48,7 @@ def extract_top3_rejection_reasons_llm(fail_reasons: list[str]) -> list[str]:
 응답은 반드시 JSON 배열로만 출력해라.
 """
     print("[LLM-탈락사유] 프롬프트:\n", prompt)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.9)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.9, timeout=30)
     try:
         response = llm.invoke(prompt)
         print("[LLM-탈락사유] LLM 응답:", response.content)
@@ -75,7 +76,7 @@ def extract_passed_summary_llm(pass_reasons: list[str]) -> str:
 이 내용을 바탕으로, 이번 채용에서 어떤 유형/능력의 인재가 합격했는지 한글로 2~3문장으로 요약해줘.
 예시: \"실무 경험과 자격증을 고루 갖춘 지원자가 선발되었습니다. PM 경력과 정보처리기사 자격증 보유가 주요 합격 요인으로 작용했습니다.\"
 """
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7, timeout=30)
     try:
         response = llm.invoke(prompt)
         return response.content.strip()
@@ -86,6 +87,7 @@ def extract_passed_summary_llm(pass_reasons: list[str]) -> str:
 
 
 @router.get("/document")
+@redis_cache(expire=1800)  # 30분 캐시
 async def get_document_report_data(
     job_post_id: int,
     db: Session = Depends(get_db),
@@ -97,8 +99,11 @@ async def get_document_report_data(
         if not job_post:
             raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
         
-        # 지원자 정보 조회
-        applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+        # 지원자 정보 조회 (N+1 쿼리 문제 해결을 위해 joinedload 사용)
+        applications = db.query(Application).options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        ).filter(Application.job_post_id == job_post_id).all()
         
         # 통계 계산
         total_applicants = len(applications)
@@ -136,23 +141,33 @@ async def get_document_report_data(
             if app.document_status == DocumentStatus.REJECTED and app.fail_reason:
                 rejection_reasons.append(app.fail_reason)
 
-        # LLM을 이용한 TOP3 추출
+        # LLM을 이용한 TOP3 추출 (실패 시 fallback)
         if rejection_reasons:
-            top_reasons = extract_top3_rejection_reasons_llm(rejection_reasons)
+            try:
+                top_reasons = extract_top3_rejection_reasons_llm(rejection_reasons)
+                if not top_reasons:  # LLM 호출 실패 시 fallback
+                    # 가장 많이 언급된 사유들을 간단히 추출
+                    from collections import Counter
+                    reason_counter = Counter(rejection_reasons)
+                    top_reasons = [reason for reason, count in reason_counter.most_common(3)]
+            except Exception as e:
+                print(f"[LLM-탈락사유] LLM 호출 실패, fallback 사용: {e}")
+                # 가장 많이 언급된 사유들을 간단히 추출
+                from collections import Counter
+                reason_counter = Counter(rejection_reasons)
+                top_reasons = [reason for reason, count in reason_counter.most_common(3)]
         else:
             top_reasons = []
         
-        # 지원자 상세 정보
+        # 지원자 상세 정보 (이미 로드된 데이터 사용)
         applicants_data = []
         passed_reasons = []
         for app in applications:
-            resume = db.query(Resume).filter(Resume.id == app.resume_id).first()
-            user = db.query(User).filter(User.id == app.user_id).first()
-            if resume and user:
-                # Spec 정보 집계
-                education = next((s.spec_title for s in resume.specs if s.spec_type == "학력"), "")
-                experience = sum(1 for s in resume.specs if s.spec_type == "경력")
-                certificates = sum(1 for s in resume.specs if s.spec_type == "자격증")
+            if app.user and app.resume:
+                # Spec 정보 집계 (이미 로드된 데이터 사용)
+                education = next((s.spec_title for s in app.resume.specs if s.spec_type == "학력"), "")
+                experience = sum(1 for s in app.resume.specs if s.spec_type == "경력")
+                certificates = sum(1 for s in app.resume.specs if s.spec_type == "자격증")
                 if app.document_status == DocumentStatus.PASSED and app.pass_reason:
                     passed_reasons.append(app.pass_reason)
                 if app.document_status == DocumentStatus.REJECTED and app.fail_reason:
@@ -164,13 +179,20 @@ async def get_document_report_data(
                 else:
                     evaluation_comment = ""
                 applicants_data.append({
-                    "name": user.name,
+                    "name": app.user.name,
                     "ai_score": float(app.ai_score) if app.ai_score is not None else 0,
                     "total_score": float(app.final_score) if app.final_score is not None else 0,
                     "status": app.document_status.value if hasattr(app.document_status, 'value') else str(app.document_status),
                     "evaluation_comment": evaluation_comment
                 })
-        passed_summary = extract_passed_summary_llm(passed_reasons)
+        # 합격자 요약 (실패 시 fallback)
+        try:
+            passed_summary = extract_passed_summary_llm(passed_reasons)
+            if not passed_summary:  # LLM 호출 실패 시 fallback
+                passed_summary = f"총 {len(passed_reasons)}명의 지원자가 합격했습니다."
+        except Exception as e:
+            print(f"[LLM-합격자요약] LLM 호출 실패, fallback 사용: {e}")
+            passed_summary = f"총 {len(passed_reasons)}명의 지원자가 합격했습니다."
         # 합격/불합격자 분리
         passed_applicants = [a for a in applicants_data if a['status'] == 'PASSED']
         rejected_applicants = [a for a in applicants_data if a['status'] == 'REJECTED']
@@ -379,9 +401,9 @@ async def generate_comprehensive_evaluation(
             raise HTTPException(status_code=404, detail="지원자 정보를 찾을 수 없습니다.")
         
         # 서류 평가 코멘트: pass_reason 또는 fail_reason 사용
-        if application.status == ApplyStatus.PASSED and application.pass_reason:
+        if application.document_status == DocumentStatus.PASSED and application.pass_reason:
             document_comment = application.pass_reason
-        elif application.status == ApplyStatus.REJECTED and application.fail_reason:
+        elif application.document_status == DocumentStatus.REJECTED and application.fail_reason:
             document_comment = application.fail_reason
         else:
             document_comment = "서류 평가 코멘트 없음"
@@ -532,10 +554,7 @@ async def get_job_aptitude_report_data(
         # 서류합격자 수 조회
         document_passed_applications = db.query(Application).filter(
             Application.job_post_id == job_post_id,
-            or_(
-                Application.status == "PASSED",
-                Application.document_status == "PASSED"
-            )
+            Application.document_status == DocumentStatus.PASSED
         ).all()
         document_passed_count = len(document_passed_applications)
         print(f"[JOB-APTITUDE-REPORT] 서류합격자 수: {document_passed_count}명")

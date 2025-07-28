@@ -40,6 +40,9 @@ function ApplicantListLeft({
   // filteredApplicants는 useMemo로 계산
   const filteredApplicants = useMemo(() => {
     let filtered = Array.isArray(applicants) ? [...applicants] : [];
+    
+    // 디버깅: 점수 데이터 확인
+    console.log('🔍 지원자 점수 데이터:', filtered.map(app => ({ name: app.name, score: app.score, ai_score: app.ai_score })));
     const allowedStatuses = ['WAITING', 'SUITABLE', 'UNSUITABLE', 'REJECTED', 'PASSED'];
     const allowedDocumentStatuses = ['PENDING', 'REVIEWING', 'PASSED', 'REJECTED'];
     
@@ -67,13 +70,21 @@ function ApplicantListLeft({
     }
     filtered.sort((a, b) => {
       if (sortConfig.type === 'score') {
-        return sortConfig.isDesc ? b.score - a.score : a.score - b.score;
+        // AI 점수 기준으로 정렬 (ai_score가 없으면 score 사용)
+        const scoreA = a.ai_score ?? a.score ?? 0;
+        const scoreB = b.ai_score ?? b.score ?? 0;
+        const result = sortConfig.isDesc ? scoreB - scoreA : scoreA - scoreB;
+        console.log(`📊 AI점수 정렬: ${a.name}(AI:${scoreA}) vs ${b.name}(AI:${scoreB}) = ${result}`);
+        return result;
       } else {
         const dateA = new Date(a.appliedAt);
         const dateB = new Date(b.appliedAt);
         return sortConfig.isDesc ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime();
       }
     });
+    
+    // 정렬 결과 확인
+    console.log('✅ AI점수 기준 정렬된 지원자 목록:', filtered.map(app => ({ name: app.name, ai_score: app.ai_score, score: app.score })));
     return filtered;
   }, [
     applicants, activeTab, searchQuery, sortConfig,
@@ -150,7 +161,7 @@ function ApplicantListLeft({
                       : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
                   } border`}
                 >
-                  {sortConfig.type === 'score' ? (sortConfig.isDesc ? '점수↓' : '점수↑') : '점수'}
+                  {sortConfig.type === 'score' ? (sortConfig.isDesc ? 'AI점수↓' : 'AI점수↑') : 'AI점수'}
                 </button>
                 <button
                   onClick={() => setSortConfig(prev => ({ type: 'date', isDesc: !prev.isDesc }))}

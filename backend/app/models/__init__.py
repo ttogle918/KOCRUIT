@@ -19,6 +19,7 @@ from .EmailVerificationToken import EmailVerificationToken
 from .highlight_result import HighlightResult
 from .analysis_result import AnalysisResult
 from .growth_prediction_result import GrowthPredictionResult
+from .statistics_analysis import StatisticsAnalysis
 from app.core.database import Base
 
 from .evaluation_criteria import EvaluationCriteria
@@ -50,6 +51,7 @@ __all__ = [
     "HighlightResult",
     "AnalysisResult",
     "GrowthPredictionResult",
+    "StatisticsAnalysis",
     "WrittenTestAnswer",
     "Notification",
     "ApplicantUser",

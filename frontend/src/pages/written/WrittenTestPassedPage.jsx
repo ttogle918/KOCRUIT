@@ -113,6 +113,11 @@ export default function WrittenTestPassedPage() {
   useEffect(() => {
     const fetchApplicants = async () => {
       try {
+        if (!jobpostId) {
+          setError('채용공고 ID가 필요합니다.');
+          setLoading(false);
+          return;
+        }
         const res = await api.get(`/ai-evaluate/written-test/passed/${jobpostId}`);
         const data = res.data;
         setPassedApplicants(data);
@@ -124,11 +129,12 @@ export default function WrittenTestPassedPage() {
         setLoading(false);
       }
     };
-    if (jobpostId) fetchApplicants();
+    fetchApplicants();
   }, [jobpostId]);
 
   useEffect(() => {
     const fetchJobPost = async () => {
+      if (!jobpostId) return;
       setJobPostLoading(true)
       try {
         // 공개 jobpost 정보 API 사용
@@ -149,12 +155,13 @@ export default function WrittenTestPassedPage() {
         setJobPostLoading(false);
       }
     };
-    if (jobpostId) fetchJobPost();
+    fetchJobPost();
   }, [jobpostId]);
 
   // 전체 응시자 수 fetch
   useEffect(() => {
     const fetchTotalApplicants = async () => {
+      if (!jobpostId) return;
       try {
         const res = await api.get(`/applications/job/${jobpostId}/applicants`);
         setTotalApplicants(Array.isArray(res.data) ? res.data.length : null);
@@ -162,12 +169,13 @@ export default function WrittenTestPassedPage() {
         setTotalApplicants(null);
       }
     };
-    if (jobpostId) fetchTotalApplicants();
+    fetchTotalApplicants();
   }, [jobpostId]);
 
   // 서류 합격자 수 fetch
   useEffect(() => {
     const fetchDocumentPassedCount = async () => {
+      if (!jobpostId) return;
       try {
         const res = await api.get(`/applications/job/${jobpostId}/passed-applicants`);
         if (res.data && typeof res.data.total_count === 'number') {
@@ -181,7 +189,7 @@ export default function WrittenTestPassedPage() {
         setDocumentPassedCount(null);
       }
     };
-    if (jobpostId) fetchDocumentPassedCount();
+    fetchDocumentPassedCount();
   }, [jobpostId]);
 
   const handleApplicantClick = async (applicant) => {
@@ -189,6 +197,11 @@ export default function WrittenTestPassedPage() {
     setSelectedApplicant(applicant);
     setSplitMode(true);
     // 문제별 피드백 불러오기
+    if (!jobpostId) {
+      setSelectedFeedbacks([]);
+      setSelectedAnswers([]);
+      return;
+    }
     try {
       const answers = await getWrittenTestAnswers({ jobPostId: jobpostId, userId: applicant.user_id });
       console.log('written-test answers:', answers); // 응답 확인용 로그
@@ -260,6 +273,11 @@ export default function WrittenTestPassedPage() {
         <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
           <div className="text-xl text-red-500">{error}</div>
+          {!jobpostId && (
+            <div className="mt-4 text-lg text-gray-600">
+              채용공고 ID가 필요합니다. 올바른 URL로 접근해주세요.
+            </div>
+          )}
         </div>
       </Layout>
     );
@@ -276,7 +294,12 @@ export default function WrittenTestPassedPage() {
           </div>
           <button
             onClick={() => navigate(`/applicantlist/${jobpostId}`)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            disabled={!jobpostId}
+            className={`px-4 py-2 rounded transition-colors ${
+              jobpostId 
+                ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             목록으로 돌아가기
           </button>
