@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 import re
 
 from app.core.database import get_db
-from app.models.application import Application, ApplyStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus
 from app.models.job import JobPost
 from app.models.resume import Resume
 from app.models.user import User
@@ -121,12 +121,12 @@ async def get_document_report_data(
         max_score = max(scores) if scores else 0
         min_score = min(scores) if scores else 0   
         # 서류 합격자 인원수
-        passed_applicants_count = sum(1 for app in applications if app.status == ApplyStatus.PASSED)
+        passed_applicants_count = sum(1 for app in applications if app.document_status == DocumentStatus.PASSED)
         
         # 탈락 사유 분석
         rejection_reasons = []
         for app in applications:
-            if app.status == ApplyStatus.REJECTED and app.fail_reason:
+            if app.document_status == DocumentStatus.REJECTED and app.fail_reason:
                 rejection_reasons.append(app.fail_reason)
 
         # LLM을 이용한 TOP3 추출
@@ -146,13 +146,13 @@ async def get_document_report_data(
                 education = next((s.spec_title for s in resume.specs if s.spec_type == "학력"), "")
                 experience = sum(1 for s in resume.specs if s.spec_type == "경력")
                 certificates = sum(1 for s in resume.specs if s.spec_type == "자격증")
-                if app.status == ApplyStatus.PASSED and app.pass_reason:
+                if app.document_status == DocumentStatus.PASSED and app.pass_reason:
                     passed_reasons.append(app.pass_reason)
-                if app.status == ApplyStatus.REJECTED and app.fail_reason:
+                if app.document_status == DocumentStatus.REJECTED and app.fail_reason:
                     rejection_reasons.append(app.fail_reason)
-                if app.status == ApplyStatus.PASSED:
+                if app.document_status == DocumentStatus.PASSED:
                     evaluation_comment = app.pass_reason or ""
-                elif app.status == ApplyStatus.REJECTED:
+                elif app.document_status == DocumentStatus.REJECTED:
                     evaluation_comment = app.fail_reason or ""
                 else:
                     evaluation_comment = ""
@@ -160,7 +160,7 @@ async def get_document_report_data(
                     "name": user.name,
                     "ai_score": float(app.ai_score) if app.ai_score is not None else 0,
                     "total_score": float(app.final_score) if app.final_score is not None else 0,
-                    "status": app.status.value if hasattr(app.status, 'value') else str(app.status),
+                    "status": app.document_status.value if hasattr(app.document_status, 'value') else str(app.document_status),
                     "evaluation_comment": evaluation_comment
                 })
         passed_summary = extract_passed_summary_llm(passed_reasons)

@@ -81,13 +81,30 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
     });
     
     try {
+      // 개인별 맞춤형 질문 생성을 위한 API 호출
       const response = await api.post('/interview-questions/job-questions', {
         application_id: applicant.application_id || applicant.applicationId,
-        company_name: applicant.companyName || applicant.company_name || '회사'
+        company_name: applicant.companyName || applicant.company_name || '회사',
+        // 개인별 질문 생성을 위한 추가 정보
+        include_personal_questions: true,
+        applicant_name: applicant.name,
+        resume_data: {
+          personal_info: {
+            name: applicant.name,
+            email: applicant.email,
+            birthDate: applicant.birthDate
+          },
+          education: applicant.education || {},
+          experience: applicant.experience || {},
+          skills: applicant.skills || {},
+          projects: applicant.projects || [],
+          activities: applicant.activities || []
+        }
       });
       
       console.log('AI 질문 생성 응답:', response.data);
       
+      // 개인별 질문 데이터 처리
       let q = response.data?.question_bundle || response.data?.question_categories || response.data?.questions || {};
       if (Array.isArray(q)) q = { "AI 질문": q };
       setAiQuestions(q);
@@ -115,7 +132,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 h-full flex flex-col gap-6 overflow-hidden max-w-full min-h-[700px] justify-between">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 h-full flex flex-col gap-6 overflow-y-auto max-w-full min-h-[700px] justify-between">
       {/* 상단 프로필/이름/나이/이메일/지원경로 */}
       <div className="flex items-center gap-6 border-b pb-6 min-w-0">
         <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-3xl text-white shrink-0">
@@ -182,7 +199,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
       </div>
 
       {/* 이 지원자에게 물어볼 만한 질문 */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-900/40 shadow-sm max-w-full">
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-900/40 shadow-sm max-w-full max-h-[800px] overflow-hidden">
         <div className="text-base font-bold text-blue-700 dark:text-blue-300 mb-2">이 지원자에게 물어볼 만한 질문 (예시)</div>
         {/* 예시 질문 placeholder */}
         {!questionRequested && (
@@ -211,13 +228,18 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
         ) : questionError ? (
           <div className="text-red-500 mt-2">{questionError}</div>
         ) : aiQuestions && Object.keys(aiQuestions).length > 0 ? (
-          <div className="space-y-2 mt-2">
+          <div className="max-h-[700px] overflow-y-auto pr-2 space-y-4 mt-2 pb-8">
             {Object.entries(aiQuestions).map(([category, questions]) => (
-              <div key={category}>
-                <div className="font-semibold text-blue-700 dark:text-blue-300 mb-1">{category}</div>
-                <ul className="list-disc pl-6">
+              <div key={category} className="border-b border-blue-200 pb-4 last:border-b-0">
+                <div className="font-semibold text-blue-700 dark:text-blue-300 mb-3 text-lg">
+                  {category === 'common' ? '공통 질문' : 
+                   category === 'personal' ? '개인별 질문' : 
+                   category === 'company' ? '회사 관련 질문' : 
+                   category}
+                </div>
+                <ul className="list-disc pl-6 space-y-2">
                   {Array.isArray(questions) && questions.map((q, idx) => (
-                    <li key={idx} className="text-gray-700 dark:text-gray-300 break-words">{q}</li>
+                    <li key={idx} className="text-gray-700 dark:text-gray-300 break-words leading-relaxed">{q}</li>
                   ))}
                 </ul>
               </div>
