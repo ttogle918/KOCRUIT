@@ -15,49 +15,74 @@ function DocumentReport() {
   const loadingInterval = useRef(null);
   const fullText = "서류 보고서 생성 중입니다...";
   const [searchParams] = useSearchParams();
-  const jobPostId = searchParams.get("job_post_id");
+  const jobPostIdParam = searchParams.get("job_post_id");
+  
+  // job_post_id 타입 검증 및 변환
+  const jobPostId = (() => {
+    if (!jobPostIdParam) return null;
+    
+    // 문자열이 'undefined', 'null', 빈 문자열인지 확인
+    if (jobPostIdParam === 'undefined' || jobPostIdParam === 'null' || jobPostIdParam.trim() === '') {
+      console.error('유효하지 않은 job_post_id:', jobPostIdParam);
+      return null;
+    }
+    
+    // 숫자로 변환 시도
+    const parsedId = parseInt(jobPostIdParam, 10);
+    if (isNaN(parsedId) || parsedId <= 0) {
+      console.error('job_post_id가 유효한 양의 정수가 아닙니다:', jobPostIdParam);
+      return null;
+    }
+    
+    console.log('job_post_id 변환 성공:', { original: jobPostIdParam, parsed: parsedId });
+    return parsedId;
+  })();
 
   useEffect(() => {
-    if (jobPostId) {
-      console.log('📋 서류 보고서 데이터 로드 시작...');
-      
-      // 1. 먼저 캐시에서 확인
-      const cachedData = getReportCache('document', jobPostId);
-      if (cachedData) {
-        console.log('📦 서류 보고서 캐시 데이터 사용');
-        setData(cachedData.data || cachedData); // 기존 캐시와의 호환성을 위해 fallback
-        return;
-      }
-      
-      // 2. 캐시에 없으면 API 호출
-      console.log('🌐 서류 보고서 API 호출');
-      setIsLoading(true);
-      setError(null);
-      axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 90000 })
-        .then((res) => {
-          setData(res.data);
-          setIsLoading(false);
-          // 캐시에 저장 (JobAptitudeReport와 일관된 구조)
-          setReportCache('document', jobPostId, { data: res.data });
-          console.log('💾 서류 보고서 캐시 저장 완료:', { jobPostId, data: res.data });
-        })
-        .catch((error) => {
-          console.error('서류 보고서 데이터 조회 실패:', error);
-          setIsLoading(false);
-          // 사용자에게 더 명확한 에러 메시지 표시
-          if (error.code === 'ECONNABORTED') {
-            console.error('서류 보고서 데이터 조회 실패: 요청 시간 초과 (90초)');
-            setError('서류 보고서 생성에 시간이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요.');
-          } else if (error.response?.status === 404) {
-            console.error('서류 보고서 데이터 조회 실패: 공고를 찾을 수 없습니다');
-            setError('해당 공고를 찾을 수 없습니다.');
-          } else {
-            console.error('서류 보고서 데이터 조회 실패:', error.message);
-            setError('서류 보고서 데이터를 불러오는 중 오류가 발생했습니다.');
-          }
-        });
+    if (!jobPostId) {
+      console.error('유효한 job_post_id가 없습니다:', jobPostIdParam);
+      setError('유효한 채용공고 ID가 필요합니다. 올바른 URL로 접근해주세요.');
+      return;
     }
-  }, [jobPostId]);
+
+    console.log('📋 서류 보고서 데이터 로드 시작...', { jobPostId, originalParam: jobPostIdParam });
+    
+    // 1. 먼저 캐시에서 확인
+    const cachedData = getReportCache('document', jobPostId);
+    if (cachedData) {
+      console.log('📦 서류 보고서 캐시 데이터 사용');
+      setData(cachedData.data || cachedData); // 기존 캐시와의 호환성을 위해 fallback
+      return;
+    }
+    
+    // 2. 캐시에 없으면 API 호출
+    console.log('🌐 서류 보고서 API 호출');
+    setIsLoading(true);
+    setError(null);
+    axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 90000 })
+      .then((res) => {
+        setData(res.data);
+        setIsLoading(false);
+        // 캐시에 저장 (JobAptitudeReport와 일관된 구조)
+        setReportCache('document', jobPostId, { data: res.data });
+        console.log('💾 서류 보고서 캐시 저장 완료:', { jobPostId, data: res.data });
+      })
+      .catch((error) => {
+        console.error('서류 보고서 데이터 조회 실패:', error);
+        setIsLoading(false);
+        // 사용자에게 더 명확한 에러 메시지 표시
+        if (error.code === 'ECONNABORTED') {
+          console.error('서류 보고서 데이터 조회 실패: 요청 시간 초과 (90초)');
+          setError('서류 보고서 생성에 시간이 오래 걸리고 있습니다. 잠시 후 다시 시도해주세요.');
+        } else if (error.response?.status === 404) {
+          console.error('서류 보고서 데이터 조회 실패: 공고를 찾을 수 없습니다');
+          setError('해당 공고를 찾을 수 없습니다.');
+        } else {
+          console.error('서류 보고서 데이터 조회 실패:', error.message);
+          setError('서류 보고서 데이터를 불러오는 중 오류가 발생했습니다.');
+        }
+      });
+  }, [jobPostId, jobPostIdParam]);
 
 
   // 로딩 텍스트 애니메이션
@@ -141,7 +166,7 @@ function DocumentReport() {
       
       try {
         console.log('🌐 서류 보고서 API 재호출');
-        const response = await axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 90000 });
+        const response = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 90000 });
         setData(response.data);
         setReportCache('document', jobPostId, { data: response.data });
         console.log('✅ 서류 보고서 캐시 새로고침 완료');
@@ -167,7 +192,7 @@ function DocumentReport() {
 
       // 캐시에 없으면 API 호출
       console.log('🌐 서류 보고서 API 호출');
-              axiosInstance.get(`/v1/report/document?job_post_id=${jobPostId}`, { timeout: 90000 })
+              axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 90000 })
           .then((res) => {
           setData(res.data);
           // 캐시에 저장 (JobAptitudeReport와 일관된 구조)

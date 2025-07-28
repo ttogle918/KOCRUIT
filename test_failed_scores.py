@@ -1,10 +1,17 @@
 import requests
+import sys
+
+# 명령행 인수로 job_post_id 받기
+if len(sys.argv) > 1:
+    job_post_id = int(sys.argv[1])
+else:
+    job_post_id = 17  # 기본값
 
 # 필기불합격자 API 테스트
-url = 'http://localhost:8000/api/v1/written-test/failed/17'
+url = f'http://localhost:8000/api/v1/written-test/failed/{job_post_id}'
 response = requests.get(url)
 
-print('필기불합격자 API 응답:')
+print(f'필기불합격자 API 응답 (공고 ID: {job_post_id}):')
 print(f'상태 코드: {response.status_code}')
 
 if response.status_code == 200:

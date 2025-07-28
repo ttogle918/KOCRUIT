@@ -381,33 +381,115 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
                           const unit = boxplotLabels[key]?.unit || '';
                           const desc = boxplotLabels[key]?.desc || '';
                           
+                          // 박스플롯 데이터 검증
+                          if (!stats.min && !stats.max) return null;
+                          
+                          // SVG 박스플롯 렌더링
+                          const width = 200;
+                          const height = 120;
+                          const padding = 20;
+                          const chartWidth = width - 2 * padding;
+                          const chartHeight = height - 2 * padding;
+                          
+                          // 값 범위 계산
+                          const min = stats.min;
+                          const max = stats.max;
+                          const range = max - min;
+                          
+                          // Y 좌표 변환 함수
+                          const yToPixel = (value) => {
+                            return padding + (max - value) / range * chartHeight;
+                          };
+                          
+                          // 박스플롯 요소들의 위치 계산
+                          const yMax = yToPixel(stats.max);
+                          const yQ3 = yToPixel(stats.q3);
+                          const yMedian = yToPixel(stats.median);
+                          const yQ1 = yToPixel(stats.q1);
+                          const yMin = yToPixel(stats.min);
+                          const yApplicant = stats.applicant !== undefined ? yToPixel(stats.applicant) : null;
+                          
+                          const boxX = padding + chartWidth / 2 - 20;
+                          const boxWidth = 40;
+                          
                           return (
                             <div key={key} className="bg-gray-50 p-4 rounded-lg">
                               <h5 className="font-medium text-gray-800 mb-2">{label}</h5>
-                              <ResponsiveContainer width="100%" height={150}>
-                                <ComposedChart data={[{ name: '분포', min: stats.min, q1: stats.q1, median: stats.median, q3: stats.q3, max: stats.max }]}>
-                                  <CartesianGrid strokeDasharray="3 3" />
-                                  <XAxis dataKey="name" />
-                                  <YAxis />
-                                  <BarTooltip />
-                                  <Bar dataKey="min" fill="#E5E7EB" />
-                                  <Bar dataKey="q1" fill="#9CA3AF" />
-                                  <Bar dataKey="median" fill="#6B7280" />
-                                  <Bar dataKey="q3" fill="#9CA3AF" />
-                                  <Bar dataKey="max" fill="#E5E7EB" />
-                                  <Line 
-                                    type="monotone" 
-                                    data={[{ name: '지원자', value: stats.applicant }]}
-                                    dataKey="value" 
-                                    stroke="red" 
-                                    strokeWidth={3}
-                                    dot={{ fill: 'red', strokeWidth: 2, r: 6 }}
-                                    name="지원자"
+                              <div className="bg-white border rounded p-2">
+                                <svg width={width} height={height} className="mx-auto">
+                                  {/* Y축 레이블 */}
+                                  <text x={5} y={yMax + 3} fontSize="10" fill="#666">{stats.max.toFixed(1)}</text>
+                                  <text x={5} y={yQ3 + 3} fontSize="10" fill="#666">{stats.q3.toFixed(1)}</text>
+                                  <text x={5} y={yMedian + 3} fontSize="10" fill="#666">{stats.median.toFixed(1)}</text>
+                                  <text x={5} y={yQ1 + 3} fontSize="10" fill="#666">{stats.q1.toFixed(1)}</text>
+                                  <text x={5} y={yMin + 3} fontSize="10" fill="#666">{stats.min.toFixed(1)}</text>
+                                  
+                                  {/* 중앙 수직선 (whisker) */}
+                                  <line 
+                                    x1={boxX + boxWidth/2} y1={yMax} 
+                                    x2={boxX + boxWidth/2} y2={yMin} 
+                                    stroke="#666" strokeWidth="1"
                                   />
-                                </ComposedChart>
-                              </ResponsiveContainer>
-                              <div className="text-xs text-gray-500 mt-2">
-                                파란 막대는 고성과자 집단의 분포(최저~최고, 25%~75%, 중간값), 빨간 점은 지원자의 위치입니다.
+                                  
+                                  {/* 박스 (Q1 ~ Q3) */}
+                                  <rect 
+                                    x={boxX} y={yQ3} 
+                                    width={boxWidth} height={yQ1 - yQ3} 
+                                    fill="#3B82F6" stroke="#1E40AF" strokeWidth="1"
+                                  />
+                                  
+                                  {/* 중앙값 선 */}
+                                  <line 
+                                    x1={boxX} y1={yMedian} 
+                                    x2={boxX + boxWidth} y2={yMedian} 
+                                    stroke="#EF4444" strokeWidth="2"
+                                  />
+                                  
+                                  {/* 지원자 위치 표시 */}
+                                  {yApplicant !== null && (
+                                    <circle 
+                                      cx={boxX + boxWidth/2} cy={yApplicant} 
+                                      r="4" fill="#EF4444" stroke="white" strokeWidth="2"
+                                    />
+                                  )}
+                                  
+                                  {/* 범례 */}
+                                  <text x={boxX + boxWidth + 10} y={yMax + 10} fontSize="10" fill="#3B82F6">고성과자 분포</text>
+                                  <text x={boxX + boxWidth + 10} y={yMax + 25} fontSize="10" fill="#EF4444">중앙값</text>
+                                  {yApplicant !== null && (
+                                    <text x={boxX + boxWidth + 10} y={yMax + 40} fontSize="10" fill="#EF4444">지원자</text>
+                                  )}
+                                </svg>
+                                
+                                {/* 통계 정보 */}
+                                <div className="mt-2 text-xs text-gray-600">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <span className="font-medium">최소:</span> {stats.min.toFixed(1)}{unit}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Q1:</span> {stats.q1.toFixed(1)}{unit}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">중앙값:</span> {stats.median.toFixed(1)}{unit}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">Q3:</span> {stats.q3.toFixed(1)}{unit}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium">최대:</span> {stats.max.toFixed(1)}{unit}
+                                    </div>
+                                    {stats.applicant !== undefined && (
+                                      <div>
+                                        <span className="font-medium text-red-600">지원자:</span> {stats.applicant.toFixed(1)}{unit}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                <div className="text-xs text-gray-500 mt-2">
+                                  파란 박스는 고성과자 분포(25%~75%), 빨간 선은 중앙값, 빨간 점은 지원자 위치입니다.
+                                </div>
                               </div>
                             </div>
                           );

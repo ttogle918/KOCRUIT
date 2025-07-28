@@ -9,6 +9,7 @@ from app.models.application import Application, DocumentStatus, InterviewStatus
 from app.models.interview_question import InterviewQuestion, QuestionType
 from app.models.job import JobPost
 from app.models.resume import Resume, Spec
+from app.models.personal_question_result import PersonalQuestionResult
 from app.services.interview_question_service import InterviewQuestionService
 from app.schemas.interview_question import (
     InterviewQuestionCreate, 
@@ -987,44 +988,85 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
                         # 전체 질문 목록도 개인별 질문으로 교체
                         questions = []
                         for questions_list in personal_questions.values():
-                            questions.extend(questions_list)
+                            if isinstance(questions_list, list):
+                                questions.extend(questions_list)
+                            elif isinstance(questions_list, str):
+                                questions.append(questions_list)
                             
                         print(f"개인별 질문으로 교체 완료 - 총 질문 수: {len(questions)}")
                         print(f"개인별 질문 카테고리 수: {len(question_bundle)}")
+                    else:
+                        print("⚠️ 개인별 질문 생성 결과가 비어있습니다.")
+                        # 기본 질문 유지
                             
                 except Exception as e:
                     print(f"개인별 질문 생성 중 오류: {str(e)}")
                     import traceback
                     traceback.print_exc()
                     # 개인별 질문 생성 실패 시 기본 질문만 사용
+                    # 에러를 발생시키지 않고 기본 질문으로 계속 진행
+                    print("기본 질문으로 계속 진행합니다.")
             
-            # 질문이 없으면 기본 질문 사용
-            if not questions:
-                questions = [
-                    "자기소개를 해주세요.",
-                    "이 직무에 지원한 이유는 무엇인가요?",
-                    "본인의 강점과 약점은 무엇인가요?",
-                    "팀워크 경험을 말해보세요.",
-                    "업무 중 예기치 못한 문제를 마주쳤을 때 어떻게 해결하시나요?",
-                    "일정이 지연됐을 때 어떻게 대응하시나요?",
-                    "새로운 기술이나 도구를 배워야 할 때 어떻게 접근하시나요?",
-                    "이 직무를 통해 회사에 어떤 기여를 할 수 있다고 생각하시나요?"
-                ]
-                question_bundle = {
-                    "인성/동기": questions[:4],
-                    "상황 대처": questions[4:7],
-                    "직무 이해": [questions[7]]
-                }
+            # 최종 결과 검증
+            if not question_bundle or (isinstance(question_bundle, dict) and len(question_bundle) == 0):
+                print("⚠️ 질문이 생성되지 않았습니다.")
+                raise HTTPException(
+                    status_code=500, 
+                    detail="AI 개인 질문 생성에 실패했습니다. 다시 시도해주세요."
+                )
             
-            result = {
-                "application_id": request.application_id,
-                "company_name": actual_company_name,
-                "questions": questions,
-                "question_bundle": question_bundle,
-                "job_matching_info": job_matching_info
-            }
+            # 4. DB에 결과 저장
+            try:
+                print(f"💾 DB 저장 시작: application_id={request.application_id}")
+                
+                # 기존 결과가 있으면 업데이트, 없으면 새로 생성
+                existing_result = db.query(PersonalQuestionResult).filter(
+                    PersonalQuestionResult.application_id == request.application_id
+                ).first()
+                
+                print(f"🔍 기존 결과 조회: {'있음' if existing_result else '없음'}")
+                
+                if existing_result:
+                    # 기존 결과 업데이트
+                    print(f"🔄 기존 결과 업데이트 시작: ID {existing_result.id}")
+                    existing_result.questions = questions
+                    existing_result.question_bundle = question_bundle
+                    existing_result.job_matching_info = job_matching_info
+                    existing_result.updated_at = func.now()
+                    personal_result = existing_result
+                    print(f"🔄 기존 개인 질문 결과 업데이트: ID {existing_result.id}")
+                else:
+                    # 새로운 결과 생성
+                    print(f"🆕 새로운 결과 생성 시작")
+                    personal_result = PersonalQuestionResult(
+                        application_id=request.application_id,
+                        jobpost_id=application.job_post_id,
+                        company_id=application.job_post.company_id if application.job_post else None,
+                        questions=questions,
+                        question_bundle=question_bundle,
+                        job_matching_info=job_matching_info
+                    )
+                    print(f"🆕 PersonalQuestionResult 객체 생성 완료")
+                    db.add(personal_result)
+                    print(f"💾 새로운 개인 질문 결과 저장")
+                
+                print(f"💾 DB commit 시작")
+                db.commit()
+                print(f"✅ 개인 질문 결과 DB 저장 완료: ID {personal_result.id}")
+                
+            except Exception as db_error:
+                print(f"⚠️ DB 저장 실패 (분석 결과는 반환): {db_error}")
+                print(f"⚠️ DB 저장 실패 상세: {type(db_error).__name__}: {str(db_error)}")
+                import traceback
+                print(f"⚠️ DB 저장 실패 스택트레이스: {traceback.format_exc()}")
+                db.rollback()
+                # DB 저장 실패해도 분석 결과는 반환
             
-            return result
+            return JobQuestionResponse(
+                questions=questions,
+                question_bundle=question_bundle,
+                job_matching_info=job_matching_info
+            )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
@@ -3010,3 +3052,46 @@ async def get_background_task_status(application_id: int, db: Session = Depends(
             "error": str(e),
             "status": "error"
         }
+
+@router.get("/personal-questions/{application_id}")
+def get_personal_questions(application_id: int, db: Session = Depends(get_db)):
+    """저장된 개인 질문 결과를 조회합니다."""
+    try:
+        print(f"🔍 개인 질문 결과 조회: application_id={application_id}")
+        
+        # 지원서 정보 확인
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            print(f"❌ Application not found: {application_id}")
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        # 저장된 개인 질문 결과 조회
+        personal_result = db.query(PersonalQuestionResult).filter(
+            PersonalQuestionResult.application_id == application_id
+        ).first()
+        
+        if not personal_result:
+            print(f"❌ Personal question result not found: {application_id}")
+            raise HTTPException(status_code=404, detail="개인 질문 결과를 찾을 수 없습니다. 먼저 질문을 생성해주세요.")
+        
+        print(f"✅ 개인 질문 결과 조회 완료: ID {personal_result.id}")
+        
+        # 응답 데이터 구성
+        return {
+            "application_id": personal_result.application_id,
+            "jobpost_id": personal_result.jobpost_id,
+            "company_id": personal_result.company_id,
+            "questions": personal_result.questions,
+            "question_bundle": personal_result.question_bundle,
+            "job_matching_info": personal_result.job_matching_info,
+            "analysis_version": personal_result.analysis_version,
+            "analysis_duration": personal_result.analysis_duration,
+            "created_at": personal_result.created_at,
+            "updated_at": personal_result.updated_at
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 개인 질문 결과 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"결과 조회 중 오류가 발생했습니다: {str(e)}")

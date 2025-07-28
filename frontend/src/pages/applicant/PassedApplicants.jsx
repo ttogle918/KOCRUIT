@@ -27,18 +27,52 @@ export default function PassedApplicants() {
   const [showSortOptions, setShowSortOptions] = useState(false);
 
   useEffect(() => {
-    const fetchApplicants = async () => {
+    const fetchApplicants = async (retryCount = 0) => {
       try {
+        console.log('서류 합격자 목록 조회 시작:', { jobPostId, retryCount });
+        
+        // 전체 지원자 목록 조회 (타임아웃 설정 제거, 기본 60초 사용)
         const res = await api.get(`/applications/job/${jobPostId}/applicants`);
         const data = res.data;
+        console.log('전체 지원자 수:', data.length);
+        
+        // 서류 합격자만 필터링
         const filtered = data.filter(app => app.document_status === 'PASSED');
+        console.log('서류 합격자 수 (필터링):', filtered.length);
+        
         setPassedApplicants(filtered);
         setBookmarkedList(filtered.map(app => app.isBookmarked === 'Y'));
         setCurrentPage(1);
         setLoading(false);
+        setError(null); // 성공 시 에러 상태 초기화
       } catch (err) {
-        console.error('Error fetching passed applicants:', err);
-        setError('합격자 목록을 불러올 수 없습니다.');
+        console.error('서류 합격자 목록 조회 오류:', err);
+        
+        // 재시도 로직 (최대 3회)
+        if (retryCount < 3 && (err.code === 'ECONNABORTED' || err.response?.status >= 500)) {
+          console.log(`재시도 ${retryCount + 1}/3`);
+          setTimeout(() => {
+            fetchApplicants(retryCount + 1);
+          }, 2000 * (retryCount + 1)); // 지수 백오프
+          return;
+        }
+        
+        // 더 구체적인 에러 메시지
+        let errorMessage = '합격자 목록을 불러올 수 없습니다. 잠시 후 다시 시도해주세요.';
+        
+        if (err.response) {
+          if (err.response.status === 404) {
+            errorMessage = '해당 공고의 지원자 데이터를 찾을 수 없습니다.';
+          } else if (err.response.status === 500) {
+            errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          }
+        } else if (err.code === 'ECONNABORTED') {
+          errorMessage = '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+        } else if (err.userMessage) {
+          errorMessage = err.userMessage;
+        }
+        
+        setError(errorMessage);
         setLoading(false);
       }
     };
@@ -145,7 +179,11 @@ export default function PassedApplicants() {
       <Layout>
         <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
-          <div className="text-xl">로딩 중...</div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <div className="text-xl text-gray-600">서류 합격자 목록을 불러오는 중...</div>
+            <div className="text-sm text-gray-400 mt-2">잠시만 기다려주세요</div>
+          </div>
         </div>
       </Layout>
     );
@@ -156,7 +194,15 @@ export default function PassedApplicants() {
       <Layout>
         <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
-          <div className="text-xl text-red-500">{error}</div>
+          <div className="text-center">
+            <div className="text-xl text-red-500 mb-4">{error}</div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              다시 시도
+            </button>
+          </div>
         </div>
       </Layout>
     );

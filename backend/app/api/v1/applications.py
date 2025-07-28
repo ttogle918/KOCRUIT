@@ -631,11 +631,13 @@ def reset_ai_scores_for_job(
 
 
 @router.get("/job/{job_post_id}/applicants")
-@redis_cache(expire=300)  # 5분 캐시
+@redis_cache(expire=300)  # 5분 캐시 추가
 def get_applicants_by_job(
     job_post_id: int,
     db: Session = Depends(get_db)
 ):
+    print(f"🔍 전체 지원자 목록 조회 시작 - job_post_id: {job_post_id}")
+    
     # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
     applications = (
         db.query(Application)
@@ -647,6 +649,8 @@ def get_applicants_by_job(
         .all()
     )
     
+    print(f"📊 전체 지원자 수: {len(applications)}")
+    
     applicants = []
     for app in applications:
         # ApplicantUser 확인
@@ -655,38 +659,34 @@ def get_applicants_by_job(
             continue
         if not app.user:
             continue
+            
         # 학력 정보 추출: resume.specs에서 추출
         education = None
-        degree = None  # 추가: degree 정보
-        major = None   # 추가: major 정보
-        certificates = []  # 자격증 정보 추가
+        degree = None
+        major = None
+        certificates = []
         if app.resume and app.resume.specs:
             edu_specs = [
                 s for s in app.resume.specs 
                 if s.spec_type == "education" and s.spec_title == "institution"
             ]
             if edu_specs:
-                education = edu_specs[0].spec_description  # 최신 학교명만 추출
+                education = edu_specs[0].spec_description
+            
             # degree 정보 추출 및 major/degree 분리
             degree_specs = [
                 s for s in app.resume.specs
                 if s.spec_type == "education" and s.spec_title == "degree"
             ]
-            major = None
-            degree = None
             if degree_specs:
                 degree_raw = degree_specs[0].spec_description or ""
                 school_name = education or ""
-                import re
-                print("degree_raw:", degree_raw)
-                print("school_name:", school_name)
                 if "고등학교" in school_name:
                     major = ""
                     degree = ""
                 elif "대학교" in school_name or "대학" in school_name:
                     if degree_raw:
                         m = re.match(r"(.+?)\((.+?)\)", degree_raw)
-                        print("정규식 매칭 결과:", m)
                         if m:
                             major = m.group(1).strip() if m.group(1) else degree_raw.strip()
                             degree = m.group(2).strip() if m.group(2) else ""
@@ -702,15 +702,14 @@ def get_applicants_by_job(
             else:
                 major = ""
                 degree = ""
-            print(f"최종 major: {major}, degree: {degree}")
+                
             # 자격증 정보 추출
             cert_name_specs = [
                 s for s in app.resume.specs
                 if s.spec_type == "certifications" and s.spec_title == "name"
             ]
             for cert in cert_name_specs:
-                # date, duration 정보도 spec에서 찾아서 매칭
-                if cert.spec_description:  # null/빈 문자열 제외
+                if cert.spec_description:
                     cert_date = next((s.spec_description for s in app.resume.specs if s.spec_type == "certifications" and s.spec_title == "date"), "")
                     cert_duration = next((s.spec_description for s in app.resume.specs if s.spec_type == "certifications" and s.spec_title == "duration"), "")
                     certificates.append({
@@ -718,35 +717,34 @@ def get_applicants_by_job(
                         "date": cert_date,
                         "duration": cert_duration
                     })
+        
         applicant_data = {
             "id": app.user.id,
+            "user_id": app.user.id,  # user_id 필드 추가
             "name": app.user.name,
             "email": app.user.email,
             "application_id": app.id,
             "status": app.status,
             "document_status": app.document_status,  # 서류 상태 추가
-            "interview_status": get_safe_interview_status(app.interview_status),  # 면접 상태 추가 (안전 변환)
+            "interview_status": app.interview_status,  # 면접 상태 추가
             "applied_at": app.applied_at,
             "score": app.score,
-            "ai_score": app.ai_score,  # AI 점수 추가
-            "pass_reason": app.pass_reason,  # 합격 이유 추가
-            "fail_reason": app.fail_reason,  # 불합격 이유 추가
+            "ai_score": app.ai_score,
+            "pass_reason": app.pass_reason,
+            "fail_reason": app.fail_reason,
             "birthDate": app.user.birth_date.isoformat() if app.user.birth_date else None,
             "gender": app.user.gender if app.user.gender else None,
             "education": education,
-            "degree": degree_specs[0].spec_description if degree_specs else None,  # 기존 전체 degree
-            "major": major,   # 전공
-            "degree_type": degree,  # 학위(석사/박사 등)
-            "resume_id": app.resume_id,  # ← 이 줄 추가!
-            "address": app.user.address if app.user.address else None,  # address 필드 추가
-            "certificates": certificates,  # 자격증 배열 추가
-            # 표절 점수 관련 정보 추가
-            "plagiarism_score": app.resume.plagiarism_score if app.resume else None,
-            "plagiarism_checked_at": app.resume.plagiarism_checked_at.isoformat() if app.resume and app.resume.plagiarism_checked_at else None,
-            "most_similar_resume_id": app.resume.most_similar_resume_id if app.resume else None,
-            "similarity_threshold": app.resume.similarity_threshold if app.resume else 0.9
+            "degree": degree_specs[0].spec_description if degree_specs else None,
+            "major": major,
+            "degree_type": degree,
+            "resume_id": app.resume_id,
+            "address": app.user.address if app.user.address else None,
+            "certificates": certificates
         }
         applicants.append(applicant_data)
+    
+    print(f"📤 전체 지원자 목록 응답: {len(applicants)}명")
     return applicants
 @router.get("/job/{job_post_id}/applicants-with-interview")
 @redis_cache(expire=300)  # 5분 캐시
@@ -870,13 +868,87 @@ def get_applicants_with_second_interview(job_post_id: int, db: Session = Depends
     return result
 
 
+@router.get("/job/{job_post_id}/simple-counts")
+def get_simple_counts(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """매우 간단한 카운트 API - 최소한의 쿼리만 수행"""
+    try:
+        # 직접 SQL 쿼리로 빠른 카운트
+        from sqlalchemy import text
+        
+        # 전체 지원자 수
+        total_result = db.execute(text(
+            "SELECT COUNT(*) FROM application WHERE job_post_id = :job_post_id"
+        ), {"job_post_id": job_post_id}).scalar()
+        
+        # 서류 합격자 수
+        passed_result = db.execute(text(
+            "SELECT COUNT(*) FROM application WHERE job_post_id = :job_post_id AND document_status = 'PASSED'"
+        ), {"job_post_id": job_post_id}).scalar()
+        
+        result = {
+            "total_applicants": total_result or 0,
+            "passed_applicants": passed_result or 0
+        }
+        
+        print(f"📊 간단한 카운트 결과: {result}")
+        return result
+    except Exception as e:
+        print(f"❌ 간단한 카운트 조회 중 오류: {e}")
+        return {
+            "total_applicants": 0,
+            "passed_applicants": 0
+        }
+
+
+@router.get("/job/{job_post_id}/counts")
+def get_job_post_counts(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """공고별 지원자 수와 서류 합격자 수를 간단히 조회하는 API"""
+    print(f"🔍 카운트 조회 시작 - job_post_id: {job_post_id}")
+    
+    try:
+        # 간단한 카운트 쿼리만 수행
+        from sqlalchemy import func
+        
+        # 전체 지원자 수
+        total_count = db.query(func.count(Application.id)).filter(
+            Application.job_post_id == job_post_id
+        ).scalar()
+        
+        # 서류 합격자 수
+        passed_count = db.query(func.count(Application.id)).filter(
+            Application.job_post_id == job_post_id,
+            Application.document_status == DocumentStatus.PASSED
+        ).scalar()
+        
+        result = {
+            "total_applicants": total_count or 0,
+            "passed_applicants": passed_count or 0
+        }
+        
+        print(f"📊 카운트 결과: {result}")
+        return result
+    except Exception as e:
+        print(f"❌ 카운트 조회 중 오류: {e}")
+        return {
+            "total_applicants": 0,
+            "passed_applicants": 0
+        }
+
+
 @router.get("/job/{job_post_id}/passed-applicants")
-@redis_cache(expire=300)  # 5분 캐싱
 def get_passed_applicants(
     job_post_id: int,
     db: Session = Depends(get_db)
 ):
     """서류 합격자만 조회하는 API"""
+    print(f"🔍 서류 합격자 조회 시작 - job_post_id: {job_post_id}")
+    
     # joinedload를 사용하여 관계 데이터를 한 번에 가져오기
     applications = (
         db.query(Application)
@@ -890,6 +962,8 @@ def get_passed_applicants(
         )
         .all()
     )
+    
+    print(f"📊 서류 합격자 수: {len(applications)}")
     
     applicants = []
     for app in applications:
@@ -984,10 +1058,12 @@ def get_passed_applicants(
         }
         applicants.append(applicant_data)
     
-    return {
+    result = {
         "total_count": len(applicants),
         "passed_applicants": applicants
     }
+    
+    return result
 
 
 @router.get("/job/{job_post_id}/user/{user_id}/written-answers", response_model=List[WrittenTestAnswerResponse])

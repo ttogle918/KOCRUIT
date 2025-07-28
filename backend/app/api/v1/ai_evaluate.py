@@ -345,18 +345,64 @@ def get_written_test_results(jobpost_id: int, db: Session = Depends(get_db)):
 @router.get('/written-test/passed/{jobpost_id}')
 def get_written_test_passed_applicants(jobpost_id: int, db: Session = Depends(get_db)):
     from app.models.application import Application, WrittenTestStatus
-    passed_apps = db.query(Application).filter(
-        Application.job_post_id == jobpost_id,
-        Application.written_test_status == WrittenTestStatus.PASSED
-    ).all()
-    return [
-        {
-            "user_id": app.user.id if app.user else None,  # user_id 추가
-            "user_name": app.user.name if app.user else None,
-            "written_test_score": app.written_test_score,
-        }
-        for app in passed_apps
-    ]
+    
+    try:
+        print(f"🔍 필기 합격자 조회 시작 - jobpost_id: {jobpost_id}")
+        
+        # jobpost_id 유효성 검사
+        if not jobpost_id or jobpost_id <= 0:
+            print(f"❌ 유효하지 않은 jobpost_id: {jobpost_id}")
+            raise HTTPException(status_code=400, detail="유효한 공고 ID가 필요합니다.")
+        
+        # 전체 지원자 수 확인
+        total_applications = db.query(Application).filter(
+            Application.job_post_id == jobpost_id
+        ).count()
+        print(f"📊 전체 지원자 수: {total_applications}")
+        
+        if total_applications == 0:
+            print(f"⚠️ 해당 공고에 지원자가 없습니다: jobpost_id={jobpost_id}")
+            return []
+        
+        # 필기시험 상태별 분포 확인
+        status_counts = db.query(Application.written_test_status, func.count(Application.id)).filter(
+            Application.job_post_id == jobpost_id
+        ).group_by(Application.written_test_status).all()
+        
+        print(f"📋 필기시험 상태별 분포:")
+        for status, count in status_counts:
+            print(f"  - {status}: {count}명")
+        
+        # 필기 합격자 조회
+        passed_apps = db.query(Application).filter(
+            Application.job_post_id == jobpost_id,
+            Application.written_test_status == WrittenTestStatus.PASSED
+        ).all()
+        
+        print(f"✅ 필기 합격자 수: {len(passed_apps)}")
+        
+        # 각 필기 합격자의 상세 정보 로그
+        for i, app in enumerate(passed_apps):
+            user_name = app.user.name if app.user else "Unknown"
+            print(f"  필기 합격자 {i+1}: ID={app.id}, User={user_name}, Score={app.written_test_score}")
+        
+        result = [
+            {
+                "user_id": app.user.id if app.user else None,
+                "user_name": app.user.name if app.user else None,
+                "written_test_score": app.written_test_score,
+            }
+            for app in passed_apps
+        ]
+        
+        print(f"📤 반환할 데이터: {result}")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ 필기 합격자 조회 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail="필기 합격자 데이터 조회 중 오류가 발생했습니다.")
 
 @router.post('/written-test/update-status-and-score')
 def update_written_test_status_and_score(

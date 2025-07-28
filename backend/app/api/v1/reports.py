@@ -87,27 +87,56 @@ def extract_passed_summary_llm(pass_reasons: list[str]) -> str:
 
 
 @router.get("/document")
-@redis_cache(expire=1800)  # 30분 캐시
 async def get_document_report_data(
     job_post_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     try:
+        # job_post_id 유효성 검증 강화
+        if not job_post_id or job_post_id <= 0:
+            raise HTTPException(status_code=400, detail="유효한 job_post_id가 필요합니다.")
+        
+        print(f"📋 서류 보고서 요청 - job_post_id: {job_post_id} (타입: {type(job_post_id)})")
+        print(f"🔍 요청 URL 파라미터 확인: job_post_id={job_post_id}")
+        
         # 공고 정보 조회
         job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
         if not job_post:
+            print(f"❌ 공고를 찾을 수 없습니다: job_post_id={job_post_id}")
             raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
         
-        # 지원자 정보 조회 (N+1 쿼리 문제 해결을 위해 joinedload 사용)
+        print(f"✅ 공고 정보 조회 성공: {job_post.title} (ID: {job_post.id})")
+        print(f"📋 공고 상세 정보: 제목='{job_post.title}', 부서='{job_post.department}', 인원={job_post.headcount}명")
+        
+        # 전체 Application 데이터 확인
+        all_applications = db.query(Application).all()
+        print(f"🔍 전체 Application 수: {len(all_applications)}")
+        
+        # 해당 공고의 Application 데이터 확인
+        target_applications = db.query(Application).filter(Application.job_post_id == job_post_id).all()
+        print(f"🔍 해당 공고의 Application 수: {len(target_applications)}")
+        
+        # 다른 공고의 Application 수도 확인 (디버깅용)
+        other_applications = db.query(Application).filter(Application.job_post_id != job_post_id).all()
+        print(f"🔍 다른 공고의 Application 수: {len(other_applications)}")
+        
+        # 지원자 정보 조회 (status 필드 사용)
         applications = db.query(Application).options(
             joinedload(Application.user),
             joinedload(Application.resume).joinedload(Resume.specs)
         ).filter(Application.job_post_id == job_post_id).all()
         
+        print(f"📊 지원자 수: {len(applications)}명")
+        
+        # 각 지원자의 상세 정보 로그
+        for i, app in enumerate(applications):
+            print(f"  지원자 {i+1}: ID={app.id}, User={app.user.name if app.user else 'None'}, Status={app.status}, DocumentStatus={app.document_status}")
+        
         # 통계 계산
         total_applicants = len(applications)
         if total_applicants == 0:
+            print(f"⚠️ 지원자가 없습니다. job_post_id={job_post_id}")
             return {
                 "job_post": {
                     "title": job_post.title,
@@ -132,13 +161,15 @@ async def get_document_report_data(
         avg_score = sum(scores) / len(scores) if scores else 0
         max_score = max(scores) if scores else 0
         min_score = min(scores) if scores else 0   
-        # 서류 합격자 인원수
-        passed_applicants_count = sum(1 for app in applications if app.document_status == DocumentStatus.PASSED)
         
-        # 탈락 사유 분석
+        # 서류 합격자 인원수 (document_status 필드 사용)
+        passed_applicants_count = sum(1 for app in applications if app.document_status == "PASSED")
+        print(f"✅ 서류 합격자 수: {passed_applicants_count}명")
+        
+        # 탈락 사유 분석 (document_status 필드 사용)
         rejection_reasons = []
         for app in applications:
-            if app.document_status == DocumentStatus.REJECTED and app.fail_reason:
+            if app.document_status == "REJECTED" and app.fail_reason:
                 rejection_reasons.append(app.fail_reason)
 
         # LLM을 이용한 TOP3 추출 (실패 시 fallback)
@@ -168,21 +199,26 @@ async def get_document_report_data(
                 education = next((s.spec_title for s in app.resume.specs if s.spec_type == "학력"), "")
                 experience = sum(1 for s in app.resume.specs if s.spec_type == "경력")
                 certificates = sum(1 for s in app.resume.specs if s.spec_type == "자격증")
-                if app.document_status == DocumentStatus.PASSED and app.pass_reason:
+                
+                # document_status 필드 사용
+                if app.document_status == "PASSED" and app.pass_reason:
                     passed_reasons.append(app.pass_reason)
-                if app.document_status == DocumentStatus.REJECTED and app.fail_reason:
+                if app.document_status == "REJECTED" and app.fail_reason:
                     rejection_reasons.append(app.fail_reason)
-                if app.document_status == DocumentStatus.PASSED:
+                
+                # 평가 코멘트 결정 (document_status 필드 사용)
+                if app.document_status == "PASSED":
                     evaluation_comment = app.pass_reason or ""
-                elif app.document_status == DocumentStatus.REJECTED:
+                elif app.document_status == "REJECTED":
                     evaluation_comment = app.fail_reason or ""
                 else:
                     evaluation_comment = ""
+                    
                 applicants_data.append({
                     "name": app.user.name,
                     "ai_score": float(app.ai_score) if app.ai_score is not None else 0,
                     "total_score": float(app.final_score) if app.final_score is not None else 0,
-                    "status": app.document_status.value if hasattr(app.document_status, 'value') else str(app.document_status),
+                    "status": app.document_status,  # document_status 필드 사용
                     "evaluation_comment": evaluation_comment
                 })
         # 합격자 요약 (실패 시 fallback)

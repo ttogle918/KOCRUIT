@@ -170,9 +170,18 @@ export default function ViewPostSidebar({ jobPost }) {
         <button
           className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
-            bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800'
+            bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800
+            ${!effectiveJobPostId ? 'opacity-50 cursor-not-allowed' : ''}
           `}
-          onClick={() => navigate(`/written-test-passed/${effectiveJobPostId}`)}
+          onClick={() => {
+            if (effectiveJobPostId) {
+              navigate(`/written-test-passed/${effectiveJobPostId}`);
+            } else {
+              console.error('필기 합격자 명단: jobPostId가 없습니다.');
+              alert('채용공고를 먼저 선택해주세요.');
+            }
+          }}
+          disabled={!effectiveJobPostId}
         >
           <MdCheckCircle size={20} />
           {isHovered && <span className="ml-2">필기 합격자 명단</span>}

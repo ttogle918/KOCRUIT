@@ -114,6 +114,7 @@ class Application(Base):
     highlight_results = relationship("HighlightResult", back_populates="application")
     analysis_results = relationship("AnalysisResult", back_populates="application")
     growth_prediction_results = relationship("GrowthPredictionResult", back_populates="application")
+    personal_question_results = relationship("PersonalQuestionResult", back_populates="application")
 
 
 class FieldNameScore(Base):

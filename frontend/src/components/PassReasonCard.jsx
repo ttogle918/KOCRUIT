@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaStar, FaRegStar, FaEnvelope } from 'react-icons/fa';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, BarChart } from 'recharts';
 import api from '../api/api';
+import PersonalQuestionApi from '../api/personalQuestionApi';
 import { calculateAge } from '../utils/resumeUtils';
 import GrowthPredictionCard from './GrowthPredictionCard';
 
@@ -210,7 +211,11 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
 
   // AI 질문 생성 로직 복원
   const handleRequestQuestions = async () => {
-    if (!applicant?.application_id && !applicant?.applicationId) return;
+    if (!applicant?.application_id && !applicant?.applicationId) {
+      setQuestionError('지원자 정보가 없습니다.');
+      return;
+    }
+    
     setQuestionLoading(true);
     setQuestionError(null);
     setAiQuestions([]);
@@ -231,7 +236,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
       });
       
       // 개인별 맞춤형 질문 생성을 위한 API 호출
-      const response = await api.post('/interview-questions/job-questions', {
+      const response = await PersonalQuestionApi.generatePersonalQuestions({
         application_id: applicant.application_id || applicant.applicationId,
         company_name: applicant.companyName || applicant.company_name || '회사',
         // 개인별 질문 생성을 위한 추가 정보
@@ -268,16 +273,16 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
         }
       });
       
-      console.log('AI 개인 질문 생성 응답:', response.data);
+      console.log('AI 개인 질문 생성 응답:', response);
       console.log('응답 데이터 구조:', {
-        has_question_bundle: !!response.data?.question_bundle,
-        has_questions: !!response.data?.questions,
-        question_bundle_keys: response.data?.question_bundle ? Object.keys(response.data.question_bundle) : [],
-        questions_length: response.data?.questions ? response.data.questions.length : 0
+        has_question_bundle: !!response?.question_bundle,
+        has_questions: !!response?.questions,
+        question_bundle_keys: response?.question_bundle ? Object.keys(response.question_bundle) : [],
+        questions_length: response?.questions ? response.questions.length : 0
       });
       
       // 개인별 질문 데이터 처리 - 개인 질문만 필터링
-      let q = response.data?.question_bundle || response.data?.question_categories || response.data?.questions || {};
+      let q = response?.question_bundle || response?.question_categories || response?.questions || {};
       
       // 개인 질문만 필터링 - 모든 개인별 질문 카테고리 포함
       if (typeof q === 'object' && q !== null) {
@@ -303,10 +308,25 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
       }
       
       if (Array.isArray(q)) q = { "개인별 질문": q };
-      setAiQuestions(q);
+      
+      // 질문이 실제로 생성되었는지 확인
+      const hasQuestions = q && typeof q === 'object' && Object.keys(q).length > 0;
+      const totalQuestions = hasQuestions ? Object.values(q).flat().length : 0;
+      
+      if (hasQuestions && totalQuestions > 0) {
+        setAiQuestions(q);
+        console.log(`✅ AI 개인 질문 생성 완료: ${totalQuestions}개 질문`);
+      } else {
+        setQuestionError('AI 개인 질문이 생성되지 않았습니다. 다시 시도해주세요.');
+        setQuestionRequested(false);
+      }
     } catch (err) {
       console.error('AI 개인 질문 생성 오류:', err);
-      setQuestionError('AI 개인 질문 생성 중 오류가 발생했습니다.');
+      const errorMessage = err.response?.data?.detail || 
+                          err.message || 
+                          'AI 개인 질문 생성 중 오류가 발생했습니다.';
+      setQuestionError(errorMessage);
+      setQuestionRequested(false);
     } finally {
       setQuestionLoading(false);
     }
@@ -318,6 +338,55 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
     setQuestionLoading(false);
     setQuestionRequested(false);
   }, [applicant?.application_id, applicant?.applicationId]);
+
+  // 저장된 개인 질문 조회
+  const loadSavedPersonalQuestions = async () => {
+    if (!applicationId) return;
+    
+    try {
+      setQuestionLoading(true);
+      console.log('🔍 저장된 개인 질문 조회 시작:', applicationId);
+      
+      const savedQuestions = await PersonalQuestionApi.getPersonalQuestions(applicationId);
+      console.log('📦 저장된 개인 질문 응답:', savedQuestions);
+      
+      // 개인별 질문 데이터 처리 - DB에서 가져온 데이터 그대로 사용
+      let q = savedQuestions?.question_bundle || {};
+      console.log('📋 원본 질문 데이터:', q);
+      
+      // 질문 데이터가 있는지 확인
+      if (!q || Object.keys(q).length === 0) {
+        q = savedQuestions?.questions ? { "개인별 질문": savedQuestions.questions } : {};
+      }
+      
+      // 질문이 실제로 있는지 확인
+      const hasQuestions = q && typeof q === 'object' && Object.keys(q).length > 0;
+      const totalQuestions = hasQuestions ? Object.values(q).flat().length : 0;
+      
+      console.log('📊 질문 검증 결과:', {
+        hasQuestions,
+        totalQuestions,
+        questionKeys: q ? Object.keys(q) : [],
+        questionData: q
+      });
+      
+      if (hasQuestions && totalQuestions > 0) {
+        setAiQuestions(q);
+        setQuestionRequested(true);
+        console.log(`✅ 저장된 개인 질문 로드 완료: ${totalQuestions}개 질문`);
+      } else {
+        console.log('❌ 저장된 개인 질문이 없습니다. AI 생성 실행...');
+        // 저장된 질문이 없으면 AI 생성 실행
+        await handleRequestQuestions();
+      }
+    } catch (error) {
+      console.log('❌ 저장된 개인 질문 조회 실패:', error.message);
+      // 저장된 질문 조회 실패 시 AI 생성 실행
+      await handleRequestQuestions();
+    } finally {
+      setQuestionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -605,8 +674,8 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
         {/* AI 질문 생성 버튼/로딩/에러/질문 목록 */}
         {!questionRequested ? (
           <button
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onClick={handleRequestQuestions}
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={loadSavedPersonalQuestions}
             disabled={questionLoading}
             style={{ minWidth: 220 }}
           >
@@ -616,10 +685,36 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
               </svg>
             )}
-            {questionLoading ? 'AI 개인 질문 생성 중...' : 'AI 개인 질문 생성'}
+            {questionLoading ? '개인 질문 로드 중...' : 'AI 개인 질문 생성'}
           </button>
+        ) : questionLoading ? (
+          <div className="flex items-center justify-center gap-3 py-8">
+            <svg className="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span className="text-blue-600 font-medium">AI 개인 질문을 생성하고 있습니다...</span>
+          </div>
         ) : questionError ? (
-          <div className="text-red-500 mt-2">{questionError}</div>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mt-4">
+            <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">오류 발생</span>
+            </div>
+            <p className="text-red-600 dark:text-red-400 mt-2">{questionError}</p>
+            <button
+              onClick={() => {
+                setQuestionError(null);
+                setQuestionRequested(false);
+                setAiQuestions([]);
+              }}
+              className="mt-3 text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 underline"
+            >
+              다시 시도
+            </button>
+          </div>
         ) : aiQuestions && Object.keys(aiQuestions).length > 0 ? (
           <div className="max-h-[600px] overflow-y-auto pr-2 space-y-6 mt-4">
             {Object.entries(aiQuestions).map(([category, questions]) => (
@@ -652,7 +747,26 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
             ))}
           </div>
         ) : (
-          <div className="text-gray-500 mt-2">AI 개인 질문이 없습니다.</div>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-4">
+            <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-300">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">질문 없음</span>
+            </div>
+            <p className="text-yellow-600 dark:text-yellow-400 mt-2">
+              AI 개인 질문이 생성되지 않았습니다. 다시 시도해주세요.
+            </p>
+            <button
+              onClick={() => {
+                setQuestionRequested(false);
+                setAiQuestions([]);
+              }}
+              className="mt-3 text-sm text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 underline"
+            >
+              다시 시도
+            </button>
+          </div>
         )}
       </div>
 
