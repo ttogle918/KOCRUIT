@@ -50,6 +50,7 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
       case 'detailed': return '이력서 상세분석 결과';
       case 'applicant_comparison': return '같은 공고 지원자 비교분석 결과';
       case 'impact_points': return '이력서 임팩트 포인트';
+      case 'plagiarism': return '이력서 표절 검사 결과';
       default: return '이력서 분석 결과';
     }
   };
@@ -913,6 +914,115 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
     );
   };
 
+  // 표절 검사 결과 렌더링
+  const renderPlagiarismAnalysis = (result) => {
+    if (!result) {
+      return (
+        <div className="bg-blue-50 p-6 rounded-lg text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-blue-800 font-medium">표절 검사를 수행 중입니다...</p>
+          <p className="text-blue-600 text-sm mt-2">잠시만 기다려주세요.</p>
+        </div>
+      );
+    }
+
+    const {
+      plagiarism_suspected,
+      most_similar_resume,
+      all_similar_resumes,
+      similarity_threshold,
+      message,
+      error
+    } = result;
+
+    if (error) {
+      return (
+        <div className="bg-red-50 p-4 rounded-lg">
+          <h4 className="font-semibold text-red-800 mb-2">❌ 오류 발생</h4>
+          <p className="text-red-700">{error}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* 표절 여부 상태 */}
+        <div className={`p-4 rounded-lg ${plagiarism_suspected ? 'bg-red-50 border-l-4 border-red-400' : 'bg-green-50 border-l-4 border-green-400'}`}>
+          <div className="flex items-center">
+            <span className={`text-2xl mr-3 ${plagiarism_suspected ? 'text-red-600' : 'text-green-600'}`}>
+              {plagiarism_suspected ? '⚠️' : '✅'}
+            </span>
+            <div>
+              <h4 className={`font-semibold ${plagiarism_suspected ? 'text-red-800' : 'text-green-800'}`}>
+                {plagiarism_suspected ? '표절 의심' : '표절 의심 없음'}
+              </h4>
+              <p className={`text-sm ${plagiarism_suspected ? 'text-red-700' : 'text-green-700'}`}>
+                임계값: {(similarity_threshold * 100).toFixed(1)}%
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* 가장 유사한 이력서 */}
+        {most_similar_resume && (
+          <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+            <h4 className="font-semibold text-yellow-800 mb-3">🔍 가장 유사한 이력서</h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">이력서 ID:</span>
+                <span className="text-sm font-medium">{most_similar_resume.resume_id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">제목:</span>
+                <span className="text-sm font-medium">{most_similar_resume.title}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">유사도:</span>
+                <span className={`text-sm font-bold ${most_similar_resume.similarity >= similarity_threshold ? 'text-red-600' : 'text-yellow-600'}`}>
+                  {(most_similar_resume.similarity * 100).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 모든 유사 이력서 목록 */}
+        {all_similar_resumes && all_similar_resumes.length > 0 && (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-800 mb-3">📋 유사 이력서 목록</h4>
+            <div className="space-y-3">
+              {all_similar_resumes.map((resume, index) => (
+                <div key={index} className="bg-white p-3 rounded border">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium">ID: {resume.resume_id}</p>
+                      <p className="text-xs text-gray-600">{resume.title}</p>
+                    </div>
+                    <span className={`text-sm font-bold px-2 py-1 rounded ${
+                      resume.similarity >= similarity_threshold 
+                        ? 'bg-red-100 text-red-700' 
+                        : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {(resume.similarity * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 메시지 */}
+        {message && (
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-blue-800 mb-2">💬 안내</h4>
+            <p className="text-blue-700">{message}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // 분석 결과 렌더링
   const renderAnalysisResult = (toolId, result) => {
     switch(toolId) {
@@ -924,6 +1034,8 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
         return renderApplicantComparisonAnalysis(result);
       case 'impact_points':
         return renderImpactPointsAnalysis(result);
+      case 'plagiarism':
+        return renderPlagiarismAnalysis(result);
       default:
         return (
           <div className="bg-gray-50 p-4 rounded-lg">
