@@ -70,7 +70,7 @@ export default function ApplicantList() {
   const [modalSelectedApplicantIndex, setModalSelectedApplicantIndex] = useState(0);
 
   // jobPostId가 없으면 기본값 사용
-  const effectiveJobPostId = jobPostId;
+  const effectiveJobPostId = jobPostId || 17; // 기본값으로 17 사용 (데이터가 있는 공고)
 
   // 필기합격자 명단 존재 여부 계산
   const [writtenTestPassedReady, setWrittenTestPassedReady] = useState(false);
@@ -117,21 +117,65 @@ export default function ApplicantList() {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
+      
+      // jobPostId 유효성 검사
+      if (!effectiveJobPostId) {
+        console.error('jobPostId가 없습니다:', { jobPostId, effectiveJobPostId });
+        setError('공고 ID가 유효하지 않습니다. URL을 확인해주세요.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('지원자 데이터 로딩 시작:', { effectiveJobPostId });
+      
       try {
-        const [appRes, postRes, appDetailRes] = await Promise.all([
-        api.get(`/applications/job/${effectiveJobPostId}/applicants`),
-        api.get(`/company/jobposts/${effectiveJobPostId}`)
+        const [appRes, postRes] = await Promise.all([
+          api.get(`/applications/job/${effectiveJobPostId}/applicants`),
+          api.get(`/company/jobposts/${effectiveJobPostId}`)
         ]);
-        const applicants = appRes.data;
+        
+        console.log('API 응답 성공:', {
+          applicantsCount: appRes.data?.length || 0,
+          jobPostTitle: postRes.data?.title || 'N/A'
+        });
+        
+        const applicants = appRes.data || [];
         setApplicants(applicants);
         setWaitingApplicants(applicants.filter(app => app.document_status === 'WAITING'));
         setPassedCount(applicants.filter(app => app.document_status === 'PASSED').length);
         setRejectedCount(applicants.filter(app => app.document_status === 'REJECTED').length);
         setBookmarkedList(applicants.map(app => app.isBookmarked === 'Y'));
         setHeadcount(postRes.data?.headcount ?? 0);
+        
+        console.log('지원자 데이터 설정 완료:', {
+          total: applicants.length,
+          waiting: applicants.filter(app => app.document_status === 'WAITING').length,
+          passed: applicants.filter(app => app.document_status === 'PASSED').length,
+          rejected: applicants.filter(app => app.document_status === 'REJECTED').length
+        });
+        
       } catch (err) {
-        console.error('지원자/공고 데이터 불러오기 실패:', err);
-        setError('지원자 또는 공고 정보를 불러올 수 없습니다.');
+        console.error('지원자/공고 데이터 불러오기 실패:', {
+          error: err,
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          jobPostId: effectiveJobPostId
+        });
+        
+        let errorMessage = '지원자 또는 공고 정보를 불러올 수 없습니다.';
+        
+        if (err.response?.status === 404) {
+          errorMessage = '해당 공고를 찾을 수 없습니다. 공고 ID를 확인해주세요.';
+        } else if (err.response?.status === 500) {
+          errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        } else if (err.code === 'ECONNABORTED') {
+          errorMessage = '요청 시간이 초과되었습니다. 네트워크 연결을 확인해주세요.';
+        } else if (err.message) {
+          errorMessage = `오류: ${err.message}`;
+        }
+        
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }

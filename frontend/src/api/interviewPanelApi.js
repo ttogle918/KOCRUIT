@@ -1,6 +1,6 @@
 import axiosInstance from './axiosInstance';
 
-const INTERVIEW_PANEL_API = '/v1/interview-panel';
+const INTERVIEW_PANEL_API = '/interview-panel';
 
 export const interviewPanelApi = {
   // Assign interviewers for a job post

@@ -36,13 +36,19 @@ class ScheduleInterview(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     schedule_id = Column(Integer, ForeignKey('schedule.id'))
+    application_id = Column(Integer, ForeignKey('application.id'), nullable=True)  # 지원서 ID 추가
+    interviewer_id = Column(Integer, ForeignKey('company_user.id'), nullable=True)  # 면접관 ID 추가
     user_id = Column(Integer, ForeignKey('company_user.id'), nullable=True)  # AI 면접을 위해 nullable로 변경
     schedule_date = Column(DateTime)
+    notes = Column(Text, nullable=True)  # 메모 필드 추가
     status = Column(SqlEnum(InterviewScheduleStatus), default=InterviewScheduleStatus.SCHEDULED, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)  # 생성 시간 추가
     
     # Relationships
     schedule = relationship("Schedule", back_populates="interviews")
-    user = relationship("CompanyUser")
+    user = relationship("CompanyUser", foreign_keys=[user_id])  # user_id를 명시적으로 지정
+    application = relationship("Application")  # Application 관계 추가
+    interviewer = relationship("CompanyUser", foreign_keys=[interviewer_id])  # 면접관 관계 추가
 
 
 # AI 면접 전용 테이블
