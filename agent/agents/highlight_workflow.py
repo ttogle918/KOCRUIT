@@ -8,6 +8,173 @@ from agent.utils.llm_cache import redis_cache
 # LLM 초기화
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
+# 임베딩 시스템 관련 코드 완전 제거
+
+def is_transition_word(text: str) -> bool:
+    """전환어 감지 함수"""
+    transition_patterns = [
+        # 대조/반전 전환어
+        r'하지만|그럼에도\s*불구하고|그러나|다만|단|오히려|반면|반대로|대신|대신에|그런데|그렇지만',
+        # 시간/순서 전환어
+        r'그러다가|그\s*후|이후|그\s*다음|다음에는|그\s*때부터|그\s*때|그\s*이후|그\s*다음에',
+        # 조건/결과 전환어
+        r'만약|만약에|결과적으로|결국|마침내|드디어|그\s*결과|그\s*끝에',
+        # 추가/강조 전환어
+        r'또한|게다가|더욱이|무엇보다|특히|특별히|더구나|거기에|또\s*한편',
+        # 인과 전환어
+        r'그\s*이유로|그\s*때문에|그\s*래서|그\s*때문|그\s*결과로|그\s*덕분에',
+        # 예시 전환어
+        r'예를\s*들면|예시로|구체적으로|실제로|사실|실제로는'
+    ]
+    
+    for pattern in transition_patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            return True
+    return False
+
+def filter_negative_highlights_with_transitions(highlights: List[Dict[str, Any]], full_text: str) -> List[Dict[str, Any]]:
+    """전환어를 고려하여 부정 하이라이팅을 필터링"""
+    if not highlights:
+        return highlights
+    
+    filtered_highlights = []
+    
+    for highlight in highlights:
+        sentence = highlight.get('sentence', '')
+        category = highlight.get('category', '')
+        
+        # 부정 관련 카테고리만 필터링
+        if category in ['negative_tone', 'mismatch']:
+            # 전환어가 포함된 문장인지 확인
+            if is_transition_word(sentence):
+                # 전환어 중심 문맥 분석
+                context_analysis = analyze_transition_context(sentence)
+                
+                if context_analysis['has_context_change']:
+                    if context_analysis['positive_after_negative']:
+                        print(f"전환어 문맥 변화 감지 (부정→긍정) - 부정 하이라이팅 제외: {sentence[:50]}...")
+                        continue  # 이 하이라이팅은 제외
+                    elif context_analysis['negative_after_positive']:
+                        print(f"전환어 문맥 변화 감지 (긍정→부정) - 부정 하이라이팅 유지: {sentence[:50]}...")
+                        # 부정 하이라이팅 유지 (기본 동작)
+        
+        filtered_highlights.append(highlight)
+    
+    return filtered_highlights
+
+def analyze_transition_context(sentence: str) -> Dict[str, Any]:
+    """전환어를 중심으로 앞뒤 문맥을 분석"""
+    result = {
+        'has_context_change': False,
+        'positive_after_negative': False,
+        'negative_after_positive': False,
+        'transition_word': '',
+        'before_transition': '',
+        'after_transition': '',
+        'before_sentiment': 'neutral',
+        'after_sentiment': 'neutral'
+    }
+    
+    # 전환어 위치 찾기
+    transition_patterns = [
+        r'하지만|그러나|그런데|그렇지만|다만|단|오히려|반면|반대로|대신|대신에',
+        r'그러다가|그\s*후|이후|그\s*다음|다음에는|그\s*때부터',
+        r'만약|만약에|결과적으로|결국|마침내|드디어',
+        r'또한|게다가|더욱이|무엇보다|특히|특별히'
+    ]
+    
+    for pattern in transition_patterns:
+        match = re.search(pattern, sentence, re.IGNORECASE)
+        if match:
+            transition_word = match.group()
+            before_text = sentence[:match.start()].strip()
+            after_text = sentence[match.end():].strip()
+            
+            # 전환어 앞뒤 텍스트가 모두 있는 경우만 분석
+            if before_text and after_text:
+                before_sentiment = analyze_sentiment(before_text)
+                after_sentiment = analyze_sentiment(after_text)
+                
+                result.update({
+                    'has_context_change': True,
+                    'transition_word': transition_word,
+                    'before_transition': before_text,
+                    'after_transition': after_text,
+                    'before_sentiment': before_sentiment,
+                    'after_sentiment': after_sentiment
+                })
+                
+                # 문맥 변화 감지
+                if before_sentiment == 'negative' and after_sentiment == 'positive':
+                    result['positive_after_negative'] = True
+                elif before_sentiment == 'positive' and after_sentiment == 'negative':
+                    result['negative_after_positive'] = True
+                
+                break
+    
+    return result
+
+def analyze_sentiment(text: str) -> str:
+    """텍스트의 감정을 분석 (긍정/부정/중립)"""
+    if not text or len(text.strip()) < 2:
+        return 'neutral'
+    
+    # 긍정적 키워드 패턴
+    positive_patterns = [
+        r'성공|성과|개선|향상|증가|달성|완료|해결|극복|발전|성장|도약|혁신|창의|효율|최적화',
+        r'좋은|훌륭한|우수한|뛰어난|탁월한|최고의|최상의|완벽한|완전한|완성된',
+        r'만족|기쁨|희망|자신감|긍정|낙관|열정|의지|노력|성실|책임감|주도성',
+        r'배웠다|성장했다|개선했다|해결했다|달성했다|완료했다|극복했다|발전했다',
+        r'잘\s*했다|성공했다|완료했다|해결했다|개선했다|향상했다|증가했다|달성했다',
+        r'좋았다|훌륭했다|우수했다|뛰어났다|탁월했다|완벽했다|완전했다|완성했다'
+    ]
+    
+    # 부정적 키워드 패턴
+    negative_patterns = [
+        r'실패|실패했다|실패했고|실패했으며|실패했지만|실패했고|실패했으니|실패했으므로',
+        r'어려움|어려웠다|어려웠고|어려웠으며|어려웠지만|어려웠고|어려웠으니|어려웠으므로',
+        r'문제|문제가|문제를|문제에|문제로|문제와|문제는|문제도|문제만|문제까지',
+        r'실수|실수했다|실수했고|실수했으며|실수했지만|실수했고|실수했으니|실수했으므로',
+        r'부족|부족했다|부족했고|부족했으며|부족했지만|부족했고|부족했으니|부족했으므로',
+        r'미흡|미흡했다|미흡했고|미흡했으며|미흡했지만|미흡했고|미흡했으니|미흡했으므로',
+        r'부족함|부족함을|부족함에|부족함으로|부족함과|부족함은|부족함도|부족함만|부족함까지',
+        r'실망|실망했다|실망했고|실망했으며|실망했지만|실망했고|실망했으니|실망했으므로',
+        r'좌절|좌절했다|좌절했고|좌절했으며|좌절했지만|좌절했고|좌절했으니|좌절했으므로',
+        r'힘들었다|어려웠다|막막했다|당황했다|혼란스러웠다|불안했다|걱정했다',
+        r'나쁜|안좋은|부족한|미흡한|실패한|실패했다|실패했고|실패했으며|실패했지만',
+        r'어려웠다|힘들었다|막막했다|당황했다|혼란스러웠다|불안했다|걱정했다|실망했다|좌절했다'
+    ]
+    
+    # 긍정/부정 키워드 카운트
+    positive_count = 0
+    negative_count = 0
+    
+    for pattern in positive_patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            positive_count += 1
+    
+    for pattern in negative_patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            negative_count += 1
+    
+    # 감정 판단 (키워드 개수와 가중치 고려)
+    if positive_count > negative_count and positive_count > 0:
+        return 'positive'
+    elif negative_count > positive_count and negative_count > 0:
+        return 'negative'
+    else:
+        return 'neutral'
+
+def has_positive_content_after_transition(sentence: str) -> bool:
+    """전환어 뒤에 긍정적 내용이 있는지 확인 (기존 함수 - 호환성 유지)"""
+    context_analysis = analyze_transition_context(sentence)
+    return context_analysis.get('positive_after_negative', False)
+
+def has_negative_content_after_transition(sentence: str) -> bool:
+    """전환어 뒤에 부정적 내용이 있는지 확인 (기존 함수 - 호환성 유지)"""
+    context_analysis = analyze_transition_context(sentence)
+    return context_analysis.get('negative_after_positive', False)
+
 def analyze_resume_content(state: Dict[str, Any]) -> Dict[str, Any]:
     """이력서 내용 분석 노드"""
     resume_content = state.get("resume_content", "")
@@ -43,28 +210,27 @@ def generate_highlight_criteria(state: Dict[str, Any]) -> Dict[str, Any]:
     jobpost_id = state.get("jobpost_id")
     company_id = state.get("company_id")
     
-    # 기본 하이라이팅 기준 정의
-    # 하이라이트 카테고리 및 기준 정의 (README_HIGHLIGHT_SYSTEM.md 기준)
+    # 기본 하이라이팅 기준 정의 (보라에 추상 포함)
     highlight_criteria = {
         "red": {
-            "name": "위험 요소 (Risk)",
-            "description": "직무 적합성 우려, 인재상 충돌, 부정적 태도 등 잠재적 위험 요소"
+            "name": "직무 불일치 (Mismatch)",
+            "description": "직무 도메인/역할 불일치하는 구절, 자격요건 스택 '학습/예정' 수준인 구절"
         },
-        "gray": {
-            "name": "추상표현/면접 추가 확인 필요 (Vague)",
-            "description": "구체성 부족, 검증 필요, 추가 질문이 필요한 추상적 표현"
-        },
-        "purple": {
-            "name": "경험/성과 (Experience)",
-            "description": "구체적이고 의미 있는 경험, 성과, 문제 해결, 리더십 등"
+        "orange": {
+            "name": "부정 태도 (Negative Tone)",
+            "description": "책임회피·공격/비난·비윤리·허위/과장 의심·소통결여 등의 부정적태도 리스크"
         },
         "yellow": {
-            "name": "인재상 매칭 (Value Fit)",
-            "description": "회사 인재상 가치가 실제 행동/사례로 구현된 구절"
+            "name": "인재상 가치 (Value Fit)",
+            "description": "회사 인재상과  맞는 행동·사례로 추정되는 구절(점수화 X)"
         },
         "blue": {
-            "name": "기술 매칭 (Skill Fit)",
-            "description": "채용공고의 핵심 기술과 직접적으로 매칭되는 표현"
+            "name": "기술 사용 경험 (Tech Evidence)",
+            "description": "도구/언어/프레임워크를 실제로 사용한 근거가 드러나는 구절"
+        },
+        "purple": {
+            "name": "경험·성과·이력·경력 (Experience/Impact)",
+            "description": "프로젝트·교육·경력·수상 등 결과·임팩트 **및** 추상표현(면접 확인용)을 함께 포함"
         }
     }
     
@@ -186,140 +352,182 @@ def get_blue_prompt(skill_keywords: List[str], candidates: List[Dict[str, Any]],
     }}
     """
 
-def get_red_prompt(risk_keywords: List[str], candidates: List[Dict[str, Any]], full_text: str, job_details: str = "") -> str:
-    """빨간색 하이라이트용 프롬프트 (직무적합성 우려 + 인재상 충돌)"""
+def get_red_prompt(mismatch_keywords: List[str], candidates: List[Dict[str, Any]], full_text: str, job_details: str = "") -> str:
+    """빨간색 하이라이트용 프롬프트 (직무 불일치)"""
     sentences_json = json.dumps([c['sentence'] for c in candidates], ensure_ascii=False, indent=2)
     
     return f"""
     ### 역할
-    당신은 자기소개서에서 직무 적합성 우려와 인재상 충돌 요소를 찾아내는 전문가입니다.
+    당신은 자기소개서에서 직무 도메인/역할 불일치 요소를 찾아내는 전문가입니다.
 
-    ### 분석 기준 위험 키워드
-    {', '.join(risk_keywords)}
+    ### 분석 기준 불일치 키워드
+    {', '.join(mismatch_keywords)}
 
     ### 분석할 문장들
     {sentences_json}
 
-    ### 위험 요소 유형
-    **[1] 직무 적합성 우려**
-    - 지원 직무와 관련된 경험이 부족한 경우
-    - 기술적 역량이 부족하다고 언급된 경우
-    - 학습 중이거나 준비 중이라고 표현된 경우
-    - 지원 직무와 관련 없는 경험만 있는 경우
+    ### 직무 불일치 유형
+    **[1] 직무 도메인 불일치**
+    - 지원 직무와 완전히 다른 분야의 경험
+    - 지원 직무와 관련 없는 업무 경험
+    - 지원 직무와 다른 산업 분야의 경험
 
-    **[2] 인재상 충돌**
-    - 회사 가치관과 충돌하는 표현
-    - 회사 인재상과 맞지 않는 태도나 가치관
-    - 회사 문화와 부합하지 않는 표현
-    - 개인주의적이거나 협업에 부정적인 표현
+    **[2] 역할 불일치**
+    - 지원 직무와 다른 역할의 경험
+    - 지원 직무보다 낮은 수준의 역할 경험
+    - 지원 직무와 맞지 않는 리더십 경험
 
-    **[3] 부정적 태도나 표현**
-    - 실패 경험을 부정적으로 표현한 경우
-    - 어려움을 극복하지 못했다고 표현한 경우
-    - 자신감이 부족한 표현
-    - 회사나 직무에 대한 부정적 시각
+    **[3] 자격요건 스택 '학습/예정' 수준**
+    - "배우고 있다", "학습 중이다", "준비 중이다" 등
+    - "~할 예정이다", "~하려고 한다" 등 미래형 표현
+    - 실제 사용 경험이 아닌 학습 의도만 표현
 
     ### 라벨링 규칙
-    - 직무 적합성과 인재상 충돌 요소를 우선적으로 찾으세요
-    - 구체적이고 객관적인 위험 요소를 선택하세요
-    - 단순한 부족함 표현보다는 근본적인 문제를 찾으세요
+    - 직무와 직접적으로 불일치하는 요소를 찾으세요
+    - 자격요건에 미달하는 기술 수준을 찾으세요
+    - 구체적이고 객관적인 불일치 요소를 선택하세요
 
     ### JSON 응답 포맷
     {{
         "highlights": [
             {{
-                "sentence": "위험 요소가 드러나는 구절",
-                "category": "risk",
-                "reason": "위험 요소 설명"
+                "sentence": "직무 불일치가 드러나는 구절",
+                "category": "mismatch",
+                "reason": "불일치 요소 설명"
             }}
         ]
     }}
     """
 
-def get_gray_prompt(vague_keywords: List[str], candidates: List[Dict[str, Any]], full_text: str) -> str:
-    """회색 하이라이트용 프롬프트 (면접에서 추가 확인이 필요한 부분)"""
+def get_orange_prompt(negative_keywords: List[str], candidates: List[Dict[str, Any]], full_text: str) -> str:
+    """오렌지색 하이라이트용 프롬프트 (부정 태도)"""
     sentences_json = json.dumps([c['sentence'] for c in candidates], ensure_ascii=False, indent=2)
     
     return f"""
     ### 역할
-    당신은 자기소개서에서 면접에서 추가 확인이 필요한 부분을 찾아내는 전문가입니다.
+    당신은 자기소개서에서 부정적 태도나 윤리적 문제를 찾아내는 전문가입니다.
+
+    ### 분석 기준 부정 키워드
+    {', '.join(negative_keywords)}
 
     ### 분석할 문장들
     {sentences_json}
 
-    ### 면접 추가 확인 필요 유형
-    **[1] 구체성 부족**
-    - "~할 예정이다", "~하려고 한다" 등 미래형 표현
-    - 구체적 계획이나 실현 가능성이 불분명한 경우
-    - 구체적 성과나 결과가 없는 추상적 표현
+    ### 부정 태도 유형
+    **[1] 책임회피**
+    - 실패나 문제에 대한 책임을 회피하는 표현
+    - "~때문에", "~탓에" 등 외부 요인 탓으로 돌리는 표현
+    - 개인적 책임을 인정하지 않는 태도
 
-    **[2] 검증 필요 표현**
-    - "열심히", "최선을 다해", "성실하게" 등 구체적 근거 없는 표현
-    - 과도한 자신감 표현 ("최고", "최선", "완벽")
-    - 주관적 평가 ("좋은", "나쁜", "훌륭한")
+    **[2] 공격/비난**
+    - 다른 사람이나 조직을 비난하는 표현
+    - 과도하게 부정적인 시각으로 바라보는 태도
+    - 건설적이지 않은 비판적 표현
 
-    **[3] 추가 질문 유발 표현**
-    - 구체적 수치나 결과가 없는 성과 표현
-    - 기술이나 경험의 실제 활용 정도가 불분명한 경우
-    - 팀워크나 협업에서의 구체적 역할이 불분명한 경우
+    **[3] 비윤리적 표현**
+    - 윤리적으로 문제가 될 수 있는 표현
+    - 부정직하거나 속임수를 암시하는 표현
+    - 도덕적으로 의심스러운 행동이나 태도
+
+    **[4] 허위/과장 의심**
+    - 사실과 다를 가능성이 높은 과장된 표현
+    - 검증하기 어려운 과도한 성과나 경험
+    - 신뢰성이 의심되는 구체적 수치나 결과
+    - "최고의", "완벽한", "탁월한" 등 과도한 수식어 사용
+    - "매우", "정말", "너무", "엄청" 등 과장된 부사 사용
+    - "100%", "완벽", "절대" 등 극단적 표현
+    - 구체적 근거 없이 "압도적", "최고" 등 주장
+
+    **[5] 소통결여**
+    - 협업이나 소통에 부정적인 태도
+    - 개인주의적이거나 팀워크를 무시하는 표현
+    - 의사소통 능력 부족을 보여주는 표현
 
     ### 라벨링 규칙
-    - 면접에서 추가 질문이 필요한 부분을 찾으세요
-    - 구체적 성과나 경험이 있는 경우는 제외하세요
-    - 검증 가능한 모호함을 우선하세요
+    - 부정적 태도나 윤리적 문제를 우선적으로 찾으세요
+    - 구체적이고 객관적인 부정 요소를 선택하세요
+    - 단순한 부족함보다는 태도나 윤리적 문제를 찾으세요
+    - **중요**: 부정적 키워드가 포함된 문장이라도 문맥상 긍정적이면 제외하세요
+    - **중요**: 전환어(하지만, 그러나, 그런데 등) 앞 또는 뒤에 긍정적 내용이 있으면 제외하세요
+    - **중요**: 실제로 부정적 태도나 윤리적 문제가 드러나는 문장만 선택하세요
 
     ### JSON 응답 포맷
     {{
         "highlights": [
             {{
-                "sentence": "면접 추가 확인이 필요한 구절",
-                "category": "vague",
-                "reason": "추가 확인이 필요한 이유"
+                "sentence": "부정 태도가 드러나는 구절",
+                "category": "negative_tone",
+                "reason": "부정 태도 설명"
             }}
         ]
     }}
     """
 
 def get_purple_prompt(experience_keywords: List[str], candidates: List[Dict[str, Any]], full_text: str) -> str:
-    """보라색 하이라이트용 프롬프트 (경험 분석)"""
+    """보라색 하이라이트용 프롬프트 (경험·성과·이력·경력 + 추상표현)"""
     sentences_json = json.dumps([c['sentence'] for c in candidates], ensure_ascii=False, indent=2)
     
     return f"""
     ### 역할
-    당신은 자기소개서에서 구체적이고 의미 있는 경험을 찾아내는 전문가입니다.
+    당신은 자기소개서에서 경험·성과·이력·경력과 추상표현을 함께 찾아내는 전문가입니다.
 
     ### 분석할 문장들
     {sentences_json}
 
-    ### 의미 있는 경험 유형
+    ### 경험·성과·이력·경력 유형
     **[1] 구체적 성과가 있는 경험**
     - 수치화된 성과 (예: "매출 20% 증가", "시간 30% 단축")
     - 구체적 결과가 있는 프로젝트나 활동
+    - 실제 임팩트가 드러나는 경험
 
     **[2] 문제 해결 경험**
     - 실제 문제를 해결한 경험
     - 어려움을 극복한 구체적 사례
+    - 도전적 상황에서의 성과
 
     **[3] 리더십 경험**
     - 팀을 이끈 경험
     - 주도적으로 진행한 프로젝트
+    - 관리·조율 경험
 
     **[4] 학습 및 성장 경험**
     - 새로운 기술이나 지식을 습득한 경험
     - 실패를 통해 배운 구체적 교훈
+    - 전문성 향상 경험
+
+    **[5] 교육·수상·자격 경험**
+    - 관련 교육 이수 경험
+    - 수상 경력
+    - 자격증 취득
+
+    ### 추상표현 (면접 확인용)
+    **[6] 구체성 부족한 표현**
+    - "~할 예정이다", "~하려고 한다" 등 미래형 표현
+    - 구체적 계획이나 실현 가능성이 불분명한 경우
+    - 구체적 성과나 결과가 없는 추상적 표현
+
+    **[7] 검증 필요 표현**
+    - "열심히", "최선을 다해", "성실하게" 등 구체적 근거 없는 표현
+    - 과도한 자신감 표현 ("최고", "최선", "완벽")
+    - 주관적 평가 ("좋은", "나쁜", "훌륭한")
+
+    **[8] 추가 질문 유발 표현**
+    - 구체적 수치나 결과가 없는 성과 표현
+    - 기술이나 경험의 실제 활용 정도가 불분명한 경우
+    - 팀워크나 협업에서의 구체적 역할이 불분명한 경우
 
     ### 라벨링 규칙
-    - 구체적이고 의미 있는 경험만 선택하세요
-    - 일반적이고 추상적인 경험은 제외하세요
-    - 실제 성과나 결과가 드러나는 경험을 우선하세요
+    - 구체적이고 의미 있는 경험을 우선적으로 찾으세요
+    - 추상표현은 면접에서 추가 확인이 필요한 부분으로 분류하세요
+    - 경험과 추상표현을 모두 포함하여 종합적으로 분석하세요
 
     ### JSON 응답 포맷
     {{
         "highlights": [
             {{
-                "sentence": "의미 있는 경험이 드러나는 구절",
+                "sentence": "경험이나 추상표현이 드러나는 구절",
                 "category": "experience",
-                "reason": "경험의 의미"
+                "reason": "경험의 의미 또는 추상표현 확인 필요"
             }}
         ]
     }}
@@ -345,10 +553,11 @@ async def analyze_category_with_llm(
             prompt = get_yellow_prompt(keywords, candidates, resume_content)
         elif category == "blue" or category == "skill_fit":
             prompt = get_blue_prompt(keywords, candidates, resume_content)
-        elif category == "red" or category == "risk":
+        elif category == "red" or category == "mismatch":
             prompt = get_red_prompt(keywords, candidates, resume_content, job_details)
-        elif category == "gray" or category == "vague":
-            prompt = get_gray_prompt(keywords, candidates, resume_content)
+        elif category == "orange" or category == "negative_tone":
+            # 오렌지색은 감정 모델과 프롬프트를 함께 사용
+            return await analyze_orange_with_sentiment(candidates, resume_content)
         elif category == "purple" or category == "experience":
             prompt = get_purple_prompt(keywords, candidates, resume_content)
         else:
@@ -386,6 +595,122 @@ async def analyze_category_with_llm(
         print(f"LLM 분석 오류 ({category}): {str(e)}")
         return []
 
+async def analyze_orange_with_sentiment(candidates: List[Dict[str, Any]], full_text: str) -> List[Dict[str, Any]]:
+    """오렌지색 하이라이팅 - 감정 모델과 프롬프트 결합"""
+    try:
+        # 감정 모델 로드 시도
+        sentiment_model = None
+        sentiment_tokenizer = None
+        
+        try:
+            from transformers import AutoTokenizer, AutoModelForSequenceClassification
+            import torch
+            
+            model_name = "nlp04/korean_sentiment_analysis_kcelectra"
+            sentiment_tokenizer = AutoTokenizer.from_pretrained(model_name)
+            sentiment_model = AutoModelForSequenceClassification.from_pretrained(model_name)
+            print("✅ 감정 모델 로드 성공")
+        except Exception as e:
+            print(f"⚠️ 감정 모델 로드 실패: {e}")
+        
+        # 감정 분석 수행
+        negative_sentences = []
+        for candidate in candidates:
+            sentence = candidate['sentence']
+            
+            if sentiment_model and sentiment_tokenizer:
+                # 감정 모델로 분석
+                inputs = sentiment_tokenizer(sentence, return_tensors="pt", truncation=True, max_length=512)
+                with torch.no_grad():
+                    outputs = sentiment_model(**inputs)
+                    probabilities = torch.softmax(outputs.logits, dim=1)
+                    sentiment_score = probabilities[0][1].item()  # 부정 확률
+                
+                # 부정 확률이 높은 문장 선택 (임계값 더 낮춤)
+                if sentiment_score > 0.15:  # 15% 이상 부정 (더 낮은 임계값)
+                    negative_sentences.append({
+                        "sentence": sentence,
+                        "sentiment_score": sentiment_score
+                    })
+                    print(f"🟠 감정 분석 결과: {sentence[:30]}... (부정 확률: {sentiment_score:.3f})")
+                else:
+                    print(f"🟠 감정 분석 제외: {sentence[:30]}... (부정 확률: {sentiment_score:.3f})")
+            else:
+                # 감정 모델이 없으면 프롬프트 기반 분석
+                # 모든 문장을 후보로 추가 (LLM이 판단하도록)
+                negative_sentences.append({
+                    "sentence": sentence,
+                    "sentiment_score": 0.3  # 기본값 (더 낮게 설정)
+                })
+                print(f"🟠 기본 분석: {sentence[:30]}... (기본 점수: 0.3)")
+        
+        # 만약 감정 분석으로 후보가 없으면 모든 문장을 후보로 추가
+        if not negative_sentences:
+            print("🟠 감정 분석 후보가 없어서 모든 문장을 후보로 추가")
+            for candidate in candidates:
+                negative_sentences.append({
+                    "sentence": candidate['sentence'],
+                    "sentiment_score": 0.2  # 기본값
+                })
+        
+        print(f"🟠 감정 분석 후보 문장 수: {len(negative_sentences)}")
+        
+        # 부정 확률 순으로 정렬
+        negative_sentences.sort(key=lambda x: x["sentiment_score"], reverse=True)
+        
+        # 상위 5개 문장만 선택
+        top_negative = negative_sentences[:5]
+        print(f"🟠 상위 5개 후보 문장 선택: {len(top_negative)}개")
+        
+        # 프롬프트 기반 세부 분석
+        if top_negative:
+            sentences_json = json.dumps([c['sentence'] for c in top_negative], ensure_ascii=False, indent=2)
+            # 부정 키워드 추가 (과장 표현 포함)
+            negative_keywords = [
+                # 일반 부정 키워드
+                "실패", "어려움", "문제", "실수", "부족", "미흡", "실망", "좌절", "힘들었다", 
+                "막막했다", "당황했다", "혼란스러웠다", "불안했다", "걱정했다", "나쁜", 
+                "안좋은", "부족한", "미흡한", "실패한", "어려웠다", "힘들었다", "막막했다", 
+                "당황했다", "혼란스러웠다", "불안했다", "걱정했다", "실망했다", "좌절했다",
+                # 과장 표현 키워드
+                "최고의", "최상의", "완벽한", "완전한", "완성된", "탁월한", "뛰어난", "훌륭한",
+                "매우", "정말", "너무", "엄청", "대단히", "극도로", "극한", "최대한", "최선을",
+                "완벽하게", "완전히", "완성도", "탁월하게", "뛰어나게", "훌륭하게",
+                "100%", "완벽", "완전", "최고", "최상", "탁월", "뛰어남", "훌륭함",
+                "압도적", "압도적으로", "압도하다", "압도했다", "압도적인",
+                "무조건", "반드시", "절대", "절대적으로", "절대적"
+            ]
+            prompt = get_orange_prompt(negative_keywords, top_negative, full_text)
+            print(f"🟠 프롬프트 생성 완료, LLM 호출 중...")
+            
+            # LLM 호출
+            response = await llm.ainvoke(prompt)
+            print(f"🟠 LLM 응답 받음: {len(response.content)} 문자")
+            
+            try:
+                result = json.loads(response.content)
+                highlights = result.get("highlights", [])
+                print(f"🟠 파싱된 하이라이트 수: {len(highlights)}")
+                
+                # 감정 점수 추가
+                for highlight in highlights:
+                    for neg_sent in top_negative:
+                        if highlight["sentence"] == neg_sent["sentence"]:
+                            highlight["sentiment_score"] = neg_sent["sentiment_score"]
+                            break
+                
+                print(f"🟠 최종 주황색 하이라이트 수: {len(highlights)}")
+                return highlights
+            except json.JSONDecodeError:
+                print(f"JSON 파싱 오류: {response.content}")
+                return []
+        
+        return []
+        
+    except Exception as e:
+        print(f"오렌지색 감정 분석 오류: {str(e)}")
+        return []
+
 def perform_advanced_highlighting(state: Dict[str, Any]) -> Dict[str, Any]:
     """고급 하이라이팅 수행 노드 (LLM 기반)"""
     resume_content = state.get("resume_content", "")
@@ -397,7 +722,7 @@ def perform_advanced_highlighting(state: Dict[str, Any]) -> Dict[str, Any]:
     highlights = {
         "yellow": [],
         "red": [],
-        "gray": [],
+        "orange": [],
         "purple": [],
         "blue": []
     }
@@ -418,9 +743,11 @@ def perform_advanced_highlighting(state: Dict[str, Any]) -> Dict[str, Any]:
         results = {}
         for color, task in tasks:
             try:
-                results[color] = await task
+                result = await task
+                results[color] = result
+                print(f"✅ {color} 분석 완료: {len(result)}개 결과")
             except Exception as e:
-                print(f"분석 오류 ({color}): {str(e)}")
+                print(f"❌ 분석 오류 ({color}): {str(e)}")
                 results[color] = []
         
         return results
@@ -441,19 +768,50 @@ def perform_advanced_highlighting(state: Dict[str, Any]) -> Dict[str, Any]:
         # 오류 시 기본 키워드 매칭으로 fallback
         highlights = perform_basic_highlighting(resume_content, highlight_criteria)
     
-    # 전체 하이라이트 통합
+    # 전체 하이라이트 통합 (색상별 카테고리 매핑)
     all_highlights = []
+    color_to_category = {
+        "yellow": "value_fit",
+        "red": "mismatch", 
+        "orange": "negative_tone",
+        "purple": "experience",
+        "blue": "skill_fit"
+    }
+    
     for color, color_highlights in highlights.items():
+        print(f"🔄 {color} 하이라이트 처리 중: {len(color_highlights)}개")
         for highlight in color_highlights:
+            # 색상별로 적절한 카테고리명 설정
+            category = color_to_category.get(color, color)
             all_highlights.append({
                 **highlight,
-                "color": color
+                "category": category,  # 의미적 카테고리명으로 설정
+                "color": color  # 색상 정보도 유지
             })
+    
+    # 🆕 전환어를 고려한 부정 하이라이팅 필터링
+    filtered_highlights = filter_negative_highlights_with_transitions(all_highlights, resume_content)
+    
+    # 필터링된 결과를 색상별로 다시 분류
+    filtered_by_color = {
+        "yellow": [],
+        "red": [],
+        "orange": [],
+        "purple": [],
+        "blue": []
+    }
+    
+    for highlight in filtered_highlights:
+        color = highlight.get("color", "")
+        if color in filtered_by_color:
+            # color 키 제거하고 원본 형태로 복원 (category는 유지)
+            highlight_copy = {k: v for k, v in highlight.items() if k != "color"}
+            filtered_by_color[color].append(highlight_copy)
     
     return {
         **state,
-        "highlights": highlights,
-        "all_highlights": all_highlights,
+        "highlights": filtered_by_color,
+        "all_highlights": filtered_highlights,
         "next": "validate_highlights"
     }
 
@@ -462,7 +820,7 @@ def perform_basic_highlighting(resume_content: str, highlight_criteria: Dict[str
     highlights = {
         "yellow": [],
         "red": [],
-        "gray": [],
+        "orange": [],
         "purple": [],
         "blue": []
     }
@@ -515,32 +873,70 @@ def validate_highlights(state: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 def finalize_results(state: Dict[str, Any]) -> Dict[str, Any]:
-    """최종 결과 정리 노드"""
-    highlights = state.get("highlights", {})
-    all_highlights = state.get("all_highlights", [])
-    validation_result = state.get("validation_result", {})
-    
-    # 최종 결과 구성
-    final_result = {
-        "yellow": highlights.get("yellow", []),
-        "red": highlights.get("red", []),
-        "gray": highlights.get("gray", []),
-        "purple": highlights.get("purple", []),
-        "blue": highlights.get("blue", []),
-        "highlights": all_highlights,
-        "metadata": {
-            "total_highlights": validation_result.get("total_highlights", 0),
-            "quality_score": validation_result.get("quality_score", 0.0),
-            "color_distribution": validation_result.get("color_distribution", {}),
-            "issues": validation_result.get("issues", [])
+    """최종 결과 정리"""
+    try:
+        highlights = state.get("highlights", {})
+        
+        # 결과 정리 로직
+        result = {
+            "yellow": highlights.get("yellow", []),
+            "red": highlights.get("red", []),
+            "orange": highlights.get("orange", []),
+            "purple": highlights.get("purple", []),
+            "blue": highlights.get("blue", []),
+            "highlights": highlights.get("highlights", []),
+            "metadata": state.get("metadata", {})
         }
-    }
-    
-    return {
-        **state,
-        "final_result": final_result,
-        "next": END
-    }
+        
+        # 색상별 카테고리 매핑
+        color_mapping = {
+            "yellow": "value_fit",
+            "red": "risk",
+            "orange": "negative_tone",
+            "purple": "experience",
+            "blue": "skill_fit"
+        }
+        
+        # 통합 하이라이트 배열 생성
+        all_highlights = []
+        for color, category in color_mapping.items():
+            color_highlights = highlights.get(color, [])
+            for highlight in color_highlights:
+                all_highlights.append({
+                    **highlight,
+                    "category": category,
+                    "color": color
+                })
+        
+        result["all_highlights"] = all_highlights
+        
+        # 메타데이터 업데이트
+        metadata = state.get("metadata", {})
+        metadata.update({
+            "total_highlights": len(all_highlights),
+            "color_distribution": {
+                color: len(highlights.get(color, [])) 
+                for color in ["yellow", "red", "orange", "purple", "blue"]
+            }
+        })
+        
+        result["metadata"] = metadata
+        
+        print(f"✅ 최종 결과 정리 완료: 총 {len(all_highlights)}개 하이라이트")
+        return result
+        
+    except Exception as e:
+        print(f"❌ 최종 결과 정리 실패: {e}")
+        return {
+            "yellow": [],
+            "red": [],
+            "orange": [],
+            "purple": [],
+            "blue": [],
+            "highlights": [],
+            "all_highlights": [],
+            "metadata": {"error": str(e)}
+        }
 
 def build_highlight_workflow() -> StateGraph:
     """형광펜 하이라이팅 워크플로우 그래프 생성"""
@@ -591,7 +987,7 @@ def process_highlight_workflow(
         return {
             "yellow": [],
             "red": [],
-            "gray": [],
+            "orange": [],
             "purple": [],
             "blue": [],
             "highlights": [],

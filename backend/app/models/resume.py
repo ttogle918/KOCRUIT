@@ -23,8 +23,9 @@ class Resume(Base):
     
     # Relationships with back_populates
     user = relationship("User", back_populates="resumes")
-    specs = relationship("Spec", back_populates="resume")
     applications = relationship("Application", back_populates="resume")
+    specs = relationship("Spec", back_populates="resume")
+    memos = relationship("ResumeMemo", back_populates="resume")
 
 
 class Spec(Base):
@@ -44,11 +45,13 @@ class ResumeMemo(Base):
     __tablename__ = "resume_memo"
     
     id = Column(Integer, primary_key=True, index=True)
+    resume_id = Column(Integer, ForeignKey('resume.id'), nullable=False)
     user_id = Column(Integer, ForeignKey('company_user.id'))
     application_id = Column(Integer, ForeignKey('application.id'))
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships with back_populates
+    resume = relationship("Resume", back_populates="memos")
     user = relationship("CompanyUser", back_populates="resume_memos")
     application = relationship("Application", back_populates="memos") 

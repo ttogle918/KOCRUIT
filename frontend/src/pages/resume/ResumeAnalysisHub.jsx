@@ -12,6 +12,11 @@ export default function ResumeAnalysisHub({ resumeId, applicationId, onApplicant
     setSelectedTool(null);
   }, [resumeId]);
 
+  // applicationId가 바뀌면 선택 상태만 초기화 (저장된 결과는 유지)
+  React.useEffect(() => {
+    setSelectedTool(null);
+  }, [applicationId]);
+
   // 툴바에서 분석 결과를 받는 핸들러
   const handleToolbarAnalysisResult = (toolId, result) => {
     setToolbarResults(prev => ({
@@ -32,6 +37,7 @@ export default function ResumeAnalysisHub({ resumeId, applicationId, onApplicant
       case 'comprehensive': return '이력서 종합분석 결과';
       case 'detailed': return '이력서 상세분석 결과';
       case 'applicant_comparison': return '같은 공고 지원자 비교분석 결과';
+      case 'impact_points': return '이력서 임팩트 포인트';
       case 'keyword_matching': return '이력서 키워드 매칭 결과';
       default: return '이력서 분석 결과';
     }
@@ -812,6 +818,102 @@ export default function ResumeAnalysisHub({ resumeId, applicationId, onApplicant
     );
   };
 
+  // 임팩트 포인트 결과 렌더링
+  const renderImpactPointsAnalysis = (result) => {
+    // 실제 AI 분석 결과 활용
+    const analysisData = result?.results?.impact_points || result;
+    
+    if (!analysisData || typeof analysisData !== 'object') {
+      return (
+        <div className="bg-blue-50 p-6 rounded-lg text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-blue-800 font-medium">AI가 임팩트 포인트를 분석 중입니다...</p>
+          <p className="text-blue-600 text-sm mt-2">후보의 핵심 포인트를 추출하고 있습니다.</p>
+        </div>
+      );
+    }
+
+    const { strengths, cautions, interview_points, additional_insights } = analysisData;
+
+    return (
+      <div className="space-y-6">
+        {/* 후보 임팩트 포인트 */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-6 rounded-lg">
+          <h4 className="font-semibold text-yellow-800 mb-4 flex items-center">
+            <span className="text-xl mr-2">⭐</span>
+            후보 임팩트 포인트
+          </h4>
+          <p className="text-sm text-gray-600 mb-4">이력서 기반 핵심 요약</p>
+        </div>
+
+        {/* 강점 Top3 */}
+        {strengths && strengths.length > 0 && (
+          <div className="bg-green-50 p-6 rounded-lg">
+            <h4 className="font-semibold text-green-800 mb-4 flex items-center">
+              <span className="text-xl mr-2">🤝</span>
+              강점 Top3
+            </h4>
+            <ul className="space-y-3">
+              {strengths.map((strength, index) => (
+                <li key={index} className="flex items-start space-x-3">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-sm text-gray-700">{strength}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 주의사항 Top2 */}
+        {cautions && cautions.length > 0 && (
+          <div className="bg-orange-50 p-6 rounded-lg">
+            <h4 className="font-semibold text-orange-800 mb-4 flex items-center">
+              <span className="text-xl mr-2">⚠️</span>
+              주의사항 Top2
+            </h4>
+            <ul className="space-y-3">
+              {cautions.map((caution, index) => (
+                <li key={index} className="flex items-start space-x-3">
+                  <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-sm text-gray-700">{caution}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 면접 포인트 Top2 */}
+        {interview_points && interview_points.length > 0 && (
+          <div className="bg-blue-50 p-6 rounded-lg">
+            <h4 className="font-semibold text-blue-800 mb-4 flex items-center">
+              <span className="text-xl mr-2">🎤</span>
+              면접 포인트 Top2
+            </h4>
+            <ul className="space-y-3">
+              {interview_points.map((point, index) => (
+                <li key={index} className="flex items-start space-x-3">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></span>
+                  <span className="text-sm text-gray-700">{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 추가 인사이트 */}
+        {additional_insights && (
+          <div className="bg-purple-50 p-6 rounded-lg">
+            <h4 className="font-semibold text-purple-800 mb-4 flex items-center">
+              <span className="text-xl mr-2">💡</span>
+              추가 인사이트
+            </h4>
+            <p className="text-sm text-gray-700">{additional_insights}</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // 키워드 매칭 결과 렌더링
   const renderKeywordMatchingAnalysis = (result) => {
     // 실제 AI 분석 결과 활용
@@ -950,6 +1052,8 @@ export default function ResumeAnalysisHub({ resumeId, applicationId, onApplicant
         return renderDetailedAnalysis(result);
       case 'applicant_comparison':
         return renderApplicantComparisonAnalysis(result);
+      case 'impact_points':
+        return renderImpactPointsAnalysis(result);
       case 'keyword_matching':
         return renderKeywordMatchingAnalysis(result);
       default:
@@ -974,14 +1078,22 @@ export default function ResumeAnalysisHub({ resumeId, applicationId, onApplicant
       />
       
       {/* 선택된 분석 결과 표시 */}
-      {selectedTool && toolbarResults[selectedTool] && (
+      {selectedTool && toolbarResults[selectedTool] ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             {getAnalysisTitle(selectedTool)}
           </h3>
           {renderAnalysisResult(selectedTool, toolbarResults[selectedTool])}
         </div>
-      )}
+      ) : selectedTool && !toolbarResults[selectedTool] ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-blue-800 font-medium">AI가 분석을 수행 중입니다...</p>
+            <p className="text-blue-600 text-sm mt-2">잠시만 기다려주세요.</p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 } 

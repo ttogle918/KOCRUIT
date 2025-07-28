@@ -17,6 +17,7 @@ from .high_performers import HighPerformer
 from .weight import Weight
 from .EmailVerificationToken import EmailVerificationToken
 from .highlight_result import HighlightResult
+from .analysis_result import AnalysisResult
 from app.core.database import Base
 
 from .evaluation_criteria import EvaluationCriteria
@@ -45,7 +46,8 @@ __all__ = [
     "InterviewerProfile",
     "WrittenTestQuestion",
     "EmailVerificationToken",
-    "HighlightResult"
+    "HighlightResult",
+    "AnalysisResult",
     "WrittenTestAnswer",
     "Notification",
     "ApplicantUser",

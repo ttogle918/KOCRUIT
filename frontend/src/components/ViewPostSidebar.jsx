@@ -227,6 +227,18 @@ export default function ViewPostSidebar({ jobPost }) {
       
       {/* 보고서 버튼들 (항상 표시) */}
       <div className="flex flex-col gap-1 w-full mb-6">
+        {/* 지원자통계보고서 버튼 */}
+        <button
+          className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm
+            ${isHovered ? 'justify-start' : 'justify-center'}
+            ${effectiveJobPostId ? 'bg-purple-50 dark:bg-purple-900 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'}
+          `}
+          onClick={() => effectiveJobPostId && navigate(`/report/applicant-statistics?job_post_id=${effectiveJobPostId}`)}
+          disabled={!effectiveJobPostId}
+        >
+          <MdCheckCircle size={18} />
+          {isHovered && <span className="ml-2 text-sm">지원자통계보고서</span>}
+        </button>
         {/* 서류 보고서 버튼 */}
         <button
           className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm

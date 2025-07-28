@@ -12,12 +12,29 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
     setSelectedTool(null);
   }, [resumeId]);
 
+  // selectedTool이 변경될 때 해당 결과가 있는지 확인
+  React.useEffect(() => {
+    if (selectedTool && toolbarResults[selectedTool]) {
+      console.log(`selectedTool 변경됨: ${selectedTool}, 결과 있음:`, toolbarResults[selectedTool]);
+    } else if (selectedTool) {
+      console.log(`selectedTool 변경됨: ${selectedTool}, 결과 없음`);
+    }
+  }, [selectedTool, toolbarResults]);
+
   // 툴바에서 분석 결과를 받는 핸들러
   const handleToolbarAnalysisResult = (toolId, result) => {
-    setToolbarResults(prev => ({
-      ...prev,
-      [toolId]: result
-    }));
+    console.log('handleToolbarAnalysisResult 호출됨:', toolId, result);
+    
+    // 상태 업데이트를 동기적으로 처리
+    setToolbarResults(prev => {
+      const newResults = {
+        ...prev,
+        [toolId]: result
+      };
+      console.log('새로운 toolbarResults:', newResults);
+      return newResults;
+    });
+    
     setSelectedTool(toolId);
   };
 
@@ -29,10 +46,10 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
   // 분석 도구별 제목 매핑
   const getAnalysisTitle = (toolId) => {
     switch(toolId) {
-      case 'comprehensive': return '이력서 종합분석 결과';
+      case 'comprehensive': return '이력서 핵심분석 결과';
       case 'detailed': return '이력서 상세분석 결과';
       case 'applicant_comparison': return '같은 공고 지원자 비교분석 결과';
-      case 'keyword_matching': return '이력서 키워드 매칭 결과';
+      case 'impact_points': return '이력서 임팩트 포인트';
       default: return '이력서 분석 결과';
     }
   };
@@ -78,7 +95,7 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
     );
   };
 
-  // 종합분석 결과 렌더링
+  // 핵심분석 결과 렌더링
   const renderComprehensiveAnalysis = (analysis) => {
     // 실제 AI 분석 결과 활용 - comprehensive_analysis_tool.py 응답 구조에 맞게 수정
     // analysis가 직접 결과이거나, results.comprehensive에 있을 수 있음
@@ -88,7 +105,7 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
       return (
         <div className="bg-blue-50 p-6 rounded-lg text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-800 font-medium">AI가 이력서를 종합 분석 중입니다...</p>
+          <p className="text-blue-800 font-medium">AI가 이력서를 핵심 분석 중입니다...</p>
           <p className="text-blue-600 text-sm mt-2">잠시만 기다려주세요. 고도의 분석이 진행되고 있습니다.</p>
         </div>
       );
@@ -241,10 +258,14 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
 
   // 상세분석 결과 렌더링
   const renderDetailedAnalysis = (result) => {
+    console.log('renderDetailedAnalysis 호출됨 - result:', result);
+    
     // 실제 AI 분석 결과 활용
     const analysisData = result?.results?.detailed || result;
+    console.log('analysisData 추출됨:', analysisData);
     
     if (!analysisData || typeof analysisData !== 'object') {
+      console.log('analysisData가 유효하지 않음:', analysisData);
       return (
         <div className="bg-blue-50 p-6 rounded-lg text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -792,131 +813,102 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
     );
   };
 
-  // 키워드 매칭 결과 렌더링
-  const renderKeywordMatchingAnalysis = (result) => {
+  // 임팩트 포인트 결과 렌더링
+  const renderImpactPointsAnalysis = (result) => {
     // 실제 AI 분석 결과 활용
-    const analysisData = result?.results?.keyword_matching || result;
+    const analysisData = result?.results?.impact_points || result;
     
     if (!analysisData || typeof analysisData !== 'object') {
       return (
         <div className="bg-blue-50 p-6 rounded-lg text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-blue-800 font-medium">AI가 키워드 매칭을 분석 중입니다...</p>
-          <p className="text-blue-600 text-sm mt-2">직무 요구사항과의 매칭도를 계산하고 있습니다.</p>
+          <p className="text-blue-800 font-medium">AI가 임팩트 포인트를 분석 중입니다...</p>
+          <p className="text-blue-600 text-sm mt-2">후보의 핵심 강점과 주의사항을 요약하고 있습니다.</p>
         </div>
       );
     }
 
-    const { matching_summary, matched_keywords, missing_keywords, skill_gap_analysis } = analysisData;
+    const { strengths, cautions, interview_points } = analysisData;
 
     return (
       <div className="space-y-6">
-        {/* 매칭 요약 */}
-        {matching_summary && (
-          <div className="bg-blue-50 p-6 rounded-lg">
-            <h4 className="font-semibold text-blue-800 mb-4">🔗 직무 요구사항 매칭도</h4>
-            <div className="text-center mb-4">
-              {matching_summary.overall_match_score && (
-                <CircularProgress 
-                  value={matching_summary.overall_match_score / 10}
-                  size={120}
-                  strokeWidth={12}
-                  label={`${matching_summary.overall_match_score}%`}
-                  color="#3B82F6"
-                />
+        {/* 임팩트 포인트 카드 */}
+        <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-xl shadow-lg border border-blue-200">
+          <div className="text-center mb-6">
+            <h4 className="text-xl font-bold text-gray-800 mb-2">⭐ 후보 임팩트 포인트</h4>
+            <p className="text-sm text-gray-600">이력서 기반 핵심 요약</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {/* 강점 Top3 */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-400">
+              <div className="flex items-center mb-3">
+                <span className="text-green-600 text-lg mr-2">💪</span>
+                <h5 className="font-semibold text-green-800">강점 Top3</h5>
+              </div>
+              {strengths && strengths.length > 0 ? (
+                <ul className="space-y-2">
+                  {strengths.slice(0, 3).map((strength, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                      <span className="text-sm text-gray-700 leading-relaxed">{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 italic">강점 정보가 없습니다.</p>
               )}
             </div>
-            {matching_summary.summary && (
-              <p className="text-sm text-gray-700 text-center">{matching_summary.summary}</p>
-            )}
-          </div>
-        )}
 
-        {/* 매칭된 키워드 */}
-        {matched_keywords && matched_keywords.length > 0 && (
-          <div className="bg-green-50 p-6 rounded-lg">
-            <h4 className="font-semibold text-green-800 mb-4">✅ 매칭된 키워드</h4>
-            <div className="grid grid-cols-1 gap-3">
-              {matched_keywords.map((keyword, index) => (
-                <div key={index} className="bg-white p-3 rounded-lg shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                      <span className="font-medium text-gray-800">{keyword.keyword || keyword}</span>
-                    </div>
-                    {keyword.relevance && (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-green-500 h-2 rounded-full transition-all duration-1000"
-                            style={{width: `${keyword.relevance}%`}}
-                          ></div>
-                        </div>
-                        <span className="text-sm font-medium text-green-600">{keyword.relevance}%</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 부족한 키워드 */}
-        {missing_keywords && missing_keywords.length > 0 && (
-          <div className="bg-orange-50 p-6 rounded-lg">
-            <h4 className="font-semibold text-orange-800 mb-4">⚠️ 부족한 키워드</h4>
-            <div className="grid grid-cols-1 gap-3">
-              {missing_keywords.map((keyword, index) => (
-                <div key={index} className="bg-white p-3 rounded-lg shadow-sm">
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 bg-orange-500 rounded-full mr-3"></span>
-                    <span className="text-gray-700">{keyword.keyword || keyword}</span>
-                    {keyword.importance && (
-                      <span className="ml-auto text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">
-                        중요도: {keyword.importance}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 스킬 갭 분석 */}
-        {skill_gap_analysis && (
-          <div className="bg-yellow-50 p-6 rounded-lg">
-            <h4 className="font-semibold text-yellow-800 mb-4">💡 스킬 갭 분석</h4>
-            <div className="space-y-3">
-              {skill_gap_analysis.recommendations && skill_gap_analysis.recommendations.length > 0 && (
-                <div>
-                  <h5 className="font-medium text-gray-700 mb-2">개선 제안</h5>
-                  <ul className="space-y-2">
-                    {skill_gap_analysis.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                        <span className="text-sm text-gray-700">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            {/* 주의 Top2 */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-orange-400">
+              <div className="flex items-center mb-3">
+                <span className="text-orange-600 text-lg mr-2">⚠️</span>
+                <h5 className="font-semibold text-orange-800">주의 Top2</h5>
+              </div>
+              {cautions && cautions.length > 0 ? (
+                <ul className="space-y-2">
+                  {cautions.slice(0, 2).map((caution, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                      <span className="text-sm text-gray-700 leading-relaxed">{caution}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 italic">주의사항이 없습니다.</p>
               )}
-              {skill_gap_analysis.priority_skills && skill_gap_analysis.priority_skills.length > 0 && (
-                <div>
-                  <h5 className="font-medium text-gray-700 mb-2">우선 학습 스킬</h5>
-                  <div className="flex flex-wrap gap-2">
-                    {skill_gap_analysis.priority_skills.map((skill, index) => (
-                      <span key={index} className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+            </div>
+
+            {/* 면접 포인트 Top2 */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-400">
+              <div className="flex items-center mb-3">
+                <span className="text-blue-600 text-lg mr-2">🎤</span>
+                <h5 className="font-semibold text-blue-800">면접 포인트 Top2</h5>
+              </div>
+              {interview_points && interview_points.length > 0 ? (
+                <ul className="space-y-2">
+                  {interview_points.slice(0, 2).map((point, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                      <span className="text-sm text-gray-700 leading-relaxed">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 italic">면접 포인트가 없습니다.</p>
               )}
             </div>
           </div>
-        )}
+
+          {/* 추가 정보가 있는 경우 */}
+          {analysisData.additional_insights && (
+            <div className="mt-6 bg-white p-4 rounded-lg shadow-sm">
+              <h5 className="font-medium text-gray-800 mb-2">💡 추가 인사이트</h5>
+              <p className="text-sm text-gray-700">{analysisData.additional_insights}</p>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -930,8 +922,8 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
         return renderDetailedAnalysis(result);
       case 'applicant_comparison':
         return renderApplicantComparisonAnalysis(result);
-      case 'keyword_matching':
-        return renderKeywordMatchingAnalysis(result);
+      case 'impact_points':
+        return renderImpactPointsAnalysis(result);
       default:
         return (
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -943,6 +935,8 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
     }
   };
 
+  console.log('ResumeAnalysisAccordion 렌더링 - selectedTool:', selectedTool, 'toolbarResults:', toolbarResults);
+  
   return (
     <div className="w-full space-y-6">
       {/* 상단: 모든 분석 도구들 */}
@@ -954,12 +948,20 @@ export default function ResumeAnalysisAccordion({ resumeId, applicationId, onApp
       />
       
       {/* 선택된 분석 결과 표시 */}
-      {selectedTool && toolbarResults[selectedTool] && (
+      {selectedTool && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             {getAnalysisTitle(selectedTool)}
           </h3>
-          {renderAnalysisResult(selectedTool, toolbarResults[selectedTool])}
+          {toolbarResults[selectedTool] ? (
+            renderAnalysisResult(selectedTool, toolbarResults[selectedTool])
+          ) : (
+            <div className="bg-blue-50 p-6 rounded-lg text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-blue-800 font-medium">AI가 {getAnalysisTitle(selectedTool).replace(' 결과', '')}을 수행 중입니다...</p>
+              <p className="text-blue-600 text-sm mt-2">잠시만 기다려주세요.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

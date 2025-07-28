@@ -11,6 +11,7 @@ from .resume_plagiarism import router as resume_plagiarism_router
 from .statistics_analysis import router as statistics_analysis_router
 from app.api.v1.written_test import router as written_test_router
 from .executive_interview import router as executive_interview_router
+from .analysis_results import router as analysis_results_router
 
 
 api_router = APIRouter()
@@ -39,3 +40,4 @@ api_router.include_router(statistics_analysis_router, prefix="/statistics", tags
 api_router.include_router(written_test_router, prefix="/written-test", tags=["written-test"])
 api_router.include_router(resume_plagiarism_router, prefix="/resume-plagiarism", tags=["resume-plagiarism"])
 api_router.include_router(executive_interview_router, prefix="/executive-interview", tags=["executive-interview"])
+api_router.include_router(analysis_results_router, prefix="/analysis-results", tags=["analysis-results"])

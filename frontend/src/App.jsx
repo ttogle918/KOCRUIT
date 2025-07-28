@@ -35,6 +35,7 @@ import JobAptitudeReport from "./pages/JobAptitudeReport.jsx";
 import FinalReport from "./pages/FinalReport.jsx";
 import WrittenTestPassedPage from './pages/written/WrittenTestPassedPage';
 import InterviewReport from './pages/InterviewReport';
+import ApplicantStatisticsReport from './pages/ApplicantStatisticsReport.jsx';
 
 // Context & Constants
 import { ThemeProvider } from "./context/ThemeContext";
@@ -146,6 +147,7 @@ function AppRoutes() {
                 <Route path="/report/document" element={<ProtectedRoute><DocumentReport /></ProtectedRoute>} />
                 <Route path="/report/job-aptitude" element={<ProtectedRoute><JobAptitudeReport /></ProtectedRoute>} />
                 <Route path="/report/final" element={<ProtectedRoute><FinalReport /></ProtectedRoute>} />
+                <Route path="/report/applicant-statistics" element={<ProtectedRoute><ApplicantStatisticsReport /></ProtectedRoute>} />
                 <Route path="/written-test-passed/:jobpostId" element={<WrittenTestPassedPage />} />
                 <Route path="/interview-report" element={<InterviewReport />} />
               

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 import time
@@ -14,6 +14,8 @@ from app.models.resume import Resume, Spec
 
 # 공통 유틸리티 import 추가
 from agent.utils.resume_utils import combine_resume_and_specs
+
+# 임베딩 시스템 관련 코드 완전 제거
 
 router = APIRouter()
 
@@ -86,7 +88,7 @@ async def highlight_resume_by_application(
                 # 기존 결과 업데이트
                 existing_result.yellow_highlights = result.get('yellow', [])
                 existing_result.red_highlights = result.get('red', [])
-                existing_result.gray_highlights = result.get('gray', [])
+                existing_result.orange_highlights = result.get('orange', [])
                 existing_result.purple_highlights = result.get('purple', [])
                 existing_result.blue_highlights = result.get('blue', [])
                 existing_result.all_highlights = result.get('highlights', [])
@@ -102,7 +104,7 @@ async def highlight_resume_by_application(
                     company_id=request.company_id,
                     yellow_highlights=result.get('yellow', []),
                     red_highlights=result.get('red', []),
-                    gray_highlights=result.get('gray', []),
+                    orange_highlights=result.get('orange', []),
                     purple_highlights=result.get('purple', []),
                     blue_highlights=result.get('blue', []),
                     all_highlights=result.get('highlights', []),
@@ -168,7 +170,7 @@ async def get_highlight_results(
             "company_id": highlight_result.company_id,
             "yellow": highlight_result.yellow_highlights or [],
             "red": highlight_result.red_highlights or [],
-            "gray": highlight_result.gray_highlights or [],
+            "orange": highlight_result.orange_highlights or [],
             "purple": highlight_result.purple_highlights or [],
             "blue": highlight_result.blue_highlights or [],
             "highlights": highlight_result.all_highlights or [],
@@ -225,4 +227,7 @@ async def delete_highlight_results(
         import traceback
         print(f"📋 상세 오류: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
+
+
+# 기본 하이라이트 API 엔드포인트들만 유지
 

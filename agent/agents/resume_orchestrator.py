@@ -8,7 +8,7 @@ from agent.tools.highlight_tool import highlight_resume_content
 from agent.tools.comprehensive_analysis_tool import generate_comprehensive_analysis_report
 from agent.tools.detailed_analysis_tool import generate_detailed_analysis
 from agent.tools.competitiveness_comparison_tool import generate_competitiveness_comparison
-from agent.tools.keyword_matching_tool import generate_keyword_matching_analysis
+from agent.tools.impact_points_tool import ImpactPointsTool
 
 class ResumeOrchestrator:
     """
@@ -24,7 +24,7 @@ class ResumeOrchestrator:
             'comprehensive': generate_comprehensive_analysis_report,
             'detailed': generate_detailed_analysis,
             'competitiveness': generate_competitiveness_comparison,
-            'keyword_matching': generate_keyword_matching_analysis
+            'impact_points': ImpactPointsTool().analyze_impact_points
         }
     
     @redis_cache()
@@ -57,7 +57,7 @@ class ResumeOrchestrator:
         """
         
         if enable_tools is None:
-            enable_tools = ['highlight', 'comprehensive', 'detailed', 'competitiveness', 'keyword_matching']
+            enable_tools = ['highlight', 'comprehensive', 'detailed', 'competitiveness', 'impact_points']
         
         print(f"🚀 이력서 종합 분석 시작 - 활성화된 툴: {enable_tools}")
         start_time = time.time()
@@ -110,7 +110,7 @@ class ResumeOrchestrator:
                         job_info=job_info,
                         comparison_context="시장 평균 대비 경쟁력 분석"
                     )
-                elif tool_name == 'keyword_matching':
+                elif tool_name == 'impact_points':
                     result = self.tools[tool_name](
                         resume_text=resume_text,
                         job_info=job_info

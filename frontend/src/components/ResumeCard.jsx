@@ -10,8 +10,15 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
   const [highlightLoading, setHighlightLoading] = useState(false);
   const [showHighlights, setShowHighlights] = useState(false);
   const [highlightError, setHighlightError] = useState(null);
+  const [filterCategory, setFilterCategory] = useState('all'); // 필터링 상태 추가
   
   useEffect(() => { setLocalBookmarked(bookmarked); }, [bookmarked]);
+
+  // 필터링 핸들러 추가
+  const handleFilterChange = (category) => {
+    setFilterCategory(category);
+    console.log('필터링 변경:', category);
+  };
 
   // application_id 기반 하이라이트 분석 (저장된 결과 우선 조회)
   const analyzeContentByApplicationId = async () => {
@@ -63,6 +70,20 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
             purple: 'experience',
             yellow: 'value_fit'
           };
+          
+          // abstract_expression을 보라색(experience)으로 매핑
+          if (result.abstract_expression && Array.isArray(result.abstract_expression)) {
+            console.log(`abstract_expression 하이라이트 ${result.abstract_expression.length}개 발견`);
+            result.abstract_expression.forEach(highlight => {
+              if (highlight && (highlight.text || highlight.sentence)) {
+                allHighlights.push({
+                  ...highlight,
+                  category: 'experience',  // 추상표현을 experience로 매핑
+                  color: 'purple'
+                });
+              }
+            });
+          }
           
           let totalColorHighlights = 0;
           Object.entries(colorMapping).forEach(([color, category]) => {
@@ -466,7 +487,32 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
         
         {/* 전체 통계 */}
         {allHighlights.length > 0 && showHighlights && (
-          <HighlightStats highlights={allHighlights} />
+          <>
+            <HighlightStats 
+              highlights={allHighlights} 
+              onFilterChange={handleFilterChange}
+            />
+            {/* 필터링 상태 표시 */}
+            {filterCategory !== 'all' && (
+              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-700">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                    🔍 필터링 중: {filterCategory === 'mismatch' ? '직무 불일치' :
+                                  filterCategory === 'negative_tone' ? '부정 태도' :
+                                  filterCategory === 'experience' ? '경험·성과·이력·경력' :
+                                  filterCategory === 'skill_fit' ? '기술 사용 경험' :
+                                  filterCategory === 'value_fit' ? '인재상 가치' : filterCategory}
+                  </span>
+                  <button
+                    onClick={() => handleFilterChange('all')}
+                    className="text-xs bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded transition-colors"
+                  >
+                    전체 보기
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* 문단별 하이라이트만 */}
@@ -477,6 +523,7 @@ export default function ResumeCard({ resume, loading, bookmarked, onBookmarkTogg
               <HighlightedText
                 text={item.content}
                 highlights={highlightData[idx].highlights || []}
+                filterCategory={filterCategory}
                 showLegend={false}
               />
             ) : (

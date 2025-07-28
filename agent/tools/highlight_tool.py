@@ -1,7 +1,10 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from agent.agents.highlight_workflow import process_highlight_workflow
 from agent.utils.llm_cache import redis_cache
 import time
+
+# 임베딩 시스템 import 제거 (선택적 기능으로 변경)
+# from agents.highlight_embedding_system import HighlightEmbeddingSystem
 
 @redis_cache()
 def highlight_resume_content(
@@ -41,7 +44,7 @@ def highlight_resume_content(
         return {
             "yellow": [],
             "red": [],
-            "gray": [],
+            "orange": [],
             "purple": [],
             "blue": [],
             "highlights": [],
@@ -57,55 +60,41 @@ def highlight_resume_content(
 def highlight_resume_by_application_id(
     application_id: int,
     resume_content: str,
-    jobpost_id: Optional[int] = None,
-    company_id: Optional[int] = None
+    jobpost_id: int = None,
+    company_id: int = None
 ) -> Dict[str, Any]:
-    """
-    application_id를 기반으로 이력서 하이라이팅 (기존 API 호환성)
-    
-    Args:
-        application_id: 지원서 ID
-        resume_content: 이력서 내용
-        jobpost_id: 채용공고 ID (선택사항)
-        company_id: 회사 ID (선택사항)
-        
-    Returns:
-        하이라이팅 결과 딕셔너리
-    """
+    """application_id 기반 이력서 하이라이트 분석"""
     try:
-        print(f"🔍 Application ID {application_id} 형광펜 하이라이팅 시작")
+        print(f"🔄 application_id {application_id} 기반 하이라이트 분석 시작...")
         
-        # 기본 하이라이팅 수행
-        result = highlight_resume_content(
+        # 워크플로우 실행
+        result = process_highlight_workflow(
             resume_content=resume_content,
             jobpost_id=jobpost_id,
             company_id=company_id
         )
         
-        # application_id 정보 추가
-        result["application_id"] = application_id
-        result["jobpost_id"] = jobpost_id
-        result["company_id"] = company_id
+        # application_id를 메타데이터에 추가
+        if "metadata" not in result:
+            result["metadata"] = {}
+        result["metadata"]["application_id"] = application_id
         
+        print(f"✅ application_id {application_id} 하이라이트 분석 완료")
         return result
         
     except Exception as e:
-        print(f"❌ Application ID {application_id} 하이라이팅 오류: {str(e)}")
+        print(f"❌ application_id {application_id} 하이라이트 분석 실패: {e}")
         return {
-            "application_id": application_id,
-            "jobpost_id": jobpost_id,
-            "company_id": company_id,
             "yellow": [],
             "red": [],
-            "gray": [],
+            "orange": [],
             "purple": [],
             "blue": [],
             "highlights": [],
+            "all_highlights": [],
             "metadata": {
-                "total_highlights": 0,
-                "quality_score": 0.0,
-                "color_distribution": {},
-                "issues": [f"하이라이팅 오류: {str(e)}"]
+                "error": str(e),
+                "application_id": application_id
             }
         }
 
@@ -130,7 +119,7 @@ def get_highlight_statistics(highlights: Dict[str, Any]) -> Dict[str, Any]:
             "color_counts": {
                 "yellow": len(highlights.get("yellow", [])),
                 "red": len(highlights.get("red", [])),
-                "gray": len(highlights.get("gray", [])),
+                "orange": len(highlights.get("orange", [])),
                 "purple": len(highlights.get("purple", [])),
                 "blue": len(highlights.get("blue", []))
             }
@@ -148,7 +137,7 @@ def get_highlight_statistics(highlights: Dict[str, Any]) -> Dict[str, Any]:
             "color_counts": {
                 "yellow": 0,
                 "red": 0,
-                "gray": 0,
+                "orange": 0,
                 "purple": 0,
                 "blue": 0
             }
@@ -179,7 +168,7 @@ def validate_highlight_result(highlights: Dict[str, Any]) -> Dict[str, Any]:
             return validation_result
         
         # 색상별 결과 확인
-        color_keys = ["yellow", "red", "gray", "purple", "blue"]
+        color_keys = ["yellow", "red", "orange", "purple", "blue"]
         for color in color_keys:
             if color not in highlights:
                 validation_result["warnings"].append(f"{color} 색상 결과가 없습니다")

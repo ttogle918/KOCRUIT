@@ -14,8 +14,8 @@ class HighlightResult(Base):
     
     # 하이라이팅 결과 데이터 (JSON 형태로 저장)
     yellow_highlights = Column(JSON)  # 노란색 하이라이트 (value_fit)
-    red_highlights = Column(JSON)     # 빨간색 하이라이트 (risk)
-    gray_highlights = Column(JSON)    # 회색 하이라이트 (vague)
+    red_highlights = Column(JSON)     # 빨간색 하이라이트 (mismatch)
+    orange_highlights = Column(JSON)  # 오렌지색 하이라이트 (negative_tone)
     purple_highlights = Column(JSON)  # 보라색 하이라이트 (experience)
     blue_highlights = Column(JSON)    # 파란색 하이라이트 (skill_fit)
     all_highlights = Column(JSON)     # 전체 하이라이트 (우선순위 정렬됨)

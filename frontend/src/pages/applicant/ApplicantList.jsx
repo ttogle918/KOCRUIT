@@ -814,11 +814,13 @@ export default function ApplicantList() {
               )}
               {slideIndex === 4 && (
                 <>
-                  <div style={{ width: '100%', height: 500 }}>
-                    <ProvinceMapChart 
-                      provinceStats={getProvinceStats(applicants)} 
-                      onProvinceClick={handleProvinceClick}
-                    />
+                  <div style={{ width: '100%', height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ transform: 'scale(0.8)', transformOrigin: 'center' }}>
+                      <ProvinceMapChart 
+                        provinceStats={getProvinceStats(applicants)} 
+                        onProvinceClick={handleProvinceClick}
+                      />
+                    </div>
                   </div>
                   <StatisticsAnalysis
                     jobPostId={effectiveJobPostId}

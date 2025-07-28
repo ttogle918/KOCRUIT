@@ -243,3 +243,37 @@ export const getApplication = async (applicationId) => {
     throw error;
   }
 };
+
+// 분석 결과 조회 API
+export const getAnalysisResult = async (applicationId, analysisType) => {
+  try {
+    const response = await api.get(`/analysis-results/application/${applicationId}/${analysisType}`);
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      throw error; // 404는 저장된 결과가 없음을 의미
+    }
+    console.error('분석 결과 조회 실패:', error);
+    throw error;
+  }
+};
+
+export const getAllAnalysisResults = async (applicationId) => {
+  try {
+    const response = await api.get(`/analysis-results/application/${applicationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('모든 분석 결과 조회 실패:', error);
+    throw error;
+  }
+};
+
+export const deleteAnalysisResult = async (applicationId, analysisType) => {
+  try {
+    const response = await api.delete(`/analysis-results/application/${applicationId}/${analysisType}`);
+    return response.data;
+  } catch (error) {
+    console.error('분석 결과 삭제 실패:', error);
+    throw error;
+  }
+};

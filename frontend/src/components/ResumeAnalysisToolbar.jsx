@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
+import { getAnalysisResult } from '../api/api';
 
 export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnalysisResult, onToolChange }) {
   const [loading, setLoading] = useState({});
-  const [results, setResults] = useState({}); // 초기에는 아무것도 선택되지 않은 상태
+  const [results, setResults] = useState({}); // 분석 결과 저장
+  const [selectedTool, setSelectedTool] = useState(null); // 현재 선택된 도구
   const [error, setError] = useState(null);
 
   const tools = [
     {
       id: 'comprehensive',
-      name: '종합 분석',
+      name: '핵심 분석',
       description: '전체적인 이력서 분석',
       endpoint: '/v1/resumes/comprehensive-analysis',
       icon: '📊',
@@ -32,40 +34,99 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
     {
-      id: 'keyword_matching',
-      name: '키워드 매칭',
-      description: '직무 요구사항 매칭',
-      endpoint: '/v1/resumes/keyword-matching',
-      icon: '🔗',
+      id: 'impact_points',
+      name: '임팩트 포인트',
+      description: '후보 요약 및 핵심 포인트',
+      endpoint: '/v1/resumes/impact-points',
+      icon: '⭐',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     }
   ];
 
+  // applicationId가 변경될 때 저장된 결과 확인 (선택 상태는 변경하지 않음)
+  useEffect(() => {
+    if (applicationId) {
+      checkSavedResults();
+    }
+  }, [applicationId]);
+
+  const checkSavedResults = async () => {
+    const savedResults = {};
+    
+    for (const tool of tools) {
+      try {
+        const result = await getAnalysisResult(applicationId, tool.id);
+        savedResults[tool.id] = result.analysis_data;
+        console.log(`저장된 ${tool.name} 결과 발견:`, result);
+      } catch (error) {
+        if (error.response?.status !== 404) {
+          console.error(`${tool.name} 저장된 결과 조회 실패:`, error);
+        }
+      }
+    }
+    
+    if (Object.keys(savedResults).length > 0) {
+      setResults(savedResults);
+      console.log('저장된 결과들을 찾았습니다:', Object.keys(savedResults));
+      
+      // 저장된 결과는 있지만 선택 상태는 변경하지 않음
+      // 사용자가 실제로 클릭했을 때만 선택 상태가 변경됨
+    }
+  };
+
   const handleAnalysis = async (tool) => {
+    console.log(`handleAnalysis 호출됨 - tool: ${tool.id}, resumeId: ${resumeId}, applicationId: ${applicationId}`);
+    
     if (!resumeId || typeof resumeId !== 'number') {
       setError('유효한 이력서 ID가 필요합니다.');
       return;
     }
 
-    // 이전 선택 모두 해제하고 현재 선택한 것만 활성화
-    setResults({ [tool.id]: true });
-    setLoading(prev => ({ ...prev, [tool.id]: true }));
+    // 사용자가 클릭한 도구만 선택 상태로 변경
+    setSelectedTool(tool.id);
     setError(null);
 
-    // 부모 컴포넌트에 도구 변경 알림 (이전 결과 초기화용)
+    // 부모 컴포넌트에 도구 변경 알림
     if (onToolChange) {
       onToolChange(tool.id);
     }
 
+    // 저장된 결과가 있으면 바로 사용
+    if (results[tool.id]) {
+      console.log(`저장된 ${tool.name} 결과 사용:`, results[tool.id]);
+      if (onAnalysisResult) {
+        console.log(`onAnalysisResult 콜백 호출: ${tool.id}`);
+        onAnalysisResult(tool.id, results[tool.id]);
+      } else {
+        console.log('onAnalysisResult 콜백이 없습니다');
+      }
+      return;
+    }
+
+    // 저장된 결과가 없으면 API 호출
+    setLoading(prev => ({ ...prev, [tool.id]: true }));
+
     try {
+      console.log(`${tool.name} 분석 시작 - 요청 데이터:`, { resume_id: resumeId, application_id: applicationId });
+      
       const requestData = {
         resume_id: resumeId,
         application_id: applicationId || null
       };
 
-      const response = await axiosInstance.post(tool.endpoint, requestData);
+      // 타임아웃 설정 (60초로 증가)
+      const response = await axiosInstance.post(tool.endpoint, requestData, {
+        timeout: 60000
+      });
+      console.log(`${tool.name} 분석 응답:`, response.data);
       
-      setResults({ [tool.id]: response.data });
+      // 응답 데이터 검증
+      if (!response.data) {
+        throw new Error('응답 데이터가 없습니다.');
+      }
+      
+      // 분석 결과 저장
+      setResults(prev => ({ ...prev, [tool.id]: response.data }));
 
       // 부모 컴포넌트에 결과 전달
       if (onAnalysisResult) {
@@ -76,8 +137,12 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       const errorMessage = err?.response?.data?.detail || err.message || '분석 중 오류가 발생했습니다.';
       setError(`${tool.name} 오류: ${errorMessage}`);
       console.error(`${tool.name} 분석 오류:`, err);
-      // 에러 발생 시 모든 선택 해제
-      setResults({});
+      
+      // 에러 발생 시 선택 상태 해제하지 않고 유지 (사용자가 재시도할 수 있도록)
+      // setSelectedTool(null);
+      
+      // 에러 발생 시에도 로딩 상태는 해제
+      setLoading(prev => ({ ...prev, [tool.id]: false }));
     } finally {
       setLoading(prev => ({ ...prev, [tool.id]: false }));
     }
@@ -102,8 +167,9 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
 
       <div className="grid grid-cols-4 gap-3">
         {tools.map((tool) => {
-          const isActive = results[tool.id];
+          const isActive = selectedTool === tool.id; // 사용자가 선택한 도구만 활성화
           const isLoading = loading[tool.id];
+          const hasResult = results[tool.id]; // 저장된 결과가 있는지 확인
           
           return (
             <div key={tool.id} className="flex flex-col">
@@ -138,6 +204,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
                   </>
                 )}
                 
+                {/* 사용자가 선택한 도구에만 체크 표시 */}
                 {isActive && !isLoading && (
                   <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                     ✓

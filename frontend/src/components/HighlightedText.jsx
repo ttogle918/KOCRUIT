@@ -1,13 +1,13 @@
 import React from "react";
 
 // highlights: [{ start: number, end: number }] 또는 하이라이트할 단어 배열 등 다양한 방식 지원 가능
-// 🔄 우선순위 기반 하이라이트 카테고리 상수 정의 (빨간색→회색→보라색→파란색→노란색)
+// 🔄 우선순위 기반 하이라이트 카테고리 상수 정의 (빨간색→오렌지색→보라색→파란색→노란색)
 export const HIGHLIGHT_CATEGORIES = [
-  { key: 'risk', label: '주의 표현', color: '#E53935', bg_color: '#fee2e2', description: '가치·직무와 충돌 or 부정적 태도', priority: 1, emoji: '❤️' },
-  { key: 'vague', label: '추상 표현', color: '#222', bg_color: '#d1d5db', description: '근거 없는 추상 표현', priority: 2, emoji: '🩶' },
-  { key: 'experience', label: '성과/수상/경험/경력', color: '#8B5CF6', bg_color: '#EDE9FE', description: '실제 수행한 경험/프로젝트/활동', priority: 3, emoji: '💜' },
-  { key: 'skill_fit', label: '기술 매칭', color: '#1976D2', bg_color: '#e0f2fe', description: 'JD 핵심 기술과 직접 매칭', priority: 4, emoji: '💙' },
-  { key: 'value_fit', label: '인재상 매칭', color: '#ff9800', bg_color: '#fef9c3', description: '회사 인재상 키워드와 직접 매칭', priority: 5, emoji: '💛' }
+  { key: 'mismatch', label: '직무 불일치', color: '#E53935', bg_color: '#fee2e2', description: '직무 도메인/역할 불일치, 자격요건 미달', priority: 1, emoji: '🔴' },
+  { key: 'negative_tone', label: '부정 태도', color: '#FFB74D', bg_color: '#fff8e1', description: '책임회피·공격/비난·비윤리·허위/과장 의심', priority: 2, emoji: '🟠' },
+  { key: 'experience', label: '경험·성과·이력·경력', color: '#8B5CF6', bg_color: '#EDE9FE', description: '프로젝트·교육·경력·수상 + 추상표현', priority: 3, emoji: '💜' },
+  { key: 'skill_fit', label: '기술 사용 경험', color: '#1976D2', bg_color: '#e0f2fe', description: '도구/언어/프레임워크 실제 사용 근거', priority: 4, emoji: '💙' },
+  { key: 'value_fit', label: '인재상 가치', color: '#ffc107', bg_color: '#fef9c3', description: '회사 인재상과 맞는 행동·사례', priority: 5, emoji: '💛' }
 ];
 
 // experience 하이라이트를 sub_label별로 분리
@@ -19,8 +19,8 @@ function getHighlightCategoryKey(highlight) {
 // 우선순위 가져오기 헬퍼 함수
 function getPriority(category) {
   const priorityMap = {
-    'risk': 1,
-    'vague': 2,
+    'mismatch': 1,
+    'negative_tone': 2,
     'experience': 3,
     'skill_fit': 4,
     'value_fit': 5
@@ -28,27 +28,24 @@ function getPriority(category) {
   return priorityMap[category] || 999;
 }
 
-// 🆕 전환어 패턴 확인 함수
-function isTransitionWord(text) {
-  const transitionPatterns = [
-    /하지만|그럼에도\s*불구하고|그러나|다만|단|오히려|반면|반대로|대신|대신에/,
-    /그러다가|그\s*후|이후|그\s*다음|다음에는|그\s*때부터/,
-    /만약|만약에|결과적으로|결국|마침내|드디어/,
-    /또한|게다가|더욱이|무엇보다|특히|특별히/
-  ];
-  
-  return transitionPatterns.some(pattern => pattern.test(text));
-}
-
-function HighlightedText({ text, highlights }) {
+function HighlightedText({ text, highlights, filterCategory = 'all' }) {
   if (!highlights || highlights.length === 0) return <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span>;
+
+  // 필터링 적용
+  let filteredHighlights = highlights;
+  if (filterCategory && filterCategory !== 'all') {
+    filteredHighlights = highlights.filter(highlight => {
+      const categoryKey = getHighlightCategoryKey(highlight);
+      return categoryKey === filterCategory;
+    });
+  }
 
   // 인덱스 기반 하이라이트 (start, end) + 카테고리별 색상 적용
   let lastIndex = 0;
   const elements = [];
   
-  // 🆕 하이라이트를 위치 순서로 정렬하고 중복 제거
-  const sortedHighlights = [...highlights]
+  // 하이라이트를 위치 순서로 정렬하고 중복 제거
+  const sortedHighlights = [...filteredHighlights]
     .sort((a, b) => a.start - b.start)
     .filter((highlight, index, array) => {
       // 같은 위치의 중복 하이라이트 제거
@@ -87,13 +84,9 @@ function HighlightedText({ text, highlights }) {
       );
     }
     
-    // 🆕 다중 카테고리 도트 표시 로직
+    // 다중 카테고리 도트 표시 로직
     const isMultiple = highlight.multiple_categories && highlight.multiple_categories.length > 1;
     const categoryDots = highlight.category_dots || '';
-    
-    // 🆕 전환어 여부 확인
-    const highlightText = highlight.text || highlight.sentence || '';
-    const isTransition = isTransitionWord(highlightText);
     
     // 툴팁 텍스트 생성
     let tooltipText = categoryKey === 'experience' ? '성과/수상/프로젝트 경험/경력' : (catObj ? catObj.label : '');
@@ -104,23 +97,45 @@ function HighlightedText({ text, highlights }) {
       tooltipText = `${categoryLabels} (${categoryDots})`;
     }
     
-    // 🆕 전환어인 경우 스타일 조정
+    // 감정 점수 추가 (오렌지색인 경우)
+    if (categoryKey === 'negative_tone' && highlight.sentiment_score) {
+      const sentimentPercent = Math.round(highlight.sentiment_score * 100);
+      tooltipText += `\n감정 점수: ${sentimentPercent}% (부정)`;
+    }
+    
+    // 일반 하이라이트 스타일
     const highlightStyle = {
       backgroundColor: catObj ? catObj.bg_color : '#FFD600',
-      color: catObj ? catObj.color : '#222',
+      color: catObj && catObj.color ? catObj.color : '#222',  // 텍스트 색상을 배경색에 맞게 조정
       padding: '2px 4px',
       borderRadius: '3px',
-      fontWeight: isTransition ? 400 : 600, // 전환어는 얇게
-      opacity: isTransition ? 0.8 : 0.95, // 투명도 개선: 전환어 0.8, 일반 0.95
+      fontWeight: 600,
+      opacity: 0.95,
       position: 'relative',
       display: 'inline-block',
-      border: isTransition ? '1px dashed #ccc' : 'none', // 전환어는 점선 테두리
-      fontStyle: isTransition ? 'italic' : 'normal', // 전환어는 이탤릭
-      whiteSpace: 'pre-wrap', // 원본 텍스트 포맷팅 보존
-      fontFamily: 'inherit' // 부모 요소의 글씨체 상속
+      border: 'none',
+      fontStyle: 'normal',
+      whiteSpace: 'pre-wrap',
+      fontFamily: 'inherit'
     };
     
-    console.log(`하이라이팅 렌더링: category=${categoryKey}, color=${catObj?.color}, bg_color=${catObj?.bg_color}, text="${highlightText}"`);
+    // 텍스트 색상을 배경색에 맞게 조정 (가독성 향상)
+    if (catObj && catObj.bg_color) {
+      // 밝은 배경색에는 어두운 텍스트, 어두운 배경색에는 밝은 텍스트
+      const bgColor = catObj.bg_color;
+      if (bgColor.includes('#fee2e2') || bgColor.includes('#fff3e0') || bgColor.includes('#fef9c3')) {
+        // 밝은 배경색 (빨간색, 오렌지색, 노란색)
+        highlightStyle.color = '#333';
+      } else if (bgColor.includes('#EDE9FE') || bgColor.includes('#e0f2fe')) {
+        // 중간 톤 배경색 (보라색, 파란색)
+        highlightStyle.color = '#1a1a1a';
+      } else {
+        // 기본값
+        highlightStyle.color = '#222';
+      }
+    }
+    
+    console.log(`하이라이팅 렌더링: category=${categoryKey}, color=${catObj?.color}, bg_color=${catObj?.bg_color}, text="${highlight.text || highlight.sentence}"`);
     
     elements.push(
       <span
@@ -129,7 +144,7 @@ function HighlightedText({ text, highlights }) {
         title={tooltipText}
       >
         {text.slice(start, end)}
-        {/* 🆕 다중 카테고리 도트 표시 */}
+        {/* 다중 카테고리 도트 표시 */}
         {isMultiple && (
           <span
             style={{
@@ -140,20 +155,6 @@ function HighlightedText({ text, highlights }) {
             }}
           >
             {categoryDots}
-          </span>
-        )}
-        {/* 🆕 전환어 표시 */}
-        {isTransition && (
-          <span
-            style={{
-              fontSize: '8px',
-              marginLeft: '2px',
-              verticalAlign: 'super',
-              opacity: 0.6,
-              color: '#666'
-            }}
-          >
-            🔄
           </span>
         )}
       </span>
@@ -177,7 +178,7 @@ function HighlightedText({ text, highlights }) {
 export default HighlightedText;
 
 // 🔄 우선순위 기반 하이라이팅 통계 컴포넌트
-export function HighlightStats({ highlights = [], categories = {} }) {
+export function HighlightStats({ highlights = [], categories = {}, onFilterChange }) {
   // 입력 데이터 검증
   if (!Array.isArray(highlights) || highlights.length === 0) {
     console.log('HighlightStats: 하이라이트 데이터가 없습니다');
@@ -242,7 +243,12 @@ export function HighlightStats({ highlights = [], categories = {} }) {
           const key = catDef.key;
           const count = stats[key] || 0;
           return (
-            <div key={key} className="text-center">
+            <div 
+              key={key} 
+              className="text-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-800/30 rounded p-1 transition-colors"
+              onClick={() => onFilterChange && onFilterChange(key)}
+              title={`${catDef.label} 클릭하여 필터링`}
+            >
               <div className="flex items-center justify-center mb-1">
                 {/* 🆕 이모지 + 색상 박스 */}
                 <span className="text-xs mr-1">{catDef.emoji}</span>
@@ -259,6 +265,7 @@ export function HighlightStats({ highlights = [], categories = {} }) {
           );
         })}
       </div>
+      {/* 전체 보기 버튼 제거 - 필터 상태 바에서만 표시 */}
     </div>
   );
 } 

@@ -66,14 +66,14 @@ export default function ProvinceMapChart({ provinceStats, onProvinceClick }) {
   const totalApplicants = provinceStats.reduce((sum, p) => sum + p.value, 0);
 
   return (
-    <div style={{ width: 700, height: 580, margin: '0 auto', position: 'relative' }}>
+    <div style={{ width: 600, height: 500, margin: '0 auto', position: 'relative' }}>
       <ComposableMap
         projection="geoMercator"
-        width={700}
-        height={520}
+        width={600}
+        height={420}
         projectionConfig={{
           center: [127.7669, 35.9078],
-          scale: 5200
+          scale: 4500
         }}
       >
         <Geographies geography={geoData}>
@@ -116,7 +116,7 @@ export default function ProvinceMapChart({ provinceStats, onProvinceClick }) {
         {/* 범례 */}
         <g>
           {COLOR_SCALE.map((color, i) => (
-            <rect key={i} x={20 + i * 30} y={470} width={30} height={20} fill={color} />
+            <rect key={i} x={20 + i * 30} y={370} width={30} height={20} fill={color} />
           ))}
           {/* 각 구간별 숫자 표시 */}
           {COLOR_SCALE.map((_, i) => {
@@ -130,7 +130,7 @@ export default function ProvinceMapChart({ provinceStats, onProvinceClick }) {
               <text
                 key={i}
                 x={20 + i * 30 + 15}
-                y={510}
+                y={410}
                 fontSize={12}
                 textAnchor="middle"
                 fill="#333"
@@ -139,7 +139,7 @@ export default function ProvinceMapChart({ provinceStats, onProvinceClick }) {
               </text>
             );
           })}
-          <text x={20} y={460} fontSize={14}>지원자 수</text>
+          <text x={20} y={360} fontSize={14} fontWeight="bold">지원자 수</text>
         </g>
       </ComposableMap>
       {/* 툴팁 */}
