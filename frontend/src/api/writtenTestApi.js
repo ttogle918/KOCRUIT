@@ -2,19 +2,16 @@ import axios from './axiosInstance';
 
 // AI 필기 문제 생성 요청
 export const generateWrittenTest = async ({ jobPostId, jobTitle, department }) => {
-  // 실제 API 엔드포인트는 추후 백엔드 구현에 맞게 수정
   const res = await axios.post('/written-test/generate', {
-    job_post_id: jobPostId, // snake_case로 변경
-    jobTitle, department
+    job_post_id: jobPostId // snake_case로 변경, 필요한 필드만 전송
   });
   return res.data;
 };
 
 // 필기 문제 제출 요청
 export const submitWrittenTest = async ({ jobPostId, questions }) => {
-  // 실제 API 엔드포인트는 추후 백엔드 구현에 맞게 수정
-  const res = await axios.post('/written-test/submit', {
-    job_post_id: jobPostId, // snake_case로 변경
+  const res = await axios.post('/ai-evaluate/written-test/submit', {
+    jobPostId, // camelCase로 유지 (백엔드에서 jobPostId로 받음)
     questions
   });
   return res.data;

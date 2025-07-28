@@ -56,6 +56,7 @@ class ProjectQuestionRequest(BaseModel):
 class JobQuestionRequest(BaseModel):
     application_id: int
     company_name: str = ""
+    resume_data: Optional[Dict[str, Any]] = None
 
 class CompanyQuestionResponse(BaseModel):
     questions: list[str]
@@ -890,7 +891,6 @@ async def generate_common_questions_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/job-questions", response_model=JobQuestionResponse)
-@redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_job_questions(request: JobQuestionRequest, db: Session = Depends(get_db)):
     """지원서 기반 직무 맞춤형 면접 질문 생성 (LangGraph 워크플로우 사용)"""
     # POST /api/v1/interview-questions/job-questions
@@ -938,28 +938,95 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
-        workflow_result = generate_comprehensive_interview_questions(
-            resume_text=resume_text,
-            job_info=job_info,
-            company_name=actual_company_name,
-            applicant_name=getattr(request, 'name', '') or '',
-            interview_type="general",
-            job_matching_info=job_matching_info
-        )
-        
-        # 결과에서 질문 추출
-        questions = workflow_result.get("questions", [])
-        question_bundle = workflow_result.get("question_bundle", {})
-        
-        result = {
-            "application_id": request.application_id,
-            "company_name": actual_company_name,
-            "questions": questions,
-            "question_bundle": question_bundle,
-            "job_matching_info": job_matching_info
-        }
-        
-        return result
+        try:
+            workflow_result = generate_comprehensive_interview_questions(
+                resume_text=resume_text,
+                job_info=job_info,
+                company_name=actual_company_name,
+                applicant_name='',  # getattr(request, 'name', '') or '',
+                interview_type="general",
+                job_matching_info=job_matching_info
+            )
+            
+            # 결과 검증
+            if not workflow_result or not isinstance(workflow_result, dict):
+                raise Exception("워크플로우에서 유효한 결과를 반환하지 못했습니다.")
+            
+            # 결과에서 질문 추출
+            questions = workflow_result.get("questions", [])
+            question_bundle = workflow_result.get("question_bundle", {})
+            
+            # 개인별 질문 생성이 요청된 경우 추가 처리
+            if request.resume_data:
+                try:
+                    print(f"개인별 질문 생성 시작 - application_id: {request.application_id}")
+                    print(f"resume_data 키: {list(request.resume_data.keys()) if request.resume_data else 'None'}")
+                    print(f"job_info 길이: {len(job_info) if job_info else 0}")
+                    print(f"company_name: {actual_company_name}")
+                    
+                    from agent.tools.personal_question_tool import generate_personal_interview_questions
+                    
+                    # 개인별 질문 생성 - tool 함수를 직접 호출
+                    personal_result = generate_personal_interview_questions(
+                        resume_data=request.resume_data,
+                        job_posting=job_info,
+                        company_name=actual_company_name
+                    )
+                    
+                    print(f"개인별 질문 생성 완료 - 결과 타입: {type(personal_result)}")
+                    print(f"개인별 질문 생성 완료 - 결과 키: {list(personal_result.keys()) if personal_result else 'None'}")
+                    
+                    # 개인별 질문을 question_bundle에 추가
+                    if personal_result and personal_result.get("questions"):
+                        personal_questions = personal_result["questions"]
+                        print(f"개인별 질문 카테고리: {list(personal_questions.keys())}")
+                        
+                        # 기존 question_bundle을 개인별 질문으로 완전히 교체
+                        question_bundle = personal_questions
+                        
+                        # 전체 질문 목록도 개인별 질문으로 교체
+                        questions = []
+                        for questions_list in personal_questions.values():
+                            questions.extend(questions_list)
+                            
+                        print(f"개인별 질문으로 교체 완료 - 총 질문 수: {len(questions)}")
+                        print(f"개인별 질문 카테고리 수: {len(question_bundle)}")
+                            
+                except Exception as e:
+                    print(f"개인별 질문 생성 중 오류: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    # 개인별 질문 생성 실패 시 기본 질문만 사용
+            
+            # 질문이 없으면 기본 질문 사용
+            if not questions:
+                questions = [
+                    "자기소개를 해주세요.",
+                    "이 직무에 지원한 이유는 무엇인가요?",
+                    "본인의 강점과 약점은 무엇인가요?",
+                    "팀워크 경험을 말해보세요.",
+                    "업무 중 예기치 못한 문제를 마주쳤을 때 어떻게 해결하시나요?",
+                    "일정이 지연됐을 때 어떻게 대응하시나요?",
+                    "새로운 기술이나 도구를 배워야 할 때 어떻게 접근하시나요?",
+                    "이 직무를 통해 회사에 어떤 기여를 할 수 있다고 생각하시나요?"
+                ]
+                question_bundle = {
+                    "인성/동기": questions[:4],
+                    "상황 대처": questions[4:7],
+                    "직무 이해": [questions[7]]
+                }
+            
+            result = {
+                "application_id": request.application_id,
+                "company_name": actual_company_name,
+                "questions": questions,
+                "question_bundle": question_bundle,
+                "job_matching_info": job_matching_info
+            }
+            
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

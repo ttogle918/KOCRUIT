@@ -3,16 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
 
-from agents.graph_agent import build_graph
-from agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, create_session_id
-from agents.chatbot_node import ChatbotNode
+from .agents.graph_agent import build_graph
+from .agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, create_session_id
+from .agents.chatbot_node import ChatbotNode
 from redis_monitor import RedisMonitor
 from scheduler import RedisScheduler
 from tools.weight_extraction_tool import weight_extraction_tool
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_edit_tool import form_edit_tool, form_status_check_tool
 from tools.form_improve_tool import form_improve_tool
-from agents.application_evaluation_agent import evaluate_application
+from .agents.application_evaluation_agent import evaluate_application
 from tools.speech_recognition_tool import speech_recognition_tool
 from tools.highlight_tool import highlight_resume_content
 # from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool, RealtimeInterviewEvaluationTool

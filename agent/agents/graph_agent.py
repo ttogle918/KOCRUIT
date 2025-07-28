@@ -1,10 +1,10 @@
 from langgraph.graph import Graph, END
 from langchain_openai import ChatOpenAI
-from agents.interview_question_node import generate_company_questions, generate_common_question_bundle
-from tools.form_fill_tool import form_fill_tool, form_improve_tool
-from tools.form_edit_tool import form_edit_tool, form_status_check_tool
-from tools.spell_check_tool import spell_check_tool, apply_spell_corrections
-from tools.weight_extraction_tool import weight_extraction_tool
+from .interview_question_node import generate_company_questions, generate_common_question_bundle
+from ..tools.form_fill_tool import form_fill_tool, form_improve_tool
+from ..tools.form_edit_tool import form_edit_tool, form_status_check_tool
+from ..tools.spell_check_tool import spell_check_tool, apply_spell_corrections
+from ..tools.weight_extraction_tool import weight_extraction_tool
 import json
 import re
 import logging
@@ -292,11 +292,32 @@ def project_question_generator(state):
             portfolio_info = portfolio_result.get("portfolio_info", "")
         
         # 통합 질문 생성
-        question_bundle = generate_common_question_bundle(
-            resume_text=resume_text,
-            company_name=company_name,
-            portfolio_info=portfolio_info
-        )
+        try:
+            question_bundle = generate_common_question_bundle(
+                resume_text=resume_text,
+                company_name=company_name,
+                portfolio_info=portfolio_info
+            )
+        except Exception as e:
+            print(f"generate_common_question_bundle 호출 중 오류: {str(e)}")
+            # Fallback: 기본 질문 생성
+            question_bundle = {
+                "프로젝트 경험": [
+                    "가장 기억에 남는 프로젝트는 무엇인가요?",
+                    "프로젝트에서 어려움을 겪었던 경험이 있나요?",
+                    "팀 프로젝트에서 본인의 역할은 무엇이었나요?"
+                ],
+                "회사 관련": [
+                    f"{company_name}에 지원한 이유는 무엇인가요?" if company_name else "이 회사에 지원한 이유는 무엇인가요?",
+                    "이 직무에 대한 본인의 이해도를 설명해주세요."
+                ],
+                "상황 대처": [
+                    "업무 중 예기치 못한 문제를 마주쳤을 때 어떻게 해결하셨나요?",
+                    "일정이 지연됐을 때 어떻게 대응하시나요?",
+                    "의사결정이 어려웠던 상황을 경험한 적이 있나요?"
+                ],
+                "자기소개서 요약": "이력서 분석을 완료할 수 없어 기본 질문을 제공합니다."
+            }
         
         # 모든 질문을 하나의 리스트로 통합
         all_questions = []
@@ -305,13 +326,32 @@ def project_question_generator(state):
         all_questions.extend(question_bundle.get("회사 관련", []))
         all_questions.extend(question_bundle.get("상황 대처", []))
         
+        # 질문이 없으면 기본 질문 추가
+        if not all_questions:
+            all_questions = [
+                "자기소개를 해주세요.",
+                "이 직무에 지원한 이유는 무엇인가요?",
+                "본인의 강점과 약점은 무엇인가요?",
+                "팀워크 경험을 말해보세요.",
+                "업무 중 예기치 못한 문제를 마주쳤을 때 어떻게 해결하시나요?"
+            ]
+        
         return {
             "questions": all_questions,
             "question_bundle": question_bundle,
             "portfolio_info": portfolio_info
         }
     except Exception as e:
-        return {"questions": [f"질문 생성 중 오류가 발생했습니다: {str(e)}"]}
+        print(f"project_question_generator 오류: {str(e)}")
+        # 최종 fallback
+        fallback_questions = [
+            "자기소개를 해주세요.",
+            "이 직무에 지원한 이유는 무엇인가요?",
+            "본인의 강점과 약점은 무엇인가요?",
+            "팀워크 경험을 말해보세요.",
+            "업무 중 예기치 못한 문제를 마주쳤을 때 어떻게 해결하시나요?"
+        ]
+        return {"questions": fallback_questions}
 
 def company_question_generator(state):
     """회사명 기반 면접 질문 생성 노드 (인재상 + 뉴스 기반)"""

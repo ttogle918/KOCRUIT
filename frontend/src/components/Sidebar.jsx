@@ -22,7 +22,29 @@ export default function Sidebar() {
         setError(null);
       } catch (err) {
         console.error('면접 일정 조회 실패:', err);
-        setError('면접 일정을 불러오는데 실패했습니다.');
+        
+        // 더 자세한 에러 정보 출력
+        if (err.response) {
+          console.error('응답 상태:', err.response.status);
+          console.error('응답 데이터:', err.response.data);
+          console.error('응답 헤더:', err.response.headers);
+        } else if (err.request) {
+          console.error('요청 실패:', err.request);
+        } else {
+          console.error('에러 메시지:', err.message);
+        }
+        
+        // 사용자에게 더 구체적인 에러 메시지 제공
+        let errorMessage = '면접 일정을 불러오는데 실패했습니다.';
+        if (err.response?.status === 404) {
+          errorMessage = '면접 일정 API를 찾을 수 없습니다.';
+        } else if (err.response?.status === 401) {
+          errorMessage = '로그인이 필요합니다.';
+        } else if (err.response?.status === 500) {
+          errorMessage = '서버 오류가 발생했습니다.';
+        }
+        
+        setError(errorMessage);
         setInterviewSchedules([]);
       } finally {
         setLoading(false);

@@ -2,17 +2,18 @@
 import axiosInstance from './axiosInstance'; // 이 줄 추가!
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: '/api/v1', // 프록시를 통해 백엔드로 전달
-  withCredentials: false, // 쿠키 인증 시 필요
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 45000, // 45초로 증가 (복잡한 쿼리 고려)
-});
+// 기존의 중복된 axios 인스턴스 제거
+// const api = axios.create({
+//   baseURL: '/api/v1', // 프록시를 통해 백엔드로 전달
+//   withCredentials: false, // 쿠키 인증 시 필요
+//   headers: {
+//     'Content-Type': 'application/json',
+//   },
+//   timeout: 45000, // 45초로 증가 (복잡한 쿼리 고려)
+// });
 
 // 요청 전 인터셉터: 토큰이 있다면 자동으로 추가
-api.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     console.log('Current token:', token ? 'exists' : 'missing');
@@ -32,7 +33,7 @@ api.interceptors.request.use(
 );
 
 // 응답 인터셉터: 에러 로깅 또는 토큰 만료 시 처리 등
-api.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
@@ -66,7 +67,7 @@ api.interceptors.response.use(
   }
 );
 
-export default api;
+export default axiosInstance;
 
 // AI Agent API (가중치 추출용)
 const agentApi = axios.create({
@@ -93,7 +94,7 @@ export const extractWeights = async (jobPostingContent, existingWeights = []) =>
 // 맞춤법 검사 API
 export const spellCheck = async (text, fieldName = "") => {
   try {
-    const response = await api.post('/ai-evaluate/spell-check', {
+    const response = await axiosInstance.post('/ai-evaluate/spell-check', {
       text: text,
       field_name: fieldName
     });
@@ -107,7 +108,7 @@ export const spellCheck = async (text, fieldName = "") => {
 // 개발자 전용 빠른 로그인 API
 export const devLogin = async (email) => {
   try {
-    const response = await api.post('/auth/dev-login', { email });
+    const response = await axiosInstance.post('/auth/dev-login', { email });
     return response.data;
   } catch (error) {
     console.error('빠른 로그인 실패:', error);
@@ -118,7 +119,7 @@ export const devLogin = async (email) => {
 // 자기소개서 형광펜 하이라이팅 API (application_id 기반)
 export const highlightResumeByApplicationId = async (applicationId, jobpostId = null, companyId = null) => {
   try {
-    const response = await api.post('/ai/highlight-resume-by-application', {
+    const response = await axiosInstance.post('/ai/highlight-resume-by-application', {
       application_id: applicationId,
       jobpost_id: jobpostId,
       company_id: companyId
@@ -138,7 +139,7 @@ export const highlightResumeByApplicationId = async (applicationId, jobpostId = 
 // 저장된 하이라이팅 결과 조회
 export const getHighlightResults = async (applicationId) => {
   try {
-    const response = await api.get(`/ai/highlight-results/${applicationId}`);
+    const response = await axiosInstance.get(`/ai/highlight-results/${applicationId}`);
     return response.data;
   } catch (error) {
     console.error('하이라이팅 결과 조회 실패:', error);
@@ -149,7 +150,7 @@ export const getHighlightResults = async (applicationId) => {
 // 저장된 하이라이팅 결과 삭제
 export const deleteHighlightResults = async (applicationId) => {
   try {
-    const response = await api.delete(`/ai/highlight-results/${applicationId}`);
+    const response = await axiosInstance.delete(`/ai/highlight-results/${applicationId}`);
     return response.data;
   } catch (error) {
     console.error('하이라이팅 결과 삭제 실패:', error);
@@ -160,7 +161,7 @@ export const deleteHighlightResults = async (applicationId) => {
 
 export async function getResumeHighlights(text) {
   try {
-    const response = await api.post('/ai-evaluate/highlight-resume', {
+    const response = await axiosInstance.post('/ai-evaluate/highlight-resume', {
       text: text
     });
     return response.data;
@@ -173,7 +174,7 @@ export async function getResumeHighlights(text) {
 // 면접 평가 항목 조회 API
 export const getInterviewEvaluationItems = async (resumeId, applicationId = null, interviewStage) => {
   try {
-    const response = await api.post('/interview-questions/evaluation-items/interview', {
+    const response = await axiosInstance.post('/interview-questions/evaluation-items/interview', {
       resume_id: resumeId,
       application_id: applicationId,
       interview_stage: interviewStage // "practical" 또는 "executive"
@@ -192,7 +193,7 @@ export const getResumeBasedEvaluationCriteria = async (resumeId, applicationId =
     if (applicationId) params.append('application_id', applicationId);
     if (interviewStage) params.append('interview_stage', interviewStage);
     
-    const response = await api.get(`/interview-questions/evaluation-criteria/resume/${resumeId}?${params}`);
+    const response = await axiosInstance.get(`/interview-questions/evaluation-criteria/resume/${resumeId}?${params}`);
     return response.data;
   } catch (error) {
     console.error('이력서 기반 평가 기준 조회 실패:', error);
@@ -203,7 +204,7 @@ export const getResumeBasedEvaluationCriteria = async (resumeId, applicationId =
 // 면접 평가 저장 API
 export const saveInterviewEvaluation = async (evaluationData) => {
   try {
-    const response = await api.post('/interview-evaluation/', evaluationData);
+    const response = await axiosInstance.post('/interview-evaluation/', evaluationData);
     return response.data;
   } catch (error) {
     console.error('면접 평가 저장 실패:', error);
@@ -214,7 +215,7 @@ export const saveInterviewEvaluation = async (evaluationData) => {
 // 임원진 면접 평가 저장 API
 export const saveExecutiveInterviewEvaluation = async (applicationId, evaluationData) => {
   try {
-    const response = await api.post(`/executive-interview/evaluate/${applicationId}`, evaluationData);
+    const response = await axiosInstance.post(`/executive-interview/evaluate/${applicationId}`, evaluationData);
     return response.data;
   } catch (error) {
     console.error('임원진 면접 평가 저장 실패:', error);
@@ -225,7 +226,7 @@ export const saveExecutiveInterviewEvaluation = async (applicationId, evaluation
 // 면접 평가 결과 조회 API
 export const getInterviewEvaluation = async (applicationId, interviewType = 'practical') => {
   try {
-    const response = await api.get(`/interview-evaluation/${applicationId}/${interviewType}`);
+    const response = await axiosInstance.get(`/interview-evaluation/${applicationId}/${interviewType}`);
     return response.data;
   } catch (error) {
     console.error('면접 평가 결과 조회 실패:', error);
@@ -236,7 +237,7 @@ export const getInterviewEvaluation = async (applicationId, interviewType = 'pra
 // 지원자 정보 조회 API
 export const getApplication = async (applicationId) => {
   try {
-    const response = await api.get(`/applications/${applicationId}`);
+    const response = await axiosInstance.get(`/applications/${applicationId}`);
     return response.data;
   } catch (error) {
     console.error('지원자 정보 조회 실패:', error);
@@ -247,7 +248,7 @@ export const getApplication = async (applicationId) => {
 // 분석 결과 조회 API
 export const getAnalysisResult = async (applicationId, analysisType) => {
   try {
-    const response = await api.get(`/analysis-results/application/${applicationId}/${analysisType}`);
+    const response = await axiosInstance.get(`/analysis-results/application/${applicationId}/${analysisType}`);
     return response.data;
   } catch (error) {
     if (error.response?.status === 404) {
@@ -260,7 +261,7 @@ export const getAnalysisResult = async (applicationId, analysisType) => {
 
 export const getAllAnalysisResults = async (applicationId) => {
   try {
-    const response = await api.get(`/analysis-results/application/${applicationId}`);
+    const response = await axiosInstance.get(`/analysis-results/application/${applicationId}`);
     return response.data;
   } catch (error) {
     console.error('모든 분석 결과 조회 실패:', error);
@@ -270,7 +271,7 @@ export const getAllAnalysisResults = async (applicationId) => {
 
 export const deleteAnalysisResult = async (applicationId, analysisType) => {
   try {
-    const response = await api.delete(`/analysis-results/application/${applicationId}/${analysisType}`);
+    const response = await axiosInstance.delete(`/analysis-results/application/${applicationId}/${analysisType}`);
     return response.data;
   } catch (error) {
     console.error('분석 결과 삭제 실패:', error);
