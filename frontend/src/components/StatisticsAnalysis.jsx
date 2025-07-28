@@ -22,7 +22,8 @@ import {
   ExpandMore,
   ExpandLess,
   Psychology,
-  SmartToy
+  SmartToy,
+  AccessTime
 } from '@mui/icons-material';
 import api from '../api/api';
 
@@ -44,11 +45,24 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
     setError(null);
     
     try {
-      const response = await api.post('/statistics/analyze', {
-        job_post_id: jobPostId,
-        chart_type: chartType,
-        chart_data: chartData
-      });
+      // 먼저 저장된 분석 결과가 있는지 확인
+      let response;
+      try {
+        response = await api.get(`/statistics/job/${jobPostId}/analysis/${chartType}`);
+        console.log('저장된 분석 결과를 찾았습니다:', response.data);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          // 저장된 결과가 없으면 새로운 분석 실행
+          console.log('저장된 분석 결과가 없어 새로운 분석을 실행합니다.');
+          response = await api.post('/statistics/analyze', {
+            job_post_id: jobPostId,
+            chart_type: chartType,
+            chart_data: chartData
+          });
+        } else {
+          throw err;
+        }
+      }
       
       setAnalysis(response.data);
       
@@ -93,7 +107,16 @@ const StatisticsAnalysis = ({ jobPostId, chartType, chartData, isVisible }) => {
             <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1976d2' }}>
               AI 분석 결과 - {getChartTypeLabel(chartType)}
             </Typography>
-
+            {analysis?.created_at && (
+              <Tooltip title={`분석 생성 시간: ${new Date(analysis.created_at).toLocaleString('ko-KR')}`}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+                  <AccessTime sx={{ fontSize: 16, color: '#666' }} />
+                  <Typography variant="caption" sx={{ color: '#666' }}>
+                    {new Date(analysis.created_at).toLocaleDateString('ko-KR')}
+                  </Typography>
+                </Box>
+              </Tooltip>
+            )}
           </Box>
           <IconButton 
             onClick={() => setExpanded(!expanded)}

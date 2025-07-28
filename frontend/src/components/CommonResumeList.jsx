@@ -26,6 +26,7 @@ const CommonResumeList = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('ALL');
+  const [sortConfig, setSortConfig] = useState({ type: 'score', isDesc: true });
 
   // 지원자 데이터 로드
   useEffect(() => {
@@ -100,6 +101,21 @@ const CommonResumeList = ({
     } else if (activeTab === 'EXCLUDED') {
       filtered = filtered.filter(app => app.score <= 20);
     }
+    
+    // 정렬 적용
+    filtered.sort((a, b) => {
+      if (sortConfig.type === 'score') {
+        // AI 점수 기준으로 정렬 (ai_score가 없으면 score 사용)
+        const scoreA = a.ai_score ?? a.score ?? 0;
+        const scoreB = b.ai_score ?? b.score ?? 0;
+        return sortConfig.isDesc ? scoreB - scoreA : scoreA - scoreB;
+      } else {
+        const dateA = new Date(a.appliedAt);
+        const dateB = new Date(b.appliedAt);
+        return sortConfig.isDesc ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime();
+      }
+    });
+    
     setFilteredApplicants(filtered);
     if (onFilteredResults) {
       onFilteredResults({
@@ -108,7 +124,7 @@ const CommonResumeList = ({
         results: filtered
       });
     }
-  }, [filterConditions, applicants, onFilteredResults, activeTab]);
+  }, [filterConditions, applicants, onFilteredResults, activeTab, sortConfig]);
 
   // filteredApplicants가 바뀔 때마다 첫 번째 지원자 자동 선택 및 이력서 로딩
   useEffect(() => {
@@ -175,8 +191,18 @@ const CommonResumeList = ({
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             지원자 목록 ({filteredApplicants.length}명)
           </h3>
-          {/* 필터 버튼을 오른쪽 상단에 배치 */}
-          <div className="flex gap-4 flex-row-reverse">
+          {/* 필터 및 정렬 버튼을 오른쪽 상단에 배치 */}
+          <div className="flex gap-2 flex-row-reverse">
+            <button 
+              onClick={() => setSortConfig(prev => ({ type: 'score', isDesc: !prev.isDesc }))}
+              className={`text-sm px-3 py-1.5 rounded-lg transition-all ${
+                sortConfig.type === 'score'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+              } border`}
+                          >
+                {sortConfig.type === 'score' ? (sortConfig.isDesc ? 'AI점수↓' : 'AI점수↑') : 'AI점수'}
+              </button>
             <button onClick={() => setActiveTab('ALL')} className={getButtonStyle('ALL', activeTab)}>전체</button>
             <button onClick={() => setActiveTab('SUITABLE')} className={getButtonStyle('SUITABLE', activeTab)}>합격</button>
             <button onClick={() => setActiveTab('UNSUITABLE')} className={getButtonStyle('UNSUITABLE', activeTab)}>불합격</button>

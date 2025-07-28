@@ -28,7 +28,7 @@ from agent.utils.resume_utils import combine_resume_and_specs
 
 load_dotenv()
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="gpt-4o")
 
 def parse_job_post_data(job_post: JobPost) -> str:
     """JobPost 데이터를 파싱하여 직무 정보 텍스트 생성"""

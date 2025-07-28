@@ -10,7 +10,7 @@ from agent.utils.llm_cache import redis_cache
 
 load_dotenv()
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="gpt-4o")
 
 def analyze_experience_depth_breadth(resume_text: str) -> Dict[str, Any]:
     """경험의 깊이와 폭을 객관적으로 분석"""
