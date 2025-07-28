@@ -152,89 +152,109 @@ def generate_personal_interview_questions(
         }}
         """
         
-        # LLM 호출하여 질문 생성 (임시로 테스트 응답 사용)
-        print(f"테스트용 개인별 질문 생성 - 지원자: {applicant_name}")
+        # 실제 LLM 호출
+        print(f"OpenAI LLM 호출 시작 - 지원자: {applicant_name}")
         
-        # 실제 LLM 호출 대신 테스트용 개인별 질문 생성
-        test_questions = {
-            "applicant_name": applicant_name,
-            "questions": {
-                "학력/전공": [
-                    f"{university} {major} 전공 과정에서 가장 어려웠던 과목은 무엇이고, 어떻게 극복하셨나요?",
-                    f"{major} 전공 지식을 실제 프로젝트에 어떻게 활용해보셨나요?",
-                    f"학부 과정에서 배운 이론 중 현재 업무에 가장 도움이 되는 것은 무엇인가요?"
-                ],
-                "경력/직무": [
-                    f"{', '.join(companies) if companies else '이전 회사'}에서 {position}로 일하시면서 가장 성취감을 느꼈던 프로젝트는 무엇인가요?",
-                    f"{duration}간의 경력에서 가장 큰 도전과제는 무엇이었고, 어떻게 해결하셨나요?",
-                    f"이전 회사에서 팀워크를 통해 성과를 낸 구체적인 사례를 들어주세요."
-                ],
-                "기술 스택": [
-                    f"{', '.join(programming_languages) if programming_languages else '사용하신'} 프로그래밍 언어 중에서 가장 자신 있는 언어는 무엇이고, 그 이유는 무엇인가요?",
-                    f"{', '.join(frameworks) if frameworks else '사용하신 프레임워크'}를 사용하면서 겪었던 문제점과 해결 방법을 설명해주세요.",
-                    f"새로운 기술을 학습할 때 어떤 방법을 사용하시나요?"
-                ],
-                "프로젝트 경험": [
-                    f"{', '.join(project_names) if project_names else '주요'} 프로젝트에서 본인의 역할과 기여도를 설명해주세요.",
-                    f"프로젝트 진행 중 발생한 문제점과 해결 과정을 구체적으로 설명해주세요.",
-                    f"프로젝트 완료 후 개선하고 싶은 부분이 있다면 무엇인가요?"
-                ],
-                "인성/동기": [
-                    f"{company_name}에 지원하게 된 구체적인 동기는 무엇인가요?",
-                    f"앞으로 5년간의 커리어 계획을 어떻게 세우고 계신가요?",
-                    f"업무 외에 개인적으로 관심 있는 분야나 학습하고 있는 것이 있나요?"
-                ],
-                "회사/직무 적합성": [
-                    f"{company_name}의 문화나 비전 중에서 본인과 가장 잘 맞는다고 생각하는 부분은 무엇인가요?",
-                    f"지원하신 직무에서 본인의 강점을 어떻게 발휘할 수 있을까요?",
-                    f"팀 프로젝트에서 본인의 역할과 협업 스타일은 어떤 것인가요?"
-                ]
-            },
-            "summary": f"{applicant_name} 지원자는 {university} {major} 전공자로 {duration}간의 {position} 경력을 보유하고 있습니다. {', '.join(programming_languages) if programming_languages else '다양한'} 기술 스택을 보유하고 있으며, {', '.join(project_names) if project_names else '다양한'} 프로젝트 경험이 있습니다. 면접 시 학력과 경력의 연계성, 기술적 역량, 그리고 {company_name}에 대한 적합성을 중점적으로 확인하는 것이 좋겠습니다."
-        }
-        
-        print(f"테스트용 개인별 질문 생성 완료: {list(test_questions['questions'].keys())}")
-        return test_questions
+        try:
+            # LLM 호출
+            response = llm.invoke(prompt)
+            response_text = response.content
+            
+            print(f"LLM 응답 받음 - 길이: {len(response_text)}")
+            
+            # JSON 파싱
+            try:
+                # JSON 블록 추출 (```json ... ``` 형태일 경우)
+                if "```json" in response_text:
+                    json_start = response_text.find("```json") + 7
+                    json_end = response_text.find("```", json_start)
+                    json_text = response_text[json_start:json_end].strip()
+                elif "```" in response_text:
+                    json_start = response_text.find("```") + 3
+                    json_end = response_text.find("```", json_start)
+                    json_text = response_text[json_start:json_end].strip()
+                else:
+                    json_text = response_text.strip()
+                
+                result = json.loads(json_text)
+                print(f"JSON 파싱 성공 - 키: {list(result.keys())}")
+                
+                # 응답 검증
+                if "questions" not in result:
+                    raise ValueError("응답에 'questions' 키가 없습니다.")
+                
+                if "applicant_name" not in result:
+                    result["applicant_name"] = applicant_name
+                
+                print(f"개인별 질문 생성 완료 - 카테고리: {list(result['questions'].keys())}")
+                return result
+                
+            except json.JSONDecodeError as e:
+                print(f"JSON 파싱 실패: {e}")
+                print(f"응답 텍스트: {response_text}")
+                # JSON 파싱 실패 시 기본 응답 반환
+                return _generate_fallback_response(applicant_name, university, major, companies, position, duration, programming_languages, frameworks, company_name)
+                
+        except Exception as e:
+            print(f"LLM 호출 중 오류: {str(e)}")
+            # LLM 호출 실패 시 기본 응답 반환
+            return _generate_fallback_response(applicant_name, university, major, companies, position, duration, programming_languages, frameworks, company_name)
         
     except Exception as e:
         print(f"개인별 질문 생성 중 오류: {str(e)}")
         # 오류 시 기본 응답 반환
-        return {
-            "applicant_name": "지원자",
-            "questions": {
-                "학력/전공": [
-                    "전공 과정에서 가장 어려웠던 과목은 무엇이고, 어떻게 극복하셨나요?",
-                    "전공 지식을 실제 프로젝트에 어떻게 활용해보셨나요?",
-                    "학부 과정에서 배운 이론 중 현재 업무에 가장 도움이 되는 것은 무엇인가요?"
-                ],
-                "경력/직무": [
-                    "이전 회사에서 가장 성취감을 느꼈던 프로젝트는 무엇인가요?",
-                    "경력에서 가장 큰 도전과제는 무엇이었고, 어떻게 해결하셨나요?",
-                    "이전 회사에서 팀워크를 통해 성과를 낸 구체적인 사례를 들어주세요."
-                ],
-                "기술 스택": [
-                    "사용하신 프로그래밍 언어 중에서 가장 자신 있는 언어는 무엇이고, 그 이유는 무엇인가요?",
-                    "사용하신 프레임워크를 사용하면서 겪었던 문제점과 해결 방법을 설명해주세요.",
-                    "새로운 기술을 학습할 때 어떤 방법을 사용하시나요?"
-                ],
-                "프로젝트 경험": [
-                    "주요 프로젝트에서 본인의 역할과 기여도를 설명해주세요.",
-                    "프로젝트 진행 중 발생한 문제점과 해결 과정을 구체적으로 설명해주세요.",
-                    "프로젝트 완료 후 개선하고 싶은 부분이 있다면 무엇인가요?"
-                ],
-                "인성/동기": [
-                    f"{company_name}에 지원하게 된 구체적인 동기는 무엇인가요?",
-                    "앞으로 5년간의 커리어 계획을 어떻게 세우고 계신가요?",
-                    "업무 외에 개인적으로 관심 있는 분야나 학습하고 있는 것이 있나요?"
-                ],
-                "회사/직무 적합성": [
-                    f"{company_name}의 문화나 비전 중에서 본인과 가장 잘 맞는다고 생각하는 부분은 무엇인가요?",
-                    "지원하신 직무에서 본인의 강점을 어떻게 발휘할 수 있을까요?",
-                    "팀 프로젝트에서 본인의 역할과 협업 스타일은 어떤 것인가요?"
-                ]
-            },
-            "summary": f"지원자는 다양한 경험과 기술 스택을 보유하고 있습니다. 면접 시 학력과 경력의 연계성, 기술적 역량, 그리고 {company_name}에 대한 적합성을 중점적으로 확인하는 것이 좋겠습니다."
-        }
+        return _generate_fallback_response("지원자", "", "", [], "", "", [], [], company_name)
+
+
+def _generate_fallback_response(
+    applicant_name: str,
+    university: str,
+    major: str,
+    companies: List[str],
+    position: str,
+    duration: str,
+    programming_languages: List[str],
+    frameworks: List[str],
+    company_name: str
+) -> Dict[str, Any]:
+    """LLM 호출 실패 시 사용할 기본 응답 생성"""
+    
+    return {
+        "applicant_name": applicant_name,
+        "questions": {
+            "학력/전공": [
+                f"{university} {major} 전공 과정에서 가장 어려웠던 과목은 무엇이고, 어떻게 극복하셨나요?",
+                f"{major} 전공 지식을 실제 프로젝트에 어떻게 활용해보셨나요?",
+                f"학부 과정에서 배운 이론 중 현재 업무에 가장 도움이 되는 것은 무엇인가요?"
+            ],
+            "경력/직무": [
+                f"{', '.join(companies) if companies else '이전 회사'}에서 {position}로 일하시면서 가장 성취감을 느꼈던 프로젝트는 무엇인가요?",
+                f"{duration}간의 경력에서 가장 큰 도전과제는 무엇이었고, 어떻게 해결하셨나요?",
+                f"이전 회사에서 팀워크를 통해 성과를 낸 구체적인 사례를 들어주세요."
+            ],
+            "기술 스택": [
+                f"{', '.join(programming_languages) if programming_languages else '사용하신'} 프로그래밍 언어 중에서 가장 자신 있는 언어는 무엇이고, 그 이유는 무엇인가요?",
+                f"{', '.join(frameworks) if frameworks else '사용하신 프레임워크'}를 사용하면서 겪었던 문제점과 해결 방법을 설명해주세요.",
+                f"새로운 기술을 학습할 때 어떤 방법을 사용하시나요?"
+            ],
+            "프로젝트 경험": [
+                f"주요 프로젝트에서 본인의 역할과 기여도를 설명해주세요.",
+                f"프로젝트 진행 중 발생한 문제점과 해결 과정을 구체적으로 설명해주세요.",
+                f"프로젝트 완료 후 개선하고 싶은 부분이 있다면 무엇인가요?"
+            ],
+            "인성/동기": [
+                f"{company_name}에 지원하게 된 구체적인 동기는 무엇인가요?",
+                f"앞으로 5년간의 커리어 계획을 어떻게 세우고 계신가요?",
+                f"업무 외에 개인적으로 관심 있는 분야나 학습하고 있는 것이 있나요?"
+            ],
+            "회사/직무 적합성": [
+                f"{company_name}의 문화나 비전 중에서 본인과 가장 잘 맞는다고 생각하는 부분은 무엇인가요?",
+                f"지원하신 직무에서 본인의 강점을 어떻게 발휘할 수 있을까요?",
+                f"팀 프로젝트에서 본인의 역할과 협업 스타일은 어떤 것인가요?"
+            ]
+        },
+        "summary": f"{applicant_name} 지원자는 {university} {major} 전공자로 {duration}간의 {position} 경력을 보유하고 있습니다. {', '.join(programming_languages) if programming_languages else '다양한'} 기술 스택을 보유하고 있으며, {company_name}에 대한 적합성을 중점적으로 확인하는 것이 좋겠습니다."
+    }
 
 
 def generate_batch_personal_questions(

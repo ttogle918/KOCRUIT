@@ -41,7 +41,15 @@ function ApplicantListLeft({
   const filteredApplicants = useMemo(() => {
     let filtered = Array.isArray(applicants) ? [...applicants] : [];
     const allowedStatuses = ['WAITING', 'SUITABLE', 'UNSUITABLE', 'REJECTED', 'PASSED'];
-    filtered = filtered.filter(app => allowedStatuses.includes((app.status || '').toUpperCase()));
+    const allowedDocumentStatuses = ['PENDING', 'REVIEWING', 'PASSED', 'REJECTED'];
+    
+    // status와 document_status 모두 확인
+    filtered = filtered.filter(app => {
+      const status = (app.status || '').toUpperCase();
+      const documentStatus = (app.document_status || '').toUpperCase();
+      return allowedStatuses.includes(status) || allowedDocumentStatuses.includes(documentStatus);
+    });
+    
     if (activeTab === 'EXCLUDED') {
       filtered = filtered.filter(app => app.score <= 20);
     } else if (activeTab === 'UNSUITABLE') {

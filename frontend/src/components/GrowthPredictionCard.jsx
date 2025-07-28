@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { fetchGrowthPrediction } from '../api/growthPredictionApi';
+import { fetchGrowthPrediction, fetchGrowthPredictionResults } from '../api/growthPredictionApi';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as BarTooltip, Legend as BarLegend, ComposedChart, Line, Area } from 'recharts';
 
-const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChange }) => {
+const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChange, key }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -21,6 +21,32 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
     setCollapsed(false);
     setLoading(false);
   }, [applicationId]);
+
+  // 컴포넌트 마운트 시 저장된 결과 조회하지 않음 (버튼 클릭 시에만 로드)
+  useEffect(() => {
+    if (applicationId) {
+      // 버튼 클릭 시에만 데이터를 로드하도록 수정
+      setResult(null);
+      setLoading(false);
+    }
+  }, [applicationId]);
+
+  const loadSavedResults = async () => {
+    try {
+      setLoading(true);
+      const savedResult = await fetchGrowthPredictionResults(applicationId);
+      setResult(savedResult);
+      if (onResultChange) {
+        onResultChange(savedResult);
+      }
+    } catch (error) {
+      console.log('저장된 결과가 없습니다:', error.message);
+      // 저장된 결과가 없으면 AI 분석 실행
+      await handlePredict();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePredict = async () => {
     setLoading(true);
@@ -139,7 +165,7 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
           <div className="flex justify-center my-6">
             <button
               className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={handlePredict}
+              onClick={loadSavedResults}
               disabled={loading}
               style={{ minWidth: 220 }}
             >
@@ -168,41 +194,92 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
   // 상세 버전 (아래쪽 블록용)
   return (
     <>
-      {!result ? (
-        <div className="flex justify-center my-6">
-          <button
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onClick={handlePredict}
-            disabled={loading}
-            style={{ minWidth: 220 }}
-          >
-            {loading && (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-              </svg>
-            )}
-            {loading ? 'AI 성장 예측 분석 중...' : 'AI 성장 가능성 예측'}
-          </button>
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span className="text-red-800 font-medium">{error}</span>
+          </div>
         </div>
-      ) : (
-        <div className="px-0 py-0 max-h-[600px] overflow-y-auto">
-          {/* 상단 탭/타이틀 */}
-          <div className="flex items-center gap-2 mb-2 mt-2">
-            <span className="inline-block bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full p-2 shadow">
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/></svg>
-            </span>
-            <span className="text-lg font-bold text-blue-800">AI 성장 가능성 예측</span>
+      )}
+
+      {!result ? (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="text-gray-500 dark:text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">성장 가능성 예측</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-center mb-6">
+              AI가 지원자의 성장 가능성을 분석하여 점수로 평가합니다.
+            </p>
             <button
-              className="ml-auto text-blue-600 hover:text-blue-800 text-sm font-medium"
-              onClick={() => setCollapsed(!collapsed)}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-full shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              onClick={handlePredict}
+              disabled={loading}
             >
-              {collapsed ? '펼치기' : '접기'}
+              {loading && (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+              )}
+              {loading ? 'AI 성장 예측 분석 중...' : 'AI 성장 가능성 예측'}
             </button>
           </div>
-          
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+          {/* 헤더 */}
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <h3 className="text-lg font-semibold">AI 성장 가능성 예측</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCollapsed(!collapsed)}
+                  className="p-1 hover:bg-blue-600 rounded transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={collapsed ? "M19 9l-7 7-7-7" : "M5 15l7-7 7 7"} />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
           {!collapsed ? (
             <>
+              {/* 점수 표시 + 다시 분석 버튼 */}
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-end gap-2">
+                    <span className="text-3xl font-extrabold text-blue-600">{result.total_score ?? result.growth_score}</span>
+                    <span className="text-lg font-bold text-blue-500 mb-1">점</span>
+                  </div>
+                  <button
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg shadow hover:from-green-600 hover:to-green-700 transition-all duration-200 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                    onClick={loadSavedResults}
+                    disabled={loading}
+                  >
+                    {loading && (
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                    )}
+                    {loading ? '재분석 중...' : '다시 분석'}
+                  </button>
+                </div>
+              </div>
               {/* 표 + 설명 */}
               {result.item_table && (
                 <div className="pb-4">
@@ -238,142 +315,104 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
                 className="mt-3 bg-gray-100 hover:bg-gray-200 text-blue-700 px-3 py-1 rounded text-sm mr-2"
                 onClick={() => setShowDetail((v) => !v)}
               >
-                {showDetail ? '비교 그래프 숨기기' : '자세히 보기 (고성과자와 비교)'}
+                {showDetail ? '상세 보기 숨기기' : '상세 보기'}
               </button>
+
               {showDetail && (
                 <>
-                  {/* 그래프 모드 선택 버튼 */}
-                  <div className="flex gap-2 mb-2 mt-2">
+                  {/* 그래프 모드 선택 */}
+                  <div className="flex gap-2 mb-4 mt-4">
                     <button
-                      className={`px-2 py-1 rounded text-xs border ${chartMode === 'ratio' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                      className={`px-3 py-1 rounded text-sm ${chartMode === 'ratio' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                       onClick={() => setChartMode('ratio')}
                     >
-                      비율(고성과자=100) 보기
+                      비율
                     </button>
                     <button
-                      className={`px-2 py-1 rounded text-xs border ${chartMode === 'normalized' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                      className={`px-3 py-1 rounded text-sm ${chartMode === 'normalized' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                       onClick={() => setChartMode('normalized')}
                     >
-                      정규화(0~100) 보기
+                      정규화
                     </button>
                     <button
-                      className={`px-2 py-1 rounded text-xs border ${chartMode === 'raw' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-blue-700'}`}
+                      className={`px-3 py-1 rounded text-sm ${chartMode === 'raw' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                       onClick={() => setChartMode('raw')}
                     >
-                      실제값 보기
+                      실제값
                     </button>
                   </div>
-                  <div className="text-xs text-gray-500 mb-2">{chartDesc}</div>
-                  <div className="mt-2">
-                    {chartData.length > 0 ? (
-                      chartMode === 'ratio' || chartMode === 'normalized' ? (
-                        <ResponsiveContainer width="100%" height={280}>
-                          <RadarChart data={chartData} outerRadius={100}>
-                            <PolarGrid />
-                            <PolarAngleAxis dataKey="항목" />
-                            <PolarRadiusAxis angle={30} domain={yDomain} />
-                            <Radar name="지원자" dataKey="지원자" stroke="#2563eb" fill="#2563eb" fillOpacity={0.4} />
-                            <Radar name="고성과자" dataKey="고성과자" stroke="#22c55e" fill="#22c55e" fillOpacity={0.2} />
-                            <Legend />
-                            <Tooltip
-                              formatter={(value, name, props) => {
-                                if (name === '지원자') {
-                                  return [
-                                    chartMode === 'ratio' || chartMode === 'normalized'
-                                      ? `${value.toFixed(1)}% (실제: ${props.payload.raw_지원자})`
-                                      : `${value} (실제값)`,
-                                    '지원자',
-                                  ];
-                                }
-                                if (name === '고성과자') {
-                                  return [
-                                    chartMode === 'ratio' || chartMode === 'normalized'
-                                      ? `${value.toFixed(1)}% (실제: ${props.payload.raw_고성과자})`
-                                      : `${value} (실제값)`,
-                                    '고성과자',
-                                  ];
-                                }
-                                return value;
-                              }}
-                            />
-                          </RadarChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <ResponsiveContainer width="100%" height={280}>
-                          <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="항목" />
-                            <YAxis domain={yDomain} />
-                            <BarTooltip />
-                            <BarLegend />
-                            <Bar dataKey="지원자" fill="#2563eb" name="지원자" />
-                            <Bar dataKey="고성과자" fill="#22c55e" name="고성과자" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      )
-                    ) : (
-                      <div className="text-gray-400 text-center">비교 그래프 데이터를 불러올 수 없습니다.</div>
-                    )}
-                  </div>
-                  {/* Box plot: 고성과자 분포 + 지원자 위치 */}
-                  {result.boxplot_data && (
-                    <div className="mt-6">
-                      <h4 className="font-semibold text-base mb-2">고성과자 분포와 지원자 위치</h4>
-                      {Object.entries(result.boxplot_data).map(([label, stats]) => {
-                        const meta = boxplotLabels[label] || { label, unit: '', desc: '' };
-                        
-                        // Box plot 데이터 생성
-                        const boxData = [
-                          { name: '최저값', value: stats.min, type: 'min' },
-                          { name: '25%', value: stats.q1, type: 'q1' },
-                          { name: '중간값', value: stats.median, type: 'median' },
-                          { name: '75%', value: stats.q3, type: 'q3' },
-                          { name: '최고값', value: stats.max, type: 'max' }
-                        ];
-                        
-                        return (
-                          <div key={label} className="mb-6">
-                            <div className="font-semibold mb-1">
-                              {meta.label} <span className="text-xs text-gray-500">({meta.desc}{meta.unit ? `, 단위: ${meta.unit}` : ''})</span>
+
+                  {/* 차트 설명 */}
+                  <div className="text-xs text-gray-500 mb-4">{chartDesc}</div>
+
+                  {/* 비교 차트 */}
+                  {result.comparison_chart_data && chartData.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-700 mb-3">고성과자 대비 비교</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ComposedChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="항목" />
+                          <YAxis domain={yDomain} />
+                          <BarTooltip />
+                          <BarLegend />
+                          <Bar dataKey="고성과자" fill="#3B82F6" />
+                          <Bar dataKey="지원자" fill="#EF4444" />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* 근거 설명 */}
+                  {result.reasons && result.reasons.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-700 mb-3">예측 근거</h4>
+                      {renderReasons(result.reasons)}
+                    </div>
+                  )}
+
+                  {/* Box plot 차트 */}
+                  {result.boxplot_data && Object.keys(result.boxplot_data).length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-700 mb-3">고성과자 분포 대비 위치</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Object.entries(result.boxplot_data).map(([key, stats]) => {
+                          const label = boxplotLabels[key]?.label || key;
+                          const unit = boxplotLabels[key]?.unit || '';
+                          const desc = boxplotLabels[key]?.desc || '';
+                          
+                          return (
+                            <div key={key} className="bg-gray-50 p-4 rounded-lg">
+                              <h5 className="font-medium text-gray-800 mb-2">{label}</h5>
+                              <ResponsiveContainer width="100%" height={150}>
+                                <ComposedChart data={[{ name: '분포', min: stats.min, q1: stats.q1, median: stats.median, q3: stats.q3, max: stats.max }]}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="name" />
+                                  <YAxis />
+                                  <BarTooltip />
+                                  <Bar dataKey="min" fill="#E5E7EB" />
+                                  <Bar dataKey="q1" fill="#9CA3AF" />
+                                  <Bar dataKey="median" fill="#6B7280" />
+                                  <Bar dataKey="q3" fill="#9CA3AF" />
+                                  <Bar dataKey="max" fill="#E5E7EB" />
+                                  <Line 
+                                    type="monotone" 
+                                    data={[{ name: '지원자', value: stats.applicant }]}
+                                    dataKey="value" 
+                                    stroke="red" 
+                                    strokeWidth={3}
+                                    dot={{ fill: 'red', strokeWidth: 2, r: 6 }}
+                                    name="지원자"
+                                  />
+                                </ComposedChart>
+                              </ResponsiveContainer>
+                              <div className="text-xs text-gray-500 mt-2">
+                                파란 막대는 고성과자 집단의 분포(최저~최고, 25%~75%, 중간값), 빨간 점은 지원자의 위치입니다.
+                              </div>
                             </div>
-                            <ResponsiveContainer width="100%" height={200}>
-                              <ComposedChart data={boxData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <BarTooltip 
-                                  formatter={(value, name) => [
-                                    `${value}${meta.unit ? ` ${meta.unit}` : ''}`, 
-                                    name
-                                  ]}
-                                />
-                                <BarLegend />
-                                <Bar dataKey="value" fill="#2563eb" name="고성과자 분포" />
-                                <Line 
-                                  type="monotone" 
-                                  dataKey="value" 
-                                  stroke="#2563eb" 
-                                  strokeWidth={2}
-                                  dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
-                                />
-                                {/* 지원자 위치 표시 */}
-                                <Line 
-                                  type="monotone" 
-                                  data={[{ name: '지원자', value: stats.applicant }]}
-                                  dataKey="value" 
-                                  stroke="red" 
-                                  strokeWidth={3}
-                                  dot={{ fill: 'red', strokeWidth: 2, r: 6 }}
-                                  name="지원자"
-                                />
-                              </ComposedChart>
-                            </ResponsiveContainer>
-                            <div className="text-xs text-gray-500 mt-2">
-                              파란 막대는 고성과자 집단의 분포(최저~최고, 25%~75%, 중간값), 빨간 점은 지원자의 위치입니다.
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </>

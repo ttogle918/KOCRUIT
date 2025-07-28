@@ -93,6 +93,38 @@ export default function PassedApplicants() {
     navigate('/email', { state: { applicants: selectedApplicants, interviewInfo } });
   };
 
+  // 지원자 상태 변경 함수
+  const handleStatusChange = async (applicationId, newStatus) => {
+    try {
+      console.log('상태 변경 요청:', { applicationId, newStatus });
+      
+      // 백엔드 API 호출 (PUT 메서드 사용)
+      const response = await api.put(`/applications/${applicationId}/status`, {
+        document_status: newStatus
+      });
+      
+      console.log('상태 변경 성공:', response.data);
+      
+      // 로컬 상태 업데이트
+      setPassedApplicants(prev => 
+        prev.filter(app => app.application_id !== applicationId)
+      );
+      
+      // 선택된 지원자가 변경된 경우 선택 해제
+      if (selectedApplicant?.application_id === applicationId) {
+        setSelectedApplicant(null);
+        setSplitMode(false);
+      }
+      
+      // 성공 메시지
+      alert(`지원자 상태가 ${newStatus === 'REJECTED' ? '불합격' : newStatus}으로 변경되었습니다.`);
+      
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+      alert('상태 변경에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
   // 정렬 함수
   const getSortedApplicants = () => {
     if (!sortOrder) return passedApplicants;
@@ -273,7 +305,11 @@ export default function PassedApplicants() {
             {/* Right Panel - Applicant Detail */}
             {splitMode && selectedApplicant && (
               <div className="w-1/2 min-h-[600px]">
-                <PassReasonCard applicant={selectedApplicant} onBack={handleBackToList} />
+                <PassReasonCard 
+                  applicant={selectedApplicant} 
+                  onBack={handleBackToList} 
+                  onStatusChange={handleStatusChange} 
+                />
               </div>
             )}
           </div>

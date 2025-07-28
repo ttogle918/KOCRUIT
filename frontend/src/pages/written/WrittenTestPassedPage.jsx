@@ -131,12 +131,20 @@ export default function WrittenTestPassedPage() {
     const fetchJobPost = async () => {
       setJobPostLoading(true)
       try {
-        const res = await api.get(`/company/jobposts/${jobpostId}`);
+        // 공개 jobpost 정보 API 사용
+        const res = await api.get(`/public/jobposts/${jobpostId}`);
         // jobPost 객체에 id 필드를 명시적으로 추가
         const jobPostData = { ...res.data, id: jobpostId };
         setJobPost(jobPostData);
       } catch (err) {
-        setJobPost(null);
+        console.error('JobPost fetch error:', err);
+        // jobpost 정보가 없어도 페이지는 계속 로드되도록 기본 정보 설정
+        setJobPost({
+          id: jobpostId,
+          title: `채용공고 ${jobpostId}`,
+          companyName: '기업명',
+          headcount: 1
+        });
       } finally {
         setJobPostLoading(false);
       }

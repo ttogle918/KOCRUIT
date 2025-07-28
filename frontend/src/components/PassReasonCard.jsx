@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaStar, FaRegStar, FaEnvelope } from 'react-icons/fa';
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, BarChart } from 'recharts';
 import api from '../api/api';
 import { calculateAge } from '../utils/resumeUtils';
 import GrowthPredictionCard from './GrowthPredictionCard';
@@ -24,6 +24,11 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
   const [showFullReason, setShowFullReason] = useState(false);
   const applicationId = applicant?.application_id || applicant?.applicationId;
   const passReason = applicant?.pass_reason || '';
+
+  // applicant가 바뀔 때 growthResult 초기화
+  useEffect(() => {
+    setGrowthResult(null);
+  }, [applicant]);
 
   // Box plot 항목별 단위/설명 매핑
   const boxplotLabels = {
@@ -72,38 +77,90 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
 
   // 3. 실제값 데이터 변환
   const getRawData = () => {
-    if (!growthResult || !growthResult.comparison_chart_data) return [];
-    const { labels, applicant, high_performer } = growthResult.comparison_chart_data;
-    return labels.map((label, idx) => ({
-      항목: label,
-      지원자: applicant[idx],
-      고성과자: high_performer[idx],
-    }));
+    try {
+      if (!growthResult || !growthResult.comparison_chart_data) {
+        console.log('getRawData: growthResult 또는 comparison_chart_data가 없습니다.');
+        return [];
+      }
+      
+      const { labels, applicant, high_performer } = growthResult.comparison_chart_data;
+      
+      if (!labels || !applicant || !high_performer) {
+        console.log('getRawData: 필요한 데이터 필드가 없습니다.', { labels, applicant, high_performer });
+        return [];
+      }
+      
+      const result = labels.map((label, idx) => ({
+        항목: label,
+        지원자: applicant[idx] || 0,
+        고성과자: high_performer[idx] || 0,
+      }));
+      
+      console.log('getRawData 결과:', result);
+      return result;
+    } catch (error) {
+      console.error('getRawData 오류:', error);
+      return [];
+    }
   };
 
   // 실제값 모드에서 최대값 계산 (축 범위용)
   const getMaxValue = () => {
-    if (!growthResult || !growthResult.comparison_chart_data) return 100;
-    const { applicant, high_performer } = growthResult.comparison_chart_data;
-    return Math.ceil(Math.max(...applicant, ...high_performer, 1));
+    try {
+      if (!growthResult || !growthResult.comparison_chart_data) {
+        console.log('getMaxValue: growthResult 또는 comparison_chart_data가 없습니다.');
+        return 100;
+      }
+      
+      const { applicant, high_performer } = growthResult.comparison_chart_data;
+      
+      if (!applicant || !high_performer) {
+        console.log('getMaxValue: applicant 또는 high_performer가 없습니다.');
+        return 100;
+      }
+      
+      const maxValue = Math.ceil(Math.max(...applicant, ...high_performer, 1));
+      console.log('getMaxValue 결과:', maxValue);
+      return maxValue;
+    } catch (error) {
+      console.error('getMaxValue 오류:', error);
+      return 100;
+    }
   };
 
   // 그래프 데이터 및 축/범위/설명 선택
   let chartData = [];
   let yDomain = [0, 100];
   let chartDesc = '';
-  if (chartMode === 'ratio') {
-    chartData = getRatioData();
+  
+  try {
+    if (chartMode === 'ratio') {
+      chartData = getRatioData();
+      yDomain = [0, 100];
+      chartDesc = '고성과자=100%로 환산한 지원자 상대비율입니다. (실제값은 툴팁 참고)';
+    } else if (chartMode === 'normalized') {
+      chartData = getNormalizedData();
+      yDomain = [0, 100];
+      chartDesc = '각 항목별로 0~100으로 정규화한 값입니다. (실제값은 툴팁 참고)';
+    } else if (chartMode === 'raw') {
+      chartData = getRawData();
+      const maxValue = getMaxValue();
+      yDomain = [0, maxValue];
+      chartDesc = '실제값(절대값) 비교입니다. 값의 편차가 클 수 있습니다.';
+      
+      // 디버깅 로그 추가
+      console.log('실제값 모드 데이터:', {
+        chartData,
+        maxValue,
+        yDomain,
+        chartDataLength: chartData.length
+      });
+    }
+  } catch (error) {
+    console.error('차트 데이터 처리 중 오류:', error);
+    chartData = [];
     yDomain = [0, 100];
-    chartDesc = '고성과자=100%로 환산한 지원자 상대비율입니다. (실제값은 툴팁 참고)';
-  } else if (chartMode === 'normalized') {
-    chartData = getNormalizedData();
-    yDomain = [0, 100];
-    chartDesc = '각 항목별로 0~100으로 정규화한 값입니다. (실제값은 툴팁 참고)';
-  } else {
-    chartData = getRawData();
-    yDomain = [0, getMaxValue()];
-    chartDesc = '실제값(절대값) 비교입니다. 값의 편차가 클 수 있습니다.';
+    chartDesc = '데이터 처리 중 오류가 발생했습니다.';
   }
 
   useEffect(() => {
@@ -303,20 +360,10 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
             <div className="text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">합격</div>
           </div>
           
-          {/* 성장 예측 점수는 결과가 있을 때만 표시 */}
-          {growthResult ? (
-            <div className="flex flex-col items-center flex-1 min-w-0">
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-extrabold text-blue-600 dark:text-blue-300 mb-1 break-words">{growthResult.total_score ?? growthResult.growth_score}점</span>
-              </div>
-              <div className="text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">AI 성장 예측</div>
-            </div>
-          ) : (
-            /* 결과가 없을 때: 버튼 표시 */
-            <div className="flex flex-col items-center flex-1 min-w-0">
-              {applicationId && <GrowthPredictionCard applicationId={applicationId} onResultChange={setGrowthResult} />}
-            </div>
-          )}
+          {/* 성장 예측 점수는 항상 GrowthPredictionCard 표시 */}
+          <div className="flex flex-col items-center flex-1 min-w-0">
+            {applicationId && <GrowthPredictionCard key={applicationId} applicationId={applicationId} onResultChange={setGrowthResult} />}
+          </div>
         </div>
       </div>
 
@@ -441,7 +488,9 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
                     </ResponsiveContainer>
                   )
                 ) : (
-                  <div className="text-gray-400 text-center">비교 그래프 데이터를 불러올 수 없습니다.</div>
+                  <div className="text-gray-400 text-center">
+                    {chartMode === 'raw' ? '실제값 데이터를 불러올 수 없습니다.' : '비교 그래프 데이터를 불러올 수 없습니다.'}
+                  </div>
                 )}
               </div>
             </div>
@@ -514,7 +563,7 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
       )}
 
       {/* 합격 포인트 */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-blue-100 dark:border-blue-900/40 shadow-sm max-h-[300px] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl p-6 border border-blue-100 dark:border-blue-900/40 shadow-sm min-h-[150px] max-h-[250px] overflow-y-auto">
         <div className="text-lg font-bold text-gray-800 dark:text-white mb-2">합격 포인트</div>
         {summaryLoading ? (
           <div className="text-blue-500">요약 중...</div>
@@ -605,6 +654,20 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
         ) : (
           <div className="text-gray-500 mt-2">AI 개인 질문이 없습니다.</div>
         )}
+      </div>
+
+      {/* 불합격 처리 버튼 */}
+      <div className="flex justify-center mt-6">
+        <button
+          onClick={() => {
+            if (onStatusChange) {
+              onStatusChange(applicant.application_id || applicant.applicationId, 'REJECTED');
+            }
+          }}
+          className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+        >
+          불합격 처리
+        </button>
       </div>
     </div>
   );

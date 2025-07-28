@@ -54,8 +54,8 @@ export default function ViewPostSidebar({ jobPost }) {
       }
       
       try {
-        console.log('[ViewPostSidebar] API 호출 시작:', `/v1/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
-        const response = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        console.log('[ViewPostSidebar] API 호출 시작:', `/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
         const data = response.data;
         const passedCount = data?.stats?.passed_applicants_count || 0;
         console.log('[ViewPostSidebar] 필기합격자 데이터 조회 결과:', {

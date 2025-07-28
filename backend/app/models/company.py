@@ -24,6 +24,7 @@ class Company(Base):
     departments = relationship("Department", back_populates="company")
     highlight_results = relationship("HighlightResult", back_populates="company")
     analysis_results = relationship("AnalysisResult", back_populates="company")
+    growth_prediction_results = relationship("GrowthPredictionResult", back_populates="company")
 
 
 class Department(Base):
