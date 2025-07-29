@@ -37,20 +37,29 @@ function ApplicantStatisticsReport() {
 
   useEffect(() => {
     if (jobPostId) {
-      axiosInstance.get(`/v1/applications/job/${jobPostId}/applicants`)
+      // 새로운 통계 API 사용
+      axiosInstance.get(`/report/statistics?job_post_id=${jobPostId}`)
         .then((res) => {
-          const applicants = res.data;
-          const jobPostRes = axiosInstance.get(`/v1/company/jobposts/${jobPostId}`);
-          return Promise.all([applicants, jobPostRes]);
-        })
-        .then(([applicants, jobPostRes]) => {
-          setData({
-            applicants: applicants,
-            jobPost: jobPostRes.data
-          });
+          setData(res.data);
         })
         .catch((error) => {
           console.error('지원자 통계 데이터 조회 실패:', error);
+          // 기존 API로 fallback
+          axiosInstance.get(`/applications/job/${jobPostId}/applicants`)
+            .then((res) => {
+              const applicants = res.data;
+              const jobPostRes = axiosInstance.get(`/company/jobposts/${jobPostId}`);
+              return Promise.all([applicants, jobPostRes]);
+            })
+            .then(([applicants, jobPostRes]) => {
+              setData({
+                applicants: applicants,
+                jobPost: jobPostRes.data
+              });
+            })
+            .catch((fallbackError) => {
+              console.error('Fallback API도 실패:', fallbackError);
+            });
         });
     }
   }, [jobPostId]);
@@ -75,8 +84,8 @@ function ApplicantStatisticsReport() {
       setIsRefreshing(true);
       try {
         const [applicantsRes, jobPostRes] = await Promise.all([
-          axiosInstance.get(`/v1/applications/job/${jobPostId}/applicants`),
-          axiosInstance.get(`/v1/company/jobposts/${jobPostId}`)
+          axiosInstance.get(`/applications/job/${jobPostId}/applicants`),
+          axiosInstance.get(`/company/jobposts/${jobPostId}`)
         ]);
         setData({
           applicants: applicantsRes.data,
@@ -107,22 +116,62 @@ function ApplicantStatisticsReport() {
     </Layout>
   );
 
-  const { jobPost, applicants } = data;
+  // 새로운 API 데이터 구조 처리
+  const isNewApiFormat = data.job_post && data.stats;
+  const jobPost = isNewApiFormat ? data.job_post : data.jobPost;
+  const applicants = isNewApiFormat ? [] : (data.applicants || []);
 
-  // 통계 데이터 계산
-  const educationStats = getEducationStats(applicants);
-  const genderStats = getGenderStats(applicants);
-  const ageGroupStats = getAgeGroupStats(applicants);
-  const provinceStats = getProvinceStats(applicants);
-  const certificateStats = getCertificateCountStats(applicants);
-  const trendStats = getApplicationTrendStats(applicants);
-  const newApplicantsToday = getNewApplicantsToday(applicants);
-  const unviewedApplicants = getUnviewedApplicants(applicants);
+  // 새로운 API 데이터인 경우 stats에서 통계 추출
+  const newApiStats = isNewApiFormat ? data.stats : null;
+
+  // 통계 데이터 계산 (새로운 API 또는 기존 API)
+  const educationStats = isNewApiFormat 
+    ? (newApiStats.education_stats || [])
+    : getEducationStats(applicants);
+  
+  const genderStats = isNewApiFormat 
+    ? (newApiStats.gender_stats || [])
+    : getGenderStats(applicants);
+  
+  const ageGroupStats = isNewApiFormat 
+    ? (newApiStats.age_group_stats || [])
+    : getAgeGroupStats(applicants);
+  
+  const provinceStats = isNewApiFormat 
+    ? (newApiStats.province_stats || [])
+    : getProvinceStats(applicants);
+  
+  const certificateStats = isNewApiFormat 
+    ? (newApiStats.certificate_stats || [])
+    : getCertificateCountStats(applicants);
+  
+  const trendStats = isNewApiFormat 
+    ? []
+    : getApplicationTrendStats(applicants);
+  
+  const newApplicantsToday = isNewApiFormat 
+    ? 0
+    : getNewApplicantsToday(applicants);
+  
+  const unviewedApplicants = isNewApiFormat 
+    ? 0
+    : getUnviewedApplicants(applicants);
 
   // 지원 상태별 통계
-  const waitingCount = applicants.filter(a => a.document_status === 'WAITING').length;
-  const passedCount = applicants.filter(a => a.document_status === 'PASSED').length;
-  const rejectedCount = applicants.filter(a => a.document_status === 'REJECTED').length;
+  const waitingCount = isNewApiFormat 
+    ? 0
+    : applicants.filter(a => a.document_status === 'WAITING').length;
+  const passedCount = isNewApiFormat 
+    ? 0
+    : applicants.filter(a => a.document_status === 'PASSED').length;
+  const rejectedCount = isNewApiFormat 
+    ? 0
+    : applicants.filter(a => a.document_status === 'REJECTED').length;
+
+  // 총 지원자 수
+  const totalApplicants = isNewApiFormat 
+    ? (newApiStats.total_applicants || 0)
+    : applicants.length;
 
   // PDF 다운로드 함수
   const handleDownloadPDF = async () => {
@@ -228,7 +277,7 @@ function ApplicantStatisticsReport() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20, marginBottom: 32 }}>
           <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 16, color: '#64748b', marginBottom: 8 }}>총 지원자</div>
-            <div style={{ fontWeight: 700, fontSize: 32, color: '#2563eb' }}>{applicants.length}명</div>
+            <div style={{ fontWeight: 700, fontSize: 32, color: '#2563eb' }}>{totalApplicants}명</div>
           </div>
           <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 16, color: '#64748b', marginBottom: 8 }}>서류 합격자</div>
@@ -253,91 +302,140 @@ function ApplicantStatisticsReport() {
           {/* 지원 시기별 추이 */}
           <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24 }}>
             <h3 style={{ fontSize: 20, fontWeight: 700, color: '#2563eb', marginBottom: 20 }}>지원 시기별 추이</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendStats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" angle={-45} textAnchor="end" height={80} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {trendStats && trendStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trendStats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" angle={-45} textAnchor="end" height={80} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#1976d2" strokeWidth={3} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                지원 시기별 데이터가 없습니다.
+              </div>
+            )}
           </div>
 
           {/* 성별 분포 */}
           <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24 }}>
             <h3 style={{ fontSize: 20, fontWeight: 700, color: '#2563eb', marginBottom: 20 }}>성별 분포</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={genderStats}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}명`}
-                >
-                  {genderStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS.GENDER[index % CHART_COLORS.GENDER.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={36} />
-              </PieChart>
-            </ResponsiveContainer>
+            {genderStats && genderStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={genderStats}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}명`}
+                  >
+                    {genderStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS.GENDER[index % CHART_COLORS.GENDER.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                성별 분포 데이터가 없습니다.
+              </div>
+            )}
           </div>
 
           {/* 연령대별 분포 */}
           <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24 }}>
             <h3 style={{ fontSize: 20, fontWeight: 700, color: '#2563eb', marginBottom: 20 }}>연령대별 분포</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={ageGroupStats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#1976d2" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {ageGroupStats && ageGroupStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={ageGroupStats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#1976d2" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                연령대별 분포 데이터가 없습니다.
+              </div>
+            )}
           </div>
 
           {/* 학력별 분포 */}
           <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24 }}>
             <h3 style={{ fontSize: 20, fontWeight: 700, color: '#2563eb', marginBottom: 20 }}>학력별 분포</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={educationStats}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}명`}
-                >
-                  {educationStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS.EDUCATION[index % CHART_COLORS.EDUCATION.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={36} />
-              </PieChart>
-            </ResponsiveContainer>
+            {educationStats && educationStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={educationStats}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}명`}
+                  >
+                    {educationStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS.EDUCATION[index % CHART_COLORS.EDUCATION.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                학력별 분포 데이터가 없습니다.
+              </div>
+            )}
           </div>
 
           {/* 자격증 보유수별 분포 */}
           <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24 }}>
             <h3 style={{ fontSize: 20, fontWeight: 700, color: '#2563eb', marginBottom: 20 }}>자격증 보유수별 분포</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={certificateStats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {certificateStats && certificateStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={certificateStats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                자격증 보유수별 분포 데이터가 없습니다.
+              </div>
+            )}
           </div>
 
+          {/* 지역별 분포 */}
+          <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px #e0e7ef', padding: 24 }}>
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#2563eb', marginBottom: 20 }}>지역별 분포</h3>
+            {provinceStats && provinceStats.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={provinceStats} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                지역별 분포 데이터가 없습니다.
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 지역별 분포 섹션 (별도 섹션으로 분리) */}
@@ -347,7 +445,7 @@ function ApplicantStatisticsReport() {
             <ProvinceMapChart provinceStats={provinceStats} />
           </div>
           <div style={{ textAlign: 'center', marginTop: 16, color: '#64748b', fontSize: 16 }}>
-            총 지원자 수: {applicants.length}명
+            총 지원자 수: {totalApplicants}명
           </div>
         </div>
 
@@ -375,16 +473,16 @@ function ApplicantStatisticsReport() {
             <div style={{ background: '#f0fdf4', borderRadius: 8, padding: 20, textAlign: 'center' }}>
               <h4 style={{ fontSize: 18, fontWeight: 600, color: '#374151', marginBottom: 16 }}>합격률</h4>
               <div style={{ fontSize: 48, fontWeight: 800, color: '#10b981', marginBottom: 8 }}>
-                {applicants.length > 0 ? ((passedCount / applicants.length) * 100).toFixed(1) : 0}%
+                {totalApplicants > 0 ? ((passedCount / totalApplicants) * 100).toFixed(1) : 0}%
               </div>
               <div style={{ color: '#6b7280', fontSize: 16, fontWeight: 500 }}>
-                {passedCount}명 / {applicants.length}명
+                {passedCount}명 / {totalApplicants}명
               </div>
             </div>
             <div style={{ background: '#faf5ff', borderRadius: 8, padding: 20, textAlign: 'center' }}>
               <h4 style={{ fontSize: 18, fontWeight: 600, color: '#374151', marginBottom: 16 }}>평균 자격증 보유수</h4>
               <div style={{ fontSize: 48, fontWeight: 800, color: '#8b5cf6', marginBottom: 8 }}>
-                {applicants.length > 0 ? (applicants.reduce((sum, app) => sum + (Array.isArray(app.certificates) ? app.certificates.length : 0), 0) / applicants.length).toFixed(1) : 0}개
+                {totalApplicants > 0 ? (applicants.reduce((sum, app) => sum + (Array.isArray(app.certificates) ? app.certificates.length : 0), 0) / totalApplicants).toFixed(1) : 0}개
               </div>
               <div style={{ color: '#6b7280', fontSize: 16, fontWeight: 500 }}>
                 총 {applicants.reduce((sum, app) => sum + (Array.isArray(app.certificates) ? app.certificates.length : 0), 0)}개 보유

@@ -381,8 +381,19 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
                           const unit = boxplotLabels[key]?.unit || '';
                           const desc = boxplotLabels[key]?.desc || '';
                           
-                          // 박스플롯 데이터 검증
-                          if (!stats.min && !stats.max) return null;
+                          // 박스플롯 데이터 검증 강화
+                          if (!stats || typeof stats.min !== 'number' || typeof stats.max !== 'number' || 
+                              isNaN(stats.min) || isNaN(stats.max) || stats.min === stats.max) {
+                            console.warn('박스플롯 데이터 검증 실패:', { key, stats });
+                            return (
+                              <div key={key} className="bg-gray-50 p-4 rounded-lg">
+                                <h5 className="font-medium text-gray-800 mb-2">{label}</h5>
+                                <div className="bg-white border rounded p-2 text-center text-gray-500">
+                                  데이터가 부족하여 박스플롯을 표시할 수 없습니다.
+                                </div>
+                              </div>
+                            );
+                          }
                           
                           // SVG 박스플롯 렌더링
                           const width = 200;
@@ -391,26 +402,33 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
                           const chartWidth = width - 2 * padding;
                           const chartHeight = height - 2 * padding;
                           
-                          // 값 범위 계산
+                          // 값 범위 계산 (0이 아닌 최소 범위 보장)
                           const min = stats.min;
                           const max = stats.max;
-                          const range = max - min;
+                          const range = Math.max(max - min, 0.1); // 최소 0.1 범위 보장
                           
-                          // Y 좌표 변환 함수
+                          // Y 좌표 변환 함수 (안전한 계산)
                           const yToPixel = (value) => {
-                            return padding + (max - value) / range * chartHeight;
+                            if (isNaN(value) || !isFinite(value)) return padding + chartHeight / 2;
+                            const normalizedValue = Math.max(min, Math.min(max, value));
+                            return padding + (max - normalizedValue) / range * chartHeight;
                           };
                           
-                          // 박스플롯 요소들의 위치 계산
+                          // 박스플롯 요소들의 위치 계산 (안전한 계산)
                           const yMax = yToPixel(stats.max);
-                          const yQ3 = yToPixel(stats.q3);
+                          const yQ3 = yToPixel(stats.q3 || stats.median);
                           const yMedian = yToPixel(stats.median);
-                          const yQ1 = yToPixel(stats.q1);
+                          const yQ1 = yToPixel(stats.q1 || stats.median);
                           const yMin = yToPixel(stats.min);
-                          const yApplicant = stats.applicant !== undefined ? yToPixel(stats.applicant) : null;
+                          const yApplicant = (stats.applicant !== undefined && !isNaN(stats.applicant)) 
+                            ? yToPixel(stats.applicant) 
+                            : null;
                           
                           const boxX = padding + chartWidth / 2 - 20;
                           const boxWidth = 40;
+                          
+                          // 박스 높이 계산 (안전한 계산)
+                          const boxHeight = Math.max(1, yQ1 - yQ3); // 최소 1px 높이 보장
                           
                           return (
                             <div key={key} className="bg-gray-50 p-4 rounded-lg">
@@ -419,9 +437,9 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
                                 <svg width={width} height={height} className="mx-auto">
                                   {/* Y축 레이블 */}
                                   <text x={5} y={yMax + 3} fontSize="10" fill="#666">{stats.max.toFixed(1)}</text>
-                                  <text x={5} y={yQ3 + 3} fontSize="10" fill="#666">{stats.q3.toFixed(1)}</text>
+                                  <text x={5} y={yQ3 + 3} fontSize="10" fill="#666">{(stats.q3 || stats.median).toFixed(1)}</text>
                                   <text x={5} y={yMedian + 3} fontSize="10" fill="#666">{stats.median.toFixed(1)}</text>
-                                  <text x={5} y={yQ1 + 3} fontSize="10" fill="#666">{stats.q1.toFixed(1)}</text>
+                                  <text x={5} y={yQ1 + 3} fontSize="10" fill="#666">{(stats.q1 || stats.median).toFixed(1)}</text>
                                   <text x={5} y={yMin + 3} fontSize="10" fill="#666">{stats.min.toFixed(1)}</text>
                                   
                                   {/* 중앙 수직선 (whisker) */}
@@ -434,7 +452,7 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
                                   {/* 박스 (Q1 ~ Q3) */}
                                   <rect 
                                     x={boxX} y={yQ3} 
-                                    width={boxWidth} height={yQ1 - yQ3} 
+                                    width={boxWidth} height={boxHeight} 
                                     fill="#3B82F6" stroke="#1E40AF" strokeWidth="1"
                                   />
                                   
@@ -468,18 +486,18 @@ const GrowthPredictionCard = ({ applicationId, showDetails = false, onResultChan
                                       <span className="font-medium">최소:</span> {stats.min.toFixed(1)}{unit}
                                     </div>
                                     <div>
-                                      <span className="font-medium">Q1:</span> {stats.q1.toFixed(1)}{unit}
+                                      <span className="font-medium">Q1:</span> {(stats.q1 || stats.median).toFixed(1)}{unit}
                                     </div>
                                     <div>
                                       <span className="font-medium">중앙값:</span> {stats.median.toFixed(1)}{unit}
                                     </div>
                                     <div>
-                                      <span className="font-medium">Q3:</span> {stats.q3.toFixed(1)}{unit}
+                                      <span className="font-medium">Q3:</span> {(stats.q3 || stats.median).toFixed(1)}{unit}
                                     </div>
                                     <div>
                                       <span className="font-medium">최대:</span> {stats.max.toFixed(1)}{unit}
                                     </div>
-                                    {stats.applicant !== undefined && (
+                                    {stats.applicant !== undefined && !isNaN(stats.applicant) && (
                                       <div>
                                         <span className="font-medium text-red-600">지원자:</span> {stats.applicant.toFixed(1)}{unit}
                                       </div>

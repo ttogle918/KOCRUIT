@@ -16,7 +16,7 @@ const ApplicantTestDetailModal = ({ isOpen, onClose, applicantId, jobPostId }) =
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get(`/v1/report/job-aptitude/applicant/${applicantId}?job_post_id=${jobPostId}`);
+      const response = await axiosInstance.get(`/report/job-aptitude/applicant/${applicantId}?job_post_id=${jobPostId}`);
       setTestDetails(response.data);
     } catch (err) {
       console.error('Error fetching test details:', err);

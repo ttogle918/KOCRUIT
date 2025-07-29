@@ -141,35 +141,41 @@ def predict_growth(
                 applicant_exp = None
     boxplot_data = {}
     # 경력(년)
-    if exp_vals:
-        boxplot_data['경력(년)'] = {
-            'min': float(np.min(exp_vals)),
-            'q1': float(np.percentile(exp_vals, 25)),
-            'median': float(np.median(exp_vals)),
-            'q3': float(np.percentile(exp_vals, 75)),
-            'max': float(np.max(exp_vals)),
-            'applicant': applicant_exp if applicant_exp is not None else 0.0
-        }
+    if exp_vals and len(exp_vals) > 0:
+        exp_vals = [float(v) for v in exp_vals if v is not None and not np.isnan(v)]
+        if exp_vals:
+            boxplot_data['경력(년)'] = {
+                'min': float(np.min(exp_vals)),
+                'q1': float(np.percentile(exp_vals, 25)),
+                'median': float(np.median(exp_vals)),
+                'q3': float(np.percentile(exp_vals, 75)),
+                'max': float(np.max(exp_vals)),
+                'applicant': applicant_exp if applicant_exp is not None and not np.isnan(applicant_exp) else 0.0
+            }
     # 학력
-    if degree_vals:
-        boxplot_data['학력'] = {
-            'min': float(np.min(degree_vals)),
-            'q1': float(np.percentile(degree_vals, 25)),
-            'median': float(np.median(degree_vals)),
-            'q3': float(np.percentile(degree_vals, 75)),
-            'max': float(np.max(degree_vals)),
-            'applicant': norm.get('degree', 0.0)
-        }
+    if degree_vals and len(degree_vals) > 0:
+        degree_vals = [float(v) for v in degree_vals if v is not None and not np.isnan(v)]
+        if degree_vals:
+            boxplot_data['학력'] = {
+                'min': float(np.min(degree_vals)),
+                'q1': float(np.percentile(degree_vals, 25)),
+                'median': float(np.median(degree_vals)),
+                'q3': float(np.percentile(degree_vals, 75)),
+                'max': float(np.max(degree_vals)),
+                'applicant': norm.get('degree', 0.0) if norm.get('degree') is not None and not np.isnan(norm.get('degree', 0.0)) else 0.0
+            }
     # 자격증
-    if cert_vals:
-        boxplot_data['자격증'] = {
-            'min': float(np.min(cert_vals)),
-            'q1': float(np.percentile(cert_vals, 25)),
-            'median': float(np.median(cert_vals)),
-            'q3': float(np.percentile(cert_vals, 75)),
-            'max': float(np.max(cert_vals)),
-            'applicant': norm.get('certifications_count', 0.0)
-        }
+    if cert_vals and len(cert_vals) > 0:
+        cert_vals = [float(v) for v in cert_vals if v is not None and not np.isnan(v)]
+        if cert_vals:
+            boxplot_data['자격증'] = {
+                'min': float(np.min(cert_vals)),
+                'q1': float(np.percentile(cert_vals, 25)),
+                'median': float(np.median(cert_vals)),
+                'q3': float(np.percentile(cert_vals, 75)),
+                'max': float(np.max(cert_vals)),
+                'applicant': norm.get('certifications_count', 0.0) if norm.get('certifications_count') is not None and not np.isnan(norm.get('certifications_count', 0.0)) else 0.0
+            }
 
     analysis_duration = time.time() - start_time
 

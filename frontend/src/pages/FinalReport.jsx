@@ -145,6 +145,8 @@ function FinalReport() {
   const [documentData, setDocumentData] = useState(null);
   const [writtenTestData, setWrittenTestData] = useState(null);
   const [interviewData, setInterviewData] = useState(null);
+  const [statisticsData, setStatisticsData] = useState(null);
+  const [growthData, setGrowthData] = useState(null);
   const [jobPostData, setJobPostData] = useState(null);
   const [loadingText, setLoadingText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -179,176 +181,163 @@ function FinalReport() {
     return parsedId;
   })();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!jobPostId) {
-        console.error('유효한 job_post_id가 없습니다:', jobPostIdParam);
-        setError('유효한 채용공고 ID가 필요합니다. 올바른 URL로 접근해주세요.');
-        return;
-      }
+  const fetchData = async () => {
+    if (!jobPostId) {
+      console.error('유효한 job_post_id가 없습니다:', jobPostIdParam);
+      setError('유효한 채용공고 ID가 필요합니다. 올바른 URL로 접근해주세요.');
+      return;
+    }
 
-      console.log('📋 최종 보고서 데이터 로드 시작...', { jobPostId, originalParam: jobPostIdParam });
-      setIsLoading(true);
-      setError(null);
+    console.log('📋 최종 보고서 데이터 로드 시작...', { jobPostId, originalParam: jobPostIdParam });
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        // 1. Job Aptitude Report Data (cache first)
-        let jobAptitudeData = getReportCache('written', jobPostId);
-        console.log('🔍 직무적성평가 보고서 캐시 확인:', { jobPostId, jobAptitudeData });
-        if (jobAptitudeData) {
-          console.log('📦 직무적성평가 보고서 캐시 사용');
-          console.log('📦 캐시된 데이터 구조:', jobAptitudeData);
-          setWrittenTestData(jobAptitudeData.data || jobAptitudeData);
-        } else {
-          console.log('🌐 직무적성평가 보고서 API 호출');
-          const writtenTestResponse = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
+    try {
+      // 1. Job Aptitude Report Data (cache first)
+      let jobAptitudeData = getReportCache('written', jobPostId);
+      console.log('🔍 직무적성평가 보고서 캐시 확인:', { jobPostId, jobAptitudeData });
+      if (jobAptitudeData) {
+        console.log('📦 직무적성평가 보고서 캐시 사용');
+        console.log('📦 캐시된 데이터 구조:', jobAptitudeData);
+        setWrittenTestData(jobAptitudeData.data || jobAptitudeData);
+      } else {
+        console.log('🌐 직무적성평가 보고서 API 호출');
+        try {
+          const writtenTestResponse = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 10000 });
           jobAptitudeData = { data: writtenTestResponse.data };
           setWrittenTestData(writtenTestResponse.data);
           setReportCache('written', jobPostId, jobAptitudeData);
           console.log('✅ 직무적성평가 보고서 로드 완료');
+        } catch (error) {
+          console.warn('직무적성평가 보고서 로드 실패:', error);
+          setWrittenTestData(null);
         }
+      }
 
-        // 2. Document Report Data (cache first)
-        let documentData = getReportCache('document', jobPostId);
-        console.log('🔍 서류 보고서 캐시 확인:', { jobPostId, documentData });
-        if (documentData) {
-          console.log('📦 서류 보고서 캐시 사용');
-          setDocumentData(documentData.data || documentData); // 기존 캐시와의 호환성을 위해 fallback
-        } else {
-          console.log('🌐 서류 보고서 API 호출');
-          const documentResponse = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 90000 });
+      // 2. Document Report Data (cache first)
+      let documentData = getReportCache('document', jobPostId);
+      console.log('🔍 서류 보고서 캐시 확인:', { jobPostId, documentData });
+      if (documentData) {
+        console.log('📦 서류 보고서 캐시 사용');
+        setDocumentData(documentData.data || documentData); // 기존 캐시와의 호환성을 위해 fallback
+      } else {
+        console.log('🌐 서류 보고서 API 호출');
+        try {
+          const documentResponse = await axiosInstance.get(`/report/document?job_post_id=${jobPostId}`, { timeout: 15000 });
           documentData = documentResponse.data;
           setDocumentData(documentData);
           setReportCache('document', jobPostId, { data: documentData });
           console.log('✅ 서류 보고서 로드 완료');
+        } catch (error) {
+          console.warn('서류 보고서 로드 실패:', error);
+          setDocumentData(null);
         }
+      }
 
-        // 3. Written Test Report Data (cache first)
-        let writtenTestData = getReportCache('written', jobPostId);
-        console.log('🔍 직무적성평가 보고서 캐시 확인:', { jobPostId, writtenTestData });
-        if (writtenTestData) {
-          console.log('📦 직무적성평가 보고서 캐시 사용');
-          console.log('📦 캐시된 데이터 구조:', writtenTestData);
-          setWrittenTestData(writtenTestData.data || writtenTestData);
-        } else {
-          console.log('🌐 직무적성평가 보고서 API 호출');
-          const writtenTestResponse = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
-          writtenTestData = { data: writtenTestResponse.data };
-          setWrittenTestData(writtenTestResponse.data);
-          setReportCache('written', jobPostId, writtenTestData);
-          console.log('✅ 직무적성평가 보고서 로드 완료');
-        }
-
-        // 4. Interview Report Data (cache first)
-        let interviewData = getReportCache('interview', jobPostId);
-        console.log('🔍 면접 보고서 캐시 확인:', { jobPostId, interviewData });
-        if (interviewData) {
-          console.log('📦 면접 보고서 캐시 사용');
-          setInterviewData(interviewData.data || interviewData);
-        } else {
-          console.log('🌐 면접 보고서 API 호출');
-          const interviewResponse = await axiosInstance.get(`/v1/report/interview?job_post_id=${jobPostId}`, { timeout: 30000 });
+      // 3. Interview Report Data (cache first)
+      let interviewData = getReportCache('interview', jobPostId);
+      console.log('🔍 면접 보고서 캐시 확인:', { jobPostId, interviewData });
+      if (interviewData) {
+        console.log('📦 면접 보고서 캐시 사용');
+        setInterviewData(interviewData.data || interviewData);
+      } else {
+        console.log('🌐 면접 보고서 API 호출');
+        try {
+          const interviewResponse = await axiosInstance.get(`/report/interview?job_post_id=${jobPostId}`, { timeout: 10000 });
           interviewData = interviewResponse.data;
           setInterviewData(interviewData);
           setReportCache('interview', jobPostId, { data: interviewData });
           console.log('✅ 면접 보고서 로드 완료');
+        } catch (error) {
+          console.warn('면접 보고서 로드 실패:', error);
+          setInterviewData(null);
         }
+      }
 
-        // 5. Statistics Report Data (cache first)
-        let statisticsData = getReportCache('statistics', jobPostId);
-        console.log('🔍 통계 보고서 캐시 확인:', { jobPostId, statisticsData });
-        if (statisticsData) {
-          console.log('📦 통계 보고서 캐시 사용');
-          setStatisticsData(statisticsData.data || statisticsData);
-        } else {
-          console.log('🌐 통계 보고서 API 호출');
-          const statisticsResponse = await axiosInstance.get(`/v1/report/statistics?job_post_id=${jobPostId}`, { timeout: 15000 });
+      // 4. Statistics Report Data (cache first)
+      let statisticsData = getReportCache('statistics', jobPostId);
+      console.log('🔍 통계 보고서 캐시 확인:', { jobPostId, statisticsData });
+      if (statisticsData) {
+        console.log('📦 통계 보고서 캐시 사용');
+        setStatisticsData(statisticsData.data || statisticsData);
+      } else {
+        console.log('🌐 통계 보고서 API 호출');
+        try {
+          const statisticsResponse = await axiosInstance.get(`/report/statistics?job_post_id=${jobPostId}`, { timeout: 10000 });
           statisticsData = statisticsResponse.data;
           setStatisticsData(statisticsData);
           setReportCache('statistics', jobPostId, { data: statisticsData });
           console.log('✅ 통계 보고서 로드 완료');
+        } catch (error) {
+          console.warn('통계 보고서 로드 실패:', error);
+          setStatisticsData(null);
         }
+      }
 
-        // 6. Growth Prediction Report Data (cache first)
-        let growthData = getReportCache('growth', jobPostId);
-        console.log('🔍 성장 예측 보고서 캐시 확인:', { jobPostId, growthData });
-        if (growthData) {
-          console.log('📦 성장 예측 보고서 캐시 사용');
-          setGrowthData(growthData.data || growthData);
-        } else {
-          console.log('🌐 성장 예측 보고서 API 호출');
-          const growthResponse = await axiosInstance.get(`/v1/report/growth-prediction?job_post_id=${jobPostId}`, { timeout: 15000 });
+      // 5. Growth Prediction Report Data (cache first)
+      let growthData = getReportCache('growth', jobPostId);
+      console.log('🔍 성장 예측 보고서 캐시 확인:', { jobPostId, growthData });
+      if (growthData) {
+        console.log('📦 성장 예측 보고서 캐시 사용');
+        setGrowthData(growthData.data || growthData);
+      } else {
+        console.log('🌐 성장 예측 보고서 API 호출');
+        try {
+          const growthResponse = await axiosInstance.get(`/report/growth-prediction?job_post_id=${jobPostId}`, { timeout: 10000 });
           growthData = growthResponse.data;
           setGrowthData(growthData);
           setReportCache('growth', jobPostId, { data: growthData });
           console.log('✅ 성장 예측 보고서 로드 완료');
+        } catch (error) {
+          console.warn('성장 예측 보고서 로드 실패:', error);
+          setGrowthData(null);
         }
-
-        // 7. Comprehensive Analysis Report Data (cache first)
-        let comprehensiveData = getReportCache('comprehensive', jobPostId);
-        console.log('🔍 종합 분석 보고서 캐시 확인:', { jobPostId, comprehensiveData });
-        if (comprehensiveData) {
-          console.log('📦 종합 분석 보고서 캐시 사용');
-          setComprehensiveData(comprehensiveData.data || comprehensiveData);
-        } else {
-          console.log('🌐 종합 분석 보고서 API 호출');
-          const comprehensiveResponse = await axiosInstance.get(`/v1/report/comprehensive-analysis?job_post_id=${jobPostId}`, { timeout: 15000 });
-          comprehensiveData = comprehensiveResponse.data;
-          setComprehensiveData(comprehensiveData);
-          setReportCache('comprehensive', jobPostId, { data: comprehensiveData });
-          console.log('✅ 종합 분석 보고서 로드 완료');
-        }
-
-        // 8. Final Summary Report Data (cache first)
-        let finalSummaryData = getReportCache('final-summary', jobPostId);
-        console.log('🔍 최종 요약 보고서 캐시 확인:', { jobPostId, finalSummaryData });
-        if (finalSummaryData) {
-          console.log('📦 최종 요약 보고서 캐시 사용');
-          setFinalSummaryData(finalSummaryData.data || finalSummaryData);
-        } else {
-          console.log('🌐 최종 요약 보고서 API 호출');
-          const finalSummaryResponse = await axiosInstance.get(`/v1/report/final-summary?job_post_id=${jobPostId}`, { timeout: 15000 });
-          finalSummaryData = finalSummaryResponse.data;
-          setFinalSummaryData(finalSummaryData);
-          setReportCache('final-summary', jobPostId, { data: finalSummaryData });
-          console.log('✅ 최종 요약 보고서 로드 완료');
-        }
-
-        // 9. Missing Reports Check
-        const missingReports = [];
-        if (!documentData) missingReports.push('서류 보고서');
-        if (!writtenTestData) missingReports.push('직무적성평가 보고서');
-        if (!interviewData) missingReports.push('면접 보고서');
-        if (!statisticsData) missingReports.push('통계 보고서');
-        if (!growthData) missingReports.push('성장 예측 보고서');
-        if (!comprehensiveData) missingReports.push('종합 분석 보고서');
-        if (!finalSummaryData) missingReports.push('최종 요약 보고서');
-
-        setMissingReports(missingReports);
-        setIsLoading(false);
-        console.log('✅ 모든 보고서 데이터 로드 완료');
-
-      } catch (error) {
-        console.error('최종 보고서 데이터 로드 실패:', error);
-        setIsLoading(false);
-        
-        let errorMessage = '최종 보고서 데이터를 불러오는 중 오류가 발생했습니다.';
-        if (error.code === 'ECONNABORTED') {
-          errorMessage = '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
-        } else if (error.response?.status === 404) {
-          errorMessage = '해당 공고를 찾을 수 없습니다.';
-        } else if (error.response?.status === 403) {
-          errorMessage = '접근 권한이 없습니다.';
-        }
-        
-        setError(errorMessage);
       }
-    };
 
-    if (jobPostId) {
-      console.log('[FinalReport] jobPostId:', jobPostId);
-      fetchData();
+      // 6. Job Post Data (cache first)
+      let jobPostData = getReportCache('job-post', jobPostId);
+      console.log('🔍 공고 정보 캐시 확인:', { jobPostId, jobPostData });
+      if (jobPostData) {
+        console.log('📦 공고 정보 캐시 사용');
+        setJobPostData(jobPostData.data || jobPostData);
+      } else {
+        console.log('🌐 공고 정보 API 호출');
+        try {
+          // 먼저 public_jobs 엔드포인트 시도
+          const jobPostResponse = await axiosInstance.get(`/public-jobs/${jobPostId}`, { timeout: 5000 });
+          jobPostData = jobPostResponse.data;
+          setJobPostData(jobPostData);
+          setReportCache('job-post', jobPostId, { data: jobPostData });
+          console.log('✅ 공고 정보 로드 완료');
+        } catch (error) {
+          console.warn('public-jobs API 실패, company-jobs 시도:', error);
+          try {
+            // 대안으로 company_jobs 엔드포인트 시도
+            const jobPostResponse = await axiosInstance.get(`/company-jobs/${jobPostId}`, { timeout: 5000 });
+            jobPostData = jobPostResponse.data;
+            setJobPostData(jobPostData);
+            setReportCache('job-post', jobPostId, { data: jobPostData });
+            console.log('✅ 공고 정보 로드 완료 (company-jobs)');
+          } catch (secondError) {
+            console.warn('공고 정보 로드 실패:', secondError);
+            // 공고 정보가 없어도 다른 데이터는 계속 로드
+            setJobPostData(null);
+          }
+        }
+      }
+
+      console.log('✅ 모든 데이터 로드 완료');
+      setIsLoading(false);
+
+    } catch (error) {
+      console.error('❌ 데이터 로드 실패:', error);
+      setError(`데이터를 불러오는 중 오류가 발생했습니다: ${error.message}`);
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, [jobPostId]);
 
   // 로딩 텍스트 애니메이션
@@ -433,36 +422,36 @@ function FinalReport() {
         setReportCache('document', jobPostId, { data: documentResponse.data });
         
         // 3. 직무적성평가 보고서 데이터 조회
-        const writtenTestResponse = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const writtenTestResponse = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
         setWrittenTestData(writtenTestResponse.data);
         setReportCache('written', jobPostId, { data: writtenTestResponse.data });
         
         // 4. 면접 보고서 데이터 조회
-        const interviewResponse = await axiosInstance.get(`/v1/report/interview?job_post_id=${jobPostId}`, { timeout: 30000 });
+        const interviewResponse = await axiosInstance.get(`/report/interview?job_post_id=${jobPostId}`, { timeout: 30000 });
         const interviewData = interviewResponse.data;
         setInterviewData(interviewData);
         setReportCache('interview', jobPostId, { data: interviewData });
 
         // 5. 통계 보고서 데이터 조회
-        const statisticsResponse = await axiosInstance.get(`/v1/report/statistics?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const statisticsResponse = await axiosInstance.get(`/report/statistics?job_post_id=${jobPostId}`, { timeout: 15000 });
         const statisticsData = statisticsResponse.data;
         setStatisticsData(statisticsData);
         setReportCache('statistics', jobPostId, { data: statisticsData });
 
         // 6. 성장 예측 보고서 데이터 조회
-        const growthResponse = await axiosInstance.get(`/v1/report/growth-prediction?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const growthResponse = await axiosInstance.get(`/report/growth-prediction?job_post_id=${jobPostId}`, { timeout: 15000 });
         const growthData = growthResponse.data;
         setGrowthData(growthData);
         setReportCache('growth', jobPostId, { data: growthData });
 
         // 7. 종합 분석 보고서 데이터 조회
-        const comprehensiveResponse = await axiosInstance.get(`/v1/report/comprehensive-analysis?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const comprehensiveResponse = await axiosInstance.get(`/report/comprehensive-analysis?job_post_id=${jobPostId}`, { timeout: 15000 });
         const comprehensiveData = comprehensiveResponse.data;
         setComprehensiveData(comprehensiveData);
         setReportCache('comprehensive', jobPostId, { data: comprehensiveData });
 
         // 8. 최종 요약 보고서 데이터 조회
-        const finalSummaryResponse = await axiosInstance.get(`/v1/report/final-summary?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const finalSummaryResponse = await axiosInstance.get(`/report/final-summary?job_post_id=${jobPostId}`, { timeout: 15000 });
         const finalSummaryData = finalSummaryResponse.data;
         setFinalSummaryData(finalSummaryData);
         setReportCache('final-summary', jobPostId, { data: finalSummaryData });
@@ -504,7 +493,7 @@ function FinalReport() {
       try {
         clearAllReportCache('written', jobPostId);
         console.log('🌐 직무적성평가 보고서 API 재호출');
-        const response = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
+        const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 15000 });
         setWrittenTestData(response.data);
         setReportCache('written', jobPostId, { data: response.data });
         console.log('✅ 직무적성평가 보고서 캐시 새로고침 완료');
@@ -793,13 +782,24 @@ function FinalReport() {
   }
 
   // 최소한의 데이터가 있는지 확인 (isLoading이 false일 때만)
-  if (!jobPostData) {
-    console.warn('[FinalReport] jobPostData가 없습니다:', jobPostData);
+  if (!jobPostData && !documentData && !writtenTestData && !interviewData) {
+    console.warn('[FinalReport] 모든 데이터가 없습니다:', { jobPostData, documentData, writtenTestData, interviewData });
     return (
       <Layout>
         <ViewPostSidebar jobPost={jobPostId ? { id: jobPostId } : null} />
         <div className="min-h-[70vh] flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-2xl shadow-lg mx-auto max-w-4xl my-10">
-          <div className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">공고 정보를 불러올 수 없습니다.</div>
+          <div className="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">데이터를 불러올 수 없습니다.</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400 text-center mb-6">
+            일부 데이터를 불러오지 못했을 수 있습니다. 다시 시도하거나 개별 보고서를 확인해보세요.
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={fetchData}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+            >
+              다시 시도
+            </button>
+          </div>
         </div>
       </Layout>
     );

@@ -572,12 +572,28 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
                   {Object.entries(growthResult.boxplot_data).map(([label, stats]) => {
                     const meta = boxplotLabels[label] || { label, unit: '', desc: '' };
                     
+                    // 박스플롯 데이터 검증
+                    if (!stats || typeof stats.min !== 'number' || typeof stats.max !== 'number' || 
+                        isNaN(stats.min) || isNaN(stats.max) || stats.min === stats.max) {
+                      console.warn('박스플롯 데이터 검증 실패:', { label, stats });
+                      return (
+                        <div key={label} className="mb-6">
+                          <div className="font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                            {meta.label} <span className="text-xs text-gray-500">({meta.desc}{meta.unit ? `, 단위: ${meta.unit}` : ''})</span>
+                          </div>
+                          <div className="bg-gray-50 border rounded p-4 text-center text-gray-500">
+                            데이터가 부족하여 박스플롯을 표시할 수 없습니다.
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     // Box plot 데이터 생성
                     const boxData = [
                       { name: '최저값', value: stats.min, type: 'min' },
-                      { name: '25%', value: stats.q1, type: 'q1' },
+                      { name: '25%', value: stats.q1 || stats.median, type: 'q1' },
                       { name: '중간값', value: stats.median, type: 'median' },
-                      { name: '75%', value: stats.q3, type: 'q3' },
+                      { name: '75%', value: stats.q3 || stats.median, type: 'q3' },
                       { name: '최고값', value: stats.max, type: 'max' }
                     ];
                     
@@ -606,16 +622,18 @@ const PassReasonCard = ({ applicant, onBack, onStatusChange, feedbacks }) => {
                               strokeWidth={2}
                               dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
                             />
-                            {/* 지원자 위치 표시 */}
-                            <Line 
-                              type="monotone" 
-                              data={[{ name: '지원자', value: stats.applicant }]}
-                              dataKey="value" 
-                              stroke="red" 
-                              strokeWidth={3}
-                              dot={{ fill: 'red', strokeWidth: 2, r: 6 }}
-                              name="지원자"
-                            />
+                            {/* 지원자 위치 표시 (유효한 경우에만) */}
+                            {stats.applicant !== undefined && !isNaN(stats.applicant) && (
+                              <Line 
+                                type="monotone" 
+                                data={[{ name: '지원자', value: stats.applicant }]}
+                                dataKey="value" 
+                                stroke="red" 
+                                strokeWidth={3}
+                                dot={{ fill: 'red', strokeWidth: 2, r: 6 }}
+                                name="지원자"
+                              />
+                            )}
                           </ComposedChart>
                         </ResponsiveContainer>
                         <div className="text-xs text-gray-500 mt-2">

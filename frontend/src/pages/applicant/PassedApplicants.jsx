@@ -10,6 +10,7 @@ import { calculateAge } from '../../utils/resumeUtils';
 
 export default function PassedApplicants() {
   const [passedApplicants, setPassedApplicants] = useState([]);
+  const [totalApplicants, setTotalApplicants] = useState(0);  // 전체 지원자 수 추가
   const [bookmarkedList, setBookmarkedList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -41,6 +42,7 @@ export default function PassedApplicants() {
         console.log('서류 합격자 수 (필터링):', filtered.length);
         
         setPassedApplicants(filtered);
+        setTotalApplicants(data.length); // 전체 지원자 수 업데이트
         setBookmarkedList(filtered.map(app => app.isBookmarked === 'Y'));
         setCurrentPage(1);
         setLoading(false);
@@ -228,7 +230,7 @@ export default function PassedApplicants() {
         <div className="w-full flex justify-center items-center py-2">
           {typeof jobPost?.headcount === 'number' ? (
             <span className="text-2xl font-bold text-gray-700 dark:text-gray-200">
-              지원자 {passedApplicants?.length ?? '-'}명 중 최종 선발인원의 10배수({jobPost.headcount * 10}명) 기준, 동점자를 포함하여 총 {passedApplicants.length}명이 서류 합격되었습니다.
+              지원자 {totalApplicants ?? '-'}명 중 최종 선발인원의 10배수({jobPost.headcount * 10}명) 기준, 동점자를 포함하여 총 {passedApplicants?.length ?? '-'}명이 서류 합격되었습니다.
             </span>
           ) : (
             <span className="text-xl font-bold text-gray-400">합격자/정원 정보를 불러오는 중...</span>

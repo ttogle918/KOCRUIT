@@ -174,8 +174,18 @@ export default function ViewPostSidebar({ jobPost }) {
             ${!effectiveJobPostId ? 'opacity-50 cursor-not-allowed' : ''}
           `}
           onClick={() => {
+            console.log('[ViewPostSidebar] 필기 합격자 명단 버튼 클릭:', {
+              effectiveJobPostId,
+              effectiveJobPostIdType: typeof effectiveJobPostId,
+              jobPost: jobPost,
+              urlJobPostId,
+              currentPath: window.location.pathname
+            });
+            
             if (effectiveJobPostId) {
-              navigate(`/written-test-passed/${effectiveJobPostId}`);
+              const targetUrl = `/written-test-passed/${effectiveJobPostId}`;
+              console.log('[ViewPostSidebar] 이동할 URL:', targetUrl);
+              navigate(targetUrl);
             } else {
               console.error('필기 합격자 명단: jobPostId가 없습니다.');
               alert('채용공고를 먼저 선택해주세요.');

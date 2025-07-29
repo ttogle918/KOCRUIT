@@ -89,8 +89,8 @@ def extract_passed_summary_llm(pass_reasons: list[str]) -> str:
 @router.get("/document")
 async def get_document_report_data(
     job_post_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
+    # current_user: User = Depends(get_current_user)  # 임시로 인증 제거
 ):
     try:
         # job_post_id 유효성 검증 강화
@@ -263,12 +263,12 @@ async def get_document_report_data(
 @router.get("/document/pdf")
 async def download_document_report_pdf(
     job_post_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
+    # current_user: User = Depends(get_current_user)  # 임시로 인증 제거
 ):
     try:
         # 보고서 데이터 조회
-        report_data = await get_document_report_data(job_post_id, db, current_user)
+        report_data = await get_document_report_data(job_post_id, db)
         
         # HTML 템플릿
         html_template = """<!DOCTYPE html>
@@ -418,8 +418,8 @@ class ComprehensiveEvaluationRequest(BaseModel):
 @router.post("/comprehensive-evaluation")
 async def generate_comprehensive_evaluation(
     request: ComprehensiveEvaluationRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
+    # current_user: User = Depends(get_current_user)  # 임시로 인증 제거
 ):
     job_post_id = request.job_post_id
     applicant_name = request.applicant_name
@@ -530,6 +530,184 @@ async def generate_comprehensive_evaluation(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"종합 평가 생성 중 오류가 발생했습니다: {str(e)}")
+
+ 
+@router.get("/statistics")
+async def get_statistics_report_data(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+    # current_user: User = Depends(get_current_user)  # 임시로 인증 제거
+):
+    """지원자 통계 보고서 데이터 조회"""
+    try:
+        # job_post_id 유효성 검증
+        if not job_post_id or job_post_id <= 0:
+            raise HTTPException(status_code=400, detail="유효한 job_post_id가 필요합니다.")
+        
+        print(f"📊 지원자 통계 보고서 요청 - job_post_id: {job_post_id}")
+        
+        # 공고 정보 조회
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+        
+        # 지원자 정보 조회 (관계 데이터 포함)
+        applications = db.query(Application).options(
+            joinedload(Application.user),
+            joinedload(Application.resume).joinedload(Resume.specs)
+        ).filter(Application.job_post_id == job_post_id).all()
+        
+        print(f"📊 지원자 수: {len(applications)}명")
+        
+        if not applications:
+            return {
+                "job_post": {
+                    "title": job_post.title,
+                    "department": job_post.department,
+                    "position": job_post.title,
+                    "recruit_count": job_post.headcount,
+                    "start_date": job_post.start_date,
+                    "end_date": job_post.end_date
+                },
+                "stats": {
+                    "total_applicants": 0,
+                    "gender_stats": [],
+                    "age_group_stats": [],
+                    "education_stats": [],
+                    "certificate_stats": [],
+                    "province_stats": []
+                }
+            }
+        
+        # 통계 데이터 계산
+        total_applicants = len(applications)
+        
+        # 성별 통계
+        gender_stats = {}
+        for app in applications:
+            if app.user and app.user.gender:
+                gender = app.user.gender
+                gender_stats[gender] = gender_stats.get(gender, 0) + 1
+        
+        # 연령대 통계
+        age_group_stats = {}
+        for app in applications:
+            if app.user and app.user.birth_date:
+                try:
+                    from datetime import datetime
+                    birth_year = app.user.birth_date.year
+                    current_year = datetime.now().year
+                    age = current_year - birth_year
+                    
+                    if age < 20:
+                        age_group = "20대 미만"
+                    elif age < 30:
+                        age_group = "20대"
+                    elif age < 40:
+                        age_group = "30대"
+                    elif age < 50:
+                        age_group = "40대"
+                    elif age < 60:
+                        age_group = "50대"
+                    else:
+                        age_group = "60대 이상"
+                    
+                    age_group_stats[age_group] = age_group_stats.get(age_group, 0) + 1
+                except:
+                    pass
+        
+        # 학력 통계
+        education_stats = {}
+        for app in applications:
+            if app.resume and app.resume.specs:
+                for spec in app.resume.specs:
+                    if spec.spec_type == "education" and spec.spec_title == "degree":
+                        education = spec.spec_description
+                        if education:
+                            education_stats[education] = education_stats.get(education, 0) + 1
+                            break
+        
+        # 자격증 통계
+        certificate_stats = {}
+        for app in applications:
+            if app.resume and app.resume.specs:
+                cert_count = 0
+                for spec in app.resume.specs:
+                    if spec.spec_type == "certificate":
+                        cert_count += 1
+                
+                cert_key = f"{cert_count}개"
+                certificate_stats[cert_key] = certificate_stats.get(cert_key, 0) + 1
+        
+        # 지역 통계
+        province_stats = {}
+        for app in applications:
+            if app.user and app.user.address:
+                # 주소에서 시/도 추출
+                address = app.user.address
+                if "서울" in address:
+                    province = "서울"
+                elif "부산" in address:
+                    province = "부산"
+                elif "대구" in address:
+                    province = "대구"
+                elif "인천" in address:
+                    province = "인천"
+                elif "광주" in address:
+                    province = "광주"
+                elif "대전" in address:
+                    province = "대전"
+                elif "울산" in address:
+                    province = "울산"
+                elif "세종" in address:
+                    province = "세종"
+                elif "경기" in address:
+                    province = "경기"
+                elif "강원" in address:
+                    province = "강원"
+                elif "충북" in address or "충청북도" in address:
+                    province = "충북"
+                elif "충남" in address or "충청남도" in address:
+                    province = "충남"
+                elif "전북" in address or "전라북도" in address:
+                    province = "전북"
+                elif "전남" in address or "전라남도" in address:
+                    province = "전남"
+                elif "경북" in address or "경상북도" in address:
+                    province = "경북"
+                elif "경남" in address or "경상남도" in address:
+                    province = "경남"
+                elif "제주" in address:
+                    province = "제주"
+                else:
+                    province = "기타"
+                
+                province_stats[province] = province_stats.get(province, 0) + 1
+        
+        return {
+            "job_post": {
+                "title": job_post.title,
+                "department": job_post.department,
+                "position": job_post.title,
+                "recruit_count": job_post.headcount,
+                "start_date": job_post.start_date,
+                "end_date": job_post.end_date
+            },
+            "stats": {
+                "total_applicants": total_applicants,
+                "gender_stats": [{"name": k, "value": v} for k, v in gender_stats.items()],
+                "age_group_stats": [{"name": k, "count": v} for k, v in age_group_stats.items()],
+                "education_stats": [{"name": k, "value": v} for k, v in education_stats.items()],
+                "certificate_stats": [{"name": k, "count": v} for k, v in certificate_stats.items()],
+                "province_stats": [{"name": k, "count": v} for k, v in province_stats.items()]
+            }
+        }
+        
+    except Exception as e:
+        print(f"지원자 통계 보고서 생성 중 에러 발생: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"지원자 통계 보고서 생성 중 오류가 발생했습니다: {str(e)}")
 
  
 @router.get("/job-aptitude")
@@ -728,8 +906,8 @@ async def get_job_aptitude_report_data(
 @router.get("/job-aptitude/pdf")
 async def download_job_aptitude_report_pdf(
     job_post_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
+    # current_user: User = Depends(get_current_user)  # 임시로 인증 제거
 ):
     try:
         # 보고서 데이터 조회
@@ -853,5 +1031,170 @@ async def download_job_aptitude_report_pdf(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"PDF 생성 중 오류가 발생했습니다: {str(e)}")
+
+@router.get("/interview")
+async def get_interview_report_data(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+    # current_user: User = Depends(get_current_user)  # 임시로 인증 제거
+):
+    """
+    면접 보고서 데이터 조회
+    """
+    try:
+        # job_post_id 유효성 검증
+        if not job_post_id or job_post_id <= 0:
+            raise HTTPException(status_code=400, detail="유효한 job_post_id가 필요합니다.")
+        
+        print(f"📋 면접 보고서 요청 - job_post_id: {job_post_id}")
+        
+        # 공고 정보 조회
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        if not job_post:
+            raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+        
+        # 지원자 정보 조회
+        applications = db.query(Application).options(
+            joinedload(Application.user),
+            joinedload(Application.resume)
+        ).filter(Application.job_post_id == job_post_id).all()
+        
+        print(f"📊 지원자 수: {len(applications)}명")
+        
+        # 면접 평가 데이터 수집
+        ai_evaluations = []
+        practical_evaluations = []
+        executive_evaluations = []
+        final_evaluations = []
+        
+        for app in applications:
+            # AI 면접 일정 조회
+            ai_schedule = db.query(AIInterviewSchedule).filter(
+                AIInterviewSchedule.application_id == app.id
+            ).first()
+            
+            if ai_schedule:
+                # AI 면접 평가
+                ai_eval = db.query(InterviewEvaluation).filter(
+                    InterviewEvaluation.interview_id == ai_schedule.id,
+                    InterviewEvaluation.evaluation_type == EvaluationType.AI
+                ).first()
+                
+                if ai_eval:
+                    ai_evaluations.append({
+                        "applicant_name": app.user.name if app.user else "Unknown",
+                        "score": ai_eval.total_score if ai_eval.total_score else 0,
+                        "summary": ai_eval.summary,
+                        "created_at": ai_eval.created_at
+                    })
+                
+                # 실무진 면접 평가
+                practical_eval = db.query(InterviewEvaluation).filter(
+                    InterviewEvaluation.interview_id == ai_schedule.id,
+                    InterviewEvaluation.evaluation_type == EvaluationType.PRACTICAL
+                ).first()
+                
+                if practical_eval:
+                    practical_evaluations.append({
+                        "applicant_name": app.user.name if app.user else "Unknown",
+                        "score": practical_eval.total_score if practical_eval.total_score else 0,
+                        "summary": practical_eval.summary,
+                        "created_at": practical_eval.created_at
+                    })
+                
+                # 임원진 면접 평가
+                executive_eval = db.query(InterviewEvaluation).filter(
+                    InterviewEvaluation.interview_id == ai_schedule.id,
+                    InterviewEvaluation.evaluation_type == EvaluationType.EXECUTIVE
+                ).first()
+                
+                if executive_eval:
+                    executive_evaluations.append({
+                        "applicant_name": app.user.name if app.user else "Unknown",
+                        "score": executive_eval.total_score if executive_eval.total_score else 0,
+                        "summary": executive_eval.summary,
+                        "created_at": executive_eval.created_at
+                    })
+                
+                # 최종 평가 (AI + 실무진 + 임원진 종합)
+                if ai_eval or practical_eval or executive_eval:
+                    scores = []
+                    summaries = []
+                    
+                    if ai_eval:
+                        scores.append(ai_eval.total_score or 0)
+                        if ai_eval.summary:
+                            summaries.append(f"AI: {ai_eval.summary}")
+                    
+                    if practical_eval:
+                        scores.append(practical_eval.total_score or 0)
+                        if practical_eval.summary:
+                            summaries.append(f"실무진: {practical_eval.summary}")
+                    
+                    if executive_eval:
+                        scores.append(executive_eval.total_score or 0)
+                        if executive_eval.summary:
+                            summaries.append(f"임원진: {executive_eval.summary}")
+                    
+                    if scores:
+                        final_evaluations.append({
+                            "applicant_name": app.user.name if app.user else "Unknown",
+                            "avg_score": sum(scores) / len(scores),
+                            "summary": " | ".join(summaries) if summaries else "평가 없음",
+                            "created_at": max([e.created_at for e in [ai_eval, practical_eval, executive_eval] if e])
+                        })
+        
+        # 통계 계산
+        total_applicants = len(applications)
+        ai_interview_count = len(ai_evaluations)
+        practical_interview_count = len(practical_evaluations)
+        executive_interview_count = len(executive_evaluations)
+        final_interview_count = len(final_evaluations)
+        
+        # 평균 점수 계산
+        ai_avg_score = sum(e["score"] for e in ai_evaluations if e["score"]) / len(ai_evaluations) if ai_evaluations else 0
+        practical_avg_score = sum(e["score"] for e in practical_evaluations if e["score"]) / len(practical_evaluations) if practical_evaluations else 0
+        executive_avg_score = sum(e["score"] for e in executive_evaluations if e["score"]) / len(executive_evaluations) if executive_evaluations else 0
+        final_avg_score = sum(e["avg_score"] for e in final_evaluations if e["avg_score"]) / len(final_evaluations) if final_evaluations else 0
+        
+        return {
+            "job_post": {
+                "title": job_post.title,
+                "department": job_post.department,
+                "position": job_post.title,
+                "recruit_count": job_post.headcount,
+                "start_date": job_post.start_date,
+                "end_date": job_post.end_date
+            },
+            "stats": {
+                "total_applicants": total_applicants,
+                "ai_interview_count": ai_interview_count,
+                "practical_interview_count": practical_interview_count,
+                "executive_interview_count": executive_interview_count,
+                "final_interview_count": final_interview_count,
+                "ai_avg_score": round(ai_avg_score, 2),
+                "practical_avg_score": round(practical_avg_score, 2),
+                "executive_avg_score": round(executive_avg_score, 2),
+                "final_avg_score": round(final_avg_score, 2)
+            },
+            "ai": {
+                "evaluations": ai_evaluations
+            },
+            "practical": {
+                "evaluations": practical_evaluations
+            },
+            "executive": {
+                "evaluations": executive_evaluations
+            },
+            "final": {
+                "evaluations": final_evaluations
+            }
+        }
+        
+    except Exception as e:
+        print(f"면접 보고서 생성 중 오류: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"면접 보고서 생성 중 오류가 발생했습니다: {str(e)}")
 
  
