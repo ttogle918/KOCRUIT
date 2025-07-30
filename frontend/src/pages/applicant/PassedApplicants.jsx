@@ -10,6 +10,7 @@ import { calculateAge } from '../../utils/resumeUtils';
 
 export default function PassedApplicants() {
   const [passedApplicants, setPassedApplicants] = useState([]);
+  const [totalApplicants, setTotalApplicants] = useState(0);  // 전체 지원자 수 추가
   const [bookmarkedList, setBookmarkedList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,18 +28,53 @@ export default function PassedApplicants() {
   const [showSortOptions, setShowSortOptions] = useState(false);
 
   useEffect(() => {
-    const fetchApplicants = async () => {
+    const fetchApplicants = async (retryCount = 0) => {
       try {
+        console.log('서류 합격자 목록 조회 시작:', { jobPostId, retryCount });
+        
+        // 전체 지원자 목록 조회 (타임아웃 설정 제거, 기본 60초 사용)
         const res = await api.get(`/applications/job/${jobPostId}/applicants`);
         const data = res.data;
+        console.log('전체 지원자 수:', data.length);
+        
+        // 서류 합격자만 필터링
         const filtered = data.filter(app => app.document_status === 'PASSED');
+        console.log('서류 합격자 수 (필터링):', filtered.length);
+        
         setPassedApplicants(filtered);
+        setTotalApplicants(data.length); // 전체 지원자 수 업데이트
         setBookmarkedList(filtered.map(app => app.isBookmarked === 'Y'));
         setCurrentPage(1);
         setLoading(false);
+        setError(null); // 성공 시 에러 상태 초기화
       } catch (err) {
-        console.error('Error fetching passed applicants:', err);
-        setError('합격자 목록을 불러올 수 없습니다.');
+        console.error('서류 합격자 목록 조회 오류:', err);
+        
+        // 재시도 로직 (최대 3회)
+        if (retryCount < 3 && (err.code === 'ECONNABORTED' || err.response?.status >= 500)) {
+          console.log(`재시도 ${retryCount + 1}/3`);
+          setTimeout(() => {
+            fetchApplicants(retryCount + 1);
+          }, 2000 * (retryCount + 1)); // 지수 백오프
+          return;
+        }
+        
+        // 더 구체적인 에러 메시지
+        let errorMessage = '합격자 목록을 불러올 수 없습니다. 잠시 후 다시 시도해주세요.';
+        
+        if (err.response) {
+          if (err.response.status === 404) {
+            errorMessage = '해당 공고의 지원자 데이터를 찾을 수 없습니다.';
+          } else if (err.response.status === 500) {
+            errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+          }
+        } else if (err.code === 'ECONNABORTED') {
+          errorMessage = '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+        } else if (err.userMessage) {
+          errorMessage = err.userMessage;
+        }
+        
+        setError(errorMessage);
         setLoading(false);
       }
     };
@@ -93,6 +129,38 @@ export default function PassedApplicants() {
     navigate('/email', { state: { applicants: selectedApplicants, interviewInfo } });
   };
 
+  // 지원자 상태 변경 함수
+  const handleStatusChange = async (applicationId, newStatus) => {
+    try {
+      console.log('상태 변경 요청:', { applicationId, newStatus });
+      
+      // 백엔드 API 호출 (PUT 메서드 사용)
+      const response = await api.put(`/applications/${applicationId}/status`, {
+        document_status: newStatus
+      });
+      
+      console.log('상태 변경 성공:', response.data);
+      
+      // 로컬 상태 업데이트
+      setPassedApplicants(prev => 
+        prev.filter(app => app.application_id !== applicationId)
+      );
+      
+      // 선택된 지원자가 변경된 경우 선택 해제
+      if (selectedApplicant?.application_id === applicationId) {
+        setSelectedApplicant(null);
+        setSplitMode(false);
+      }
+      
+      // 성공 메시지
+      alert(`지원자 상태가 ${newStatus === 'REJECTED' ? '불합격' : newStatus}으로 변경되었습니다.`);
+      
+    } catch (error) {
+      console.error('상태 변경 실패:', error);
+      alert('상태 변경에 실패했습니다. 다시 시도해주세요.');
+    }
+  };
+
   // 정렬 함수
   const getSortedApplicants = () => {
     if (!sortOrder) return passedApplicants;
@@ -113,7 +181,11 @@ export default function PassedApplicants() {
       <Layout>
         <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
-          <div className="text-xl">로딩 중...</div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <div className="text-xl text-gray-600">서류 합격자 목록을 불러오는 중...</div>
+            <div className="text-sm text-gray-400 mt-2">잠시만 기다려주세요</div>
+          </div>
         </div>
       </Layout>
     );
@@ -124,7 +196,15 @@ export default function PassedApplicants() {
       <Layout>
         <ViewPostSidebar jobPost={jobPost} />
         <div className="h-screen flex items-center justify-center">
-          <div className="text-xl text-red-500">{error}</div>
+          <div className="text-center">
+            <div className="text-xl text-red-500 mb-4">{error}</div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              다시 시도
+            </button>
+          </div>
         </div>
       </Layout>
     );
@@ -150,7 +230,7 @@ export default function PassedApplicants() {
         <div className="w-full flex justify-center items-center py-2">
           {typeof jobPost?.headcount === 'number' ? (
             <span className="text-2xl font-bold text-gray-700 dark:text-gray-200">
-              지원자 {passedApplicants?.length ?? '-'}명 중 최종 선발인원의 10배수({jobPost.headcount * 10}명) 기준, 동점자를 포함하여 총 {passedApplicants.length}명이 서류 합격되었습니다.
+              지원자 {totalApplicants ?? '-'}명 중 최종 선발인원의 10배수({jobPost.headcount * 10}명) 기준, 동점자를 포함하여 총 {passedApplicants?.length ?? '-'}명이 서류 합격되었습니다.
             </span>
           ) : (
             <span className="text-xl font-bold text-gray-400">합격자/정원 정보를 불러오는 중...</span>
@@ -273,7 +353,11 @@ export default function PassedApplicants() {
             {/* Right Panel - Applicant Detail */}
             {splitMode && selectedApplicant && (
               <div className="w-1/2 min-h-[600px]">
-                <PassReasonCard applicant={selectedApplicant} onBack={handleBackToList} />
+                <PassReasonCard 
+                  applicant={selectedApplicant} 
+                  onBack={handleBackToList} 
+                  onStatusChange={handleStatusChange} 
+                />
               </div>
             )}
           </div>

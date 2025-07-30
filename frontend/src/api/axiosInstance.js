@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 90000, // 90초로 증가 (복잡한 분석 작업 고려)
+  timeout: 60000, // 60초로 증가 (대용량 데이터 처리 고려)
   withCredentials: false // Authorization 쓸 때는 이거 false 또는 생략
 });
 
@@ -31,6 +31,18 @@ instance.interceptors.response.use(
       'access-control-allow-methods': error.response?.headers?.['access-control-allow-methods'],
       'access-control-allow-headers': error.response?.headers?.['access-control-allow-headers']
     });
+    
+    // 타임아웃 에러 처리 개선
+    if (error.code === 'ECONNABORTED') {
+      console.error('⏰ 요청 타임아웃 발생:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        timeout: error.config?.timeout
+      });
+      
+      // 타임아웃 에러에 대한 사용자 친화적 메시지
+      error.userMessage = '요청 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+    }
     
     // 토큰 만료 시 자동 로그아웃 (챗봇 관련 요청 제외)
     if (error.response?.status === 401) {

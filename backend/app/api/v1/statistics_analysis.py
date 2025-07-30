@@ -10,6 +10,9 @@ from app.models.application import Application
 from app.models.resume import Resume
 from app.models.user import User
 from app.models.job import JobPost
+from app.models.statistics_analysis import StatisticsAnalysis
+from app.schemas.statistics_analysis import StatisticsAnalysisCreate, StatisticsAnalysisResponse, StatisticsAnalysisListResponse
+from app.services.statistics_analysis_service import StatisticsAnalysisService
 
 router = APIRouter()
 
@@ -17,12 +20,6 @@ class StatisticsAnalysisRequest(BaseModel):
     job_post_id: int
     chart_type: str  # 'trend', 'age', 'gender', 'education', 'province', 'certificate'
     chart_data: List[Dict[str, Any]]
-
-class StatisticsAnalysisResponse(BaseModel):
-    analysis: str
-    insights: List[str]
-    recommendations: List[str]
-    is_llm_used: bool = False
 
 # LLM 모델 초기화
 def get_llm():
@@ -460,7 +457,7 @@ def analyze_certificate_data(chart_data: List[Dict[str, Any]], job_post: JobPost
 
 @router.post("/analyze", response_model=StatisticsAnalysisResponse)
 async def analyze_statistics(request: StatisticsAnalysisRequest, db: Session = Depends(get_db)):
-    """통계 데이터에 대한 AI 분석 제공"""
+    """통계 데이터에 대한 AI 분석 제공 및 DB 저장"""
     try:
         # 채용공고 정보 조회 (company 관계 포함)
         job_post = db.query(JobPost).options(
@@ -473,12 +470,132 @@ async def analyze_statistics(request: StatisticsAnalysisRequest, db: Session = D
         # LLM 기반 분석 시도 (실패 시 규칙 기반으로 폴백)
         result = analyze_with_llm(request.chart_data, request.chart_type, job_post)
         
-        return StatisticsAnalysisResponse(
+        # 분석 결과를 DB에 저장
+        analysis_data = StatisticsAnalysisCreate(
+            job_post_id=request.job_post_id,
+            chart_type=request.chart_type,
+            chart_data=request.chart_data,
             analysis=result["analysis"],
             insights=result["insights"],
             recommendations=result["recommendations"],
             is_llm_used=result["is_llm_used"]
         )
         
+        db_analysis = StatisticsAnalysisService.create_analysis(db, analysis_data)
+        
+        return StatisticsAnalysisResponse(
+            id=db_analysis.id,
+            job_post_id=db_analysis.job_post_id,
+            chart_type=db_analysis.chart_type,
+            chart_data=db_analysis.chart_data,
+            analysis=db_analysis.analysis,
+            insights=db_analysis.insights,
+            recommendations=db_analysis.recommendations,
+            is_llm_used=db_analysis.is_llm_used,
+            created_at=db_analysis.created_at,
+            updated_at=db_analysis.updated_at
+        )
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+@router.get("/job/{job_post_id}/analysis/{chart_type}", response_model=StatisticsAnalysisResponse)
+async def get_latest_analysis(job_post_id: int, chart_type: str, db: Session = Depends(get_db)):
+    """특정 채용공고의 특정 차트 타입에 대한 최신 분석 결과 조회"""
+    try:
+        analysis = StatisticsAnalysisService.get_analysis_by_job_post_and_type(
+            db, job_post_id, chart_type
+        )
+        
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        return StatisticsAnalysisResponse(
+            id=analysis.id,
+            job_post_id=analysis.job_post_id,
+            chart_type=analysis.chart_type,
+            chart_data=analysis.chart_data,
+            analysis=analysis.analysis,
+            insights=analysis.insights,
+            recommendations=analysis.recommendations,
+            is_llm_used=analysis.is_llm_used,
+            created_at=analysis.created_at,
+            updated_at=analysis.updated_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve analysis: {str(e)}")
+
+@router.get("/job/{job_post_id}/analyses", response_model=StatisticsAnalysisListResponse)
+async def get_all_analyses(job_post_id: int, limit: int = 100, db: Session = Depends(get_db)):
+    """특정 채용공고의 모든 분석 결과 조회"""
+    try:
+        analyses = StatisticsAnalysisService.get_analyses_by_job_post(db, job_post_id, limit)
+        
+        analysis_responses = []
+        for analysis in analyses:
+            analysis_responses.append(StatisticsAnalysisResponse(
+                id=analysis.id,
+                job_post_id=analysis.job_post_id,
+                chart_type=analysis.chart_type,
+                chart_data=analysis.chart_data,
+                analysis=analysis.analysis,
+                insights=analysis.insights,
+                recommendations=analysis.recommendations,
+                is_llm_used=analysis.is_llm_used,
+                created_at=analysis.created_at,
+                updated_at=analysis.updated_at
+            ))
+        
+        return StatisticsAnalysisListResponse(
+            analyses=analysis_responses,
+            total_count=len(analysis_responses)
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve analyses: {str(e)}")
+
+@router.get("/analysis/{analysis_id}", response_model=StatisticsAnalysisResponse)
+async def get_analysis_by_id(analysis_id: int, db: Session = Depends(get_db)):
+    """ID로 특정 분석 결과 조회"""
+    try:
+        analysis = StatisticsAnalysisService.get_analysis_by_id(db, analysis_id)
+        
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        return StatisticsAnalysisResponse(
+            id=analysis.id,
+            job_post_id=analysis.job_post_id,
+            chart_type=analysis.chart_type,
+            chart_data=analysis.chart_data,
+            analysis=analysis.analysis,
+            insights=analysis.insights,
+            recommendations=analysis.recommendations,
+            is_llm_used=analysis.is_llm_used,
+            created_at=analysis.created_at,
+            updated_at=analysis.updated_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve analysis: {str(e)}")
+
+@router.delete("/analysis/{analysis_id}")
+async def delete_analysis(analysis_id: int, db: Session = Depends(get_db)):
+    """분석 결과 삭제"""
+    try:
+        success = StatisticsAnalysisService.delete_analysis(db, analysis_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        return {"message": "Analysis deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete analysis: {str(e)}") 

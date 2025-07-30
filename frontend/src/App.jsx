@@ -148,6 +148,7 @@ function AppRoutes() {
                 <Route path="/report/job-aptitude" element={<ProtectedRoute><JobAptitudeReport /></ProtectedRoute>} />
                 <Route path="/report/final" element={<ProtectedRoute><FinalReport /></ProtectedRoute>} />
                 <Route path="/report/applicant-statistics" element={<ProtectedRoute><ApplicantStatisticsReport /></ProtectedRoute>} />
+                <Route path="/written-test-passed" element={<WrittenTestPassedPage />} />
                 <Route path="/written-test-passed/:jobpostId" element={<WrittenTestPassedPage />} />
                 <Route path="/interview-report" element={<InterviewReport />} />
               

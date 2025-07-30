@@ -42,6 +42,9 @@ class JobPost(Base):
     written_test_questions = relationship("WrittenTestQuestion", back_populates="job_post")
     highlight_results = relationship("HighlightResult", back_populates="job_post")
     analysis_results = relationship("AnalysisResult", back_populates="job_post")
+    growth_prediction_results = relationship("GrowthPredictionResult", back_populates="job_post")
+    personal_question_results = relationship("PersonalQuestionResult", back_populates="job_post")
+    statistics_analyses = relationship("StatisticsAnalysis", back_populates="job_post", cascade="all, delete-orphan")
     evaluation_criteria = relationship("EvaluationCriteria", back_populates="job_post", cascade="all, delete-orphan")
 
 

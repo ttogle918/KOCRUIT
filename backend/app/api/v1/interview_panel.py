@@ -698,3 +698,53 @@ def get_my_interview_schedules(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get interview schedules: {str(e)}") 
+
+
+@router.get("/my-interview-schedules-test/", response_model=List[dict])
+def get_my_interview_schedules_test(
+    db: Session = Depends(get_db)
+):
+    """
+    임시 테스트용 엔드포인트 - 인증 없이 면접 일정 조회
+    """
+    try:
+        from app.models.interview_panel import InterviewPanelMember, InterviewPanelAssignment
+        from app.models.schedule import Schedule
+        from app.models.job import JobPost
+        from app.models.user import CompanyUser
+        from app.models.application import Application
+        from sqlalchemy import and_
+        
+        # 모든 면접 일정 조회 (테스트용)
+        schedules_query = db.query(
+            Schedule.id.label('schedule_id'),
+            Schedule.title.label('job_title'),
+            Schedule.scheduled_at,
+            Schedule.location,
+            JobPost.title.label('position'),
+            JobPost.id.label('job_post_id')
+        ).join(
+            JobPost, Schedule.job_post_id == JobPost.id
+        ).filter(
+            Schedule.schedule_type == 'interview'
+        ).order_by(Schedule.scheduled_at)
+        
+        schedules = schedules_query.all()
+        
+        result = []
+        for schedule in schedules:
+            result.append({
+                'id': schedule.schedule_id,
+                'title': schedule.job_title or schedule.position,
+                'position': schedule.position,
+                'scheduled_at': schedule.scheduled_at.isoformat() if schedule.scheduled_at else None,
+                'location': schedule.location,
+                'job_post_id': schedule.job_post_id,
+                'applicants': [],  # 테스트용으로 빈 배열
+                'applicant_count': 0
+            })
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get interview schedules: {str(e)}") 

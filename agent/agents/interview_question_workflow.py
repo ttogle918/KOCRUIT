@@ -429,6 +429,8 @@ def generate_comprehensive_interview_questions(
     
     from datetime import datetime
     
+    print(f"[DEBUG] 워크플로우 시작 - 회사: {company_name}, 지원자: {applicant_name}")
+    
     # 초기 상태 설정
     initial_state = {
         "resume_text": resume_text,
@@ -442,19 +444,74 @@ def generate_comprehensive_interview_questions(
         "timestamp": datetime.now().isoformat()
     }
     
+    print(f"[DEBUG] 초기 상태 설정 완료 - 이력서 길이: {len(resume_text)}")
+    
     try:
+        print("[DEBUG] 워크플로우 실행 시작...")
         # 워크플로우 실행
         result = interview_workflow.invoke(initial_state)
-        return result.get("final_result", {})
+        print(f"[DEBUG] 워크플로우 실행 완료 - 결과 타입: {type(result)}")
+        
+        final_result = result.get("final_result", {})
+        print(f"[DEBUG] final_result 추출 - 타입: {type(final_result)}")
+        
+        # 결과 검증 및 기본값 설정
+        if not final_result or not final_result.get("questions"):
+            print("[DEBUG] 워크플로우에서 유효한 질문을 생성하지 못함 - fallback 사용")
+            raise Exception("워크플로우에서 유효한 질문을 생성하지 못했습니다.")
+        
+        print(f"[DEBUG] 성공적으로 질문 생성 완료 - 질문 수: {len(final_result.get('questions', []))}")
+        return final_result
+        
     except Exception as e:
-        return {
-            "error": f"워크플로우 실행 중 오류: {str(e)}",
+        print(f"[DEBUG] 워크플로우 실행 중 오류: {str(e)}")
+        print(f"[DEBUG] 오류 타입: {type(e)}")
+        
+        # Fallback: 기본 질문 생성
+        fallback_questions = [
+            "자기소개를 해주세요.",
+            "이 직무에 지원한 이유는 무엇인가요?",
+            "본인의 강점과 약점은 무엇인가요?",
+            "팀워크 경험을 말해보세요.",
+            "갈등을 겪었을 때 어떻게 해결하시나요?",
+            "스트레스를 어떻게 관리하나요?",
+            "새로운 기술이나 도구를 배워야 할 때 어떻게 접근하시나요?",
+            "업무 중 예기치 못한 문제를 마주쳤을 때 어떻게 해결하시나요?",
+            "일정이 지연됐을 때 어떻게 대응하시나요?",
+            "이 직무를 통해 회사에 어떤 기여를 할 수 있다고 생각하시나요?"
+        ]
+        
+        if company_name:
+            fallback_questions.extend([
+                f"{company_name}에 지원한 이유는 무엇인가요?",
+                f"{company_name}의 미래 비전에 대해 어떻게 생각하시나요?",
+                f"{company_name}에서 일하고 싶은 이유는 무엇인가요?"
+            ])
+        
+        fallback_result = {
             "interview_type": interview_type,
-            "questions": [],
-            "question_bundle": {},
-            "evaluation_tools": {},
-            "resume_analysis": {}
+            "questions": fallback_questions,
+            "question_bundle": {
+                "인성/동기": fallback_questions[:4],
+                "회사 관련": fallback_questions[10:] if company_name else [],
+                "상황 대처": fallback_questions[7:10],
+                "직무 이해": [fallback_questions[9]]
+            },
+            "evaluation_tools": {
+                "checklist": ["기술 역량", "소프트 스킬", "문화 적합성"],
+                "criteria": ["전문성", "의사소통", "문제해결능력"]
+            },
+            "resume_analysis": {
+                "summary": "이력서 분석을 완료할 수 없어 기본 질문을 제공합니다.",
+                "key_points": ["기본 역량 평가 필요"]
+            },
+            "total_questions": len(fallback_questions),
+            "generated_at": datetime.now().isoformat(),
+            "fallback_used": True
         }
+        
+        print(f"[DEBUG] Fallback 결과 생성 완료 - 질문 수: {len(fallback_questions)}")
+        return fallback_result
 
 # 특화된 워크플로우들
 def build_executive_interview_workflow() -> StateGraph:

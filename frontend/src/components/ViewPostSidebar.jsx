@@ -54,8 +54,8 @@ export default function ViewPostSidebar({ jobPost }) {
       }
       
       try {
-        console.log('[ViewPostSidebar] API 호출 시작:', `/v1/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
-        const response = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        console.log('[ViewPostSidebar] API 호출 시작:', `/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
         const data = response.data;
         const passedCount = data?.stats?.passed_applicants_count || 0;
         console.log('[ViewPostSidebar] 필기합격자 데이터 조회 결과:', {
@@ -170,9 +170,28 @@ export default function ViewPostSidebar({ jobPost }) {
         <button
           className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
-            bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800'
+            bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800
+            ${!effectiveJobPostId ? 'opacity-50 cursor-not-allowed' : ''}
           `}
-          onClick={() => navigate(`/written-test-passed/${effectiveJobPostId}`)}
+          onClick={() => {
+            console.log('[ViewPostSidebar] 필기 합격자 명단 버튼 클릭:', {
+              effectiveJobPostId,
+              effectiveJobPostIdType: typeof effectiveJobPostId,
+              jobPost: jobPost,
+              urlJobPostId,
+              currentPath: window.location.pathname
+            });
+            
+            if (effectiveJobPostId) {
+              const targetUrl = `/written-test-passed/${effectiveJobPostId}`;
+              console.log('[ViewPostSidebar] 이동할 URL:', targetUrl);
+              navigate(targetUrl);
+            } else {
+              console.error('필기 합격자 명단: jobPostId가 없습니다.');
+              alert('채용공고를 먼저 선택해주세요.');
+            }
+          }}
+          disabled={!effectiveJobPostId}
         >
           <MdCheckCircle size={20} />
           {isHovered && <span className="ml-2">필기 합격자 명단</span>}
