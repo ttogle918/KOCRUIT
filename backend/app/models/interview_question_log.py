@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, Text, String, DateTime, ForeignKey, Enum
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class InterviewType(str, enum.Enum):
     AI_INTERVIEW = "AI_INTERVIEW"      # AI 면접
@@ -29,4 +30,7 @@ class InterviewQuestionLog(Base):
     answer_score = Column(Integer)  # 또는 Float, DB 타입에 맞게
     answer_feedback = Column(Text)
     created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now()) 
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # 관계 설정
+    video_analyses = relationship("QuestionVideoAnalysis", back_populates="question_log") 

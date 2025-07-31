@@ -22,6 +22,10 @@ from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
 from app.services.application_evaluation_service import auto_evaluate_all_applications
 from app.utils.enum_converter import get_safe_interview_status
+from app.models.video_analysis import VideoAnalysis
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -1075,3 +1079,35 @@ def get_written_test_answers(job_post_id: int, user_id: int, db: Session = Depen
         WrittenTestAnswer.user_id == user_id
     ).all()
     return answers
+
+@router.get("/pending-video-analysis")
+async def get_pending_video_analyses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """분석이 필요한 영상 목록 조회 (백그라운드 분석용)"""
+    try:
+        # AI 면접 합격자 중 video_url이 있고 분석이 안된 지원자 조회
+        pending_analyses = db.query(Application).filter(
+            Application.ai_interview_status == "PASSED",
+            Application.ai_interview_video_url.isnot(None),
+            Application.ai_interview_video_url != "",
+            ~Application.id.in_(
+                db.query(VideoAnalysis.application_id).distinct()
+            )
+        ).all()
+        
+        result = []
+        for application in pending_analyses:
+            result.append({
+                "application_id": application.id,
+                "video_url": application.ai_interview_video_url,
+                "applicant_name": application.applicant_name,
+                "job_post_title": application.job_post.title if application.job_post else None
+            })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"대기 중인 분석 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="분석 목록 조회 중 오류가 발생했습니다")

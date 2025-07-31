@@ -29,6 +29,7 @@ from app.scheduler.job_status_scheduler import JobStatusScheduler
 from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
 from app.scheduler.interview_reminder_scheduler import start_interview_reminder_scheduler
 from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
+from app.services.background_analysis_service import background_analysis_service
 
 def safe_create_tables():
     """안전한 테이블 생성 - 기존 테이블은 건드리지 않고 새로운 테이블만 생성"""
@@ -146,6 +147,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"면접 일정 리마인더 스케줄러 시작 실패: {e}")
     
+    # 서버 시작 시 초기 영상 분석 실행
+    print("🔄 Running initial video analysis...")
+    try:
+        asyncio.create_task(background_analysis_service.run_initial_analysis())
+        print("초기 영상 분석 시작 완료")
+    except Exception as e:
+        print(f"초기 영상 분석 시작 실패: {e}")
+    
     # 시드 데이터 실행
     try:
         import subprocess
@@ -185,6 +194,11 @@ async def lifespan(app: FastAPI):
     print("🔄 Stopping JobPost status scheduler...")
     await job_status_scheduler.stop()
     print("JobPost 상태 스케줄러 중지 완료")
+    
+    # 백그라운드 영상 분석 서비스 중지
+    print("🔄 Stopping Background Video Analysis service...")
+    background_analysis_service.stop()
+    print("백그라운드 영상 분석 서비스 중지 완료")
 
 
 app = FastAPI(

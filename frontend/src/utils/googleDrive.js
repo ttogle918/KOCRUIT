@@ -264,6 +264,48 @@ export const downloadAndCacheVideo = async (url, applicationId) => {
   }
 };
 
+// Google Drive에 파일 업로드
+export const uploadFileToGoogleDrive = async (file, fileName, apiKey) => {
+  if (!apiKey) {
+    console.warn('Google Drive API 키가 필요합니다.');
+    return null;
+  }
+  
+  try {
+    // 파일을 FormData로 변환
+    const formData = new FormData();
+    formData.append('file', file, fileName);
+    
+    // Google Drive API를 통한 업로드
+    const response = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: formData
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error('Google Drive 업로드 실패');
+    }
+    
+    const result = await response.json();
+    return {
+      fileId: result.id,
+      fileName: result.name,
+      webViewLink: result.webViewLink,
+      directLink: `https://drive.google.com/uc?export=download&id=${result.id}`
+    };
+    
+  } catch (error) {
+    console.error('Google Drive 업로드 오류:', error);
+    return null;
+  }
+};
+
 // 동영상 URL 테스트 (간단한 버전)
 export const testVideoUrl = async (url) => {
   try {

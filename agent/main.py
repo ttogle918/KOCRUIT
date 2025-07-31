@@ -33,6 +33,17 @@ from tools.speech_recognition_tool import SpeechRecognitionTool
 from tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
 from tools.answer_grading_tool import grade_written_test_answer
 
+# 화자 분리 및 비디오 자르기 관련
+import base64
+import tempfile
+import subprocess
+import whisper
+import librosa
+import numpy as np
+from typing import List, Dict, Any, Optional
+from pyannote.audio import Pipeline
+from pyannote.audio.pipelines.utils.hook import ProgressHook
+
 # Python 경로에 현재 디렉토리 추가
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -61,6 +72,12 @@ class HighlightResumeRequest(BaseModel):
     jobpost_id: Optional[int] = None
     company_id: Optional[int] = None
 
+class SpeakerAnalysisRequest(BaseModel):
+    audio_data: str  # base64 encoded audio
+    video_data: str  # base64 encoded video
+    audio_filename: str
+    video_filename: str
+
 # 헬스체크 엔드포인트
 @app.get("/health")
 async def health_check():
@@ -82,9 +99,222 @@ async def root():
             "monitor_sessions": "/monitor/sessions",
             "speech_recognition": "/agent/speech-recognition",
             "realtime_evaluation": "/agent/realtime-interview-evaluation",
+            "speaker_analysis_and_trim": "/speaker-analysis-and-trim",
             "docs": "/docs"
         }
     }
+
+# 화자 분리 및 비디오 자르기 클래스
+class SpeakerAnalysisService:
+    def __init__(self):
+        self.whisper_model = None
+        self.speaker_pipeline = None
+        self._initialize_models()
+    
+    def _initialize_models(self):
+        """AI 모델들 초기화"""
+        try:
+            print("화자 분리 서비스 모델 초기화 시작...")
+            
+            # Whisper 모델 로드
+            self.whisper_model = whisper.load_model("base")
+            print("Whisper 모델 로드 완료")
+            
+            # 화자 분리 파이프라인 초기화
+            try:
+                self.speaker_pipeline = Pipeline.from_pretrained(
+                    "pyannote/speaker-diarization-3.1",
+                    use_auth_token=None  # 무료 모델 사용
+                )
+                print("화자 분리 파이프라인 초기화 완료")
+            except Exception as e:
+                print(f"화자 분리 파이프라인 초기화 실패: {str(e)}")
+                self.speaker_pipeline = None
+            
+        except Exception as e:
+            print(f"모델 초기화 오류: {str(e)}")
+            raise
+    
+    def extract_applicant_audio(self, audio_path: str) -> List[Dict[str, float]]:
+        """화자 분리를 통해 면접자 음성 세그먼트를 추출합니다."""
+        try:
+            if not self.speaker_pipeline:
+                print("화자 분리 파이프라인이 없어 기본 분석을 사용합니다")
+                return []
+            
+            print("화자 분리 시작...")
+            
+            # 화자 분리 실행
+            diarization = self.speaker_pipeline(audio_path)
+            
+            # 화자별 세그먼트 추출
+            speaker_segments = {}
+            for turn, _, speaker in diarization.itertracks(yield_label=True):
+                if speaker not in speaker_segments:
+                    speaker_segments[speaker] = []
+                speaker_segments[speaker].append({
+                    'start': turn.start,
+                    'end': turn.end,
+                    'duration': turn.end - turn.start
+                })
+            
+            # 면접자 식별 (가장 긴 발화 시간을 가진 화자)
+            if not speaker_segments:
+                return []
+            
+            applicant_speaker = max(speaker_segments.keys(), 
+                                  key=lambda s: sum(seg['duration'] for seg in speaker_segments[s]))
+            
+            print(f"면접자 화자 식별: {applicant_speaker}")
+            print(f"면접자 발화 세그먼트: {len(speaker_segments[applicant_speaker])}개")
+            
+            return speaker_segments[applicant_speaker]
+            
+        except Exception as e:
+            print(f"화자 분리 오류: {str(e)}")
+            return []
+    
+    def trim_video_by_applicant_speech(self, video_path: str, applicant_segments: List[Dict], max_duration: int = 30) -> Optional[str]:
+        """면접자 음성 세그먼트를 기반으로 영상을 자릅니다."""
+        try:
+            if not applicant_segments:
+                print("면접자 음성 세그먼트가 없어 자르기를 건너뜁니다")
+                return video_path
+            
+            # 30초 이내의 면접자 발화 세그먼트들 찾기
+            valid_segments = []
+            current_duration = 0
+            
+            for segment in applicant_segments:
+                segment_end = segment.get("end", 0)
+                if segment_end <= max_duration:
+                    valid_segments.append(segment)
+                    current_duration = segment_end
+                else:
+                    break
+            
+            if not valid_segments:
+                print("유효한 면접자 발화 세그먼트가 없습니다")
+                return video_path
+            
+            # 자를 시간 계산 (마지막 세그먼트 끝까지)
+            trim_duration = current_duration
+            
+            # 이미 30초 이하면 자르지 않음
+            if trim_duration >= max_duration:
+                print(f"면접자 발화가 이미 {trim_duration:.1f}초로 적절한 길이입니다")
+                return video_path
+            
+            # 자른 영상 파일 생성
+            trimmed_path = tempfile.mktemp(suffix=".mp4")
+            
+            cmd = [
+                "ffmpeg", "-i", video_path,
+                "-t", str(trim_duration),
+                "-c", "copy",  # 재인코딩 없이 빠른 자르기
+                "-y", trimmed_path
+            ]
+            
+            print(f"면접자 음성 기반 영상 자르기: {trim_duration:.1f}초")
+            subprocess.run(cmd, check=True, capture_output=True)
+            
+            # 파일 크기 확인
+            original_size = os.path.getsize(video_path) / (1024 * 1024)  # MB
+            trimmed_size = os.path.getsize(trimmed_path) / (1024 * 1024)  # MB
+            
+            print(f"영상 크기: {original_size:.1f}MB → {trimmed_size:.1f}MB (절약: {original_size - trimmed_size:.1f}MB)")
+            
+            return trimmed_path
+            
+        except Exception as e:
+            print(f"면접자 음성 기반 영상 자르기 오류: {str(e)}")
+            return video_path
+    
+    def analyze_audio_with_whisper(self, audio_path: str) -> Dict[str, Any]:
+        """Whisper로 음성을 분석합니다."""
+        try:
+            # Whisper로 음성 인식
+            result = self.whisper_model.transcribe(audio_path, word_timestamps=True)
+            transcription = result["text"]
+            segments = result.get("segments", [])
+            
+            # 오디오 로드
+            audio, sr = librosa.load(audio_path, sr=16000)
+            
+            # 발화 속도 계산
+            speech_rate = self._calculate_speech_rate(transcription, len(audio) / sr)
+            
+            return {
+                "transcription": transcription,
+                "speech_rate": round(speech_rate, 3),
+                "segments_count": len(segments),
+                "duration": len(audio) / sr
+            }
+            
+        except Exception as e:
+            print(f"Whisper 분석 오류: {str(e)}")
+            return {
+                "transcription": "",
+                "speech_rate": 0,
+                "segments_count": 0,
+                "duration": 0
+            }
+    
+    def _calculate_speech_rate(self, transcription: str, duration: float) -> float:
+        """말하기 속도를 계산합니다."""
+        if not transcription or duration <= 0:
+            return 0
+        
+        word_count = len(transcription.split())
+        return word_count / duration  # 분당 단어 수
+
+    def save_speaker_analysis_log(self, audio_path: str, speaker_segments: List[Dict], whisper_result: Dict, application_id: str = None) -> str:
+        """화자분리 및 음성 분석 결과를 JSON 파일로 저장"""
+        try:
+            # 로그 디렉토리 생성
+            log_dir = "logs/speaker_analysis"
+            os.makedirs(log_dir, exist_ok=True)
+            
+            # 타임스탬프 생성
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"speaker_analysis_{application_id or 'unknown'}_{timestamp}.json"
+            log_path = os.path.join(log_dir, filename)
+            
+            # 분석 결과 데이터 구성
+            analysis_data = {
+                "metadata": {
+                    "timestamp": datetime.now().isoformat(),
+                    "audio_file": audio_path,
+                    "application_id": application_id,
+                    "analysis_type": "speaker_diarization_and_whisper"
+                },
+                "speaker_analysis": {
+                    "total_speakers": len(set(seg.get('speaker', 'unknown') for seg in speaker_segments)),
+                    "speaker_segments": speaker_segments,
+                    "applicant_speech_duration": sum(seg.get('duration', 0) for seg in speaker_segments),
+                    "total_segments": len(speaker_segments)
+                },
+                "whisper_analysis": whisper_result,
+                "summary": {
+                    "transcription_length": len(whisper_result.get("transcription", "")),
+                    "speech_rate": whisper_result.get("speech_rate", 0),
+                    "analysis_duration": whisper_result.get("duration", 0)
+                }
+            }
+            
+            # JSON 파일로 저장
+            with open(log_path, 'w', encoding='utf-8') as f:
+                json.dump(analysis_data, f, ensure_ascii=False, indent=2)
+            
+            print(f"화자분리 분석 로그 저장 완료: {log_path}")
+            return log_path
+            
+        except Exception as e:
+            print(f"화자분리 로그 저장 실패: {str(e)}")
+            return None
+
+# 화자 분리 서비스 초기화
+speaker_analysis_service = SpeakerAnalysisService()
 
 # OpenAI API 키가 있을 때만 그래프 초기화
 try:
@@ -829,6 +1059,93 @@ async def ai_interview_evaluation_api(request: Request):
             "error": str(e)
         }
 
+@app.post("/speaker-analysis-and-trim")
+async def speaker_analysis_and_trim(request: SpeakerAnalysisRequest):
+    """화자 분리 및 비디오 자르기 엔드포인트"""
+    try:
+        print("화자 분리 및 비디오 자르기 요청 시작...")
+        
+        # base64 디코딩
+        audio_data = base64.b64decode(request.audio_data)
+        video_data = base64.b64decode(request.video_data)
+        
+        # 임시 파일 생성
+        temp_audio_path = tempfile.mktemp(suffix=".wav")
+        temp_video_path = tempfile.mktemp(suffix=".mp4")
+        
+        try:
+            # 파일 저장
+            with open(temp_audio_path, 'wb') as f:
+                f.write(audio_data)
+            with open(temp_video_path, 'wb') as f:
+                f.write(video_data)
+            
+            print(f"임시 파일 생성: {temp_audio_path}, {temp_video_path}")
+            
+            # 1단계: 화자 분리
+            applicant_segments = speaker_analysis_service.extract_applicant_audio(temp_audio_path)
+            
+            # 2단계: 면접자 발화 시간 계산
+            applicant_speech_duration = sum(seg['duration'] for seg in applicant_segments)
+            
+            # 3단계: 비디오 자르기
+            trimmed_video_path = speaker_analysis_service.trim_video_by_applicant_speech(
+                temp_video_path, applicant_segments, max_duration=30
+            )
+            
+            # 4단계: Whisper 분석
+            whisper_analysis = speaker_analysis_service.analyze_audio_with_whisper(temp_audio_path)
+            
+            # 5단계: 분석 결과 로그 저장
+            log_path = speaker_analysis_service.save_speaker_analysis_log(
+                temp_audio_path, applicant_segments, whisper_analysis
+            )
+            
+            # 6단계: 결과 정리
+            trimmed_video_base64 = None
+            if trimmed_video_path != temp_video_path and os.path.exists(trimmed_video_path):
+                # 자른 비디오를 base64로 인코딩
+                with open(trimmed_video_path, 'rb') as f:
+                    trimmed_video_data = f.read()
+                trimmed_video_base64 = base64.b64encode(trimmed_video_data).decode('utf-8')
+            
+            analysis_result = {
+                "applicant_segments": applicant_segments,
+                "applicant_speech_duration": applicant_speech_duration,
+                "trimmed_video_base64": trimmed_video_base64,
+                "is_trimmed": trimmed_video_path != temp_video_path,
+                "whisper_analysis": whisper_analysis,
+                "trimmed_filename": f"trimmed_{request.video_filename}" if trimmed_video_base64 else None,
+                "log_path": log_path
+            }
+            
+            print("화자 분리 및 비디오 자르기 완료")
+            
+            return {
+                "success": True,
+                "message": "화자 분리 및 비디오 자르기가 완료되었습니다",
+                "analysis": analysis_result
+            }
+            
+        finally:
+            # 임시 파일 정리
+            try:
+                if os.path.exists(temp_audio_path):
+                    os.remove(temp_audio_path)
+                if os.path.exists(temp_video_path):
+                    os.remove(temp_video_path)
+                print("임시 파일 정리 완료")
+            except Exception as e:
+                print(f"임시 파일 정리 오류: {str(e)}")
+        
+    except Exception as e:
+        print(f"화자 분리 및 비디오 자르기 오류: {str(e)}")
+        return {
+            "success": False,
+            "message": f"오류가 발생했습니다: {str(e)}",
+            "analysis": {}
+        }
+
 @app.post("/evaluate-audio")
 async def evaluate_audio(
     application_id: int = Form(...),
@@ -877,6 +1194,70 @@ async def evaluate_audio(
         # 임시 파일 삭제
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+@app.post("/realtime-audio-analysis")
+async def realtime_audio_analysis(
+    audio_data: str = Form(...),  # base64 encoded audio chunk
+    session_id: str = Form(...),
+    timestamp: float = Form(...),
+    application_id: str = Form(None)
+):
+    """실시간 음성 분석 엔드포인트"""
+    try:
+        print(f"실시간 음성 분석 요청: session_id={session_id}, timestamp={timestamp}")
+        
+        # base64 디코딩
+        audio_chunk = base64.b64decode(audio_data)
+        
+        # 임시 파일 생성
+        temp_audio_path = tempfile.mktemp(suffix=".wav")
+        
+        try:
+            # 오디오 청크 저장
+            with open(temp_audio_path, 'wb') as f:
+                f.write(audio_chunk)
+            
+            # 1단계: 화자 분리 (실시간 버전)
+            speaker_segments = speaker_analysis_service.extract_applicant_audio(temp_audio_path)
+            
+            # 2단계: Whisper 분석
+            whisper_analysis = speaker_analysis_service.analyze_audio_with_whisper(temp_audio_path)
+            
+            # 3단계: 실시간 분석 결과 로그 저장
+            log_path = speaker_analysis_service.save_speaker_analysis_log(
+                temp_audio_path, speaker_segments, whisper_analysis, application_id
+            )
+            
+            # 4단계: 실시간 분석 결과 반환
+            analysis_result = {
+                "session_id": session_id,
+                "timestamp": timestamp,
+                "speaker_segments": speaker_segments,
+                "whisper_analysis": whisper_analysis,
+                "log_path": log_path,
+                "analysis_duration": whisper_analysis.get("duration", 0),
+                "speech_rate": whisper_analysis.get("speech_rate", 0),
+                "transcription": whisper_analysis.get("transcription", "")
+            }
+            
+            print(f"실시간 음성 분석 완료: {len(speaker_segments)}개 세그먼트, {whisper_analysis.get('speech_rate', 0):.2f} wpm")
+            
+            return {
+                "success": True,
+                "result": analysis_result
+            }
+            
+        finally:
+            # 임시 파일 정리
+            if os.path.exists(temp_audio_path):
+                os.remove(temp_audio_path)
+                
+    except Exception as e:
+        print(f"실시간 음성 분석 오류: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn

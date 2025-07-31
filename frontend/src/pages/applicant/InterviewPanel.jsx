@@ -24,10 +24,12 @@ import {
   FaPhone,
   FaEnvelope,
   FaMapMarkerAlt,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaCloudUploadAlt
 } from 'react-icons/fa';
 import InterviewEvaluationItems from '../../components/InterviewEvaluationItems';
 import { saveInterviewEvaluation, getInterviewEvaluation, getApplication } from '../../api/api';
+import { uploadFileToGoogleDrive } from '../../utils/googleDrive';
 
 const InterviewPanel = ({
   questions = [],
@@ -73,6 +75,16 @@ const InterviewPanel = ({
   const [overallMemo, setOverallMemo] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentAudio, setCurrentAudio] = useState(null);
+  
+  // Google Drive 관련 상태
+  const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
+  const [driveUploadStatus, setDriveUploadStatus] = useState({});
+  const [googleDriveApiKey, setGoogleDriveApiKey] = useState(process.env.REACT_APP_GOOGLE_DRIVE_API_KEY || '');
+  
+  // 실시간 음성 분석 관련 상태
+  const [isRealtimeAnalysisEnabled, setIsRealtimeAnalysisEnabled] = useState(false);
+  const [realtimeAnalysisResults, setRealtimeAnalysisResults] = useState([]);
+  const [currentAnalysisSession, setCurrentAnalysisSession] = useState(null);
   
   // 평가 결과 조회 관련 상태
   const [evaluationResult, setEvaluationResult] = useState(null);
@@ -298,9 +310,21 @@ const InterviewPanel = ({
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       
-      mediaRecorder.ondataavailable = (event) => {
+      // 실시간 분석 세션 시작
+      if (isRealtimeAnalysisEnabled) {
+        const sessionId = `session_${Date.now()}`;
+        setCurrentAnalysisSession(sessionId);
+        setRealtimeAnalysisResults([]);
+      }
+      
+      mediaRecorder.ondataavailable = async (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          
+          // 실시간 분석이 활성화된 경우 청크 분석
+          if (isRealtimeAnalysisEnabled && currentAnalysisSession) {
+            await analyzeAudioChunk(event.data);
+          }
         }
       };
       
@@ -386,6 +410,79 @@ const InterviewPanel = ({
     });
   };
 
+  // Google Drive에 녹음 파일 업로드
+  const uploadRecordingToDrive = async (fileId) => {
+    if (!googleDriveApiKey) {
+      alert('Google Drive API 키가 설정되지 않았습니다.');
+      return;
+    }
+
+    const file = recordedFiles.find(f => f.id === fileId);
+    if (!file) {
+      alert('파일을 찾을 수 없습니다.');
+      return;
+    }
+
+    setIsUploadingToDrive(true);
+    setDriveUploadStatus(prev => ({ ...prev, [fileId]: 'uploading' }));
+
+    try {
+      const result = await uploadFileToGoogleDrive(file.file, file.name, googleDriveApiKey);
+      
+      if (result) {
+        // 업로드 성공 시 파일 정보 업데이트
+        setRecordedFiles(prev => prev.map(f => 
+          f.id === fileId 
+            ? { ...f, driveInfo: result }
+            : f
+        ));
+        setDriveUploadStatus(prev => ({ ...prev, [fileId]: 'success' }));
+        alert('Google Drive 업로드 완료!');
+      } else {
+        setDriveUploadStatus(prev => ({ ...prev, [fileId]: 'error' }));
+        alert('Google Drive 업로드 실패');
+      }
+    } catch (error) {
+      console.error('Google Drive 업로드 오류:', error);
+      setDriveUploadStatus(prev => ({ ...prev, [fileId]: 'error' }));
+      alert('Google Drive 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsUploadingToDrive(false);
+    }
+  };
+
+  // 실시간 음성 분석
+  const analyzeAudioChunk = async (audioChunk) => {
+    try {
+      // 오디오 청크를 base64로 변환
+      const arrayBuffer = await audioChunk.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      // FormData 생성
+      const formData = new FormData();
+      formData.append('audio_data', base64Audio);
+      formData.append('session_id', currentAnalysisSession);
+      formData.append('timestamp', Date.now());
+      formData.append('application_id', applicationId || 'unknown');
+      
+      // API 호출
+      const response = await fetch('http://localhost:8000/realtime-audio-analysis', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setRealtimeAnalysisResults(prev => [...prev, result.result]);
+          console.log('실시간 분석 결과:', result.result);
+        }
+      }
+    } catch (error) {
+      console.error('실시간 음성 분석 오류:', error);
+    }
+  };
+
   // 평가 점수 변경
   const handleScoreChange = (itemId, score) => {
     setEvaluationScores(prev => ({
@@ -459,6 +556,18 @@ const InterviewPanel = ({
             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
               {isConnected ? "연결됨" : "연결 안됨"}
             </span>
+            
+            {/* 실시간 분석 토글 */}
+            <button
+              onClick={() => setIsRealtimeAnalysisEnabled(!isRealtimeAnalysisEnabled)}
+              className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isRealtimeAnalysisEnabled ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-500 text-white hover:bg-gray-600'
+              }`}
+              disabled={isRecording}
+            >
+              <FaMicrophone className="w-4 h-4 mr-2" />
+              {isRealtimeAnalysisEnabled ? "실시간 분석 ON" : "실시간 분석 OFF"}
+            </button>
             
             <button
               onClick={isRecording ? stopRecording : startRecording}
@@ -775,6 +884,35 @@ const InterviewPanel = ({
               </>
             )}
 
+            {/* 실시간 분석 결과 */}
+            {isRealtimeAnalysisEnabled && realtimeAnalysisResults.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-gray-900">실시간 분석 결과</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {realtimeAnalysisResults.slice(-5).map((result, index) => (
+                    <div key={index} className="p-2 bg-purple-50 rounded border border-purple-200">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs text-purple-600 font-medium">
+                          {new Date(result.timestamp).toLocaleTimeString()}
+                        </span>
+                        <span className="text-xs text-purple-600">
+                          {result.speech_rate?.toFixed(1)} wpm
+                        </span>
+                      </div>
+                      {result.transcription && (
+                        <p className="text-xs text-gray-700 line-clamp-2">
+                          "{result.transcription}"
+                        </p>
+                      )}
+                      <div className="text-xs text-gray-500 mt-1">
+                        세그먼트: {result.speaker_segments?.length || 0}개
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 녹음 파일 목록 */}
             <div className="space-y-2">
               <h3 className="font-semibold text-gray-900">녹음 파일</h3>
@@ -806,6 +944,20 @@ const InterviewPanel = ({
                         title="다운로드"
                       >
                         <FaDownload className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => uploadRecordingToDrive(file.id)}
+                        disabled={isUploadingToDrive || driveUploadStatus[file.id] === 'uploading'}
+                        className={`p-1 ${
+                          driveUploadStatus[file.id] === 'success' 
+                            ? 'text-green-600' 
+                            : driveUploadStatus[file.id] === 'error'
+                            ? 'text-red-600'
+                            : 'text-purple-500 hover:text-purple-700'
+                        }`}
+                        title={driveUploadStatus[file.id] === 'success' ? 'Google Drive 업로드 완료' : 'Google Drive 업로드'}
+                      >
+                        <FaCloudUploadAlt className="w-3 h-3" />
                       </button>
                       <button
                         onClick={() => deleteRecording(file.id)}

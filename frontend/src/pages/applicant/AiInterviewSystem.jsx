@@ -780,37 +780,81 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 <button
                   onClick={async () => {
                     try {
-                      // Video Analysis 서비스 헬스체크
-                      await checkVideoAnalysisHealth();
+                      // Backend Video Analysis API 호출 (DB 저장 포함)
+                      const response = await api.post(`/video-analysis/analyze/${applicant.application_id}`);
                       
-                      // 영상 URL이 있는지 확인
-                      const videoUrl = applicant.ai_interview_video_url || applicant.video_url;
-                      if (!videoUrl) {
-                        alert('분석할 영상 URL이 없습니다.');
-                        return;
+                      if (response.data.success) {
+                        console.log('Video Analysis 결과:', response.data);
+                        console.log('Video Analysis 데이터 구조:', {
+                          analysis: response.data.analysis,
+                          overall_score: response.data.analysis?.overall_score,
+                          facial_expressions: response.data.analysis?.facial_expressions,
+                          posture_analysis: response.data.analysis?.posture_analysis,
+                          gaze_analysis: response.data.analysis?.gaze_analysis,
+                          audio_analysis: response.data.analysis?.audio_analysis
+                        });
+                        
+                        // 결과를 상태에 저장
+                        setInterviewData(prev => ({
+                          ...prev,
+                          videoAnalysis: response.data.analysis,
+                          videoAnalysisSource: 'video-analysis-db'
+                        }));
+                        
+                        if (response.data.is_cached) {
+                          alert('기존 분석 결과를 불러왔습니다!');
+                        } else {
+                          alert('새로운 영상 분석이 완료되었습니다!');
+                        }
+                      } else {
+                        alert('영상 분석에 실패했습니다: ' + response.data.message);
                       }
-                      
-                      // Video Analysis API 호출
-                      const result = await analyzeVideoByUrl(videoUrl, applicant.application_id);
-                      console.log('Video Analysis 결과:', result);
-                      
-                      // 결과를 상태에 저장
-                      setInterviewData(prev => ({
-                        ...prev,
-                        videoAnalysis: result.analysis,
-                        videoAnalysisSource: 'video-analysis-service'
-                      }));
-                      
-                      alert('영상 분석이 완료되었습니다!');
                     } catch (error) {
                       console.error('Video Analysis 오류:', error);
-                      alert('영상 분석 중 오류가 발생했습니다: ' + error.message);
+                      alert('영상 분석 중 오류가 발생했습니다: ' + (error.response?.data?.detail || error.message));
                     }
                   }}
                   className="inline-flex items-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm"
                 >
                   <MdOutlineAnalytics className="w-4 h-4 mr-2" />
-                  새로운 영상 분석
+                  AI 영상 분석 (DB 저장)
+                </button>
+                
+                <button
+                  onClick={async () => {
+                    try {
+                      // 대기 중인 분석 개수 확인
+                      const countResponse = await api.get('/background-analysis/pending-count');
+                      const pendingCount = countResponse.data.pending_count;
+                      
+                      if (pendingCount === 0) {
+                        alert('분석할 영상이 없습니다.');
+                        return;
+                      }
+                      
+                      if (!confirm(`총 ${pendingCount}개의 영상을 일괄 분석하시겠습니까?\n\n이 작업은 시간이 오래 걸릴 수 있습니다.`)) {
+                        return;
+                      }
+                      
+                      // 일괄 분석 API 호출
+                      const response = await api.post('/background-analysis/batch-analyze');
+                      
+                      if (response.data.status === 'batch_started') {
+                        alert(`일괄 분석이 시작되었습니다! (${response.data.count}개 영상)\n\n분석이 완료되면 각 지원자 페이지에서 결과를 확인할 수 있습니다.`);
+                      } else if (response.data.status === 'no_pending') {
+                        alert('분석할 영상이 없습니다.');
+                      } else {
+                        alert('일괄 분석 시작에 실패했습니다: ' + response.data.message);
+                      }
+                    } catch (error) {
+                      console.error('일괄 분석 오류:', error);
+                      alert('일괄 분석 중 오류가 발생했습니다: ' + (error.response?.data?.detail || error.message));
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                >
+                  <MdOutlineVideoLibrary className="w-4 h-4 mr-2" />
+                  일괄 분석 실행
                 </button>
               </div>
             </div>
@@ -818,7 +862,7 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
             
 
             
-            {(interviewData?.evaluation || interviewData?.videoAnalysis) ? (
+            {(interviewData?.evaluation || interviewData?.videoAnalysis || interviewData?.videoAnalysisSource === 'video-analysis-db') ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* 종합 점수 */}
                 <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
@@ -827,10 +871,10 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                     종합 평가
                   </h4>
                   <div className="text-4xl font-bold text-green-600 mb-2">
-                    {(interviewData.videoAnalysis?.score || interviewData.whisperAnalysis?.analysis?.score || interviewData.evaluation?.total_score) || 'N/A'}
+                    {(interviewData.videoAnalysis?.overall_score || interviewData.videoAnalysis?.score || interviewData.whisperAnalysis?.analysis?.score || interviewData.evaluation?.total_score) || 'N/A'}
                   </div>
                   <div className="text-sm text-gray-600 mb-3">
-                    {(interviewData.videoAnalysis?.score || interviewData.whisperAnalysis?.analysis?.score || interviewData.evaluation?.total_score) >= 3.5 ? '✅ 합격' : '❌ 불합격'}
+                    {(interviewData.videoAnalysis?.overall_score || interviewData.videoAnalysis?.score || interviewData.whisperAnalysis?.analysis?.score || interviewData.evaluation?.total_score) >= 3.5 ? '✅ 합격' : '❌ 불합격'}
                   </div>
                   <div className="text-xs text-gray-500">
                     {(interviewData.videoAnalysis?.analysis_timestamp || interviewData.whisperAnalysis?.analysis?.timestamp || interviewData.evaluation?.timestamp) ? 
@@ -933,130 +977,6 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 </div>
               </div>
               
-              {/* Video Analysis 서비스 결과 표시 */}
-              {interviewData?.videoAnalysisSource === 'video-analysis-service' && (
-                <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <MdOutlineAnalytics className="text-green-600" />
-                    Video Analysis 서비스 결과
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* 얼굴 표정 분석 */}
-                    <div className="bg-white rounded-lg p-4 border">
-                      <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                        <FaSmile className="text-blue-500" />
-                        얼굴 표정
-                      </h5>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">미소 빈도</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.facial_expressions?.smile_frequency * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">시선 접촉</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.facial_expressions?.eye_contact_ratio * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">감정 변화</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.facial_expressions?.emotion_variation * 100).toFixed(1)}%</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* 자세 분석 */}
-                    <div className="bg-white rounded-lg p-4 border">
-                      <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                        <FiUser className="text-green-500" />
-                        자세 분석
-                      </h5>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">자세 변화</span>
-                          <span className="font-medium">{interviewData.videoAnalysis?.posture_analysis?.posture_changes}회</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">끄덕임</span>
-                          <span className="font-medium">{interviewData.videoAnalysis?.posture_analysis?.nod_count}회</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">자세 점수</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.posture_analysis?.posture_score * 100).toFixed(1)}%</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* 시선 분석 */}
-                    <div className="bg-white rounded-lg p-4 border">
-                      <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                        <FiTarget className="text-purple-500" />
-                        시선 분석
-                      </h5>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">시선 회피</span>
-                          <span className="font-medium">{interviewData.videoAnalysis?.gaze_analysis?.eye_aversion_count}회</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">집중도</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.gaze_analysis?.focus_ratio * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">시선 일관성</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.gaze_analysis?.gaze_consistency * 100).toFixed(1)}%</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* 음성 분석 */}
-                    <div className="bg-white rounded-lg p-4 border">
-                      <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                        <MdOutlineVolumeUp className="text-orange-500" />
-                        음성 분석
-                      </h5>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">발화 속도</span>
-                          <span className="font-medium">{interviewData.videoAnalysis?.audio_analysis?.speech_rate} wpm</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">명확도</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.audio_analysis?.clarity_score * 100).toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-600">음량 일관성</span>
-                          <span className="font-medium">{(interviewData.videoAnalysis?.audio_analysis?.volume_consistency * 100).toFixed(1)}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* 종합 점수 및 피드백 */}
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-lg p-4 border">
-                      <h5 className="font-medium text-gray-900 mb-3">종합 점수</h5>
-                      <div className="text-3xl font-bold text-green-600 mb-2">
-                        {(interviewData.videoAnalysis?.overall_score * 100).toFixed(1)}%
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        분석 시간: {new Date(interviewData.videoAnalysis?.analysis_timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-lg p-4 border">
-                      <h5 className="font-medium text-gray-900 mb-3">AI 피드백</h5>
-                      <div className="space-y-2">
-                        {interviewData.videoAnalysis?.recommendations?.map((rec, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <span className="text-green-500 mt-1">•</span>
-                            <span className="text-sm text-gray-700">{rec}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             ) : (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">📊</div>
@@ -1124,6 +1044,131 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                   >
                     AI 면접 분석 데이터 다시 로드
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Video Analysis 서비스 결과 표시 */}
+            {interviewData?.videoAnalysisSource === 'video-analysis-db' && (
+              <div className="mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <MdOutlineAnalytics className="text-green-600" />
+                  Video Analysis 서비스 결과 (DB 저장)
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* 얼굴 표정 분석 */}
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FaSmile className="text-blue-500" />
+                      얼굴 표정
+                    </h5>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">미소 빈도</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.facial_expressions?.smile_frequency * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">시선 접촉</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.facial_expressions?.eye_contact_ratio * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">감정 변화</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.facial_expressions?.emotion_variation * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 자세 분석 */}
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FiUser className="text-green-500" />
+                      자세 분석
+                    </h5>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">자세 변화</span>
+                        <span className="font-medium">{interviewData.videoAnalysis?.posture_analysis?.posture_changes}회</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">끄덕임</span>
+                        <span className="font-medium">{interviewData.videoAnalysis?.posture_analysis?.nod_count}회</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">자세 점수</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.posture_analysis?.posture_score * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 시선 분석 */}
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <FiTarget className="text-purple-500" />
+                      시선 분석
+                    </h5>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">시선 회피</span>
+                        <span className="font-medium">{interviewData.videoAnalysis?.gaze_analysis?.eye_aversion_count}회</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">집중도</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.gaze_analysis?.focus_ratio * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">시선 일관성</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.gaze_analysis?.gaze_consistency * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 음성 분석 */}
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h5 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <MdOutlineVolumeUp className="text-orange-500" />
+                      음성 분석
+                    </h5>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">발화 속도</span>
+                        <span className="font-medium">{interviewData.videoAnalysis?.audio_analysis?.speech_rate} wpm</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">명확도</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.audio_analysis?.clarity_score * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-600">음량 일관성</span>
+                        <span className="font-medium">{(interviewData.videoAnalysis?.audio_analysis?.volume_consistency * 100).toFixed(1)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 종합 점수 및 피드백 */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h5 className="font-medium text-gray-900 mb-3">종합 점수</h5>
+                    <div className="text-3xl font-bold text-green-600 mb-2">
+                      {(interviewData.videoAnalysis?.overall_score * 100).toFixed(1)}%
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      분석 시간: {new Date(interviewData.videoAnalysis?.analysis_timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg p-4 border">
+                    <h5 className="font-medium text-gray-900 mb-3">AI 피드백</h5>
+                    <div className="space-y-2">
+                      {interviewData.videoAnalysis?.recommendations?.map((rec, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="text-green-500 mt-1">•</span>
+                          <span className="text-sm text-gray-700">{rec}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
