@@ -816,6 +816,7 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
         
         result.append({
             "applicant_id": app.user_id,
+            "application_id": app.id,  # application_id 추가
             "name": user.name if user else "",
             "schedule_interview_id": schedule_interview_id,
             "schedule_date": schedule_date,
@@ -823,6 +824,7 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
             "document_status": app.document_status,  # 서류 상태 추가
             "status": app.status,  # 전체 상태 추가
             "ai_interview_score": app.ai_interview_score,  # Application 테이블의 AI 면접 점수
+            "ai_interview_video_url": app.ai_interview_video_url,  # AI 면접 비디오 URL 추가
         })
     return result
 

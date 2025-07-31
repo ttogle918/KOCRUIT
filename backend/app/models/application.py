@@ -105,6 +105,9 @@ class Application(Base):
     ai_interview_fail_reason = Column(Text)  # AI 면접 불합격 이유
     final_status = Column(SqlEnum(FinalStatus), default=FinalStatus.PENDING, nullable=False)  # 최종 선발 상태
     
+    # AI 면접 비디오 URL (Google Drive URL 포함)
+    ai_interview_video_url = Column(String(400), nullable=True, comment="AI 면접 비디오 URL")
+    
     # Relationships with back_populates
     user = relationship("User", back_populates="applications")
     job_post = relationship("JobPost", back_populates="applications")

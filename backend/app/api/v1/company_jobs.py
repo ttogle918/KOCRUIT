@@ -167,7 +167,8 @@ def get_company_job_post(
                 "status": app.status.value if app.status else None,
                 "document_status": app.document_status.value if app.document_status else None,
                 "interview_status": app.interview_status.value if app.interview_status else None,
-                "final_status": app.final_status.value if app.final_status else None
+                "final_status": app.final_status.value if app.final_status else None,
+                "ai_interview_video_url": app.ai_interview_video_url
             }
             for app in job_post.applications
         ] if job_post.applications else []

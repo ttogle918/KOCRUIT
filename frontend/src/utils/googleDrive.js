@@ -173,9 +173,9 @@ export const processVideoUrl = async (url) => {
   try {
     console.log('🔍 동영상 URL 처리 시작:', url);
     
-    // 이미 직접 URL인 경우
-    if (url.includes('drive.google.com/uc') || url.includes('drive.google.com/file/d/')) {
-      console.log('✅ 이미 직접 URL 형식:', url);
+    // 이미 직접 재생 가능한 URL인 경우 (uc 형식)
+    if (url.includes('drive.google.com/uc')) {
+      console.log('✅ 이미 직접 재생 가능한 URL 형식:', url);
       return url;
     }
     
@@ -187,19 +187,10 @@ export const processVideoUrl = async (url) => {
         return null;
       }
       
-      // 여러 가지 직접 재생 가능한 URL 형식 시도
-      const directUrls = [
-        `https://drive.google.com/uc?export=download&id=${videoId}`,
-        `https://drive.google.com/uc?export=view&id=${videoId}`,
-        `https://drive.google.com/file/d/${videoId}/preview`,
-        `https://drive.google.com/uc?id=${videoId}&export=download`,
-        `https://drive.google.com/file/d/${videoId}/view`,
-        `https://drive.google.com/uc?export=download&confirm=t&id=${videoId}`
-      ];
-      
-      // 첫 번째 형식 반환 (브라우저에서 처리)
-      console.log('✅ Google Drive URL 변환 완료:', directUrls[0]);
-      return directUrls[0];
+      // Google Drive는 브라우저에서 직접 재생이 어려우므로 iframe으로 임베드하는 방식 사용
+      const embedUrl = `https://drive.google.com/file/d/${videoId}/preview`;
+      console.log('✅ Google Drive 임베드 URL 생성:', embedUrl);
+      return embedUrl;
     }
     
     // 다른 클라우드 스토리지 URL들

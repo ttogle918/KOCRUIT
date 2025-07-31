@@ -23,6 +23,7 @@ class ApplicationBase(BaseModel):
     ai_interview_score: Optional[float] = None
     ai_interview_pass_reason: Optional[str] = None
     ai_interview_fail_reason: Optional[str] = None
+    ai_interview_video_url: Optional[str] = None  # AI 면접 비디오 URL
     class Config:
         alias_generator = to_camel
         populate_by_name = True
@@ -83,6 +84,7 @@ class ApplicationList(BaseModel):
     applied_at: Optional[datetime] = None
     ai_interview_pass_reason: Optional[str] = None
     ai_interview_fail_reason: Optional[str] = None
+    ai_interview_video_url: Optional[str] = None  # AI 면접 비디오 URL
     
     class Config:
         alias_generator = to_camel

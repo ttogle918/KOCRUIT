@@ -27,6 +27,7 @@ import MemberSchedule from './pages/schedule/MemberSchedule.jsx';
 import InterviewProgress from './pages/applicant/InterviewProgress';
 import AiInterviewDemo from './components/AiInterviewDemo';
 import AiInterviewSystem from './pages/applicant/AiInterviewSystem';
+import GoogleDriveTest from './pages/applicant/GoogleDriveTest';
 import WrittenTestGenerator from './pages/applicant/WrittenTestGenerator';
 import InterviewPanelManagement from './pages/applicant/InterviewPanelManagement';
 import ExecutiveInterviewList from './pages/applicant/ExecutiveInterviewList';
@@ -142,6 +143,7 @@ function AppRoutes() {
                 <Route path="/interview-progress/:jobPostId/:interviewStage/:applicantId" element={<ProtectedRoute><InterviewProgress /></ProtectedRoute>} />
                 <Route path="/ai-interview-demo/:jobPostId/:applicantId" element={<ProtectedRoute><AiInterviewDemo /></ProtectedRoute>} />
                 <Route path="/ai-interview/:jobPostId" element={<ProtectedRoute><AiInterviewSystem /></ProtectedRoute>} />
+                <Route path="/google-drive-test" element={<ProtectedRoute><GoogleDriveTest /></ProtectedRoute>} />
                 <Route path="/interview-panel-management/:jobPostId" element={<ProtectedRoute><InterviewPanelManagement /></ProtectedRoute>} />
                 <Route path="/applicant/written-test-generator" element={<ProtectedRoute><WrittenTestGenerator /></ProtectedRoute>} />
                 <Route path="/applicant/executive-interview" element={<ProtectedRoute><ExecutiveInterviewList /></ProtectedRoute>} />

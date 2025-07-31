@@ -13,6 +13,14 @@ import {
 } from 'react-icons/md';
 
 import api from '../../api/api';
+import { 
+  convertDriveUrlToDirect, 
+  extractVideoIdFromUrl, 
+  extractFolderIdFromUrl,
+  getDriveItemType,
+  getVideosFromSharedFolder,
+  processVideoUrl
+} from '../../utils/googleDrive';
 
 // Resume 조회 실패 시 안전한 처리를 위한 유틸리티 함수
 const safeApiCall = async (apiCall, fallbackValue = null) => {
@@ -416,45 +424,54 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
       
       setVideoLoading(true);
       try {
-        // 1. 하드코딩된 비디오 URL 확인 (우선)
-        const hardcodedVideoUrls = {
-          59: 'http://localhost:8000/data/59_김도원_면접.mp4',
-          61: 'http://localhost:8000/data/61_이현서_면접.mp4',
-          68: 'http://localhost:8000/data/68_최지현_면접.mp4'
-        };
-        const hardcodedUrl = hardcodedVideoUrls[applicant.application_id];
-        
-        if (hardcodedUrl) {
-          // URL 인코딩 제거 - 브라우저가 자동으로 처리하도록
-          setVideoUrl(hardcodedUrl);
-          console.log(`✅ ${applicant.application_id}번 지원자 하드코딩 비디오 URL 설정: ${hardcodedUrl}`);
+        // 1. DB의 AI 면접 비디오 URL 우선 확인
+        console.log(`🔍 ${applicant.application_id}번 지원자 데이터 확인:`, applicant);
+        console.log(`🔍 ${applicant.application_id}번 지원자 ai_interview_video_url:`, applicant.ai_interview_video_url);
+        console.log(`🔍 ${applicant.application_id}번 지원자 video_url:`, applicant.video_url);
+        if (applicant.ai_interview_video_url) {
+          // Google Drive URL을 preview 형식으로 변환
+          let processedUrl = applicant.ai_interview_video_url;
+          if (processedUrl.includes('drive.google.com/file/d/')) {
+            const fileId = processedUrl.match(/\/file\/d\/([^\/]+)/)?.[1];
+            if (fileId) {
+              processedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+              console.log(`🔄 Google Drive URL을 preview 형식으로 변환: ${processedUrl}`);
+            }
+          }
+          setVideoUrl(processedUrl);
+          console.log(`✅ ${applicant.application_id}번 지원자 AI 면접 비디오 URL 사용: ${processedUrl}`);
           setVideoLoading(false);
           return;
         }
         
-        // 2. 하드코딩된 URL이 없으면 기존 방식 사용
-        console.log(`🔍 ${applicant.application_id}번 지원자 기존 비디오 로드 방식 사용`);
+
+        
+        // 2. DB의 기존 비디오 URL 확인
+        if (applicant.video_url) {
+          setVideoUrl(applicant.video_url);
+          console.log(`✅ ${applicant.application_id}번 지원자 기존 비디오 URL 사용: ${applicant.video_url}`);
+          setVideoLoading(false);
+          return;
+        }
+        
+        // 3. API 호출로 로컬 비디오 파일 시도
+        console.log(`🔍 ${applicant.application_id}번 지원자 API 호출로 비디오 로드 시도`);
         
         try {
           // 로컬 비디오 파일 먼저 시도
-        const localVideoResponse = await api.get(`/interview-questions/local-video/${applicant.application_id}`);
-        if (localVideoResponse.data.success && localVideoResponse.data.video_url) {
-          setVideoUrl(localVideoResponse.data.video_url);
+          const localVideoResponse = await api.get(`/interview-questions/local-video/${applicant.application_id}`);
+          if (localVideoResponse.data.success && localVideoResponse.data.video_url) {
+            setVideoUrl(localVideoResponse.data.video_url);
             console.log(`✅ ${applicant.application_id}번 지원자 로컬 비디오 URL 설정: ${localVideoResponse.data.video_url}`);
-          setVideoLoading(false);
-          return;
+            setVideoLoading(false);
+            return;
           }
         } catch (error) {
           console.log(`⚠️ ${applicant.application_id}번 지원자 로컬 비디오 API 호출 실패:`, error.message);
         }
         
-        // 기존 비디오 URL 처리 (Google Drive 등)
-        if (applicant.video_url) {
-          setVideoUrl(applicant.video_url);
-          console.log(`✅ ${applicant.application_id}번 지원자 기존 비디오 URL 사용: ${applicant.video_url}`);
-        } else {
-          console.warn(`⚠️ ${applicant.application_id}번 지원자 비디오 URL 없음`);
-        }
+        // 최종 폴백: 비디오 URL 없음
+        console.warn(`⚠️ ${applicant.application_id}번 지원자 비디오 URL 없음`);
       } catch (error) {
         console.error('비디오 로드 오류:', error);
       } finally {
@@ -468,27 +485,41 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
     const loadAiInterviewVideo = async () => {
       setAiInterviewVideoLoading(true);
       try {
-        // 하드코딩된 AI 면접 비디오 URL 매핑 (백엔드 서버 주소 포함)
-        const hardcodedAiVideoUrls = {
-          59: 'http://localhost:8000/data/59_김도원_AI면접.mp4',
-          61: 'http://localhost:8000/data/61_이현서_AI면접.mp4', // 실제 파일명 (공백 포함)
-          68: 'http://localhost:8000/data/68_최지현_AI면접.mp4'
-        };
-
-        const hardcodedUrl = hardcodedAiVideoUrls[applicant.application_id];
-        
-        if (hardcodedUrl) {
-          // URL 인코딩 제거 - 브라우저가 자동으로 처리하도록
-          setAiInterviewVideoUrl(hardcodedUrl);
-          console.log(`✅ ${applicant.application_id}번 지원자 AI 면접 비디오 URL 설정: ${hardcodedUrl}`);
-        } else {
-          // 동적 URL 생성 (application_id 기반)
-          const dynamicUrl = `http://localhost:8000/data/${applicant.application_id}_AI면접.mp4`;
-          setAiInterviewVideoUrl(dynamicUrl);
-          console.log(`🔍 ${applicant.application_id}번 지원자 동적 AI 면접 비디오 URL 설정: ${dynamicUrl}`);
+        // 1. DB의 AI 면접 비디오 URL 우선 확인
+        if (applicant.ai_interview_video_url) {
+          // Google Drive URL을 preview 형식으로 변환
+          let processedUrl = applicant.ai_interview_video_url;
+          if (processedUrl.includes('drive.google.com/file/d/')) {
+            const fileId = processedUrl.match(/\/file\/d\/([^\/]+)/)?.[1];
+            if (fileId) {
+              processedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+              console.log(`🔄 Google Drive URL을 preview 형식으로 변환: ${processedUrl}`);
+            }
+          }
+          setAiInterviewVideoUrl(processedUrl);
+          console.log(`✅ ${applicant.application_id}번 지원자 AI 면접 비디오 URL 사용: ${processedUrl}`);
+          setAiInterviewVideoLoading(false);
+          return;
         }
+        
+        // 2. DB의 기존 비디오 URL 확인
+        if (applicant.video_url) {
+          setAiInterviewVideoUrl(applicant.video_url);
+          console.log(`✅ ${applicant.application_id}번 지원자 기존 비디오 URL 사용: ${applicant.video_url}`);
+          setAiInterviewVideoLoading(false);
+          return;
+        }
+        
+        // 3. 폴백: 샘플 비디오 URL 사용
+        const fallbackUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+        setAiInterviewVideoUrl(fallbackUrl);
+        console.log(`⚠️ ${applicant.application_id}번 지원자 비디오 URL 없음, 폴백 URL 사용: ${fallbackUrl}`);
       } catch (error) {
         console.error('AI 면접 비디오 URL 설정 실패:', error);
+        // 최종 폴백
+        const fallbackUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+        setAiInterviewVideoUrl(fallbackUrl);
+        console.log(`⚠️ 최종 폴백 URL 사용: ${fallbackUrl}`);
       } finally {
         setAiInterviewVideoLoading(false);
       }
@@ -497,436 +528,9 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
     loadAiInterviewVideo();
   }, [applicant]);
 
-  // 하드코딩된 AI 면접 데이터 (우선 사용)
-  const hardcodedAiInterviewData = {
-    59: {
-      video_analysis: {
-        speech_rate: 150.0,
-        volume_level: 0.75,
-        pronunciation_score: 0.85,
-        intonation_score: 0.6,
-        emotion_variation: 0.6,
-        background_noise_level: 0.1,
-        smile_frequency: 1.0,
-        eye_contact_ratio: 0.8,
-        hand_gesture: 0.5,
-        nod_count: 2,
-        posture_changes: 2,
-        eye_aversion_count: 1,
-        facial_expression_variation: 0.6,
-        redundancy_score: 0.05,
-        positive_word_ratio: 0.6,
-        negative_word_ratio: 0.1,
-        technical_term_count: 5,
-        grammar_error_count: 1,
-        conciseness_score: 0.7,
-        creativity_score: 0.6,
-        question_understanding_score: 0.8,
-        conversation_flow_score: 0.75,
-        total_silence_time: 1.0,
-        analysis_timestamp: "2025-07-27T11:29:09.108308",
-        video_path: "/tmp/tmpdhtkf46g.tmp",
-        source_url: "https://drive.google.com/file/d/18dO35QTr0cHxEX8CtMtCkzfsBRes68XB/view?usp=drive_link",
-        analysis_date: "2025-07-27T11:29:09.108345",
-        analysis_type: "google_drive_video"
-      },
-      stt_analysis: {
-        application_id: 59,
-        total_duration: 166.57,
-        speaking_time: 94.36,
-        silence_ratio: 0.43,
-        segment_count: 98,
-        avg_segment_duration: 0.96,
-        avg_energy: 0.04179999977350235,
-        avg_pitch: 157.06,
-        speaking_speed_wpm: 138.0,
-        emotion: "긍정적",
-        attitude: "중립적",
-        posture: "보통",
-        score: 4.2,
-        feedback: "면접자는 또렷한 발음과 안정된 태도로 질문에 임했으며, 감정 표현이 자연스러웠습니다.",
-        timestamp: "2025-07-27T20:10:27.035225",
-        // 면접 유형별 STT 데이터 추가
-        practice_interview: {
-          analysis_date: "2025-07-28T03:00:08.435566",
-          file_count: 24,
-          file_order: [
-            "59 강점약점.m4a",
-            "59 기술 1.m4a",
-            "59 기술 2.m4a",
-            "59 기술 3.m4a",
-            "59 기술 4.m4a",
-            "59 기술 5.m4a",
-            "59 기술 6.m4a",
-            "59 기술 7.m4a",
-            "59 실무진 1.m4a",
-            "59 자기소개.m4a",
-            "59 직무선택.m4a",
-            "59 팀워크.m4a"
-          ],
-          individual_analyses: [
-            {
-              file_info: {
-                file_index: 1,
-                filename: "59 강점약점.m4a",
-                file_path: "/content/drive/MyDrive/kocruit_video/59/59_practice/59 강점약점.m4a",
-                file_size: 910531,
-                duration_ms: 27200,
-                duration_seconds: 27.2,
-                channels: 1,
-                sample_rate: 48000
-              },
-              stt_analysis: {
-                text: " 본인의 강점과 약점은 무엇인가요? 강체의 강점은 실례감을 주는 성실함입니다. 고객은 대만 적도에서도 긍정적인 평가를 받았고 서고우를 발생시해도 끝까지 함께 문제를 해결했습니다. 하지만 제약점은 완벽주의 성향에 있습니다. 일정에 길어지는 경우가 있었지만 이제는 원무 우선순위를 통해 MVP부터 구현하는 방식으로 조율하고 있습니다.",
-                language: "ko",
-                segments: [
-                  {
-                    id: 0,
-                    seek: 0,
-                    start: 0.0,
-                    end: 5.5,
-                    text: " 본인의 강점과 약점은 무엇인가요?",
-                    tokens: [50364, 19387, 4215, 2785, 14623, 15046, 7097, 11503, 15046, 2124, 47384, 4215, 28517, 30, 50639],
-                    temperature: 0.0,
-                    avg_logprob: -0.3479025232510304,
-                    compression_ratio: 1.5032894736842106,
-                    no_speech_prob: 0.2593787908554077
-                  },
-                  {
-                    id: 1,
-                    seek: 0,
-                    start: 5.5,
-                    end: 8.700000000000001,
-                    text: " 강체의 강점은 실례감을 주는 성실함입니다.",
-                    tokens: [50639, 14623, 16260, 2785, 14623, 15046, 2124, 34496, 42229, 47004, 45589, 14409, 8323, 25249, 7416, 13, 50799],
-                    temperature: 0.0,
-                    avg_logprob: -0.3479025232510304,
-                    compression_ratio: 1.5032894736842106,
-                    no_speech_prob: 0.2593787908554077
-                  }
-                ]
-              }
-            },
-            {
-              file_info: {
-                file_index: 3,
-                filename: "59 기술 1.m4a",
-                file_path: "/content/drive/MyDrive/kocruit_video/59/59_practice/59 기술 1.m4a",
-                file_size: 1200000,
-                duration_ms: 35000,
-                duration_seconds: 35.0,
-                channels: 1,
-                sample_rate: 48000
-              },
-              stt_analysis: {
-                text: " 기술 스택에 대해 설명해주세요. 저는 주로 React, Node.js, Python을 사용합니다. React로는 프론트엔드 개발을, Node.js로는 백엔드 API 개발을, Python으로는 데이터 분석과 머신러닝 작업을 수행합니다.",
-                language: "ko",
-                segments: [
-                  {
-                    id: 0,
-                    seek: 0,
-                    start: 0.0,
-                    end: 6.0,
-                    text: " 기술 스택에 대해 설명해주세요.",
-                    tokens: [50364, 7047, 5989, 1129, 16996, 238, 16474, 30, 50514, 8808, 11, 19617, 227, 24798, 21967, 5792, 254, 43875, 45632, 34130, 6891, 242, 4815, 502, 11, 7526, 531, 33067, 11, 7047, 46808, 11, 17691, 9790, 11, 16299, 27758, 2179, 251, 8857, 7047, 5989, 11, 11685, 3049, 21967, 5792, 254, 1722, 23943, 531, 115, 2004, 1955, 49406, 16662, 14409, 7097, 7416, 13, 51114],
-                    temperature: 0.0,
-                    avg_logprob: -0.3479025232510304,
-                    compression_ratio: 1.5032894736842106,
-                    no_speech_prob: 0.2593787908554077
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        executive_interview: {
-          analysis_date: "2025-07-28T02:54:46.649219",
-          file_count: 24,
-          file_order: [
-            "59 1-1.m4a",
-            "59 1-2.m4a",
-            "59 2-1.m4a",
-            "59 2-2.m4a",
-            "59 2.m4a",
-            "59 3-1.m4a",
-            "59 3-2.m4a",
-            "59 3.m4a",
-            "59 4-1.m4a",
-            "59 4-2.m4a",
-            "59 4.m4a",
-            "59 5.m4a"
-          ],
-          individual_analyses: [
-            {
-              file_info: {
-                file_index: 1,
-                filename: "59 1-1.m4a",
-                file_path: "/content/drive/MyDrive/kocruit_video/59/59_excuete/59 1-1.m4a",
-                file_size: 676152,
-                duration_ms: 19947,
-                duration_seconds: 19.947,
-                channels: 1,
-                sample_rate: 48000
-              },
-              stt_analysis: {
-                text: " 예산 사용 기준은 너무 좋겠네요. 예산위원회 부회장 포함 3인이가 기준을 처음 설정했고 부회장인 제가 주 가나요 예산안과 증핑 파일을 구글 드라이브에서 관리했습니다. 부원 전원이 실시간으로 접근해 확인할 수 있게 했습니다.",
-                language: "ko",
-                segments: [
-                  {
-                    id: 0,
-                    seek: 0,
-                    start: 0.0,
-                    end: 5.68,
-                    text: " 예산 사용 기준은 너무 좋겠네요.",
-                    tokens: [50364, 10134, 16551, 14422, 7047, 18583, 2124, 6924, 5008, 37244, 12974, 13, 50648],
-                    temperature: 0.0,
-                    avg_logprob: -0.3885347702923943,
-                    compression_ratio: 1.3909090909090909,
-                    no_speech_prob: 0.14250877499580383
-                  },
-                  {
-                    id: 1,
-                    seek: 0,
-                    start: 5.68,
-                    end: 12.08,
-                    text: " 예산위원회 부회장 포함 3인이가 기준을 처음 설정했고 부회장인 제가 주",
-                    tokens: [50648, 10134, 16551, 14098, 7573, 15048, 11351, 15048, 4573, 17101, 25249, 805, 30603, 1453, 7047, 18583, 1638, 18736, 30630, 6170, 7077, 1313],
-                    temperature: 0.0,
-                    avg_logprob: -0.3885347702923943,
-                    compression_ratio: 1.3909090909090909,
-                    no_speech_prob: 0.14250877499580383
-                  }
-                ]
-              }
-            },
-            {
-              file_info: {
-                file_index: 3,
-                filename: "59 2-1.m4a",
-                file_path: "/content/drive/MyDrive/kocruit_video/59/59_excuete/59 2-1.m4a",
-                file_size: 800000,
-                duration_ms: 25000,
-                duration_seconds: 25.0,
-                channels: 1,
-                sample_rate: 48000
-              },
-              stt_analysis: {
-                text: " 리더십 경험에 대해 말씀해주세요. 팀 프로젝트에서 리더 역할을 맡아 5명의 팀원과 함께 3개월간 프로젝트를 진행했습니다. 갈등 상황에서도 팀원들의 의견을 조율하고 합의점을 찾아 프로젝트를 성공적으로 완료했습니다.",
-                language: "ko",
-                segments: [
-                  {
-                    id: 0,
-                    seek: 0,
-                    start: 0.0,
-                    end: 7.0,
-                    text: " 리더십 경험에 대해 말씀해주세요.",
-                    tokens: [50364, 7047, 5989, 1129, 16996, 238, 16474, 30, 50514, 8808, 11, 19617, 227, 24798, 21967, 5792, 254, 43875, 45632, 34130, 6891, 242, 4815, 502, 11, 7526, 531, 33067, 11, 7047, 46808, 11, 17691, 9790, 11, 16299, 27758, 2179, 251, 8857, 7047, 5989, 11, 11685, 3049, 21967, 5792, 254, 1722, 23943, 531, 115, 2004, 1955, 49406, 16662, 14409, 7097, 7416, 13, 51114],
-                    temperature: 0.0,
-                    avg_logprob: -0.3885347702923943,
-                    compression_ratio: 1.3909090909090909,
-                    no_speech_prob: 0.14250877499580383
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    },
-    61: {
-      video_analysis: {
-        speech_rate: 145.0,
-        volume_level: 0.8,
-        pronunciation_score: 0.9,
-        intonation_score: 0.7,
-        emotion_variation: 0.5,
-        background_noise_level: 0.05,
-        smile_frequency: 0.8,
-        eye_contact_ratio: 0.9,
-        hand_gesture: 0.6,
-        nod_count: 3,
-        posture_changes: 1,
-        eye_aversion_count: 0,
-        facial_expression_variation: 0.7,
-        redundancy_score: 0.03,
-        positive_word_ratio: 0.7,
-        negative_word_ratio: 0.05,
-        technical_term_count: 7,
-        grammar_error_count: 0,
-        conciseness_score: 0.8,
-        creativity_score: 0.7,
-        question_understanding_score: 0.9,
-        conversation_flow_score: 0.8,
-        total_silence_time: 0.5,
-        analysis_timestamp: "2025-07-27T11:30:15.123456",
-        analysis_date: "2025-07-27T11:30:15.123456",
-        analysis_type: "google_drive_video"
-      },
-      stt_analysis: {
-        application_id: 61,
-        total_duration: 182.17,
-        speaking_time: 116.76,
-        silence_ratio: 0.36,
-        segment_count: 43,
-        avg_segment_duration: 2.72,
-        avg_energy: 0.010599999688565731,
-        avg_pitch: 260.97,
-        speaking_speed_wpm: 138.0,
-        emotion: "부정적",
-        attitude: "차분함",
-        posture: "안정적",
-        score: 4.2,
-        feedback: "면접자는 또렷한 발음과 안정된 태도로 질문에 임했으며, 감정 표현이 자연스러웠습니다.",
-        timestamp: "2025-07-27T20:23:45.313544"
-      }
-    },
-    68: {
-      video_analysis: {
-        speech_rate: 140.0,
-        volume_level: 0.7,
-        pronunciation_score: 0.8,
-        intonation_score: 0.65,
-        emotion_variation: 0.55,
-        background_noise_level: 0.08,
-        smile_frequency: 0.9,
-        eye_contact_ratio: 0.85,
-        hand_gesture: 0.55,
-        nod_count: 2,
-        posture_changes: 2,
-        eye_aversion_count: 1,
-        facial_expression_variation: 0.65,
-        redundancy_score: 0.04,
-        positive_word_ratio: 0.65,
-        negative_word_ratio: 0.08,
-        technical_term_count: 6,
-        grammar_error_count: 1,
-        conciseness_score: 0.75,
-        creativity_score: 0.65,
-        question_understanding_score: 0.85,
-        conversation_flow_score: 0.78,
-        total_silence_time: 0.8,
-        analysis_timestamp: "2025-07-27T11:31:22.789012",
-        analysis_date: "2025-07-27T11:31:22.789012",
-        analysis_type: "google_drive_video"
-      },
-      stt_analysis: {
-        application_id: 68,
-        total_duration: 182.17,
-        speaking_time: 116.76,
-        silence_ratio: 0.36,
-        segment_count: 43,
-        avg_segment_duration: 2.72,
-        avg_energy: 0.010599999688565731,
-        avg_pitch: 260.97,
-        speaking_speed_wpm: 138.0,
-        emotion: "부정적",
-        attitude: "차분함",
-        posture: "안정적",
-        score: 4.2,
-        feedback: "면접자는 또렷한 발음과 안정된 태도로 질문에 임했으며, 감정 표현이 자연스러웠습니다.",
-        timestamp: "2025-07-27T20:27:28.868576",
-        // 실제 STT 분석 데이터 추가 (ai_interview_applicant_68_result.json 기반)
-        user_analysis: {
-          analysis_data: {
-            individual_analyses: [
-              {
-                file_info: {
-                  file_index: 1,
-                  filename: "68_AI면접_전체.mp4",
-                  file_path: "/content/drive/MyDrive/kocruit_video/68/68_practice/68_AI면접_전체.mp4",
-                  file_size: 2048576,
-                  duration_ms: 179000,
-                  duration_seconds: 179.0,
-                  channels: 1,
-                  sample_rate: 48000
-                },
-                stt_analysis: {
-                  text: " 안녕하세요. 백앤드 개발자치 원자 최지현입니다. 자바 스프링 기반 공공 SI 시스템 고축에서 요구분석 운영 개뽁까지 담당했으며 스킬 이륙수 써버한형 트랜젝션 관리의 전문성을 갖추고 있습니다. AWS 기반 배포 자동화로 정해 복구 시간을 40% 단축한 경험이 있습니다. 고사 공공의 지원하게 된 동기는 무엇인가요? 저는 디지털 전원을 통해 국민 설맨 질 평상에 기여하고 싶었습니다. 고사 공공이 공공 IT 혁신을 선두하는 기관이어서 지원했습니다. 고사 공공이 공공 IT 혁신을 선두하는 기관이어서 지원했습니다. 고사 공공이 공공이 공공 IT 혁신을 선두하는 기관이어서 지원했습니다. 고사 공공이 인재상에 대해 어떻게 생각하시나요? 고사 공공의 인재상은 책임관과 실행력이 뛰어나는데 그 인재상이 유독 인재상 깊습니다. 저는 스마트 시스템 개발 프로젝트에서 이러한 영향을 발휘했습니다. 고증 문화에 정한 대신을 선두하는 기관의 인재상은 고사 공공이 인재상은 책임관과 실행력이 뛰어나는데 그 인재상의 유독 인재상 깊습니다. 저는 스마트 시스템 개발 프로젝트에서 이러한 영향을 발휘했습니다. 고증 문화에 정한 대신 가장 중요한 것은 무엇이라고 생각하시나요? 제가 가장 중요하다고 생각하는 것은 경청과 학습 태도라고 생각합니다. 새로운 조직에서 먼저 듣고 배우는 것이 중요하다고 배웠습니다. 팀워크와 개인성과 중 어느 것을 더 중요하게 생각하시나요? 저는 팀워크가 우선입니다. 함께할 때 개인성과도 최대한 발이 될 수 있다고 뵙습니다. 업무중 예상시 못한 문제가 발생했을 때 어떻게 해결하시겠습니까? 일단 빠르게 원인을 분석하고 팀과 공연 후 반계별로 소치하면 안정화를 우선합니다. 새로운 기술이나 방법을 배워야 할 때 어떻게 접근하시나요? 저는 공신문서 실습 예제로 학습하고 블루구 정리로 체계한 호흡 팀과 공유합니다. 본인의 장단점은 무엇인가요? 제 강점은 학습 속도와 책임감이고 단점은 가끔 세부에 집중하느라 시간이 지체되는 점입니다. 현재는 우선수룡이 관리로 원 중입니다. 동요와 갈등이 생겼을 때 어떻게 해결하나요? 저는 서로의 입장을 문서화하고 논리적으로 대화하면 공감제를 평성하는 방식으로 해결합니다.",
-                  language: "ko",
-                  segments: [
-                    {
-                      id: 0,
-                      seek: 0,
-                      start: 0.0,
-                      end: 2.0,
-                      text: " 안녕하세요.",
-                      tokens: [50364, 19289, 13, 50464],
-                      temperature: 0.0,
-                      avg_logprob: -0.46013581948202165,
-                      compression_ratio: 1.3099630996309963,
-                      no_speech_prob: 0.14091596007347107
-                    },
-                    {
-                      id: 1,
-                      seek: 0,
-                      start: 2.0,
-                      end: 7.0,
-                      text: " 백앤드 개발자치 원자 최지현입니다.",
-                      tokens: [50464, 20710, 1457, 2990, 7087, 30185, 17248, 4264, 8464, 13499, 4264, 14571, 1831, 16756, 7416, 13, 50714],
-                      temperature: 0.0,
-                      avg_logprob: -0.46013581948202165,
-                      compression_ratio: 1.3099630996309963,
-                      no_speech_prob: 0.14091596007347107
-                    },
-                    {
-                      id: 2,
-                      seek: 0,
-                      start: 7.0,
-                      end: 10.0,
-                      text: " 자바 스프링 기반 공공 SI 시스템 고축에서",
-                      tokens: [50714, 15905, 27344, 11196, 242, 2703, 25787, 12503, 22196, 9273, 14913, 318, 40, 5710, 9605, 227, 250, 9161, 9597, 243, 4885, 50864],
-                      temperature: 0.0,
-                      avg_logprob: -0.46013581948202165,
-                      compression_ratio: 1.3099630996309963,
-                      no_speech_prob: 0.14091596007347107
-                    },
-                    {
-                      id: 3,
-                      seek: 0,
-                      start: 10.0,
-                      end: 13.0,
-                      text: " 요구분석 운영 개뽁까지 담당했으며",
-                      tokens: [50864, 10161, 11545, 6072, 17075, 4709, 42978, 223, 30185, 121, 223, 8786, 39700, 11752, 7077, 3336, 18095, 51014],
-                      temperature: 0.0,
-                      avg_logprob: -0.46013581948202165,
-                      compression_ratio: 1.3099630996309963,
-                      no_speech_prob: 0.14091596007347107
-                    },
-                    {
-                      id: 4,
-                      seek: 0,
-                      start: 13.0,
-                      end: 17.0,
-                      text: " 스킬 이륙수 써버한형 트랜젝션 관리의 전문성을 갖추고 있습니다.",
-                      tokens: [51014, 11196, 9915, 2892, 98, 247, 8449, 37113, 3891, 17910, 3049, 17453, 34479, 252, 250, 2179, 251, 18952, 25201, 2250, 2785, 19617, 8357, 46055, 27668, 25023, 1313, 10552, 13, 51214],
-                      temperature: 0.0,
-                      avg_logprob: -0.46013581948202165,
-                      compression_ratio: 1.3099630996309963,
-                      no_speech_prob: 0.14091596007347107
-                    },
-                    {
-                      id: 5,
-                      seek: 0,
-                      start: 17.0,
-                      end: 24.0,
-                      text: " AWS 기반 배포 자동화로 정해 복구 시간을 40% 단축한 경험이 있습니다.",
-                      tokens: [51214, 316, 12508, 12503, 22196, 14155, 30600, 15905, 8309, 6048, 18839, 4980, 5302, 30696, 7675, 16648, 1638, 3356, 4, 16818, 9597, 243, 3049, 9537, 24651, 1129, 10552, 13, 51564],
-                      temperature: 0.0,
-                      avg_logprob: -0.46013581948202165,
-                      compression_ratio: 1.3099630996309963,
-                      no_speech_prob: 0.14091596007347107
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      }
-    }
-  };
+  // 하드코딩된 데이터 완전 제거 - DB에서만 데이터를 가져옴
 
-  // 면접 데이터 로드 효과 (하드코딩 우선, DB 폴백)
+  // 면접 데이터 로드 효과 (DB에서만 데이터를 가져옴)
   useEffect(() => {
     const loadInterviewData = async () => {
       if (!applicant) return;
@@ -939,23 +543,10 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
         let videoAnalysisSource = 'database';
         let whisperAnalysis = null;
         
-        // 1. 하드코딩된 데이터 확인 (우선)
-        const hardcodedData = hardcodedAiInterviewData[applicant.application_id];
-        
-        if (hardcodedData) {
-          videoAnalysis = hardcodedData.video_analysis;
-          whisperAnalysis = {
-            success: true,
-            analysis: hardcodedData.stt_analysis,
-            data_source: 'hardcoded'
-          };
-          videoAnalysisSource = 'hardcoded';
-          console.log(`✅ ${applicant.application_id}번 지원자 하드코딩 데이터 로드 완료`);
-        } else {
-          // 2. 하드코딩된 데이터가 없으면 DB에서 로드
-          console.log(`🔍 ${applicant.application_id}번 지원자 DB에서 데이터 로드 시도`);
+        // DB에서 데이터 로드
+        console.log(`🔍 ${applicant.application_id}번 지원자 DB에서 데이터 로드 시도`);
           
-          // AI 면접 분석 결과 로드 (JSON 파일 우선, DB 폴백)
+        // AI 면접 분석 결과 로드 (JSON 파일 우선, DB 폴백)
         const aiAnalysisResponse = await safeApiCall(() => 
           api.get(`/ai-interview-questions/ai-interview-analysis/${applicant.application_id}`)
         );
@@ -1000,14 +591,13 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
           }
         }
         
-          // STT 분석 결과 로드 (JSON 파일 우선, DB 폴백)
+        // STT 분석 결과 로드 (JSON 파일 우선, DB 폴백)
         const whisperResponse = await safeApiCall(() => 
           api.get(`/ai-interview-questions/whisper-analysis/${applicant.application_id}?interview_type=ai_interview`)
         );
         
         if (whisperResponse && whisperResponse.success) {
           whisperAnalysis = whisperResponse.analysis || whisperResponse.whisper_data;
-          }
         }
         
         // 3. 기존 평가 데이터 로드 (API 호출) - 404 에러로 인해 주석처리
@@ -1772,18 +1362,37 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 </div>
               ) : aiInterviewVideoUrl ? (
                 <div className="bg-black rounded-lg overflow-hidden">
-                  <video
-                    controls
-                    className="w-full h-auto"
-                    src={aiInterviewVideoUrl}
-                    onError={(e) => {
-                      console.error('AI 면접 비디오 로드 오류:', e);
-                      console.error('비디오 URL:', aiInterviewVideoUrl);
-                      console.error('지원자 ID:', applicant.application_id);
-                    }}
-                  >
-                    브라우저가 비디오를 지원하지 않습니다.
-                  </video>
+                  {aiInterviewVideoUrl.includes('drive.google.com') ? (
+                    // Google Drive URL인 경우 iframe으로 표시
+                    <iframe
+                      src={aiInterviewVideoUrl}
+                      className="w-full h-96"
+                      frameBorder="0"
+                      allowFullScreen
+                      title="AI 면접 동영상"
+                      onError={(e) => {
+                        console.error('Google Drive iframe 로드 오류:', e);
+                        console.error('iframe URL:', aiInterviewVideoUrl);
+                        console.error('지원자 ID:', applicant.application_id);
+                      }}
+                    />
+                  ) : (
+                    // 일반 비디오 URL인 경우 video 태그 사용
+                    <video
+                      controls
+                      className="w-full h-auto"
+                      onError={(e) => {
+                        console.error('AI 면접 비디오 로드 오류:', e);
+                        console.error('비디오 URL:', aiInterviewVideoUrl);
+                        console.error('지원자 ID:', applicant.application_id);
+                      }}
+                    >
+                      <source src={aiInterviewVideoUrl} type="video/mp4" />
+                      <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
+                      <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" type="video/mp4" />
+                      브라우저가 비디오를 지원하지 않습니다.
+                    </video>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -2170,10 +1779,10 @@ const AiInterviewSystem = () => {
         } else {
           // 2. 지원자 목록 로드
           setLoadingProgress(60);
-          console.log('🔍 API 호출 시작:', `/applications/job/${jobPostId}/ai-interview-applicants-basic`);
-          const applicantsRes = await api.get(`/applications/job/${jobPostId}/ai-interview-applicants-basic`);
+          console.log('🔍 API 호출 시작:', `/applications/job/${jobPostId}/applicants-with-ai-interview`);
+          const applicantsRes = await api.get(`/applications/job/${jobPostId}/applicants-with-ai-interview`);
           console.log('✅ API 응답:', applicantsRes.data);
-          const applicants = applicantsRes.data.applicants || [];
+          const applicants = applicantsRes.data || [];
           
           // 지원자 데이터 매핑 개선
           const mappedApplicants = applicants.map(applicant => ({
