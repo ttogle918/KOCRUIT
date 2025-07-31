@@ -150,9 +150,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_DB: 0
-      # 애플리케이션 성능 설정 (t3.small용)
-      WORKERS: 2  # 워커 수 줄임 (연결 부하 감소)
-      WORKER_CONNECTIONS: 500
+      # 애플리케이션 성능 설정 (최적화)
+      WORKERS: 2  # 성능 유지
+      WORKER_CONNECTIONS: 1000  # 연결 수 증가
     networks:
       - app-net
     volumes:
@@ -217,10 +217,47 @@ services:
       - backend
       - agent
 
+  video-analysis:
+    build:
+      context: .
+      dockerfile: video-analysis/Dockerfile
+    container_name: kocruit_video_analysis
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_HOST=kocruit-02.c5k2wi2q8g80.us-east-2.rds.amazonaws.com
+      - DB_PORT=3306
+      - DB_NAME=kocruit
+      - DB_USER=admin
+      - DB_PASSWORD=kocruit1234!
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./video-analysis:/app
+      - ./backend:/app/backend
+      - ./.env:/app/.env
+      - ./data:/app/data
+      - video_analysis_cache:/app/.cache
+    networks:
+      - app-net
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8002/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   redis:
     image: redis:7.2-alpine
     container_name: kosa-redis
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000 --tcp-keepalive 300
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000 --tcp-keepalive 300
     ports:
       - "6379:6379"
     volumes:
@@ -237,6 +274,7 @@ services:
 
 volumes:
   redis_data:
+  video_analysis_cache:
 
 networks:
   app-net:

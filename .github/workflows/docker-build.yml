@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend/**'
       - 'agent/**'
+      - 'video-analysis/**'
       - 'frontend/**'
       - 'requirements.txt'
       - '.github/workflows/**'
@@ -18,6 +19,7 @@ jobs:
       GHCR_BACKEND: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-backend
       GHCR_AGENT: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-agent
       GHCR_FRONTEND: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-frontend
+      GHCR_VIDEO_ANALYSIS: ghcr.io/${{ secrets.GH_USERNAME }}/kocruit-video-analysis
 
     steps:
       - name: Checkout code
@@ -35,3 +37,8 @@ jobs:
         run: |
           docker build -t $GHCR_AGENT:latest -f agent/Dockerfile .
           docker push $GHCR_AGENT:latest
+
+      - name: Build and Push Video Analysis Image
+        run: |
+          docker build -t $GHCR_VIDEO_ANALYSIS:latest -f video-analysis/Dockerfile .
+          docker push $GHCR_VIDEO_ANALYSIS:latest
