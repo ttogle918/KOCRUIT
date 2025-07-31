@@ -69,7 +69,7 @@ const AiInterviewResults = ({ applicationId, jobPostId }) => {
     );
   }
 
-  if (!evaluation || !evaluation.success) {
+  if (!evaluation || evaluation.status === 'no_evaluation') {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex">
@@ -89,8 +89,9 @@ const AiInterviewResults = ({ applicationId, jobPostId }) => {
     );
   }
 
-  const { evaluation: evalData } = evaluation;
-  const { evaluation_items = [] } = evalData;
+  // 평가 데이터가 있는 경우
+  const evaluations = evaluation.evaluations || [];
+  const evaluation_items = evaluations.length > 0 ? evaluations[0].evaluation_items || [] : [];
 
   // 등급별 개수 계산
   const gradeCounts = evaluation_items.reduce((acc, item) => {
@@ -112,9 +113,8 @@ const AiInterviewResults = ({ applicationId, jobPostId }) => {
         </h2>
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            <p><strong>지원자:</strong> {evaluation.applicant_name}</p>
-            <p><strong>공고:</strong> {evaluation.job_post_title}</p>
-            <p><strong>평가일:</strong> {new Date(evalData.created_at).toLocaleDateString()}</p>
+            <p><strong>지원자 ID:</strong> {evaluation.application_id}</p>
+            <p><strong>평가일:</strong> {evaluation.evaluation_date ? new Date(evaluation.evaluation_date).toLocaleDateString() : 'N/A'}</p>
           </div>
           <div className="text-right">
             <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
@@ -123,7 +123,7 @@ const AiInterviewResults = ({ applicationId, jobPostId }) => {
               {passed ? '✅ 합격' : '❌ 불합격'}
             </div>
             <div className="text-sm text-gray-600 mt-1">
-              총점: {evalData.total_score}점
+              총점: {evaluation.total_score || 0}점
             </div>
           </div>
         </div>

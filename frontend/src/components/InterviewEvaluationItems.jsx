@@ -41,13 +41,23 @@ const InterviewEvaluationItems = ({
       const data = await getInterviewEvaluationItems(resumeId, applicationId, interviewStage);
       setEvaluationData(data);
       
-      // 초기 점수 설정
+      // 초기 점수 설정 - 기존 점수가 있으면 사용, 없으면 0으로 초기화
       const initialScores = {};
       data.evaluation_items.forEach(item => {
-        initialScores[item.item_name] = 0;
+        // AI 면접 평가 결과에서 기존 점수가 있으면 사용
+        initialScores[item.item_name] = item.current_score || 0;
       });
       setScores(initialScores);
+      
+      console.log('✅ 평가 항목 로드 완료:', {
+        interviewStage,
+        itemCount: data.evaluation_items.length,
+        totalWeight: data.total_weight,
+        maxTotalScore: data.max_total_score,
+        source: data.source
+      });
     } catch (err) {
+      console.error('❌ 평가 항목 로드 실패:', err);
       setError(err.message || '평가 항목을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);

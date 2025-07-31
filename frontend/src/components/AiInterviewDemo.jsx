@@ -17,6 +17,9 @@ function AiInterviewDemo() {
   const { jobPostId, applicantId } = useParams();
   const navigate = useNavigate();
   
+  // 데모 모드 확인
+  const isDemoMode = applicantId === 'demo';
+  
   // 면접 상태
   const [interviewState, setInterviewState] = useState('preparation');
   const [currentStep, setCurrentStep] = useState(0);
@@ -62,23 +65,78 @@ function AiInterviewDemo() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 지원자 정보 로드
-        const applicantRes = await api.get(`/applications/${applicantId}`);
-        setApplicant(applicantRes.data);
-        
-        // 공고 정보 로드
-        const jobPostRes = await api.get(`/company/jobposts/${jobPostId}`);
-        setJobPost(jobPostRes.data);
-        
-        // 시나리오 질문 로드
-        const questionsRes = await api.post('/ai-interview/scenarios', null, {
-          params: { job_post_id: jobPostId, applicant_id: applicantId }
-        });
-        setScenarioQuestions(questionsRes.data.scenarios || []);
+        if (isDemoMode) {
+          // 데모 모드: 기본 데이터 사용
+          setApplicant({
+            applicant: {
+              name: "데모 지원자",
+              email: "demo@example.com"
+            }
+          });
+          
+          // 공고 정보 로드 (데모 모드에서도 필요)
+          try {
+            const jobPostRes = await api.get(`/company/jobposts/${jobPostId}`);
+            setJobPost(jobPostRes.data);
+          } catch (error) {
+            console.warn('공고 정보 로드 실패, 기본값 사용:', error);
+            setJobPost({
+              title: "백엔드 개발자",
+              company: { name: "테스트 회사" }
+            });
+          }
+          
+          // 데모용 기본 시나리오 질문
+          setScenarioQuestions([
+            {
+              id: 1,
+              scenario: "고객이 갑작스럽게 요구사항을 변경했을 때, 어떻게 대응하시겠습니까?",
+              question: "이런 상황에서 본인의 대응 방식을 구체적으로 설명해주세요.",
+              category: "situation_handling",
+              time_limit: 120
+            },
+            {
+              id: 2,
+              scenario: "팀원과 의견이 충돌하는 상황에서, 어떻게 해결하시겠습니까?",
+              question: "협업 과정에서 발생할 수 있는 갈등 해결 방법을 설명해주세요.",
+              category: "teamwork",
+              time_limit: 120
+            },
+            {
+              id: 3,
+              scenario: "새로운 기술을 배워야 하는 상황에서, 어떻게 접근하시겠습니까?",
+              question: "학습 과정과 적용 방법을 구체적으로 설명해주세요.",
+              category: "learning_ability",
+              time_limit: 120
+            }
+          ]);
+        } else {
+          // 실제 모드: API에서 데이터 로드
+          const applicantRes = await api.get(`/applications/${applicantId}`);
+          setApplicant(applicantRes.data);
+          
+          const jobPostRes = await api.get(`/company/jobposts/${jobPostId}`);
+          setJobPost(jobPostRes.data);
+          
+          const questionsRes = await api.post('/ai-interview/scenarios', null, {
+            params: { job_post_id: jobPostId, applicant_id: applicantId }
+          });
+          setScenarioQuestions(questionsRes.data.scenarios || []);
+        }
         
       } catch (error) {
         console.error('데이터 로드 실패:', error);
-        // 데모용 기본 데이터
+        // 에러 시 기본 데이터 사용
+        setApplicant({
+          applicant: {
+            name: "지원자",
+            email: "applicant@example.com"
+          }
+        });
+        setJobPost({
+          title: "백엔드 개발자",
+          company: { name: "회사" }
+        });
         setScenarioQuestions([
           {
             id: 1,
@@ -100,10 +158,10 @@ function AiInterviewDemo() {
       }
     };
     
-    if (jobPostId && applicantId) {
+    if (jobPostId) {
       fetchData();
     }
-  }, [jobPostId, applicantId]);
+  }, [jobPostId, applicantId, isDemoMode]);
 
   // 실시간 평가 메트릭 시뮬레이션
   useEffect(() => {
@@ -243,10 +301,10 @@ function AiInterviewDemo() {
           <div>
             <h1 className="text-2xl font-bold text-green-600 flex items-center gap-2">
               <MdOutlineAutoAwesome />
-              AI 면접 시스템 (데모)
+              AI 면접 시스템 {isDemoMode && '(데모 모드)'}
             </h1>
             <p className="text-sm text-gray-600 mt-1">
-              실시간 평가 메트릭 기반 자동 면접
+              {isDemoMode ? 'AI 면접 시스템 기능 시연 및 테스트' : '실시간 평가 메트릭 기반 자동 면접'}
             </p>
           </div>
           
@@ -313,6 +371,11 @@ function AiInterviewDemo() {
                       <div>
                         <p className="font-medium text-gray-800">{applicant.applicant?.name || '지원자'}</p>
                         <p className="text-sm text-gray-500">{applicant.applicant?.email || 'email@example.com'}</p>
+                        {isDemoMode && (
+                          <div className="mt-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                            🎯 데모 모드 - 시연용 데이터
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -397,10 +460,10 @@ function AiInterviewDemo() {
                   
                   {interviewState === 'completed' && (
                     <button
-                      onClick={() => navigate(`/interview-progress/${jobPostId}/ai`)}
+                      onClick={() => navigate(isDemoMode ? `/ai-interview/${jobPostId}` : `/interview-progress/${jobPostId}/ai`)}
                       className="w-full bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors"
                     >
-                      면접 목록으로 돌아가기
+                      {isDemoMode ? 'AI 면접 관리로 돌아가기' : '면접 목록으로 돌아가기'}
                     </button>
                   )}
                 </div>
