@@ -9,7 +9,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
 from app.core.database import SessionLocal
 from app.models.job import JobPost
-from app.models.application import Application, InterviewStatus
+from app.models.application import Application, AIInterviewStatus
 from app.models.interview_question import InterviewQuestion, QuestionType
 
 def generate_ai_interview_questions():
@@ -29,7 +29,7 @@ def generate_ai_interview_questions():
         print(f"총 {len(applications)}명의 지원자에게 AI 면접 일정 확정")
         
         for app in applications:
-            app.interview_status = InterviewStatus.AI_INTERVIEW_SCHEDULED.value
+            app.ai_interview_status = AIInterviewStatus.SCHEDULED
             print(f"  - App {app.id}: AI 면접 일정 확정")
         
         db.commit()
