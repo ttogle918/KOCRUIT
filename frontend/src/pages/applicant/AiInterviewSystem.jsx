@@ -26,6 +26,7 @@ import {
   getAnalysisResult, 
   checkVideoAnalysisHealth 
 } from '../../api/videoAnalysisApi';
+import QuestionVideoAnalysisModal from '../../components/QuestionVideoAnalysisModal';
 
 // Resume 조회 실패 시 안전한 처리를 위한 유틸리티 함수
 const safeApiCall = async (apiCall, fallbackValue = null) => {
@@ -1648,6 +1649,7 @@ const AiInterviewSystem = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedApplicantForCancel, setSelectedApplicantForCancel] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [showQuestionAnalysisModal, setShowQuestionAnalysisModal] = useState(false);
 
   // 성능 최적화: 지원자 선택 핸들러를 useCallback으로 최적화
   const handleApplicantSelect = useCallback((applicant) => {
@@ -2443,6 +2445,24 @@ const AiInterviewSystem = () => {
           </div>
         </div>
       )}
+      
+      {/* 질문별 분석 버튼 추가 */}
+      <div className="mb-4 flex gap-2">
+        <button
+          onClick={() => setShowQuestionAnalysisModal(true)}
+          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
+        >
+          질문별 분석 결과
+        </button>
+        {/* ... existing buttons ... */}
+      </div>
+
+      {/* 질문별 분석 모달 */}
+      <QuestionVideoAnalysisModal
+        isOpen={showQuestionAnalysisModal}
+        onClose={() => setShowQuestionAnalysisModal(false)}
+        applicationId={selectedApplicant?.application_id}
+      />
     </div>
   );
 };
