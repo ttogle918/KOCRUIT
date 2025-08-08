@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 from app.core.database import get_db
 from app.api.v1.auth import get_current_user
 from app.models.user import User
-from app.models.application import Application, DocumentStatus, InterviewStatus
+from app.models.application import Application, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
 from app.models.interview_question import InterviewQuestion, QuestionType
 from app.models.job import JobPost
 from app.models.resume import Resume, Spec

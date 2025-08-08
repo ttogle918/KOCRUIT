@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.application import Application, InterviewStatus
+from app.models.application import Application
 from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
 from app.models.user import User
 from app.models.job import JobPost

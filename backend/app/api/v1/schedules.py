@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.models.schedule import Schedule, ScheduleInterview
 from app.models.user import User
 from app.api.v1.auth import get_current_user
-from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
 from app.schemas.application import ApplicationUpdate, ApplicationBulkStatusUpdate
 
 router = APIRouter()
@@ -275,21 +275,18 @@ def update_interview_status(
             detail="서류 합격자만 면접 상태를 변경할 수 있습니다."
         )
     
-    # 유효한 면접 상태인지 확인
-    valid_statuses = [status.value for status in InterviewStatus]
-    if interview_status not in valid_statuses:
+    # 유효한 면접 상태인지 확인 (새로운 3개 컬럼 구조에 맞게 수정 필요)
+    # TODO: 이 함수는 새로운 구조에 맞게 완전히 재작성 필요
+    # 현재는 임시로 기본 검증만 수행
+    if not interview_status:
         raise HTTPException(
             status_code=400, 
-            detail=f"유효하지 않은 면접 상태입니다. 가능한 상태: {valid_statuses}"
+            detail="면접 상태가 제공되지 않았습니다."
         )
     
-    application.interview_status = interview_status
-    
-    # 면접 완료 시 최종 상태 결정 로직
-    if interview_status == InterviewStatus.AI_INTERVIEW_COMPLETED.value:
-        # 여기서 면접 평가 결과에 따라 최종 합격/불합격 결정
-        # 실제로는 면접 평가 점수를 확인해야 함
-        application.status = ApplyStatus.IN_PROGRESS.value  # 임시로 진행 중으로 설정
+    # TODO: 새로운 3개 컬럼 구조에 맞게 상태 업데이트 로직 구현 필요
+    # application.ai_interview_status, application.first_interview_status, application.second_interview_status
+    # 중 어떤 것을 업데이트할지 결정하는 로직 필요
     
     db.commit()
     return {
