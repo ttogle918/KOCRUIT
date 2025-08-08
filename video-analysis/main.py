@@ -28,6 +28,7 @@ app.add_middleware(
 # 요청 모델
 class VideoAnalysisRequest(BaseModel):
     video_url: str
+    application_id: Optional[int] = None
 
 class QuestionAnalysisRequest(BaseModel):
     video_url: str
@@ -50,12 +51,12 @@ async def analyze_video_url(request: VideoAnalysisRequest):
         logger.info(f"비디오 분석 요청: {request.video_url}")
         
         # 비디오 다운로드
-        video_path = video_downloader.download_video(request.video_url)
+        video_path = video_downloader.download_video(request.video_url, request.application_id)
         if not video_path:
             raise HTTPException(status_code=400, detail="비디오 다운로드 실패")
         
         # 비디오 분석 수행
-        analysis_result = video_analyzer.analyze_video(video_path)
+        analysis_result = video_analyzer.analyze_video(video_path, request.application_id)
         
         # 임시 파일 정리
         if os.path.exists(video_path):

@@ -87,7 +87,7 @@ class VideoAnalyzer:
             logger.error(f"모델 초기화 오류: {str(e)}")
             raise
     
-    def analyze_video(self, video_path: str) -> Dict[str, Any]:
+    def analyze_video(self, video_path: str, application_id: int = None) -> Dict[str, Any]:
         """영상 전체 분석 (화자 분리 기반 최적화)"""
         temp_file_path = None
         try:
@@ -96,7 +96,7 @@ class VideoAnalyzer:
             # URL인 경우 다운로드
             if video_path.startswith(('http://', 'https://')):
                 logger.info(f"URL에서 영상 다운로드 시작: {video_path}")
-                temp_file_path = self.downloader.download_video(video_path)
+                temp_file_path = self.downloader.download_video(video_path, application_id)
                 if not temp_file_path:
                     logger.warning("영상 다운로드 실패, 테스트 데이터 반환")
                     return self._get_test_analysis_result()
@@ -114,8 +114,37 @@ class VideoAnalyzer:
                 logger.warning("오디오 추출 실패, 테스트 데이터 반환")
                 return self._get_test_analysis_result()
             
-            # 2단계: Agent로 화자 분리 및 비디오 자르기 요청
-            speaker_analysis = self._request_speaker_analysis_and_trim(temp_audio_path, video_path)
+            # 2단계: Agent로 화자 분리 및 비디오 자르기 요청 (선택적)
+            speaker_analysis = {}
+            try:
+                speaker_analysis = self._request_speaker_analysis_and_trim(temp_audio_path, video_path)
+                logger.info("Agent 서비스 연동 성공")
+                
+                # 2-1단계: 분리된 세그먼트가 있으면 Google Drive에 업로드
+                video_segments = speaker_analysis.get("video_segments", [])
+                if video_segments:
+                    logger.info(f"분리된 세그먼트 {len(video_segments)}개를 Google Drive에 업로드 시작...")
+                    
+                    # 원본 파일명 추출
+                    original_filename = os.path.basename(video_path)
+                    if original_filename.startswith("video_"):
+                        # 임시 파일명에서 원본 파일명 추출
+                        original_filename = original_filename.replace("video_", "").replace(".mp4", "")
+                    
+                    # Google Drive에 업로드
+                    uploaded_files = self.downloader.upload_trimmed_videos(
+                        video_segments, original_filename
+                    )
+                    
+                    if uploaded_files:
+                        logger.info(f"세그먼트 업로드 완료: {len(uploaded_files)}개 파일")
+                        speaker_analysis["uploaded_segments"] = uploaded_files
+                    else:
+                        logger.warning("세그먼트 업로드 실패")
+                
+            except Exception as e:
+                logger.warning(f"Agent 서비스 연동 실패, 기본 분석으로 진행: {str(e)}")
+                speaker_analysis = {}
             
             # 3단계: 자른 비디오로 분석 수행
             analysis_video_path = video_path  # 기본값
@@ -410,12 +439,19 @@ class VideoAnalyzer:
                     )
                     return response.json()
             
-            # 동기적으로 실행
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            # 동기적으로 실행 (이벤트 루프 충돌 방지)
             try:
-                result = loop.run_until_complete(make_request())
-                loop.close()
+                # 기존 이벤트 루프가 있는지 확인
+                try:
+                    loop = asyncio.get_running_loop()
+                    # 이미 실행 중인 루프가 있으면 새 스레드에서 실행
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(asyncio.run, make_request())
+                        result = future.result()
+                except RuntimeError:
+                    # 실행 중인 루프가 없으면 직접 실행
+                    result = asyncio.run(make_request())
                 
                 if result.get("success"):
                     logger.info("화자 분리 및 비디오 자르기 완료")

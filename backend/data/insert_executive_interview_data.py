@@ -102,14 +102,14 @@ def insert_executive_interview_data():
         # 3. 지원자 상태 업데이트 (임원진 평가 완료)
         print("\n🔄 지원자 상태 업데이트 중...")
         
-        from app.models.application import Application, InterviewStatus
+        from app.models.application import Application, SecondInterviewStatus
         
         evaluated_applications = [eval_data['interview_id'] for eval_data in evaluations_data['executive_evaluations']]
         
         for app_id in evaluated_applications:
             application = db.query(Application).filter(Application.id == app_id).first()
             if application:
-                application.interview_status = InterviewStatus.EXECUTIVE_INTERVIEW_COMPLETED.value
+                application.second_interview_status = SecondInterviewStatus.COMPLETED
                 print(f"  ✅ 지원자 상태 업데이트: ID {app_id} → EXECUTIVE_INTERVIEW_COMPLETED")
         
         # 커밋
@@ -133,7 +133,7 @@ def insert_executive_interview_data():
         
         # 평가 완료 지원자 수
         completed_count = db.query(Application).filter(
-            Application.interview_status == InterviewStatus.EXECUTIVE_INTERVIEW_COMPLETED.value
+            Application.second_interview_status == SecondInterviewStatus.COMPLETED
         ).count()
         print(f"  - 임원진 평가 완료 지원자: {completed_count}명")
         

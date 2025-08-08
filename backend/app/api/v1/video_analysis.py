@@ -37,12 +37,10 @@ async def analyze_video(
         if not video_url:
             raise HTTPException(status_code=400, detail="분석할 영상 URL이 없습니다")
         
-        # Google Drive URL 확인 (공유 설정이 변경되었을 수 있음)
+        # Google Drive URL 확인 및 로깅
         if 'drive.google.com' in video_url:
             logger.info(f"Google Drive URL 감지: {video_url}")
-            # 테스트를 위해 작은 공개 영상 URL로 대체 (1MB 미만)
-            logger.info("Google Drive URL을 작은 테스트용 공개 영상으로 대체")
-            video_url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4"
+            logger.info("실제 Google Drive 영상을 사용하여 분석을 진행합니다")
         
         # 기존 분석 결과 확인
         existing_analysis = db.query(VideoAnalysis).filter(

@@ -41,6 +41,22 @@ async def analyze_question_video(
         if not question_logs:
             raise HTTPException(status_code=400, detail="질문 로그가 없습니다")
         
+        # 기존 분석 결과 확인
+        existing_analyses = db.query(QuestionVideoAnalysis).filter(
+            QuestionVideoAnalysis.application_id == application_id,
+            QuestionVideoAnalysis.status == "completed"
+        ).count()
+        
+        # 이미 모든 질문이 분석된 경우
+        if existing_analyses >= len(question_logs):
+            return {
+                "success": True,
+                "message": f"이미 분석이 완료되었습니다 ({existing_analyses}개 질문)",
+                "application_id": application_id,
+                "question_count": existing_analyses,
+                "already_analyzed": True
+            }
+        
         # 질문 로그 데이터 준비
         question_data = []
         for i, log in enumerate(question_logs):
@@ -62,9 +78,10 @@ async def analyze_question_video(
         
         return {
             "success": True,
-            "message": f"질문별 분석이 시작되었습니다 ({len(question_logs)}개 질문)",
+            "message": f"질문별 분석이 시작되었습니다 ({len(question_logs)}개 질문, 기존 {existing_analyses}개 완료)",
             "application_id": application_id,
-            "question_count": len(question_logs)
+            "question_count": len(question_logs),
+            "already_analyzed": False
         }
         
     except Exception as e:
@@ -74,9 +91,10 @@ async def analyze_question_video(
 @router.get("/results/{application_id}")
 async def get_question_analysis_results(
     application_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """질문별 분석 결과 조회"""
+    """질문별 분석 결과 조회 (자동 분석 포함)"""
     try:
         # 질문별 분석 결과 조회
         question_analyses = db.query(QuestionVideoAnalysis).filter(
@@ -84,16 +102,84 @@ async def get_question_analysis_results(
         ).order_by(QuestionVideoAnalysis.analysis_timestamp).all()
         
         if not question_analyses:
-            return {
-                "success": False,
-                "message": "분석 결과가 없습니다",
-                "results": []
-            }
+            # 지원자 정보 조회하여 비디오 URL 확인
+            application = db.query(Application).filter(Application.id == application_id).first()
+            if not application:
+                return {
+                    "success": False,
+                    "message": "지원자 정보를 찾을 수 없습니다",
+                    "results": []
+                }
+            
+            if not application.ai_interview_video_url:
+                return {
+                    "success": False,
+                    "message": "AI 면접 비디오가 없습니다. 비디오 업로드 후 분석을 시작해주세요.",
+                    "results": [],
+                    "no_video": True
+                }
+            
+            # 분석 결과가 없으면 자동으로 분석 시작
+            try:
+                await _auto_start_analysis(application_id, background_tasks, db)
+                return {
+                    "success": False,
+                    "message": "분석 결과가 없어 자동으로 분석을 시작했습니다. 잠시 후 다시 확인해주세요.",
+                    "results": [],
+                    "auto_started": True
+                }
+            except Exception as e:
+                logger.error(f"자동 분석 시작 실패: {str(e)}")
+                return {
+                    "success": False,
+                    "message": "분석 결과가 없습니다",
+                    "results": []
+                }
         
-        # 결과 데이터 변환
+        # 결과 데이터 변환 (최적화)
         results = []
         for analysis in question_analyses:
-            results.append(analysis.to_dict())
+            # detailed_analysis는 제외하여 응답 크기 줄이기
+            result = {
+                "id": analysis.id,
+                "application_id": analysis.application_id,
+                "question_log_id": analysis.question_log_id,
+                "question_text": analysis.question_text,
+                "timing": {
+                    "question_start": analysis.question_start_time,
+                    "question_end": analysis.question_end_time,
+                    "answer_start": analysis.answer_start_time,
+                    "answer_end": analysis.answer_end_time
+                },
+                "analysis_timestamp": analysis.analysis_timestamp.isoformat() if analysis.analysis_timestamp else None,
+                "status": analysis.status,
+                "facial_expressions": {
+                    "smile_frequency": analysis.smile_frequency,
+                    "eye_contact_ratio": analysis.eye_contact_ratio,
+                    "emotion_variation": analysis.emotion_variation,
+                    "confidence_score": analysis.confidence_score
+                },
+                "posture_analysis": {
+                    "posture_changes": analysis.posture_changes,
+                    "nod_count": analysis.nod_count,
+                    "posture_score": analysis.posture_score,
+                    "hand_gestures": analysis.hand_gestures or []
+                },
+                "gaze_analysis": {
+                    "eye_aversion_count": analysis.eye_aversion_count,
+                    "focus_ratio": analysis.focus_ratio,
+                    "gaze_consistency": analysis.gaze_consistency
+                },
+                "audio_analysis": {
+                    "speech_rate": analysis.speech_rate,
+                    "clarity_score": analysis.clarity_score,
+                    "volume_consistency": analysis.volume_consistency,
+                    "transcription": analysis.transcription
+                },
+                "question_score": analysis.question_score,
+                "question_feedback": analysis.question_feedback
+            }
+            results.append(result)
         
         # 통계 계산
         statistics = _calculate_question_statistics(question_analyses)
@@ -141,6 +227,48 @@ async def get_question_analysis_statistics(
     except Exception as e:
         logger.error(f"질문별 분석 통계 조회 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"통계 조회 중 오류가 발생했습니다: {str(e)}")
+
+async def _auto_start_analysis(application_id: int, background_tasks: BackgroundTasks, db: Session):
+    """자동으로 분석 시작"""
+    try:
+        # 지원자 정보 조회
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application or not application.ai_interview_video_url:
+            raise Exception("비디오 URL이 없습니다")
+        
+        # 질문 로그 조회
+        question_logs = db.query(InterviewQuestionLog).filter(
+            InterviewQuestionLog.application_id == application_id,
+            InterviewQuestionLog.interview_type == "AI_INTERVIEW"
+        ).order_by(InterviewQuestionLog.created_at).all()
+        
+        if not question_logs:
+            raise Exception("질문 로그가 없습니다")
+        
+        # 질문 로그 데이터 준비
+        question_data = []
+        for i, log in enumerate(question_logs):
+            question_data.append({
+                "id": log.id,
+                "question_text": log.question_text,
+                "question_index": i,
+                "answer_start_time": None,
+                "answer_end_time": None
+            })
+        
+        # 백그라운드에서 분석 실행
+        background_tasks.add_task(
+            _run_question_analysis,
+            application_id,
+            application.ai_interview_video_url,
+            question_data
+        )
+        
+        logger.info(f"자동 분석 시작: 지원자 {application_id}")
+        
+    except Exception as e:
+        logger.error(f"자동 분석 시작 오류: {str(e)}")
+        raise
 
 async def _run_question_analysis(application_id: int, video_url: str, question_logs: List[Dict]):
     """백그라운드에서 질문별 분석 실행"""
@@ -190,6 +318,11 @@ async def _save_question_analysis_results(db: Session, application_id: int, anal
                 QuestionVideoAnalysis.application_id == application_id,
                 QuestionVideoAnalysis.question_log_id == question_analysis.get("question_log_id")
             ).first()
+            
+            # 이미 완료된 분석이면 건너뛰기
+            if existing_analysis and existing_analysis.status == "completed":
+                logger.info(f"이미 완료된 분석 건너뛰기: 지원자 {application_id}, 질문 {question_analysis.get('question_log_id')}")
+                continue
             
             analysis_data = question_analysis["analysis_result"]
             
