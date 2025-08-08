@@ -3,7 +3,7 @@ from app.models.interview_question import InterviewQuestion, QuestionType
 from app.schemas.interview_question import InterviewQuestionCreate, InterviewQuestionBulkCreate
 from typing import List, Dict, Any, Optional
 import logging
-from app.models.application import Application, DocumentStatus, InterviewStatus
+from app.models.application import Application, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
 from app.models.job import JobPost
 from app.models.resume import Resume
 
@@ -349,16 +349,15 @@ class InterviewQuestionService:
     ) -> Dict[str, int]:
         """면접 일정이 확정된 지원자들에 대해 질문 생성 (백그라운드 스케줄러용)"""
         try:
-            # 면접 일정이 확정된 지원자들 조회 (AI 면접 또는 1차 면접)
+            # 면접 일정이 확정된 지원자들 조회 (새로운 3개 컬럼 구조에 맞게 수정)
             scheduled_applications = db.query(Application).filter(
                 Application.job_post_id == job_post_id,
                 Application.document_status == DocumentStatus.PASSED.value,
-                Application.interview_status.in_([
-                    InterviewStatus.AI_INTERVIEW_SCHEDULED.value,
-                    InterviewStatus.FIRST_INTERVIEW_SCHEDULED.value,
-                    InterviewStatus.SECOND_INTERVIEW_SCHEDULED.value,
-                    InterviewStatus.FINAL_INTERVIEW_SCHEDULED.value
-                ])
+                (
+                    (Application.ai_interview_status == AIInterviewStatus.SCHEDULED) |
+                    (Application.first_interview_status == FirstInterviewStatus.SCHEDULED) |
+                    (Application.second_interview_status == SecondInterviewStatus.SCHEDULED)
+                )
             ).all()
             
             # 공고 정보 조회

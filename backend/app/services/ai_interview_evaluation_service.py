@@ -2,7 +2,7 @@ import json
 import os
 from app.models.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationStatus, EvaluationType
 from app.models.schedule import Schedule, ScheduleInterview, InterviewScheduleStatus
-from app.models.application import InterviewStatus
+from app.models.application import AIInterviewStatus
 from sqlalchemy.orm import Session
 from datetime import datetime
 

@@ -18,7 +18,7 @@ from app.models.application import Application
 from app.models.interview_panel import InterviewPanelAssignment
 from app.api.v1.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
-from app.models.application import ApplyStatus, InterviewStatus
+from app.models.application import ApplyStatus, AIInterviewStatus
 from app.models.schedule import ScheduleInterview
 from pytz import timezone
 KST = timezone('Asia/Seoul')
@@ -681,7 +681,7 @@ def update_company_job_post(
                     schedule_id=interview_schedule.id,
                     user_id=current_user.id,
                     schedule_date=scheduled_at,
-                    status=InterviewStatus.AI_INTERVIEW_SCHEDULED
+                    status=AIInterviewStatus.SCHEDULED
                 )
                 db.add(schedule_interview)
                 db.flush()

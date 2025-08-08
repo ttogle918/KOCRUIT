@@ -9,7 +9,7 @@ from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
     ApplicationList
 )
-from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus, WrittenTestStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, WrittenTestStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
@@ -21,7 +21,7 @@ from app.utils.llm_cache import redis_cache
 from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
 from app.services.application_evaluation_service import auto_evaluate_all_applications
-from app.utils.enum_converter import get_safe_interview_status
+from app.utils.enum_converter import get_safe_interview_statuses
 from app.models.video_analysis import VideoAnalysis
 import logging
 
@@ -752,7 +752,6 @@ def get_applicants_by_job(
     
     print(f"📤 전체 지원자 목록 응답: {len(applicants)}명")
     return applicants
-@router.get("/job/{job_post_id}/applicants-with-interview")
 @redis_cache(expire=300)  # 5분 캐시
 def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db)):
     # 지원자 + 면접일정 포함 API : "지원자 면접시간 그룹핑"과 "첫 지원자만 미리 상세 fetch"
