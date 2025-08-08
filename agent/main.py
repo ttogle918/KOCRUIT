@@ -230,6 +230,131 @@ class SpeakerAnalysisService:
             print(f"면접자 음성 기반 영상 자르기 오류: {str(e)}")
             return video_path
     
+    def create_video_segments_by_questions(self, video_path: str, audio_path: str, max_segment_duration: int = 60) -> List[Dict]:
+        """
+        질문별로 비디오를 세그먼트로 분리합니다.
+        
+        Args:
+            video_path: 원본 비디오 경로
+            audio_path: 오디오 파일 경로
+            max_segment_duration: 최대 세그먼트 길이 (초)
+            
+        Returns:
+            세그먼트 정보 리스트
+        """
+        try:
+            print("질문별 비디오 세그먼트 분리 시작...")
+            
+            # Whisper로 음성 인식 및 타임스탬프 추출
+            result = self.whisper_model.transcribe(audio_path, word_timestamps=True)
+            
+            # 질문 키워드 감지 (면접관 질문 패턴)
+            question_keywords = [
+                "질문", "어떻게", "왜", "언제", "어디서", "무엇을", "어떤", "설명해주세요", 
+                "이유는", "경험", "계획", "목표", "장점", "단점", "해결", "도전", "성공", "실패"
+            ]
+            
+            segments = []
+            current_start = 0
+            current_segment_duration = 0
+            
+            for segment in result.get("segments", []):
+                text = segment.get("text", "").lower()
+                start_time = segment.get("start", 0)
+                end_time = segment.get("end", 0)
+                
+                # 질문 감지 또는 최대 길이 도달
+                is_question = any(keyword in text for keyword in question_keywords)
+                segment_duration = end_time - start_time
+                
+                if is_question or (current_segment_duration + segment_duration) > max_segment_duration:
+                    # 현재 세그먼트 저장
+                    if current_segment_duration > 10:  # 최소 10초 이상
+                        segment_path = self._extract_video_segment(
+                            video_path, current_start, start_time, len(segments) + 1
+                        )
+                        if segment_path:
+                            segments.append({
+                                'segment_index': len(segments) + 1,
+                                'start_time': current_start,
+                                'end_time': start_time,
+                                'duration': start_time - current_start,
+                                'file_path': segment_path,
+                                'text': text,
+                                'is_question': is_question
+                            })
+                    
+                    # 새 세그먼트 시작
+                    current_start = start_time
+                    current_segment_duration = segment_duration
+                else:
+                    current_segment_duration += segment_duration
+            
+            # 마지막 세그먼트 처리
+            if current_segment_duration > 10:
+                segment_path = self._extract_video_segment(
+                    video_path, current_start, result.get("segments", [{}])[-1].get("end", 0), len(segments) + 1
+                )
+                if segment_path:
+                    segments.append({
+                        'segment_index': len(segments) + 1,
+                        'start_time': current_start,
+                        'end_time': result.get("segments", [{}])[-1].get("end", 0),
+                        'duration': result.get("segments", [{}])[-1].get("end", 0) - current_start,
+                        'file_path': segment_path,
+                        'text': result.get("segments", [{}])[-1].get("text", ""),
+                        'is_question': False
+                    })
+            
+            print(f"질문별 세그먼트 분리 완료: {len(segments)}개 세그먼트")
+            return segments
+            
+        except Exception as e:
+            print(f"질문별 세그먼트 분리 오류: {str(e)}")
+            return []
+    
+    def _extract_video_segment(self, video_path: str, start_time: float, end_time: float, segment_index: int) -> Optional[str]:
+        """비디오에서 특정 시간 구간을 추출합니다."""
+        try:
+            duration = end_time - start_time
+            if duration < 5:  # 5초 미만은 건너뛰기
+                return None
+            
+            segment_path = tempfile.mktemp(suffix=f"_segment_{segment_index}.mp4")
+            
+            cmd = [
+                "ffmpeg", "-i", video_path,
+                "-ss", str(start_time),
+                "-t", str(duration),
+                "-c", "copy",  # 재인코딩 없이 빠른 추출
+                "-y", segment_path
+            ]
+            
+            subprocess.run(cmd, check=True, capture_output=True)
+            
+            # 파일 크기 확인
+            file_size = os.path.getsize(segment_path) / (1024 * 1024)  # MB
+            print(f"세그먼트 {segment_index} 추출 완료: {duration:.1f}초, {file_size:.1f}MB")
+            
+            return segment_path
+            
+        except Exception as e:
+            print(f"비디오 세그먼트 추출 오류: {str(e)}")
+            return None
+    
+    def _get_video_duration(self, video_path: str) -> Optional[float]:
+        """비디오 길이를 가져옵니다."""
+        try:
+            cmd = [
+                "ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+                "-of", "csv=p=0", video_path
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return float(result.stdout.strip())
+        except Exception as e:
+            print(f"비디오 길이 확인 오류: {str(e)}")
+            return None
+    
     def analyze_audio_with_whisper(self, audio_path: str) -> Dict[str, Any]:
         """Whisper로 음성을 분석합니다."""
         try:
@@ -1088,20 +1213,35 @@ async def speaker_analysis_and_trim(request: SpeakerAnalysisRequest):
             # 2단계: 면접자 발화 시간 계산
             applicant_speech_duration = sum(seg['duration'] for seg in applicant_segments)
             
-            # 3단계: 비디오 자르기
-            trimmed_video_path = speaker_analysis_service.trim_video_by_applicant_speech(
-                temp_video_path, applicant_segments, max_duration=30
-            )
+            # 3단계: 질문별 세그먼트 분리 (10분 이상 영상인 경우)
+            video_duration = speaker_analysis_service._get_video_duration(temp_video_path)
+            video_segments = []
             
-            # 4단계: Whisper 분석
+            if video_duration and video_duration > 600:  # 10분 이상
+                print(f"긴 영상 감지 ({video_duration:.1f}초), 질문별 세그먼트 분리 시작...")
+                video_segments = speaker_analysis_service.create_video_segments_by_questions(
+                    temp_video_path, temp_audio_path, max_segment_duration=60
+                )
+                print(f"질문별 세그먼트 분리 완료: {len(video_segments)}개 세그먼트")
+            else:
+                print(f"짧은 영상 ({video_duration:.1f}초), 기본 자르기 사용")
+            
+            # 4단계: 기본 비디오 자르기 (세그먼트가 없는 경우)
+            trimmed_video_path = temp_video_path
+            if not video_segments:
+                trimmed_video_path = speaker_analysis_service.trim_video_by_applicant_speech(
+                    temp_video_path, applicant_segments, max_duration=30
+                )
+            
+            # 5단계: Whisper 분석
             whisper_analysis = speaker_analysis_service.analyze_audio_with_whisper(temp_audio_path)
             
-            # 5단계: 분석 결과 로그 저장
+            # 6단계: 분석 결과 로그 저장
             log_path = speaker_analysis_service.save_speaker_analysis_log(
                 temp_audio_path, applicant_segments, whisper_analysis
             )
             
-            # 6단계: 결과 정리
+            # 7단계: 결과 정리
             trimmed_video_base64 = None
             if trimmed_video_path != temp_video_path and os.path.exists(trimmed_video_path):
                 # 자른 비디오를 base64로 인코딩
@@ -1116,7 +1256,10 @@ async def speaker_analysis_and_trim(request: SpeakerAnalysisRequest):
                 "is_trimmed": trimmed_video_path != temp_video_path,
                 "whisper_analysis": whisper_analysis,
                 "trimmed_filename": f"trimmed_{request.video_filename}" if trimmed_video_base64 else None,
-                "log_path": log_path
+                "log_path": log_path,
+                "video_segments": video_segments,  # 질문별 세그먼트 정보
+                "original_duration": video_duration,
+                "segment_count": len(video_segments)
             }
             
             print("화자 분리 및 비디오 자르기 완료")
