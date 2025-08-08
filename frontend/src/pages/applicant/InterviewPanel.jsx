@@ -115,19 +115,21 @@ const InterviewPanel = ({
       try {
         setIsLoadingResult(true);
         
-        // 1. 먼저 application 정보 조회하여 interview_status 확인
+        // 1. 먼저 application 정보 조회하여 면접 상태 확인
         const applicationData = await getApplication(applicationId);
-          const interviewStatus = applicationData.interview_status;
+          const aiInterviewStatus = applicationData.ai_interview_status;
+          const firstInterviewStatus = applicationData.first_interview_status;
+          const secondInterviewStatus = applicationData.second_interview_status;
           
-          console.log('현재 interview_status:', interviewStatus);
+          console.log('현재 면접 상태:', { aiInterviewStatus, firstInterviewStatus, secondInterviewStatus });
           
-          // 2. interview_status로 완료 여부 판단
-          const isCompleted = interviewStatus === 'FIRST_INTERVIEW_COMPLETED' || 
-                             interviewStatus === 'FIRST_INTERVIEW_PASSED' || 
-                             interviewStatus === 'FIRST_INTERVIEW_FAILED' ||
-                             interviewStatus === 'SECOND_INTERVIEW_COMPLETED' ||
-                             interviewStatus === 'SECOND_INTERVIEW_PASSED' ||
-                             interviewStatus === 'SECOND_INTERVIEW_FAILED';
+          // 2. 면접 상태로 완료 여부 판단
+          const isCompleted = firstInterviewStatus === 'COMPLETED' || 
+                             firstInterviewStatus === 'PASSED' || 
+                             firstInterviewStatus === 'FAILED' ||
+                             secondInterviewStatus === 'COMPLETED' ||
+                             secondInterviewStatus === 'PASSED' ||
+                             secondInterviewStatus === 'FAILED';
           
           if (isCompleted) {
             // 3. 완료된 경우 평가 결과 조회

@@ -50,19 +50,47 @@ const ApplicantInfoModal = ({ isOpen, onClose, applicant, jobPostId }) => {
     { id: 'evaluation', label: '평가기록', icon: <FiStar /> }
   ];
 
-  const getInterviewStatusLabel = (status) => {
-    if (!status) return { label: '미진행', color: 'text-gray-500 bg-gray-100' };
+  const getInterviewStatusLabel = (aiStatus, firstStatus, secondStatus) => {
+    // AI 면접 상태 우선 확인
+    if (aiStatus && aiStatus !== 'PENDING') {
+      const aiStatusLabels = {
+        'SCHEDULED': { label: 'AI 면접 일정 확정', color: 'text-blue-600 bg-blue-100' },
+        'IN_PROGRESS': { label: 'AI 면접 진행중', color: 'text-yellow-600 bg-yellow-100' },
+        'COMPLETED': { label: 'AI 면접 완료', color: 'text-green-600 bg-green-100' },
+        'PASSED': { label: 'AI 면접 합격', color: 'text-green-700 bg-green-200' },
+        'FAILED': { label: 'AI 면접 불합격', color: 'text-red-600 bg-red-100' },
+        'CANCELLED': { label: 'AI 면접 취소', color: 'text-gray-500 bg-gray-100' }
+      };
+      return aiStatusLabels[aiStatus] || { label: 'AI 면접 진행중', color: 'text-blue-600 bg-blue-100' };
+    }
     
-    const statusLabels = {
-      'FIRST_INTERVIEW_SCHEDULED': { label: '1차 일정 확정', color: 'text-blue-600 bg-blue-100' },
-      'FIRST_INTERVIEW_IN_PROGRESS': { label: '1차 진행중', color: 'text-yellow-600 bg-yellow-100' },
-      'FIRST_INTERVIEW_COMPLETED': { label: '1차 완료', color: 'text-green-600 bg-green-100' },
-      'FIRST_INTERVIEW_PASSED': { label: '1차 합격', color: 'text-green-700 bg-green-200' },
-      'FIRST_INTERVIEW_FAILED': { label: '1차 불합격', color: 'text-red-600 bg-red-100' },
-      'CANCELLED': { label: '취소', color: 'text-gray-500 bg-gray-100' }
-    };
+    // 1차 면접 상태 확인
+    if (firstStatus && firstStatus !== 'PENDING') {
+      const firstStatusLabels = {
+        'SCHEDULED': { label: '1차 면접 일정 확정', color: 'text-blue-600 bg-blue-100' },
+        'IN_PROGRESS': { label: '1차 면접 진행중', color: 'text-yellow-600 bg-yellow-100' },
+        'COMPLETED': { label: '1차 면접 완료', color: 'text-green-600 bg-green-100' },
+        'PASSED': { label: '1차 면접 합격', color: 'text-green-700 bg-green-200' },
+        'FAILED': { label: '1차 면접 불합격', color: 'text-red-600 bg-red-100' },
+        'CANCELLED': { label: '1차 면접 취소', color: 'text-gray-500 bg-gray-100' }
+      };
+      return firstStatusLabels[firstStatus] || { label: '1차 면접 진행중', color: 'text-blue-600 bg-blue-100' };
+    }
     
-    return statusLabels[status] || { label: '알 수 없음', color: 'text-gray-500 bg-gray-100' };
+    // 2차 면접 상태 확인
+    if (secondStatus && secondStatus !== 'PENDING') {
+      const secondStatusLabels = {
+        'SCHEDULED': { label: '2차 면접 일정 확정', color: 'text-blue-600 bg-blue-100' },
+        'IN_PROGRESS': { label: '2차 면접 진행중', color: 'text-yellow-600 bg-yellow-100' },
+        'COMPLETED': { label: '2차 면접 완료', color: 'text-green-600 bg-green-100' },
+        'PASSED': { label: '2차 면접 합격', color: 'text-green-700 bg-green-200' },
+        'FAILED': { label: '2차 면접 불합격', color: 'text-red-600 bg-red-100' },
+        'CANCELLED': { label: '2차 면접 취소', color: 'text-gray-500 bg-gray-100' }
+      };
+      return secondStatusLabels[secondStatus] || { label: '2차 면접 진행중', color: 'text-blue-600 bg-blue-100' };
+    }
+    
+    return { label: '미진행', color: 'text-gray-500 bg-gray-100' };
   };
 
   const renderBasicInfo = () => (
@@ -96,8 +124,8 @@ const ApplicantInfoModal = ({ isOpen, onClose, applicant, jobPostId }) => {
             </div>
           </div>
           <div className="text-right">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getInterviewStatusLabel(applicant.interview_status).color}`}>
-              {getInterviewStatusLabel(applicant.interview_status).label}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getInterviewStatusLabel(applicant.ai_interview_status, applicant.first_interview_status, applicant.second_interview_status).color}`}>
+              {getInterviewStatusLabel(applicant.ai_interview_status, applicant.first_interview_status, applicant.second_interview_status).label}
             </span>
           </div>
         </div>

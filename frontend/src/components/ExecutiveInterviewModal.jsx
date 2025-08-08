@@ -142,8 +142,8 @@ const ExecutiveInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
   };
 
   // 면접 상태별 라벨 반환 함수
-  const getInterviewStatusLabel = (status, finalStatus) => {
-    if (!status) {
+  const getInterviewStatusLabel = (secondStatus, finalStatus) => {
+    if (!secondStatus) {
       return {
         label: '미진행',
         color: 'text-gray-500 bg-gray-100'
@@ -164,24 +164,24 @@ const ExecutiveInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
     }
     
     const statusLabels = {
-      'SECOND_INTERVIEW_SCHEDULED': { label: '2차 일정 확정', color: 'text-purple-600 bg-purple-100' },
-      'SECOND_INTERVIEW_IN_PROGRESS': { label: '2차 진행중', color: 'text-yellow-600 bg-yellow-100' },
-      'SECOND_INTERVIEW_COMPLETED': { label: '2차 완료', color: 'text-green-600 bg-green-100' },
-      'SECOND_INTERVIEW_PASSED': { label: '2차 합격', color: 'text-green-700 bg-green-200' },
-      'SECOND_INTERVIEW_FAILED': { label: '2차 불합격', color: 'text-red-600 bg-red-100' },
+      'SCHEDULED': { label: '2차 일정 확정', color: 'text-purple-600 bg-purple-100' },
+      'IN_PROGRESS': { label: '2차 진행중', color: 'text-yellow-600 bg-yellow-100' },
+      'COMPLETED': { label: '2차 완료', color: 'text-green-600 bg-green-100' },
+      'PASSED': { label: '2차 합격', color: 'text-green-700 bg-green-200' },
+      'FAILED': { label: '2차 불합격', color: 'text-red-600 bg-red-100' },
       'CANCELLED': { label: '취소', color: 'text-gray-500 bg-gray-100' }
     };
     
-    let finalLabel = statusLabels[status]?.label || '알 수 없음';
-    let finalColor = statusLabels[status]?.color || 'text-gray-500 bg-gray-100';
+    let finalLabel = statusLabels[secondStatus]?.label || '알 수 없음';
+    let finalColor = statusLabels[secondStatus]?.color || 'text-gray-500 bg-gray-100';
     
-    if (status === 'SECOND_INTERVIEW_PENDING') {
+    if (secondStatus === 'PENDING') {
       finalLabel = '미진행';
       finalColor = 'text-gray-500 bg-gray-100';
-    } else if (status === 'SECOND_INTERVIEW_FAILED') {
+    } else if (secondStatus === 'FAILED') {
       finalLabel = '불합격';
       finalColor = 'text-red-600 bg-red-100';
-    } else if (status === 'SECOND_INTERVIEW_PASSED') {
+    } else if (secondStatus === 'PASSED') {
       finalLabel = '합격';
       finalColor = 'text-green-700 bg-green-200';
     }
@@ -195,11 +195,11 @@ const ExecutiveInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
                          applicant.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'pending' && (!applicant.interview_status || applicant.interview_status === 'SECOND_INTERVIEW_PENDING')) ||
-                         (filterStatus === 'in_progress' && applicant.interview_status?.includes('IN_PROGRESS')) ||
-                         (filterStatus === 'completed' && applicant.interview_status?.includes('COMPLETED')) ||
-                         (filterStatus === 'passed' && applicant.interview_status?.includes('PASSED')) ||
-                         (filterStatus === 'failed' && applicant.interview_status?.includes('FAILED'));
+                         (filterStatus === 'pending' && (!applicant.second_interview_status || applicant.second_interview_status === 'PENDING')) ||
+                         (filterStatus === 'in_progress' && applicant.second_interview_status?.includes('IN_PROGRESS')) ||
+                         (filterStatus === 'completed' && applicant.second_interview_status?.includes('COMPLETED')) ||
+                         (filterStatus === 'passed' && applicant.second_interview_status?.includes('PASSED')) ||
+                         (filterStatus === 'failed' && applicant.second_interview_status?.includes('FAILED'));
     
     return matchesSearch && matchesStatus;
   });
@@ -219,10 +219,10 @@ const ExecutiveInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
 
   // 통계 계산
   const totalApplicants = applicants.length;
-  const pendingApplicants = applicants.filter(a => !a.interview_status || a.interview_status === 'SECOND_INTERVIEW_PENDING').length;
-  const inProgressApplicants = applicants.filter(a => a.interview_status?.includes('IN_PROGRESS')).length;
-  const completedApplicants = applicants.filter(a => a.interview_status?.includes('COMPLETED')).length;
-  const passedApplicants = applicants.filter(a => a.interview_status?.includes('PASSED')).length;
+  const pendingApplicants = applicants.filter(a => !a.second_interview_status || a.second_interview_status === 'PENDING').length;
+  const inProgressApplicants = applicants.filter(a => a.second_interview_status?.includes('IN_PROGRESS')).length;
+  const completedApplicants = applicants.filter(a => a.second_interview_status?.includes('COMPLETED')).length;
+  const passedApplicants = applicants.filter(a => a.second_interview_status?.includes('PASSED')).length;
 
   if (!isOpen) return null;
 
@@ -351,7 +351,7 @@ const ExecutiveInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredApplicants.map((applicant, index) => {
-                const statusInfo = getInterviewStatusLabel(applicant.interview_status, applicant.final_status);
+                const statusInfo = getInterviewStatusLabel(applicant.second_interview_status, applicant.final_status);
                 
                 return (
                   <div
