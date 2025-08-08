@@ -63,22 +63,26 @@ def create_evaluation(evaluation: InterviewEvaluationCreate, db: Session = Depen
         db.commit()
         db.refresh(db_evaluation)
 
-        # ★ 실무진 평가 저장 후 application.practical_score 및 interview_status 자동 업데이트
+        # ★ 실무진 평가 저장 후 application.practical_score 및 first_interview_status 자동 업데이트
         if evaluation.interview_type == 'practical':
             application = db.query(Application).filter(Application.id == evaluation.application_id).first()
             if application:
                 # practical_score 업데이트
                 application.practical_score = evaluation.total_score if evaluation.total_score is not None else 0
                 
-                # interview_status 업데이트 (평가 완료로 변경)
-                from app.models.application import InterviewStatus
-                application.interview_status = InterviewStatus.FIRST_INTERVIEW_COMPLETED
+                # first_interview_status 업데이트 (합격/불합격 여부에 따라)
+                from app.models.application import FirstInterviewStatus
+                # 합격 기준: 총점 70점 이상 (예시 기준, 필요에 따라 조정 가능)
+                if evaluation.total_score is not None and evaluation.total_score >= 70:
+                    application.first_interview_status = FirstInterviewStatus.PASSED
+                else:
+                    application.first_interview_status = FirstInterviewStatus.FAILED
                 
                 db.commit()
                 print(f"Updated application {application.id} practical_score to {application.practical_score}")
-                print(f"Updated application {application.id} interview_status to {application.interview_status}")
+                print(f"Updated application {application.id} first_interview_status to {application.first_interview_status}")
         
-        # ★ 임원진 평가 저장 후 application.executive_score 및 interview_status 자동 업데이트
+        # ★ 임원진 평가 저장 후 application.executive_score 및 second_interview_status 자동 업데이트
         elif evaluation.interview_type == 'executive':
             application = db.query(Application).filter(Application.id == evaluation.application_id).first()
             if application:
@@ -86,13 +90,17 @@ def create_evaluation(evaluation: InterviewEvaluationCreate, db: Session = Depen
                 if hasattr(application, 'executive_score'):
                     application.executive_score = evaluation.total_score if evaluation.total_score is not None else 0
                 
-                # interview_status 업데이트 (평가 완료로 변경)
-                from app.models.application import InterviewStatus
-                application.interview_status = InterviewStatus.SECOND_INTERVIEW_COMPLETED
+                # second_interview_status 업데이트 (합격/불합격 여부에 따라)
+                from app.models.application import SecondInterviewStatus
+                # 합격 기준: 총점 70점 이상 (예시 기준, 필요에 따라 조정 가능)
+                if evaluation.total_score is not None and evaluation.total_score >= 70:
+                    application.second_interview_status = SecondInterviewStatus.PASSED
+                else:
+                    application.second_interview_status = SecondInterviewStatus.FAILED
                 
                 db.commit()
                 print(f"Updated application {application.id} executive_score to {getattr(application, 'executive_score', 'N/A')}")
-                print(f"Updated application {application.id} interview_status to {application.interview_status}")
+                print(f"Updated application {application.id} second_interview_status to {application.second_interview_status}")
         
         # 캐시 무효화: 새로운 평가가 생성되었으므로 관련 캐시 무효화
         try:

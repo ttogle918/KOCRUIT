@@ -730,7 +730,9 @@ def get_applicants_by_job(
             "application_id": app.id,
             "status": app.status,
             "document_status": app.document_status,  # 서류 상태 추가
-            "interview_status": app.interview_status,  # 면접 상태 추가
+            "ai_interview_status": app.ai_interview_status,  # AI 면접 상태 추가
+            "first_interview_status": app.first_interview_status,  # 1차 면접 상태 추가
+            "second_interview_status": app.second_interview_status,  # 2차 면접 상태 추가
             "applied_at": app.applied_at,
             "score": app.score,
             "ai_score": app.ai_score,
@@ -815,7 +817,7 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
         # 디버깅을 위한 로그 추가
         print(f"🔍 AI 면접 지원자 조회 - ID: {app.user_id}, 이름: {user.name if user else 'Unknown'}")
         print(f"   - ai_interview_score: {app.ai_interview_score}")
-        print(f"   - interview_status: {app.interview_status}")
+        print(f"   - ai_interview_status: {app.ai_interview_status}")
         print(f"   - written_test_status: {app.written_test_status}")
         
         result.append({
@@ -824,11 +826,54 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
             "name": user.name if user else "",
             "schedule_interview_id": schedule_interview_id,
             "schedule_date": schedule_date,
-            "interview_status": get_safe_interview_status(app.interview_status),  # AI 면접 상태 추가 (안전 변환)
+            "ai_interview_status": app.ai_interview_status,  # AI 면접 상태 추가
+            "first_interview_status": app.first_interview_status,  # 1차 면접 상태 추가
+            "second_interview_status": app.second_interview_status,  # 2차 면접 상태 추가
             "document_status": app.document_status,  # 서류 상태 추가
             "status": app.status,  # 전체 상태 추가
             "ai_interview_score": app.ai_interview_score,  # Application 테이블의 AI 면접 점수
             "ai_interview_video_url": app.ai_interview_video_url,  # AI 면접 비디오 URL 추가
+        })
+    return result
+
+
+@router.get("/job/{job_post_id}/applicants-with-first-interview")
+@redis_cache(expire=300)  # 5분 캐시
+def get_applicants_with_first_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """1차 면접(실무진 면접) 지원자 + 면접일정 포함 API"""
+    # AI 면접 합격자만 필터링
+    meta = MetaData()
+    schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+    
+    # AI 면접 합격자 조회 (AI 면접에서 합격한 지원자)
+    from app.models.application import AIInterviewStatus
+    applicants = db.query(Application).filter(
+        Application.job_post_id == job_post_id,
+        Application.ai_interview_status == AIInterviewStatus.PASSED,
+        Application.status.in_([ApplyStatus.PASSED, ApplyStatus.IN_PROGRESS])
+    ).all()
+    
+    result = []
+    for app in applicants:
+        # 1차 면접 일정 조회
+        sia_row = db.execute(
+            select(
+                schedule_interview_applicant.c.schedule_interview_id
+            ).where(schedule_interview_applicant.c.user_id == app.user_id)
+        ).first()
+        schedule_interview_id = None
+        schedule_date = None
+        if sia_row:
+            schedule_interview_id = sia_row[0]
+            si = db.query(ScheduleInterview).filter(ScheduleInterview.id == schedule_interview_id).first()
+            if si:
+                schedule_date = si.schedule_date
+        user = db.query(User).filter(User.id == app.user_id).first()
+        result.append({
+            "applicant_id": app.user_id,
+            "name": user.name if user else "",
+            "schedule_interview_id": schedule_interview_id,
+            "schedule_date": schedule_date,
         })
     return result
 
@@ -842,10 +887,10 @@ def get_applicants_with_second_interview(job_post_id: int, db: Session = Depends
     schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
     
     # 1차 면접 합격자 조회 (실무진 면접에서 합격한 지원자)
-    # interview_status가 FIRST_INTERVIEW_COMPLETED인 지원자
+    # first_interview_status가 COMPLETED인 지원자
     applicants = db.query(Application).filter(
         Application.job_post_id == job_post_id,
-        Application.interview_status == InterviewStatus.FIRST_INTERVIEW_COMPLETED,
+        Application.first_interview_status == FirstInterviewStatus.COMPLETED,
         Application.status.in_([ApplyStatus.PASSED, ApplyStatus.IN_PROGRESS])
     ).all()
     
@@ -1046,7 +1091,9 @@ def get_passed_applicants(
             "application_id": app.id,
             "status": app.status,
             "document_status": app.document_status,  # 서류 상태 추가
-            "interview_status": app.interview_status,  # 면접 상태 추가
+            "ai_interview_status": app.ai_interview_status,  # AI 면접 상태 추가
+            "first_interview_status": app.first_interview_status,  # 1차 면접 상태 추가
+            "second_interview_status": app.second_interview_status,  # 2차 면접 상태 추가
             "applied_at": app.applied_at,
             "score": app.score,
             "ai_score": app.ai_score,

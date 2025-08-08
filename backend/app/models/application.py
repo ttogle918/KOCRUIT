@@ -26,38 +26,34 @@ class DocumentStatus(str, enum.Enum):
     REJECTED = "REJECTED"       # 서류 불합격
 
 
-class InterviewStatus(str, enum.Enum):
-    # AI 면접
-    AI_INTERVIEW_PENDING = "AI_INTERVIEW_PENDING"                 # AI 면접 대기
-    AI_INTERVIEW_SCHEDULED = "AI_INTERVIEW_SCHEDULED"             # AI 면접 일정 확정
-    AI_INTERVIEW_IN_PROGRESS = "AI_INTERVIEW_IN_PROGRESS"         # AI 면접 진행 중
-    AI_INTERVIEW_COMPLETED = "AI_INTERVIEW_COMPLETED"             # AI 면접 완료
-    AI_INTERVIEW_PASSED = "AI_INTERVIEW_PASSED"                   # AI 면접 합격
-    AI_INTERVIEW_FAILED = "AI_INTERVIEW_FAILED"                   # AI 면접 불합격
-    
-    # 실무진 면접 (1차)
-    FIRST_INTERVIEW_SCHEDULED = "FIRST_INTERVIEW_SCHEDULED"       # 실무진 면접 일정 확정
-    FIRST_INTERVIEW_IN_PROGRESS = "FIRST_INTERVIEW_IN_PROGRESS"   # 실무진 면접 진행 중
-    FIRST_INTERVIEW_COMPLETED = "FIRST_INTERVIEW_COMPLETED"       # 실무진 면접 완료
-    FIRST_INTERVIEW_PASSED = "FIRST_INTERVIEW_PASSED"             # 실무진 면접 합격
-    FIRST_INTERVIEW_FAILED = "FIRST_INTERVIEW_FAILED"             # 실무진 면접 불합격
-    
-    # 임원 면접 (2차)
-    SECOND_INTERVIEW_SCHEDULED = "SECOND_INTERVIEW_SCHEDULED"     # 임원 면접 일정 확정
-    SECOND_INTERVIEW_IN_PROGRESS = "SECOND_INTERVIEW_IN_PROGRESS" # 임원 면접 진행 중
-    SECOND_INTERVIEW_COMPLETED = "SECOND_INTERVIEW_COMPLETED"     # 임원 면접 완료
-    SECOND_INTERVIEW_PASSED = "SECOND_INTERVIEW_PASSED"           # 임원 면접 합격
-    SECOND_INTERVIEW_FAILED = "SECOND_INTERVIEW_FAILED"           # 임원 면접 불합격
-    
-    # 최종 면접 (3차)
-    FINAL_INTERVIEW_SCHEDULED = "FINAL_INTERVIEW_SCHEDULED"       # 최종 면접 일정 확정
-    FINAL_INTERVIEW_IN_PROGRESS = "FINAL_INTERVIEW_IN_PROGRESS"   # 최종 면접 진행 중
-    FINAL_INTERVIEW_COMPLETED = "FINAL_INTERVIEW_COMPLETED"       # 최종 면접 완료
-    FINAL_INTERVIEW_PASSED = "FINAL_INTERVIEW_PASSED"             # 최종 면접 합격
-    FINAL_INTERVIEW_FAILED = "FINAL_INTERVIEW_FAILED"             # 최종 면접 불합격
-    
-    # 기타
-    CANCELLED = "CANCELLED"                                       # 면접 취소
+class AIInterviewStatus(str, enum.Enum):
+    PENDING = "PENDING"                 # AI 면접 대기
+    SCHEDULED = "SCHEDULED"             # AI 면접 일정 확정
+    IN_PROGRESS = "IN_PROGRESS"         # AI 면접 진행 중
+    COMPLETED = "COMPLETED"             # AI 면접 완료
+    PASSED = "PASSED"                   # AI 면접 합격
+    FAILED = "FAILED"                   # AI 면접 불합격
+    CANCELLED = "CANCELLED"             # AI 면접 취소
+
+
+class FirstInterviewStatus(str, enum.Enum):
+    PENDING = "PENDING"                 # 1차 면접 대기
+    SCHEDULED = "SCHEDULED"             # 1차 면접 일정 확정
+    IN_PROGRESS = "IN_PROGRESS"         # 1차 면접 진행 중
+    COMPLETED = "COMPLETED"             # 1차 면접 완료
+    PASSED = "PASSED"                   # 1차 면접 합격
+    FAILED = "FAILED"                   # 1차 면접 불합격
+    CANCELLED = "CANCELLED"             # 1차 면접 취소
+
+
+class SecondInterviewStatus(str, enum.Enum):
+    PENDING = "PENDING"                 # 2차 면접 대기
+    SCHEDULED = "SCHEDULED"             # 2차 면접 일정 확정
+    IN_PROGRESS = "IN_PROGRESS"         # 2차 면접 진행 중
+    COMPLETED = "COMPLETED"             # 2차 면접 완료
+    PASSED = "PASSED"                   # 2차 면접 합격
+    FAILED = "FAILED"                   # 2차 면접 불합격
+    CANCELLED = "CANCELLED"             # 2차 면접 취소
 
 
 class InterviewStage(str, enum.Enum):
@@ -94,7 +90,12 @@ class Application(Base):
     written_test_score = Column(Numeric(5, 2))
     status = Column(SqlEnum(ApplyStatus), default=ApplyStatus.WAITING, nullable=False)
     document_status = Column(SqlEnum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
-    interview_status = Column(SqlEnum(InterviewStatus), default=InterviewStatus.AI_INTERVIEW_PENDING, nullable=False)
+    
+    # 면접 상태를 3개 컬럼으로 분리
+    ai_interview_status = Column(SqlEnum(AIInterviewStatus), default=AIInterviewStatus.PENDING, nullable=False)
+    first_interview_status = Column(SqlEnum(FirstInterviewStatus), default=FirstInterviewStatus.PENDING, nullable=False)
+    second_interview_status = Column(SqlEnum(SecondInterviewStatus), default=SecondInterviewStatus.PENDING, nullable=False)
+    
     written_test_status = Column(SqlEnum(WrittenTestStatus), default=WrittenTestStatus.PENDING, nullable=False)
     applied_at = Column(DateTime, default=datetime.utcnow)
     application_source = Column(String(255))
@@ -120,6 +121,41 @@ class Application(Base):
     personal_question_results = relationship("PersonalQuestionResult", back_populates="application")
     video_analyses = relationship("VideoAnalysis", back_populates="application")
     question_video_analyses = relationship("QuestionVideoAnalysis", back_populates="application")
+
+    # 헬퍼 메서드들
+    def get_current_interview_stage(self) -> str:
+        """현재 진행 중인 면접 단계를 반환"""
+        if self.ai_interview_status in [AIInterviewStatus.PENDING, AIInterviewStatus.SCHEDULED, AIInterviewStatus.IN_PROGRESS]:
+            return "AI_INTERVIEW"
+        elif self.ai_interview_status == AIInterviewStatus.PASSED and self.first_interview_status in [FirstInterviewStatus.PENDING, FirstInterviewStatus.SCHEDULED, FirstInterviewStatus.IN_PROGRESS]:
+            return "FIRST_INTERVIEW"
+        elif self.first_interview_status == FirstInterviewStatus.PASSED and self.second_interview_status in [SecondInterviewStatus.PENDING, SecondInterviewStatus.SCHEDULED, SecondInterviewStatus.IN_PROGRESS]:
+            return "SECOND_INTERVIEW"
+        elif self.second_interview_status == SecondInterviewStatus.PASSED:
+            return "COMPLETED"
+        else:
+            return "UNKNOWN"
+
+    def is_interview_completed(self) -> bool:
+        """모든 면접이 완료되었는지 확인"""
+        return (self.ai_interview_status in [AIInterviewStatus.PASSED, AIInterviewStatus.FAILED] and
+                self.first_interview_status in [FirstInterviewStatus.PASSED, FirstInterviewStatus.FAILED] and
+                self.second_interview_status in [SecondInterviewStatus.PASSED, SecondInterviewStatus.FAILED])
+
+    def get_next_interview_stage(self) -> str:
+        """다음 면접 단계를 반환"""
+        if self.ai_interview_status == AIInterviewStatus.PASSED and self.first_interview_status == FirstInterviewStatus.PENDING:
+            return "FIRST_INTERVIEW"
+        elif self.first_interview_status == FirstInterviewStatus.PASSED and self.second_interview_status == SecondInterviewStatus.PENDING:
+            return "SECOND_INTERVIEW"
+        else:
+            return "NO_NEXT_STAGE"
+
+    def has_failed_interview(self) -> bool:
+        """면접에서 불합격한 단계가 있는지 확인"""
+        return (self.ai_interview_status == AIInterviewStatus.FAILED or
+                self.first_interview_status == FirstInterviewStatus.FAILED or
+                self.second_interview_status == SecondInterviewStatus.FAILED)
 
 
 class FieldNameScore(Base):

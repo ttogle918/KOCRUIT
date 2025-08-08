@@ -166,7 +166,9 @@ def get_company_job_post(
                 "id": app.id,
                 "status": app.status.value if app.status else None,
                 "document_status": app.document_status.value if app.document_status else None,
-                "interview_status": app.interview_status.value if app.interview_status else None,
+                "ai_interview_status": app.ai_interview_status.value if app.ai_interview_status else None,
+                "first_interview_status": app.first_interview_status.value if app.first_interview_status else None,
+                "second_interview_status": app.second_interview_status.value if app.second_interview_status else None,
                 "final_status": app.final_status.value if app.final_status else None,
                 "ai_interview_video_url": app.ai_interview_video_url
             }

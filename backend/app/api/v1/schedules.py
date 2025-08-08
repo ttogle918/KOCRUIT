@@ -204,8 +204,9 @@ def create_interview_schedule(
     )
     db.add(db_interview)
     
-    # 면접 일정 생성 시 interview_status를 AI_INTERVIEW_SCHEDULED로 변경
-    application.interview_status = InterviewStatus.AI_INTERVIEW_SCHEDULED.value
+    # 면접 일정 생성 시 ai_interview_status를 SCHEDULED로 변경
+    from app.models.application import AIInterviewStatus
+    application.ai_interview_status = AIInterviewStatus.SCHEDULED
     
     db.commit()
     db.refresh(db_interview)
@@ -218,7 +219,7 @@ def create_interview_schedule(
         "status": db_interview.status,
         "notes": db_interview.notes,
         "created_at": db_interview.created_at,
-        "interview_status": application.interview_status
+        "ai_interview_status": application.ai_interview_status.value if application.ai_interview_status else None
     } 
 
 

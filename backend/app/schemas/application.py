@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus, ApplicationViewAction
+from app.models.application import Application, ApplyStatus, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus, ApplicationViewAction
 
 def to_camel(string: str) -> str:
     parts = string.split('_')
@@ -12,6 +12,9 @@ class ApplicationBase(BaseModel):
     resume_id: int
     status: ApplyStatus = ApplyStatus.WAITING
     document_status: DocumentStatus = DocumentStatus.PENDING
+    ai_interview_status: AIInterviewStatus = AIInterviewStatus.PENDING
+    first_interview_status: FirstInterviewStatus = FirstInterviewStatus.PENDING
+    second_interview_status: SecondInterviewStatus = SecondInterviewStatus.PENDING
     score: Optional[float] = None
     ai_score: Optional[float] = None
     human_score: Optional[float] = None
@@ -36,7 +39,9 @@ class ApplicationCreate(ApplicationBase):
 class ApplicationUpdate(BaseModel):
     status: Optional[ApplyStatus] = None
     document_status: Optional[DocumentStatus] = None
-    interview_status: Optional[InterviewStatus] = None
+    ai_interview_status: Optional[AIInterviewStatus] = None
+    first_interview_status: Optional[FirstInterviewStatus] = None
+    second_interview_status: Optional[SecondInterviewStatus] = None
     class Config:
         alias_generator = to_camel
         populate_by_name = True
@@ -73,6 +78,9 @@ class ApplicationList(BaseModel):
     user_id: int
     status: ApplyStatus
     document_status: DocumentStatus
+    ai_interview_status: AIInterviewStatus
+    first_interview_status: FirstInterviewStatus
+    second_interview_status: SecondInterviewStatus
     created_at: datetime
     score: Optional[float] = None
     ai_score: Optional[float] = None
@@ -163,4 +171,7 @@ class ApplicationViewLogDetail(ApplicationViewLogBase):
 class ApplicationBulkStatusUpdate(BaseModel):
     application_ids: List[int]
     status: Optional[ApplyStatus] = None
-    document_status: Optional[DocumentStatus] = None 
+    document_status: Optional[DocumentStatus] = None
+    ai_interview_status: Optional[AIInterviewStatus] = None
+    first_interview_status: Optional[FirstInterviewStatus] = None
+    second_interview_status: Optional[SecondInterviewStatus] = None 

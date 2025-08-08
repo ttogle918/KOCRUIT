@@ -18,9 +18,10 @@ router = APIRouter()
 def get_executive_interview_candidates(db: Session = Depends(get_db)):
     """임원면접 대상자 조회"""
     try:
-        # FIRST_INTERVIEW_PASSED 상태인 지원자들 조회
+        # 1차 면접(실무진 면접) 합격자들 조회
+        from app.models.application import FirstInterviewStatus
         candidates = db.query(Application).filter(
-            Application.interview_status == InterviewStatus.FIRST_INTERVIEW_PASSED.value
+            Application.first_interview_status == FirstInterviewStatus.PASSED
         ).all()
         
         return candidates
