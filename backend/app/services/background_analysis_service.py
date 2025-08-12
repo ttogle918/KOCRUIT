@@ -1,4 +1,4 @@
-# === Background Video Analysis Service ===
+# === Background Media Analysis Service ===
 import asyncio
 import logging
 import time
@@ -9,7 +9,7 @@ import json
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.application import Application
-from app.models.video_analysis import VideoAnalysis
+from app.models.media_analysis import MediaAnalysis
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class BackgroundAnalysisService:
                 Application.ai_interview_video_url.isnot(None),
                 Application.ai_interview_video_url != "",
                 ~Application.id.in_(
-                    db.query(VideoAnalysis.application_id).distinct()
+                    db.query(MediaAnalysis.application_id).distinct()
                 )
             ).all()
             
@@ -72,8 +72,8 @@ class BackgroundAnalysisService:
                     db = next(get_db())
                     try:
                         # 기존 분석 결과가 있는지 확인
-                        existing_analysis = db.query(VideoAnalysis).filter(
-                            VideoAnalysis.application_id == application_id
+                        existing_analysis = db.query(MediaAnalysis).filter(
+                            MediaAnalysis.application_id == application_id
                         ).first()
                         
                         if existing_analysis:
@@ -94,7 +94,7 @@ class BackgroundAnalysisService:
                             
                         else:
                             # 새로운 분석 결과 생성
-                            new_analysis = VideoAnalysis(
+                            new_analysis = MediaAnalysis(
                                 application_id=application_id,
                                 video_path=analysis_result.get("video_path", ""),
                                 video_url=analysis_result.get("video_url", ""),
