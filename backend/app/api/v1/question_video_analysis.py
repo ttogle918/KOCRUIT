@@ -1,4 +1,4 @@
-# === Question Video Analysis API ===
+# === Question Media Analysis API ===
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional
@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.question_video_analysis import QuestionVideoAnalysis
+from app.models.question_video_analysis import QuestionMediaAnalysis
 from app.models.interview_question_log import InterviewQuestionLog
 from app.models.application import Application
 from app.services.background_analysis_service import background_analysis_service
@@ -42,9 +42,9 @@ async def analyze_question_video(
             raise HTTPException(status_code=400, detail="질문 로그가 없습니다")
         
         # 기존 분석 결과 확인
-        existing_analyses = db.query(QuestionVideoAnalysis).filter(
-            QuestionVideoAnalysis.application_id == application_id,
-            QuestionVideoAnalysis.status == "completed"
+        existing_analyses = db.query(QuestionMediaAnalysis).filter(
+            QuestionMediaAnalysis.application_id == application_id,
+            QuestionMediaAnalysis.status == "completed"
         ).count()
         
         # 이미 모든 질문이 분석된 경우
@@ -97,9 +97,9 @@ async def get_question_analysis_results(
     """질문별 분석 결과 조회 (자동 분석 포함)"""
     try:
         # 질문별 분석 결과 조회
-        question_analyses = db.query(QuestionVideoAnalysis).filter(
-            QuestionVideoAnalysis.application_id == application_id
-        ).order_by(QuestionVideoAnalysis.analysis_timestamp).all()
+        question_analyses = db.query(QuestionMediaAnalysis).filter(
+            QuestionMediaAnalysis.application_id == application_id
+        ).order_by(QuestionMediaAnalysis.analysis_timestamp).all()
         
         if not question_analyses:
             # 지원자 정보 조회하여 비디오 URL 확인
@@ -204,8 +204,8 @@ async def get_question_analysis_statistics(
     """질문별 분석 통계 조회"""
     try:
         # 질문별 분석 결과 조회
-        question_analyses = db.query(QuestionVideoAnalysis).filter(
-            QuestionVideoAnalysis.application_id == application_id
+        question_analyses = db.query(QuestionMediaAnalysis).filter(
+            QuestionMediaAnalysis.application_id == application_id
         ).all()
         
         if not question_analyses:
@@ -314,9 +314,9 @@ async def _save_question_analysis_results(db: Session, application_id: int, anal
                 continue
             
             # 기존 분석 결과가 있는지 확인
-            existing_analysis = db.query(QuestionVideoAnalysis).filter(
-                QuestionVideoAnalysis.application_id == application_id,
-                QuestionVideoAnalysis.question_log_id == question_analysis.get("question_log_id")
+            existing_analysis = db.query(QuestionMediaAnalysis).filter(
+                QuestionMediaAnalysis.application_id == application_id,
+                QuestionMediaAnalysis.question_log_id == question_analysis.get("question_log_id")
             ).first()
             
             # 이미 완료된 분석이면 건너뛰기
@@ -370,7 +370,7 @@ async def _save_question_analysis_results(db: Session, application_id: int, anal
                 
             else:
                 # 새로운 분석 결과 생성
-                new_analysis = QuestionVideoAnalysis(
+                new_analysis = QuestionMediaAnalysis(
                     application_id=application_id,
                     question_log_id=question_analysis.get("question_log_id"),
                     question_text=question_analysis.get("question_text", ""),
@@ -424,7 +424,7 @@ async def _save_question_analysis_results(db: Session, application_id: int, anal
         logger.error(f"질문별 분석 결과 저장 오류: {str(e)}")
         raise
 
-def _calculate_question_statistics(question_analyses: List[QuestionVideoAnalysis]) -> Dict:
+def _calculate_question_statistics(question_analyses: List[QuestionMediaAnalysis]) -> Dict:
     """질문별 분석 통계 계산"""
     if not question_analyses:
         return {}

@@ -1,4 +1,4 @@
-# === Video Analysis API ===
+# === Media Analysis API ===
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
@@ -8,7 +8,7 @@ from datetime import datetime
 import json
 
 from app.core.database import get_db
-from app.models.video_analysis import VideoAnalysis
+from app.models.media_analysis import MediaAnalysis
 from app.models.application import Application
 from app.api.v1.auth import get_current_user
 from app.models.user import User
@@ -32,55 +32,41 @@ async def analyze_video(
         if not application:
             raise HTTPException(status_code=404, detail="지원자를 찾을 수 없습니다")
         
-        # 영상 URL 확인 (테스트용 공개 영상 URL 사용)
-        video_url = application.ai_interview_video_url or application.video_url
-        if not video_url:
-            raise HTTPException(status_code=400, detail="분석할 영상 URL이 없습니다")
+        if not application.ai_interview_video_url:
+            raise HTTPException(status_code=400, detail="AI 면접 영상이 없습니다")
         
-        # Google Drive URL 확인 및 로깅
-        if 'drive.google.com' in video_url:
-            logger.info(f"Google Drive URL 감지: {video_url}")
-            logger.info("실제 Google Drive 영상을 사용하여 분석을 진행합니다")
-        
-        # 기존 분석 결과 확인
-        existing_analysis = db.query(VideoAnalysis).filter(
-            VideoAnalysis.application_id == application_id
+        # 기존 분석 결과가 있는지 확인
+        existing_analysis = db.query(MediaAnalysis).filter(
+            MediaAnalysis.application_id == application_id
         ).first()
         
         if existing_analysis:
-            # 테스트를 위해 기존 결과 삭제하고 새로 분석
-            logger.info(f"기존 분석 결과 삭제 후 새로 분석: application_id={application_id}")
-            db.delete(existing_analysis)
-            db.commit()
+            return {
+                "success": True,
+                "message": "이미 분석된 영상입니다",
+                "analysis": existing_analysis.to_dict(),
+                "is_cached": True
+            }
         
         # Video Analysis 서비스에 분석 요청
         try:
-            logger.info(f"Video Analysis 서비스 요청: {VIDEO_ANALYSIS_SERVICE_URL}/analyze-video-url")
-            logger.info(f"요청 데이터: video_url={video_url}, application_id={application_id}")
+            analysis_request = {
+                "video_url": application.ai_interview_video_url,
+                "application_id": application_id
+            }
             
             response = requests.post(
-                f"{VIDEO_ANALYSIS_SERVICE_URL}/analyze-video-url",
-                json={
-                    "video_url": video_url,
-                    "application_id": application_id
-                },
-                timeout=300  # 5분 타임아웃
+                f"{VIDEO_ANALYSIS_SERVICE_URL}/analyze-video",
+                json=analysis_request,
+                timeout=300
             )
-            
-            logger.info(f"Video Analysis 서비스 응답: status_code={response.status_code}")
             
             if response.status_code == 200:
                 analysis_data = response.json()
-                logger.info(f"Video Analysis 서비스 응답 데이터: {analysis_data}")
-                
-                # 응답 구조 확인 및 데이터 추출
-                if "data" in analysis_data:
-                    analysis_data = analysis_data["data"]
-                elif "analysis" in analysis_data:
-                    analysis_data = analysis_data["analysis"]
+                video_url = application.ai_interview_video_url
                 
                 # DB에 저장
-                video_analysis = VideoAnalysis(
+                media_analysis = MediaAnalysis(
                     application_id=application_id,
                     video_path=analysis_data.get("video_path", ""),
                     video_url=video_url,
@@ -108,14 +94,14 @@ async def analyze_video(
                     detailed_analysis=analysis_data
                 )
                 
-                db.add(video_analysis)
+                db.add(media_analysis)
                 db.commit()
-                db.refresh(video_analysis)
+                db.refresh(media_analysis)
                 
                 return {
                     "success": True,
                     "message": "영상 분석이 완료되었습니다",
-                    "analysis": video_analysis.to_dict(),
+                    "analysis": media_analysis.to_dict(),
                     "is_cached": False
                 }
             else:
@@ -139,8 +125,8 @@ async def save_analysis_result(
     """분석 결과 저장 (백그라운드 분석용)"""
     try:
         # 기존 분석 결과가 있는지 확인
-        existing_analysis = db.query(VideoAnalysis).filter(
-            VideoAnalysis.application_id == application_id
+        existing_analysis = db.query(MediaAnalysis).filter(
+            MediaAnalysis.application_id == application_id
         ).first()
         
         if existing_analysis:
@@ -161,7 +147,7 @@ async def save_analysis_result(
             
         else:
             # 새로운 분석 결과 생성
-            new_analysis = VideoAnalysis(
+            new_analysis = MediaAnalysis(
                 application_id=application_id,
                 video_path=analysis_data.get("video_path", ""),
                 video_url=analysis_data.get("video_url", ""),
@@ -187,80 +173,53 @@ async def save_analysis_result(
         raise HTTPException(status_code=500, detail="분석 결과 저장 중 오류가 발생했습니다")
 
 @router.get("/result/{application_id}")
-async def get_video_analysis_result(
+async def get_analysis_result(
     application_id: int,
     db: Session = Depends(get_db)
 ):
-    """영상 분석 결과 조회"""
+    """분석 결과 조회"""
     try:
-        # DB에서 분석 결과 조회
-        video_analysis = db.query(VideoAnalysis).filter(
-            VideoAnalysis.application_id == application_id
+        analysis = db.query(MediaAnalysis).filter(
+            MediaAnalysis.application_id == application_id
         ).first()
         
-        if not video_analysis:
+        if not analysis:
             raise HTTPException(status_code=404, detail="분석 결과를 찾을 수 없습니다")
         
         return {
             "success": True,
-            "analysis": video_analysis.to_dict()
+            "analysis": analysis.to_dict()
         }
         
     except Exception as e:
         logger.error(f"분석 결과 조회 오류: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"결과 조회 중 오류가 발생했습니다: {str(e)}")
+        raise HTTPException(status_code=500, detail="분석 결과 조회 중 오류가 발생했습니다")
 
 @router.get("/status/{application_id}")
-async def get_video_analysis_status(
+async def get_analysis_status(
     application_id: int,
     db: Session = Depends(get_db)
 ):
-    """영상 분석 상태 조회"""
+    """분석 상태 확인"""
     try:
-        video_analysis = db.query(VideoAnalysis).filter(
-            VideoAnalysis.application_id == application_id
+        analysis = db.query(MediaAnalysis).filter(
+            MediaAnalysis.application_id == application_id
         ).first()
         
-        if not video_analysis:
+        if not analysis:
             return {
                 "success": True,
-                "status": "not_found",
-                "message": "분석 결과가 없습니다"
+                "status": "not_started",
+                "message": "분석이 시작되지 않았습니다"
             }
         
         return {
             "success": True,
-            "status": video_analysis.status,
-            "analysis_timestamp": video_analysis.analysis_timestamp.isoformat() if video_analysis.analysis_timestamp else None,
-            "overall_score": video_analysis.overall_score
+            "status": analysis.status,
+            "message": f"분석 상태: {analysis.status}",
+            "timestamp": analysis.analysis_timestamp.isoformat() if analysis.analysis_timestamp else None
         }
         
     except Exception as e:
-        logger.error(f"분석 상태 조회 오류: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"상태 조회 중 오류가 발생했습니다: {str(e)}")
-
-@router.delete("/result/{application_id}")
-async def delete_video_analysis_result(
-    application_id: int,
-    db: Session = Depends(get_db)
-):
-    """영상 분석 결과 삭제"""
-    try:
-        video_analysis = db.query(VideoAnalysis).filter(
-            VideoAnalysis.application_id == application_id
-        ).first()
-        
-        if not video_analysis:
-            raise HTTPException(status_code=404, detail="삭제할 분석 결과가 없습니다")
-        
-        db.delete(video_analysis)
-        db.commit()
-        
-        return {
-            "success": True,
-            "message": "분석 결과가 삭제되었습니다"
-        }
-        
-    except Exception as e:
-        logger.error(f"분석 결과 삭제 오류: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"삭제 중 오류가 발생했습니다: {str(e)}") 
+        logger.error(f"분석 상태 확인 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="분석 상태 확인 중 오류가 발생했습니다") 

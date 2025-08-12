@@ -22,7 +22,7 @@ from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
 from app.services.application_evaluation_service import auto_evaluate_all_applications
 from app.utils.enum_converter import get_safe_interview_statuses
-from app.models.video_analysis import VideoAnalysis
+from app.models.video_analysis import MediaAnalysis
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1139,7 +1139,7 @@ async def get_pending_video_analyses(
             Application.ai_interview_video_url.isnot(None),
             Application.ai_interview_video_url != "",
             ~Application.id.in_(
-                db.query(VideoAnalysis.application_id).distinct()
+                db.query(MediaAnalysis.application_id).distinct()
             )
         ).all()
         
