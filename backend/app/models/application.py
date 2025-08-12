@@ -119,8 +119,8 @@ class Application(Base):
     analysis_results = relationship("AnalysisResult", back_populates="application")
     growth_prediction_results = relationship("GrowthPredictionResult", back_populates="application")
     personal_question_results = relationship("PersonalQuestionResult", back_populates="application")
-    video_analyses = relationship("VideoAnalysis", back_populates="application")
-    question_video_analyses = relationship("QuestionVideoAnalysis", back_populates="application")
+    media_analyses = relationship("MediaAnalysis", back_populates="application")
+    question_media_analyses = relationship("QuestionMediaAnalysis", back_populates="application")
 
     # 헬퍼 메서드들
     def get_current_interview_stage(self) -> str:

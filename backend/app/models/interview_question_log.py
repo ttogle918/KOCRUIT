@@ -33,4 +33,4 @@ class InterviewQuestionLog(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
     # 관계 설정
-    video_analyses = relationship("QuestionVideoAnalysis", back_populates="question_log") 
+    media_analyses = relationship("QuestionMediaAnalysis", back_populates="question_log") 
