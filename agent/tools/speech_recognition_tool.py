@@ -10,12 +10,16 @@ import os
 import tempfile
 import json
 from datetime import datetime
+from .speaker_diarization_tool import SpeakerDiarizationTool
 
 class SpeechRecognitionTool:
     def __init__(self):
         """도구 초기화"""
         self.model = whisper.load_model("base")
         self.sample_rate = 16000
+        self.speaker_diarization = SpeakerDiarizationTool()
+        # pyannote.audio 파이프라인 초기화 (HuggingFace 토큰이 있으면 사용)
+        self.speaker_diarization.initialize_pipeline()
     
     def transcribe_audio(self, audio_file_path: str) -> Dict[str, Any]:
         """MP3 파일을 텍스트로 변환
@@ -54,7 +58,7 @@ class SpeechRecognitionTool:
             }
     
     def detect_speakers(self, audio_file_path: str) -> Dict[str, Any]:
-        """화자 분리 (간단한 방법 - 실제로는 pyannote.audio 사용 권장)
+        """화자 분리 (pyannote.audio 사용)
         
         Args:
             audio_file_path: 오디오 파일 경로
@@ -63,22 +67,51 @@ class SpeechRecognitionTool:
             화자별 세그먼트 정보
         """
         try:
+            # pyannote.audio를 사용한 정교한 화자 분리
+            diarization_result = self.speaker_diarization.diarize_audio(audio_file_path)
+            
+            if not diarization_result["success"]:
+                # pyannote.audio 실패시 간단한 방법으로 fallback
+                print(f"⚠️ pyannote.audio 실패, 간단한 방법 사용: {diarization_result.get('error', 'Unknown error')}")
+                return self._fallback_speaker_detection(audio_file_path)
+            
+            # 화자 패턴 분석 추가
+            pattern_result = self.speaker_diarization.analyze_speaker_patterns(
+                diarization_result["segments"]
+            )
+            
+            return {
+                "speakers": diarization_result["segments"],
+                "speaker_mapping": diarization_result.get("speaker_mapping", {}),
+                "pattern_analysis": pattern_result,
+                "success": True,
+                "method": "pyannote.audio"
+            }
+        except Exception as e:
+            print(f"❌ pyannote.audio 화자 분리 오류: {str(e)}")
+            # 오류시 간단한 방법으로 fallback
+            return self._fallback_speaker_detection(audio_file_path)
+    
+    def _fallback_speaker_detection(self, audio_file_path: str) -> Dict[str, Any]:
+        """간단한 화자 분리 (fallback)"""
+        try:
             # 오디오 로드
             y, sr = librosa.load(audio_file_path, sr=self.sample_rate)
             
             # 간단한 화자 분리 (음성 특성 기반)
-            # 실제 구현에서는 pyannote.audio나 더 정교한 방법 사용
             segments = self._simple_speaker_detection(y, sr)
             
             return {
                 "speakers": segments,
-                "success": True
+                "success": True,
+                "method": "simple_volume_based"
             }
         except Exception as e:
             return {
                 "speakers": [],
                 "success": False,
-                "error": str(e)
+                "error": str(e),
+                "method": "failed"
             }
     
     def _simple_speaker_detection(self, audio: np.ndarray, sr: int) -> List[Dict]:

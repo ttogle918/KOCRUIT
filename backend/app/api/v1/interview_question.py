@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.api.v1.auth import get_current_user
 from app.models.user import User
 from app.models.application import Application, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
+from app.models.evaluation_criteria import EvaluationCriteria
 from app.models.interview_question import InterviewQuestion, QuestionType
 from app.models.job import JobPost
 from app.models.resume import Resume, Spec
@@ -785,6 +786,45 @@ async def get_practical_interview_questions(application_id: int, db: Session = D
                 "직무와 관련된 본인의 강점과 개선점은 무엇인가요?"
             ]
         
+        return {
+            "application_id": application_id,
+            "resume_id": application.resume_id,
+            "questions": questions,
+            "source": "database" if resume_criteria else "default"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/application/{application_id}/executive-questions")
+@redis_cache(expire=300)  # 5분 캐시 (임원진 질문 조회)
+async def get_executive_interview_questions(application_id: int, db: Session = Depends(get_db)):
+    """임원진 면접 질문 조회 (DB에서 기존 질문 또는 평가기준 기반 질문 가져오기)"""
+    try:
+        # application_id로 지원자 정보 조회
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="Application not found")
+
+        # 이력서 기반 평가 기준에서 임원진 단계 질문 가져오기
+        resume_criteria = db.query(EvaluationCriteria).filter(
+            EvaluationCriteria.resume_id == application.resume_id,
+            EvaluationCriteria.evaluation_type == "resume_based",
+            EvaluationCriteria.interview_stage == "executive"
+        ).first()
+
+        if resume_criteria and resume_criteria.evaluation_questions:
+            questions = resume_criteria.evaluation_questions
+        else:
+            # 기본 임원진 질문 세트 (fallback)
+            questions = [
+                "조직의 비전과 전략을 어떻게 수립하고 추진하셨습니까?",
+                "팀 리딩 경험과 어려운 의사결정을 내린 사례를 말씀해 주세요.",
+                "윤리적 딜레마 상황에서 어떤 기준으로 판단하셨습니까?",
+                "조직 문화에 기여한 사례가 있다면 설명해 주세요.",
+                "향후 3년간 본인의 성장 계획과 기여 방안을 말씀해 주세요."
+            ]
+
         return {
             "application_id": application_id,
             "resume_id": application.resume_id,

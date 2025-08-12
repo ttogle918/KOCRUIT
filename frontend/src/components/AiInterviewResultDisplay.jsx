@@ -20,6 +20,9 @@ const AiInterviewResultDisplay = ({
   sttData = null,
   onDataLoad = null 
 }) => {
+  // 드롭다운 토글 상태 (간단 요약/상세)
+  const [openSummary, setOpenSummary] = React.useState(true);
+  const [openDetails, setOpenDetails] = React.useState(false);
   const [currentData, setCurrentData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

@@ -2,8 +2,10 @@ import redis
 import json
 import hashlib
 import functools
+import asyncio
 from typing import Optional, Any, Callable
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 from app.core.config import settings
 
 # Redis 클라이언트
@@ -17,41 +19,72 @@ redis_client = redis.Redis(
 def redis_cache(expire: int = 3600, key_prefix: str = "api_cache"):
     """
     Redis 캐시 데코레이터 (동기/비동기 함수 모두 지원)
-    
+
     Args:
         expire: 캐시 만료 시간 (초)
         key_prefix: 캐시 키 접두사
     """
+
     def decorator(func: Callable) -> Callable:
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # 캐시 키 생성
-            cache_key = generate_cache_key(func.__name__, args, kwargs, key_prefix)
-            
-            # 캐시에서 데이터 조회
-            cached_data = redis_client.get(cache_key)
-            if cached_data:
+        is_async = asyncio.iscoroutinefunction(func)
+
+        if is_async:
+            @functools.wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                cache_key = generate_cache_key(func.__name__, args, kwargs, key_prefix)
+
+                cached_data = redis_client.get(cache_key)
+                if cached_data:
+                    try:
+                        return json.loads(cached_data)
+                    except json.JSONDecodeError:
+                        pass
+
+                result = await func(*args, **kwargs)
+
                 try:
-                    return json.loads(cached_data)
-                except json.JSONDecodeError:
-                    pass
-            
-            # 캐시에 없으면 함수 실행
-            result = func(*args, **kwargs)
-            
-            # 결과를 캐시에 저장
-            try:
-                redis_client.setex(
-                    cache_key,
-                    expire,
-                    json.dumps(result, ensure_ascii=False, default=str)
-                )
-            except Exception as e:
-                print(f"캐시 저장 실패: {e}")
-            
-            return result
-        
-        return wrapper
+                    # FastAPI 호환 가능한 JSON 직렬화
+                    encoded = jsonable_encoder(result)
+                    redis_client.setex(
+                        cache_key,
+                        expire,
+                        json.dumps(encoded, ensure_ascii=False, default=str),
+                    )
+                except Exception as e:
+                    print(f"캐시 저장 실패: {e}")
+
+                return result
+
+            return async_wrapper
+
+        else:
+            @functools.wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                cache_key = generate_cache_key(func.__name__, args, kwargs, key_prefix)
+
+                cached_data = redis_client.get(cache_key)
+                if cached_data:
+                    try:
+                        return json.loads(cached_data)
+                    except json.JSONDecodeError:
+                        pass
+
+                result = func(*args, **kwargs)
+
+                try:
+                    encoded = jsonable_encoder(result)
+                    redis_client.setex(
+                        cache_key,
+                        expire,
+                        json.dumps(encoded, ensure_ascii=False, default=str),
+                    )
+                except Exception as e:
+                    print(f"캐시 저장 실패: {e}")
+
+                return result
+
+            return sync_wrapper
+
     return decorator
 
 def generate_cache_key(func_name: str, args: tuple, kwargs: dict, prefix: str) -> str:

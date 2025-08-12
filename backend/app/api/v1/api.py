@@ -15,6 +15,7 @@ from .analysis_results import router as analysis_results_router
 from .video_analysis import router as video_analysis_router
 from .background_analysis import router as background_analysis_router
 from app.api.v1.question_video_analysis import router as question_video_analysis_router
+from app.api.v1.whisper_analysis import router as whisper_analysis_router
 
 
 api_router = APIRouter()
@@ -51,4 +52,10 @@ api_router.include_router(
     question_video_analysis_router,
     prefix="/question-video-analysis",
     tags=["Question Video Analysis"]
+)
+# Whisper 분석 라우터 추가
+api_router.include_router(
+    whisper_analysis_router,
+    prefix="/whisper-analysis",
+    tags=["Whisper Analysis"]
 )

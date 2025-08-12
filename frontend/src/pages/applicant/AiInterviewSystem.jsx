@@ -27,6 +27,7 @@ import {
   checkVideoAnalysisHealth 
 } from '../../api/videoAnalysisApi';
 import QuestionVideoAnalysisModal from '../../components/QuestionVideoAnalysisModal';
+import DetailedWhisperAnalysis from '../../components/DetailedWhisperAnalysis';
 
 // Resume 조회 실패 시 안전한 처리를 위한 유틸리티 함수
 const safeApiCall = async (apiCall, fallbackValue = null) => {
@@ -388,6 +389,11 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
   const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [aiAnalysisError, setAiAnalysisError] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState(null);
+  const [openStt, setOpenStt] = useState(false);
+  const [openWhisper, setOpenWhisper] = useState(false);
+  const [openQuestion, setOpenQuestion] = useState(false);
 
   // 성능 최적화: 탭 변경 핸들러를 useCallback으로 최적화
   const handleTabChange = useCallback((tab) => {
@@ -420,6 +426,52 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
       setAiAnalysisLoading(false);
     }
   }, [applicant]);
+
+  // Whisper 분석 상태 폴링 함수
+  const startStatusPolling = useCallback(() => {
+    if (isPolling) return;
+    
+    setIsPolling(true);
+    console.log('🔄 Whisper 분석 상태 폴링 시작...');
+    
+    const interval = setInterval(async () => {
+      try {
+        const response = await api.get(`/whisper-analysis/status/${applicant.application_id}`);
+        
+        if (response.data.has_analysis) {
+          console.log('✅ Whisper 분석 완료됨!');
+          setIsPolling(false);
+          clearInterval(interval);
+          
+          // 분석 완료 알림
+          alert(`Whisper 분석이 완료되었습니다!\n전사 길이: ${response.data.transcription_length}자\n점수: ${response.data.score}점`);
+          
+          // 데이터 새로고침
+          await loadInterviewData();
+        }
+      } catch (error) {
+        console.error('상태 폴링 오류:', error);
+      }
+    }, 10000); // 10초마다 확인 (부하 감소)
+    
+    setPollingInterval(interval);
+  }, [applicant.application_id, isPolling]);
+
+  // 폴링 중지 함수
+  const stopStatusPolling = useCallback(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+    setIsPolling(false);
+  }, [pollingInterval]);
+
+  // 컴포넌트 언마운트 시 폴링 중지
+  useEffect(() => {
+    return () => {
+      stopStatusPolling();
+    };
+  }, [stopStatusPolling]);
 
   // 일반 면접 영상 관련 코드 제거 - AI 면접 동영상만 사용
 
@@ -552,58 +604,30 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
         // DB에서 데이터 로드
         console.log(`🔍 ${applicant.application_id}번 지원자 DB에서 데이터 로드 시도`);
           
-        // AI 면접 분석 결과 로드 (JSON 파일 우선, DB 폴백)
-        const aiAnalysisResponse = await safeApiCall(() => 
-          api.get(`/ai-interview-questions/ai-interview-analysis/${applicant.application_id}`)
+        // 영상 분석 결과(DB) 먼저 시도
+        const videoResultResponse = await safeApiCall(() => 
+          api.get(`/video-analysis/result/${applicant.application_id}`)
         );
-        
-        if (aiAnalysisResponse && aiAnalysisResponse.success) {
-          const analysisData = aiAnalysisResponse.analysis_data;
-          videoAnalysisSource = aiAnalysisResponse.data_source;
-          
-          // JSON 파일에서 로드된 데이터 처리
-          if (analysisData && typeof analysisData === 'object') {
-            // ai_interview_68.json 형태의 데이터
-            if (analysisData.total_duration || analysisData.score) {
-              videoAnalysis = {
-                total_duration: analysisData.total_duration,
-                speaking_time: analysisData.speaking_time,
-                silence_ratio: analysisData.silence_ratio,
-                segment_count: analysisData.segment_count,
-                avg_segment_duration: analysisData.avg_segment_duration,
-                avg_energy: analysisData.avg_energy,
-                avg_pitch: analysisData.avg_pitch,
-                speaking_speed_wpm: analysisData.speaking_speed_wpm,
-                emotion: analysisData.emotion,
-                attitude: analysisData.attitude,
-                posture: analysisData.posture,
-                score: analysisData.score,
-                feedback: analysisData.feedback,
-                timestamp: analysisData.timestamp
-              };
-            }
-            // ai_interview_analysis_68.json 형태의 데이터
-            else if (analysisData.overall_evaluation || analysisData.qa_analysis) {
-              videoAnalysis = {
-                overall_score: analysisData.overall_evaluation?.overall_score,
-                status: analysisData.overall_evaluation?.status,
-                qa_pairs: analysisData.qa_analysis?.qa_pairs || [],
-                total_questions: analysisData.qa_analysis?.total_questions || 0,
-                total_answers: analysisData.qa_analysis?.total_answers || 0,
-                transcription: analysisData.transcription,
-                speaker_diarization: analysisData.speaker_diarization
-              };
-            }
-          }
+        if (videoResultResponse && videoResultResponse.success) {
+          videoAnalysis = videoResultResponse.analysis;
+          videoAnalysisSource = 'video-analysis-db';
         }
         
-        // STT 분석 결과 로드 (JSON 파일 우선, DB 폴백)
+        // STT 분석 결과 로드 (Whisper 분석 API 사용)
         const whisperResponse = await safeApiCall(() => 
-          api.get(`/ai-interview-questions/whisper-analysis/${applicant.application_id}?interview_type=ai_interview`)
+          api.get(`/whisper-analysis/status/${applicant.application_id}`)
         );
         
-        if (whisperResponse && whisperResponse.success) {
-          whisperAnalysis = whisperResponse.analysis || whisperResponse.whisper_data;
+        if (whisperResponse && whisperResponse.has_analysis) {
+          whisperAnalysis = {
+            transcription: whisperResponse.transcription,
+            score: whisperResponse.score,
+            speaker_analysis: whisperResponse.speaker_analysis,
+            emotion_analysis: whisperResponse.emotion_analysis,
+            context_analysis: whisperResponse.context_analysis,
+            analysis_method: whisperResponse.analysis_method,
+            created_at: whisperResponse.created_at
+          };
         }
         
         // 3. 기존 평가 데이터 로드 (API 호출) - 404 에러로 인해 주석처리
@@ -757,13 +781,13 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 <button
                   onClick={async () => {
                     try {
-                      const response = await api.get(`/ai-interview/video-analysis/${applicant.application_id}`);
+                      const response = await api.get(`/video-analysis/result/${applicant.application_id}`);
                       if (response.data.success) {
                         console.log('영상 분석 결과:', response.data);
                         setInterviewData(prev => ({
                           ...prev,
-                          videoAnalysis: response.data.video_analysis,
-                          videoAnalysisSource: response.data.data_source
+                          videoAnalysis: response.data.analysis,
+                          videoAnalysisSource: 'video-analysis-db'
                         }));
                       } else {
                         console.error('영상 분석 결과 로드 실패:', response.data.message);
@@ -776,6 +800,33 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 >
                   <MdOutlineAutoAwesome className="w-4 h-4 mr-2" />
                   기존 분석 결과 로드
+                </button>
+                
+                <button
+                  onClick={async () => {
+                    try {
+                      console.log('🎤 Whisper 분석 시작...');
+                      const response = await api.post(`/whisper-analysis/process/${applicant.application_id}`);
+                      
+                      if (response.data.success) {
+                        console.log('Whisper 분석 시작됨:', response.data);
+                        alert(`Whisper 분석이 백그라운드에서 시작되었습니다!\n\n긴 영상의 경우 5-10분 정도 소요될 수 있습니다.\n분석이 완료되면 자동으로 결과가 표시됩니다.`);
+                        
+                        // 상태 폴링 시작
+                        startStatusPolling();
+                      } else {
+                        console.error('Whisper 분석 시작 실패:', response.data.message);
+                        alert('Whisper 분석 시작에 실패했습니다: ' + response.data.message);
+                      }
+                    } catch (error) {
+                      console.error('Whisper 분석 오류:', error);
+                      alert('Whisper 분석 중 오류가 발생했습니다: ' + error.message);
+                    }
+                  }}
+                  className="inline-flex items-center px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm"
+                >
+                  <MdOutlineRecordVoiceOver className="w-4 h-4 mr-2" />
+                  Whisper 분석 실행
                 </button>
                 
                 <button
@@ -987,58 +1038,19 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                   <button 
                     onClick={async () => {
                       try {
-                        console.log('🔄 AI 면접 분석 데이터 다시 로드 시도...');
-                        const response = await api.get(`/ai-interview-questions/ai-interview-analysis/${applicant.application_id}`);
-                        console.log('AI 면접 분석 응답:', response.data);
+                        console.log('🔄 영상 분석 결과 다시 로드 시도...');
+                        const response = await api.get(`/video-analysis/result/${applicant.application_id}`);
                         if (response.data.success) {
-                          const analysisData = response.data.analysis_data;
-                          let videoAnalysis = null;
-                          
-                          // JSON 파일에서 로드된 데이터 처리
-                          if (analysisData && typeof analysisData === 'object') {
-                            // ai_interview_68.json 형태의 데이터
-                            if (analysisData.total_duration || analysisData.score) {
-                              videoAnalysis = {
-                                total_duration: analysisData.total_duration,
-                                speaking_time: analysisData.speaking_time,
-                                silence_ratio: analysisData.silence_ratio,
-                                segment_count: analysisData.segment_count,
-                                avg_segment_duration: analysisData.avg_segment_duration,
-                                avg_energy: analysisData.avg_energy,
-                                avg_pitch: analysisData.avg_pitch,
-                                speaking_speed_wpm: analysisData.speaking_speed_wpm,
-                                emotion: analysisData.emotion,
-                                attitude: analysisData.attitude,
-                                posture: analysisData.posture,
-                                score: analysisData.score,
-                                feedback: analysisData.feedback,
-                                timestamp: analysisData.timestamp
-                              };
-                            }
-                            // ai_interview_analysis_68.json 형태의 데이터
-                            else if (analysisData.overall_evaluation || analysisData.qa_analysis) {
-                              videoAnalysis = {
-                                overall_score: analysisData.overall_evaluation?.overall_score,
-                                status: analysisData.overall_evaluation?.status,
-                                qa_pairs: analysisData.qa_analysis?.qa_pairs || [],
-                                total_questions: analysisData.qa_analysis?.total_questions || 0,
-                                total_answers: analysisData.qa_analysis?.total_answers || 0,
-                                transcription: analysisData.transcription,
-                                speaker_diarization: analysisData.speaker_diarization
-                              };
-                            }
-                          }
-                          
                           setInterviewData(prev => ({
                             ...prev,
-                            videoAnalysis,
-                            videoAnalysisSource: response.data.data_source
+                            videoAnalysis: response.data.analysis,
+                            videoAnalysisSource: 'video-analysis-db'
                           }));
                         } else {
-                          console.error('AI 면접 분석 결과 로드 실패:', response.data.message);
+                          console.error('영상 분석 결과 로드 실패:', response.data.message);
                         }
                       } catch (error) {
-                        console.error('AI 면접 분석 결과 로드 실패:', error);
+                        console.error('영상 분석 결과 로드 실패:', error);
                       }
                     }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -1186,6 +1198,126 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 </p>
               </div>
             )}
+
+            {/* 상세 분석 (드롭다운) */}
+            <div className="mt-8 space-y-3">
+              {/* STT 분석 결과 드롭다운 */}
+              <div className="border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setOpenStt(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100"
+                >
+                  <span className="font-medium text-gray-900 flex items-center gap-2">
+                    <MdOutlineRecordVoiceOver className="text-purple-600" /> STT 분석 결과
+                  </span>
+                  <span className="text-gray-500">{openStt ? '접기' : '펼치기'}</span>
+                </button>
+                {openStt && (
+                  <div className="p-4 bg-white text-sm text-gray-800 space-y-3">
+                    {!interviewData?.whisperAnalysis ? (
+                      <div className="text-gray-500">STT 분석 결과가 없습니다. 우측 상단에서 Whisper 분석을 실행하거나, STT 탭에서 다시 로드하세요.</div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="bg-purple-50 rounded p-3">
+                            <div className="text-purple-600">전사 길이</div>
+                            <div className="text-lg font-semibold text-purple-900">{interviewData.whisperAnalysis.analysis?.transcription_length || interviewData.whisperAnalysis.transcription?.length || 0}자</div>
+                          </div>
+                          <div className="bg-blue-50 rounded p-3">
+                            <div className="text-blue-600">점수</div>
+                            <div className="text-lg font-semibold text-blue-900">{interviewData.whisperAnalysis.analysis?.score ?? 'N/A'}</div>
+                          </div>
+                          <div className="bg-green-50 rounded p-3">
+                            <div className="text-green-600">생성일</div>
+                            <div className="text-sm font-medium text-green-900">{interviewData.whisperAnalysis.analysis?.timestamp ? new Date(interviewData.whisperAnalysis.analysis.timestamp).toLocaleString() : 'N/A'}</div>
+                          </div>
+                        </div>
+                        <div className="pt-2 flex gap-2">
+                          <button
+                            onClick={() => setActiveTab('whisper')}
+                            className="px-3 py-2 text-xs rounded bg-purple-600 text-white hover:bg-purple-700"
+                          >
+                            STT 상세 전체 보기
+                          </button>
+                          <button
+                            onClick={() => setShowDetailedWhisperAnalysis(true)}
+                            className="px-3 py-2 text-xs rounded bg-gray-700 text-white hover:bg-gray-800"
+                          >
+                            상세 Whisper 분석 (모달)
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Whisper 세부 지표 드롭다운 */}
+              <div className="border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setOpenWhisper(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100"
+                >
+                  <span className="font-medium text-gray-900 flex items-center gap-2">
+                    <MdOutlineAnalytics className="text-green-600" /> Whisper 세부 지표
+                  </span>
+                  <span className="text-gray-500">{openWhisper ? '접기' : '펼치기'}</span>
+                </button>
+                {openWhisper && (
+                  <div className="p-4 bg-white text-sm text-gray-800 space-y-3">
+                    {!interviewData?.whisperAnalysis ? (
+                      <div className="text-gray-500">세부 지표가 없습니다.</div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="bg-gray-50 rounded p-3">
+                          <div className="text-gray-600">분당 발화 속도</div>
+                          <div className="font-medium">{interviewData.whisperAnalysis.analysis?.speaking_speed_wpm ?? 'N/A'} wpm</div>
+                        </div>
+                        <div className="bg-gray-50 rounded p-3">
+                          <div className="text-gray-600">평균 에너지</div>
+                          <div className="font-medium">{interviewData.whisperAnalysis.analysis?.avg_energy?.toFixed?.(4) ?? 'N/A'}</div>
+                        </div>
+                        <div className="bg-gray-50 rounded p-3">
+                          <div className="text-gray-600">평균 피치</div>
+                          <div className="font-medium">{interviewData.whisperAnalysis.analysis?.avg_pitch ? `${interviewData.whisperAnalysis.analysis.avg_pitch.toFixed(1)}Hz` : 'N/A'}</div>
+                        </div>
+                        <div className="bg-gray-50 rounded p-3">
+                          <div className="text-gray-600">세그먼트 수</div>
+                          <div className="font-medium">{interviewData.whisperAnalysis.analysis?.segment_count ?? 'N/A'}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 질문별 분석 결과 드롭다운 */}
+              <div className="border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setOpenQuestion(prev => !prev)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100"
+                >
+                  <span className="font-medium text-gray-900 flex items-center gap-2">
+                    <MdOutlineVideoLibrary className="text-blue-600" /> 질문별 분석 결과
+                  </span>
+                  <span className="text-gray-500">{openQuestion ? '접기' : '펼치기'}</span>
+                </button>
+                {openQuestion && (
+                  <div className="p-4 bg-white text-sm text-gray-800">
+                    <div className="text-gray-600 mb-3">질문/답변 구간별 상세 분석은 모달에서 확인하세요.</div>
+                    <button
+                      onClick={() => setShowQuestionAnalysisModal(true)}
+                      className="px-3 py-2 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      질문별 분석 모달 열기
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -1530,7 +1662,7 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 <div className="text-6xl mb-4">🎤</div>
                 <p className="text-gray-500 text-lg mb-2">STT 분석 결과가 없습니다</p>
                 <p className="text-gray-400 text-sm">음성 인식 데이터를 불러올 수 없습니다</p>
-                <div className="mt-4">
+                <div className="mt-4 space-y-2">
                   <button 
                     onClick={async () => {
                       try {
@@ -1549,9 +1681,38 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                         console.error('STT 데이터 로드 실패:', error);
                       }
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mr-2"
                   >
                     STT 데이터 다시 로드
+                  </button>
+                  
+                  <button 
+                    onClick={async () => {
+                      try {
+                        console.log('🔍 Whisper 분석 상태 확인...');
+                        const response = await api.get(`/whisper-analysis/status/${applicant.application_id}`);
+                        console.log('Whisper 상태:', response.data);
+                        
+                        if (response.data.has_analysis) {
+                          alert(`Whisper 분석 완료!\n생성일: ${new Date(response.data.created_at).toLocaleString()}\n전사 길이: ${response.data.transcription_length}자\n점수: ${response.data.score}점`);
+                        } else {
+                          alert('Whisper 분석이 아직 실행되지 않았습니다.');
+                        }
+                      } catch (error) {
+                        console.error('Whisper 상태 확인 실패:', error);
+                        alert('Whisper 상태 확인 중 오류가 발생했습니다: ' + error.message);
+                      }
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 mr-2"
+                  >
+                    Whisper 분석 상태 확인
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowDetailedWhisperAnalysis(true)}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  >
+                    상세 분석 결과 보기
                   </button>
                 </div>
               </div>
@@ -1650,6 +1811,7 @@ const AiInterviewSystem = () => {
   const [selectedApplicantForCancel, setSelectedApplicantForCancel] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
   const [showQuestionAnalysisModal, setShowQuestionAnalysisModal] = useState(false);
+  const [showDetailedWhisperAnalysis, setShowDetailedWhisperAnalysis] = useState(false);
 
   // 성능 최적화: 지원자 선택 핸들러를 useCallback으로 최적화
   const handleApplicantSelect = useCallback((applicant) => {
@@ -2463,6 +2625,32 @@ const AiInterviewSystem = () => {
         onClose={() => setShowQuestionAnalysisModal(false)}
         applicationId={selectedApplicant?.application_id}
       />
+      
+      {/* 상세 Whisper 분석 모달 */}
+      {showDetailedWhisperAnalysis && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  상세 Whisper 분석 결과
+                </h3>
+                <button
+                  onClick={() => setShowDetailedWhisperAnalysis(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <DetailedWhisperAnalysis applicationId={selectedApplicant?.application_id} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

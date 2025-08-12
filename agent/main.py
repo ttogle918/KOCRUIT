@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 import os
+from datetime import datetime
 
 from .agents.graph_agent import build_graph
 from .agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, create_session_id
@@ -41,6 +42,7 @@ import whisper
 import librosa
 import numpy as np
 from typing import List, Dict, Any, Optional
+import soundfile as sf
 from pyannote.audio import Pipeline
 from pyannote.audio.pipelines.utils.hook import ProgressHook
 
@@ -77,6 +79,18 @@ class SpeakerAnalysisRequest(BaseModel):
     video_data: str  # base64 encoded video
     audio_filename: str
     video_filename: str
+
+class WhisperAnalysisRequest(BaseModel):
+    audio_path: str
+    application_id: Optional[int] = None
+
+class QAAnalysisRequest(BaseModel):
+    audio_path: str
+    application_id: Optional[int] = None
+    persist: Optional[bool] = False
+    output_dir: Optional[str] = None
+    max_workers: Optional[int] = 2
+    delete_after_input: Optional[bool] = False
 
 # 헬스체크 엔드포인트
 @app.get("/health")
@@ -116,16 +130,22 @@ class SpeakerAnalysisService:
         try:
             print("화자 분리 서비스 모델 초기화 시작...")
             
-            # Whisper 모델 로드
-            self.whisper_model = whisper.load_model("base")
-            print("Whisper 모델 로드 완료")
+            # Whisper 모델 로드 (더 빠른 모델 사용)
+            self.whisper_model = whisper.load_model("tiny")  # base → tiny로 변경
+            print("Whisper 모델 로드 완료 (tiny 모델)")
             
-            # 화자 분리 파이프라인 초기화
+            # 화자 분리 파이프라인 초기화 (HuggingFace 토큰 지원)
             try:
-                self.speaker_pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization-3.1",
-                    use_auth_token=None  # 무료 모델 사용
-                )
+                auth_token = os.environ.get("HUGGINGFACE_TOKEN") or os.environ.get("HF_TOKEN")
+                if auth_token:
+                    self.speaker_pipeline = Pipeline.from_pretrained(
+                        "pyannote/speaker-diarization-3.1",
+                        use_auth_token=auth_token
+                    )
+                else:
+                    self.speaker_pipeline = Pipeline.from_pretrained(
+                        "pyannote/speaker-diarization-3.1"
+                    )
                 print("화자 분리 파이프라인 초기화 완료")
             except Exception as e:
                 print(f"화자 분리 파이프라인 초기화 실패: {str(e)}")
@@ -358,10 +378,27 @@ class SpeakerAnalysisService:
     def analyze_audio_with_whisper(self, audio_path: str) -> Dict[str, Any]:
         """Whisper로 음성을 분석합니다."""
         try:
+            print(f"🎤 Whisper 분석 시작: {audio_path}")
+            
+            # 파일 존재 확인
+            if not os.path.exists(audio_path):
+                print(f"❌ 오디오 파일이 존재하지 않습니다: {audio_path}")
+                return {
+                    "text": "",
+                    "transcription": "",
+                    "speech_rate": 0,
+                    "segments_count": 0,
+                    "duration": 0,
+                    "language": "ko"
+                }
+            
             # Whisper로 음성 인식
             result = self.whisper_model.transcribe(audio_path, word_timestamps=True)
-            transcription = result["text"]
+            transcription = result.get("text", "")
             segments = result.get("segments", [])
+            language = result.get("language", "ko")
+            
+            print(f"✅ Whisper 분석 완료: {len(transcription)} 문자")
             
             # 오디오 로드
             audio, sr = librosa.load(audio_path, sr=16000)
@@ -370,20 +407,200 @@ class SpeakerAnalysisService:
             speech_rate = self._calculate_speech_rate(transcription, len(audio) / sr)
             
             return {
+                "text": transcription,  # 'text' 키 추가
                 "transcription": transcription,
                 "speech_rate": round(speech_rate, 3),
                 "segments_count": len(segments),
-                "duration": len(audio) / sr
+                "duration": len(audio) / sr,
+                "language": language,
+                "segments": segments
             }
             
         except Exception as e:
-            print(f"Whisper 분석 오류: {str(e)}")
+            print(f"❌ Whisper 분석 오류: {str(e)}")
             return {
+                "text": "",
                 "transcription": "",
                 "speech_rate": 0,
                 "segments_count": 0,
-                "duration": 0
+                "duration": 0,
+                "language": "ko",
+                "segments": []
             }
+
+    def _merge_contiguous_by_role(self, diar_segments: List[Dict[str, Any]], applicant_id: str) -> List[Dict[str, Any]]:
+        """연속된 동일 화자 역할(면접관/지원자)을 하나의 블록으로 병합"""
+        if not diar_segments:
+            return []
+        # start 기준 정렬
+        diar_segments = sorted(diar_segments, key=lambda s: s.get('start', 0.0))
+        blocks: List[Dict[str, Any]] = []
+        def role_of(sid: str) -> str:
+            return "applicant" if str(sid) == str(applicant_id) else "interviewer"
+        prev_role = role_of(diar_segments[0].get('speaker', 'unknown'))
+        current = {
+            'role': prev_role,
+            'start': float(diar_segments[0].get('start', 0.0)),
+            'end': float(diar_segments[0].get('end', 0.0))
+        }
+        for seg in diar_segments[1:]:
+            r = role_of(seg.get('speaker', 'unknown'))
+            s = float(seg.get('start', 0.0))
+            e = float(seg.get('end', 0.0))
+            if r == prev_role and s <= current['end'] + 0.2:  # 작은 겹침/간극 허용
+                current['end'] = max(current['end'], e)
+            else:
+                blocks.append(current)
+                current = {'role': r, 'start': s, 'end': e}
+                prev_role = r
+        blocks.append(current)
+        return blocks
+
+    def _slice_audio(self, audio_path: str, start: float, end: float) -> Optional[str]:
+        """오디오에서 특정 구간을 파일로 저장하고 경로 반환"""
+        try:
+            if end - start <= 0.5:
+                return None
+            audio, sr = librosa.load(audio_path, sr=16000)
+            s_idx = int(max(0.0, start) * sr)
+            e_idx = int(min(len(audio) / sr, end) * sr)
+            if e_idx <= s_idx:
+                return None
+            chunk = audio[s_idx:e_idx]
+            out_path = tempfile.mktemp(suffix=f"_{int(start)}-{int(end)}s.wav")
+            sf.write(out_path, chunk, sr)
+            return out_path
+        except Exception as e:
+            print(f"오디오 슬라이스 오류: {str(e)}")
+            return None
+
+    def build_qa_pairs_and_analyze_answers(self, audio_path: str, persist: bool = False, output_dir: Optional[str] = None, application_id: Optional[str] = None, max_workers: int = 2) -> Dict[str, Any]:
+        """화자분리로 Q→A 페어를 만들고, 지원자 답변별 Whisper 분석 수행
+
+        max_workers: 답변 구간 병렬 전사 워커 수(권장 2~4)
+        """
+        try:
+            diar_segments: List[Dict[str, Any]] = []
+            if self.speaker_pipeline:
+                diarization = self.speaker_pipeline(audio_path)
+                for turn, _, speaker in diarization.itertracks(yield_label=True):
+                    diar_segments.append({
+                        'start': float(turn.start),
+                        'end': float(turn.end),
+                        'speaker': str(speaker),
+                        'duration': float(turn.end - turn.start)
+                    })
+            else:
+                # Fallback: pyannote 미초기화 시 간단 화자 감지 사용
+                print("화자 분리 파이프라인 없음 → fallback 화자 감지 시도")
+                try:
+                    speech_tool = SpeechRecognitionTool()
+                    diar = speech_tool.detect_speakers(audio_path)
+                    diar_segments = [
+                        {
+                            'start': float(s.get('start', 0.0)),
+                            'end': float(s.get('end', 0.0)),
+                            'speaker': str(s.get('speaker', 'unknown')),
+                            'duration': float(s.get('duration', 0.0))
+                        }
+                        for s in diar.get("speakers", [])
+                    ]
+                except Exception as e:
+                    print(f"fallback 화자 감지 오류: {str(e)}")
+                    diar_segments = []
+            if not diar_segments:
+                return {"success": True, "qa": []}
+
+            # 지원자 화자 식별(총 발화시간 최대)
+            totals: Dict[str, float] = {}
+            for s in diar_segments:
+                sid = str(s.get('speaker', 'unknown'))
+                totals[sid] = totals.get(sid, 0.0) + max(0.0, float(s.get('duration', 0.0)))
+            applicant_id = max(totals.items(), key=lambda kv: kv[1])[0]
+
+            # 역할 블록 병합 후 Q→A 페어링
+            blocks = self._merge_contiguous_by_role(diar_segments, applicant_id)
+            qa_pairs: List[Dict[str, Any]] = []
+            i = 0
+            while i < len(blocks) - 1:
+                q = blocks[i]
+                a = blocks[i + 1]
+                if q['role'] == 'interviewer' and a['role'] == 'applicant':
+                    qa_pairs.append({
+                        'question': {'start': q['start'], 'end': q['end']},
+                        'answer': {'start': a['start'], 'end': a['end']}
+                    })
+                    i += 2
+                else:
+                    i += 1
+
+            # 보정: Q→A 페어가 없으면, 지원자 블록만으로 답변 단위 페어 생성
+            if not qa_pairs:
+                for b in blocks:
+                    if b['role'] == 'applicant':
+                        qa_pairs.append({
+                            'question': None,
+                            'answer': {'start': b['start'], 'end': b['end']}
+                        })
+
+            # 각 답변 구간에 대해 Whisper 분석 (병렬)
+            analyzed: List[Dict[str, Any]] = []
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            def process_one(idx: int, pair: Dict[str, Any]) -> Dict[str, Any]:
+                answer = pair['answer']
+                ans_path = self._slice_audio(audio_path, answer['start'], answer['end'])
+                if not ans_path:
+                    return {
+                        'index': idx,
+                        'question': pair['question'],
+                        'answer': answer,
+                        'analysis': {"text": "", "transcription": "", "duration": 0, "speech_rate": 0},
+                        'answer_audio_path': None
+                    }
+                analysis = self.analyze_audio_with_whisper(ans_path)
+                saved_path = None
+                if persist:
+                    try:
+                        base_dir = output_dir or os.path.join("/tmp", "qa_slices")
+                        if application_id:
+                            base_dir = os.path.join(base_dir, str(application_id))
+                        os.makedirs(base_dir, exist_ok=True)
+                        saved_path = os.path.join(base_dir, f"answer_{idx:02d}_{int(answer['start'])}-{int(answer['end'])}s.wav")
+                        import shutil
+                        shutil.move(ans_path, saved_path)
+                    except Exception as e:
+                        print(f"답변 오디오 저장 오류: {str(e)}")
+                        saved_path = None
+                return {
+                    'index': idx,
+                    'question': pair['question'],
+                    'answer': answer,
+                    'analysis': analysis,
+                    'answer_audio_path': saved_path or ans_path
+                }
+
+            max_workers = max(1, int(max_workers or 1))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(process_one, idx, pair): idx
+                    for idx, pair in enumerate(qa_pairs, start=1)
+                }
+                for future in as_completed(futures):
+                    try:
+                        analyzed.append(future.result())
+                    except Exception as e:
+                        print(f"병렬 전사 작업 오류: {str(e)}")
+
+            return {
+                'success': True,
+                'applicant_speaker_id': applicant_id,
+                'qa': analyzed,
+                'total_pairs': len(analyzed)
+            }
+        except Exception as e:
+            print(f"QA 분석 오류: {str(e)}")
+            return {"success": False, "qa": [], "error": str(e)}
     
     def _calculate_speech_rate(self, transcription: str, duration: float) -> float:
         """말하기 속도를 계산합니다."""
@@ -1287,6 +1504,162 @@ async def speaker_analysis_and_trim(request: SpeakerAnalysisRequest):
             "success": False,
             "message": f"오류가 발생했습니다: {str(e)}",
             "analysis": {}
+        }
+
+@app.post("/whisper-analysis")
+async def whisper_analysis_api(request: WhisperAnalysisRequest):
+    """Whisper 음성 분석 API"""
+    audio_path = request.audio_path
+    application_id = request.application_id
+
+    print(f"🎤 Whisper 분석 API 호출: audio_path={audio_path}, application_id={application_id}")
+
+    if not audio_path:
+        print("❌ audio_path가 제공되지 않았습니다")
+        return {"success": False, "error": "audio_path is required"}
+
+    try:
+        # 파일 존재 확인
+        if not os.path.exists(audio_path):
+            print(f"❌ 오디오 파일이 존재하지 않습니다: {audio_path}")
+            return {
+                "success": False, 
+                "error": f"Audio file not found: {audio_path}"
+            }
+
+        print(f"✅ 오디오 파일 확인됨: {audio_path}")
+        
+        # Whisper 분석 실행
+        whisper_analysis = speaker_analysis_service.analyze_audio_with_whisper(audio_path)
+        
+        if not whisper_analysis:
+            print("❌ Whisper 분석 결과가 없습니다")
+            return {
+                "success": False,
+                "error": "Whisper analysis failed"
+            }
+
+        print(f"✅ Whisper 분석 완료: {whisper_analysis.get('text', '')[:100]}...")
+        
+        # 로그 저장
+        log_path = speaker_analysis_service.save_speaker_analysis_log(
+            audio_path, [], whisper_analysis, application_id
+        )
+
+        return {
+            "success": True,
+            "whisper_analysis": whisper_analysis,
+            "log_path": log_path
+        }
+    except Exception as e:
+        print(f"❌ Whisper 분석 API 오류: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/diarized-qa-analysis")
+async def diarized_qa_analysis(request: QAAnalysisRequest):
+    """화자분리로 Q→A 구간을 만들고 지원자 답변별 Whisper 분석 반환"""
+    audio_path = request.audio_path
+    application_id = request.application_id
+    try:
+        if not audio_path or not os.path.exists(audio_path):
+            return {"success": False, "error": f"audio not found: {audio_path}"}
+        result = speaker_analysis_service.build_qa_pairs_and_analyze_answers(
+            audio_path,
+            persist=bool(request.persist),
+            output_dir=request.output_dir,
+            application_id=str(application_id) if application_id else None,
+            max_workers=int(request.max_workers or 2)
+        )
+        # 로그 저장(선택)
+        try:
+            speaker_analysis_service.save_speaker_analysis_log(
+                audio_path, [], {"qa_result": result}, str(application_id) if application_id else None
+            )
+        except Exception:
+            pass
+        # 입력 오디오 파일 삭제 옵션 처리
+        try:
+            if bool(request.delete_after_input) and os.path.exists(audio_path):
+                os.remove(audio_path)
+        except Exception as e:
+            print(f"입력 오디오 삭제 오류: {str(e)}")
+
+        return result
+    except Exception as e:
+        return {"success": False, "error": str(e), "qa": []}
+
+@app.post("/openai-answer-analysis")
+async def openai_answer_analysis_api(request: dict):
+    """OpenAI 답변 품질 분석 API"""
+    try:
+        from tools.openai_nlp_analyzer import openai_nlp_analyzer
+        
+        question = request.get("question", "")
+        answer = request.get("answer", "")
+        
+        if not question or not answer:
+            return {"success": False, "error": "question and answer are required"}
+        
+        analysis = openai_nlp_analyzer.analyze_answer_quality(question, answer)
+        
+        return {
+            "success": True,
+            "analysis": analysis
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/openai-context-analysis")
+async def openai_context_analysis_api(request: dict):
+    """OpenAI 문맥 분석 API"""
+    try:
+        from tools.openai_nlp_analyzer import openai_nlp_analyzer
+        
+        transcription = request.get("transcription", "")
+        speakers = request.get("speakers", [])
+        
+        if not transcription:
+            return {"success": False, "error": "transcription is required"}
+        
+        analysis = openai_nlp_analyzer.analyze_interview_context(transcription, speakers)
+        
+        return {
+            "success": True,
+            "analysis": analysis
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/emotion-analysis")
+async def emotion_analysis_api(request: dict):
+    """OpenAI 감정 분석 API"""
+    try:
+        from tools.openai_nlp_analyzer import openai_nlp_analyzer
+        
+        transcription = request.get("transcription", "")
+        
+        if not transcription:
+            return {"success": False, "error": "transcription is required"}
+        
+        analysis = openai_nlp_analyzer.analyze_emotion_from_text(transcription)
+        
+        return {
+            "success": True,
+            "analysis": analysis
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
         }
 
 @app.post("/evaluate-audio")

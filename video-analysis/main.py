@@ -34,6 +34,11 @@ class QuestionAnalysisRequest(BaseModel):
     video_url: str
     question_logs: List[Dict]
 
+class AudioExtractionRequest(BaseModel):
+    video_path: str
+    output_path: Optional[str] = None
+    max_duration_seconds: Optional[int] = None  # 앞부분 N초만 추출 (옵션)
+
 # 분석기 인스턴스
 video_analyzer = VideoAnalyzer()
 video_downloader = VideoDownloader()
@@ -43,6 +48,67 @@ question_video_analyzer = QuestionVideoAnalyzer()
 async def health_check():
     """서비스 상태 확인"""
     return {"status": "healthy", "service": "video-analysis"}
+
+@app.post("/download-video")
+async def download_video(request: VideoAnalysisRequest):
+    """비디오 다운로드만 수행"""
+    try:
+        logger.info(f"비디오 다운로드 요청: {request.video_url}")
+        
+        # 비디오 다운로드
+        video_path = video_downloader.download_video(request.video_url, request.application_id)
+        if not video_path:
+            raise HTTPException(status_code=400, detail="비디오 다운로드 실패")
+        
+        logger.info(f"비디오 다운로드 완료: {video_path}")
+        return {"video_path": video_path, "success": True}
+        
+    except Exception as e:
+        logger.error(f"비디오 다운로드 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"비디오 다운로드 중 오류가 발생했습니다: {str(e)}")
+
+@app.post("/extract-audio")
+async def extract_audio(request: AudioExtractionRequest):
+    """비디오에서 오디오 추출"""
+    try:
+        logger.info(f"오디오 추출 요청: {request.video_path}")
+        
+        # ffmpeg를 사용하여 오디오 추출
+        import subprocess
+        
+        if not request.output_path:
+            # 기본 출력 경로 설정
+            base_name = os.path.splitext(request.video_path)[0]
+            request.output_path = f"{base_name}.wav"
+        
+        # ffmpeg 명령어 실행
+        cmd = [
+            "ffmpeg", "-ss", "0", "-i", request.video_path,
+            "-vn", "-acodec", "pcm_s16le",
+            "-ar", "16000", "-ac", "1",
+        ]
+
+        # 앞부분 N초만 추출 옵션
+        if request.max_duration_seconds and request.max_duration_seconds > 0:
+            cmd.extend(["-t", str(request.max_duration_seconds)])
+
+        cmd.extend([request.output_path, "-y"])
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            logger.error(f"ffmpeg 오류: {result.stderr}")
+            raise HTTPException(status_code=500, detail=f"오디오 추출 실패: {result.stderr}")
+        
+        if not os.path.exists(request.output_path):
+            raise HTTPException(status_code=500, detail="오디오 파일이 생성되지 않았습니다")
+        
+        logger.info(f"오디오 추출 완료: {request.output_path}")
+        return {"audio_path": request.output_path, "success": True}
+        
+    except Exception as e:
+        logger.error(f"오디오 추출 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"오디오 추출 중 오류가 발생했습니다: {str(e)}")
 
 @app.post("/analyze-video-url")
 async def analyze_video_url(request: VideoAnalysisRequest):
