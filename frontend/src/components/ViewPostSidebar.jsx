@@ -30,7 +30,7 @@ export default function ViewPostSidebar({ jobPost }) {
   const interviewProgressPath = `/interview-progress/${effectiveJobPostId}`;
   
   // 면접 단계별 경로
-  const aiInterviewPath = `/ai-interview/${effectiveJobPostId}`;
+  const aiInterviewPath = `/interview-progress/${effectiveJobPostId}/ai`;
   const firstInterviewPath = `/interview-progress/${effectiveJobPostId}/first`;
   const secondInterviewPath = `/interview-progress/${effectiveJobPostId}/second`;
 
@@ -54,8 +54,8 @@ export default function ViewPostSidebar({ jobPost }) {
       }
       
       try {
-        console.log('[ViewPostSidebar] API 호출 시작:', `/v1/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
-        const response = await axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        console.log('[ViewPostSidebar] API 호출 시작:', `/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
+        const response = await axiosInstance.get(`/report/job-aptitude?job_post_id=${effectiveJobPostId}`);
         const data = response.data;
         const passedCount = data?.stats?.passed_applicants_count || 0;
         console.log('[ViewPostSidebar] 필기합격자 데이터 조회 결과:', {
@@ -170,9 +170,28 @@ export default function ViewPostSidebar({ jobPost }) {
         <button
           className={`flex items-center w-full h-11 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
-            bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800'
+            bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-800
+            ${!effectiveJobPostId ? 'opacity-50 cursor-not-allowed' : ''}
           `}
-          onClick={() => navigate(`/written-test-passed/${effectiveJobPostId}`)}
+          onClick={() => {
+            console.log('[ViewPostSidebar] 필기 합격자 명단 버튼 클릭:', {
+              effectiveJobPostId,
+              effectiveJobPostIdType: typeof effectiveJobPostId,
+              jobPost: jobPost,
+              urlJobPostId,
+              currentPath: window.location.pathname
+            });
+            
+            if (effectiveJobPostId) {
+              const targetUrl = `/written-test-passed/${effectiveJobPostId}`;
+              console.log('[ViewPostSidebar] 이동할 URL:', targetUrl);
+              navigate(targetUrl);
+            } else {
+              console.error('필기 합격자 명단: jobPostId가 없습니다.');
+              alert('채용공고를 먼저 선택해주세요.');
+            }
+          }}
+          disabled={!effectiveJobPostId}
         >
           <MdCheckCircle size={20} />
           {isHovered && <span className="ml-2">필기 합격자 명단</span>}
@@ -192,13 +211,10 @@ export default function ViewPostSidebar({ jobPost }) {
               ? 'bg-green-600 text-white hover:bg-green-700'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}
           `}
-          onClick={() => {
-            console.log('🚀 AI 면접 버튼 클릭:', aiInterviewPath);
-            navigate(aiInterviewPath);
-          }}
+          onClick={() => navigate(aiInterviewPath)}
         >
           <MdOutlineAutoAwesome size={20} />
-          {isHovered && <span className="ml-2">면접 현황 확인</span>}
+          {isHovered && <span className="ml-2">AI 면접</span>}
         </button>
         {/* 1차 면접 (실무진) */}
         <button
@@ -230,6 +246,18 @@ export default function ViewPostSidebar({ jobPost }) {
       
       {/* 보고서 버튼들 (항상 표시) */}
       <div className="flex flex-col gap-1 w-full mb-6">
+        {/* 지원자통계보고서 버튼 */}
+        <button
+          className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm
+            ${isHovered ? 'justify-start' : 'justify-center'}
+            ${effectiveJobPostId ? 'bg-purple-50 dark:bg-purple-900 text-purple-700 dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-purple-800' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'}
+          `}
+          onClick={() => effectiveJobPostId && navigate(`/report/applicant-statistics?job_post_id=${effectiveJobPostId}`)}
+          disabled={!effectiveJobPostId}
+        >
+          <MdCheckCircle size={18} />
+          {isHovered && <span className="ml-2 text-sm">지원자통계보고서</span>}
+        </button>
         {/* 서류 보고서 버튼 */}
         <button
           className={`flex items-center w-full h-9 rounded-md px-2 transition text-sm
