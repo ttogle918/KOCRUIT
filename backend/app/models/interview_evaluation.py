@@ -5,7 +5,7 @@ from app.core.database import Base
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.job import JobPost
-from app.models.application import Application, ApplyStatus, DocumentStatus, AIInterviewStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus
 from app.models.resume import Resume
 from app.models.weight import Weight
 from collections import defaultdict
@@ -267,7 +267,7 @@ def auto_evaluate_all_applications(db: Session):
             
             # AI 면접 평가 완료 상태로 업데이트
             if result.get("ai_interview_score"):
-                application.ai_interview_status = AIInterviewStatus.COMPLETED
+                application.ai_interview_status = InterviewStatus.COMPLETED
             
             # AI가 제안한 서류 상태로 업데이트
             ai_suggested_status = result.get("status", "REJECTED")

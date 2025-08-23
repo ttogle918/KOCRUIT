@@ -11,7 +11,7 @@ from pytz import timezone
 KST = timezone('Asia/Seoul')
 from app.core.database import SessionLocal
 from app.models.job import JobPost
-from app.models.application import Application, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
+from app.models.application import Application, DocumentStatus, InterviewStatus
 from app.services.interview_question_service import InterviewQuestionService
 from app.models.interview_question import InterviewQuestion, QuestionType
 
@@ -85,9 +85,9 @@ class QuestionGenerationScheduler:
             # 면접 일정이 확정된 지원자들이 있는 공고 조회 (새로운 3개 컬럼 구조에 맞게 수정)
             scheduled_job_posts = db.query(JobPost).join(Application).filter(
                 (
-                    (Application.ai_interview_status == AIInterviewStatus.SCHEDULED) |
-                    (Application.first_interview_status == FirstInterviewStatus.SCHEDULED) |
-                    (Application.second_interview_status == SecondInterviewStatus.SCHEDULED)
+                    (Application.ai_interview_status == InterviewStatus.SCHEDULED) |
+                            (Application.practical_interview_status == InterviewStatus.SCHEDULED) |
+        (Application.executive_interview_status == InterviewStatus.SCHEDULED)
                 ),
                 Application.document_status == DocumentStatus.PASSED.value
             ).distinct().all()

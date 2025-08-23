@@ -6,7 +6,7 @@ from app.core.database import get_db
 from app.models.schedule import Schedule, ScheduleInterview
 from app.models.user import User
 from app.api.v1.auth import get_current_user
-from app.models.application import Application, ApplyStatus, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus
 from app.schemas.application import ApplicationUpdate, ApplicationBulkStatusUpdate
 
 router = APIRouter()
@@ -205,8 +205,7 @@ def create_interview_schedule(
     db.add(db_interview)
     
     # 면접 일정 생성 시 ai_interview_status를 SCHEDULED로 변경
-    from app.models.application import AIInterviewStatus
-    application.ai_interview_status = AIInterviewStatus.SCHEDULED
+    application.ai_interview_status = InterviewStatus.SCHEDULED
     
     db.commit()
     db.refresh(db_interview)

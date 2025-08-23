@@ -18,7 +18,7 @@ from app.models.application import Application
 from app.models.interview_panel import InterviewPanelAssignment
 from app.api.v1.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
-from app.models.application import ApplyStatus, AIInterviewStatus
+from app.models.application import ApplyStatus, InterviewStatus
 from app.models.schedule import ScheduleInterview
 from pytz import timezone
 KST = timezone('Asia/Seoul')
@@ -167,8 +167,8 @@ def get_company_job_post(
                 "status": app.status.value if app.status else None,
                 "document_status": app.document_status.value if app.document_status else None,
                 "ai_interview_status": app.ai_interview_status.value if app.ai_interview_status else None,
-                "first_interview_status": app.first_interview_status.value if app.first_interview_status else None,
-                "second_interview_status": app.second_interview_status.value if app.second_interview_status else None,
+                        "practical_interview_status": app.practical_interview_status.value if app.practical_interview_status else None,
+        "executive_interview_status": app.executive_interview_status.value if app.executive_interview_status else None,
                 "final_status": app.final_status.value if app.final_status else None,
                 "ai_interview_video_url": app.ai_interview_video_url
             }
@@ -681,7 +681,7 @@ def update_company_job_post(
                     schedule_id=interview_schedule.id,
                     user_id=current_user.id,
                     schedule_date=scheduled_at,
-                    status=AIInterviewStatus.SCHEDULED
+                    status=InterviewStatus.SCHEDULED
                 )
                 db.add(schedule_interview)
                 db.flush()

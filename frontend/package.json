@@ -16,6 +16,8 @@
     "@hello-pangea/dnd": "^18.0.1",
     "@mui/icons-material": "^5.15.15",
     "@mui/material": "^5.15.15",
+    "@mui/system": "^5.15.15",
+    "@mui/styled-engine": "^5.15.15",
     "axios": "^1.9.0",
     "d3-geo": "^3.1.0",
     "date-fns": "^4.1.0",
@@ -47,5 +49,9 @@
     "vite": "^4.0.0",
     "vite-plugin-commonjs": "^0.10.2",
     "vite-plugin-pwa": "^1.0.0"
+  },
+  "resolutions": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1"
   }
 }

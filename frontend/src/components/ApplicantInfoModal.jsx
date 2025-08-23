@@ -124,8 +124,8 @@ const ApplicantInfoModal = ({ isOpen, onClose, applicant, jobPostId }) => {
             </div>
           </div>
           <div className="text-right">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getInterviewStatusLabel(applicant.ai_interview_status, applicant.first_interview_status, applicant.second_interview_status).color}`}>
-              {getInterviewStatusLabel(applicant.ai_interview_status, applicant.first_interview_status, applicant.second_interview_status).label}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getInterviewStatusLabel(applicant.ai_interview_status, applicant.practical_interview_status, applicant.executive_interview_status).color}`}>
+              {getInterviewStatusLabel(applicant.ai_interview_status, applicant.practical_interview_status, applicant.executive_interview_status).label}
             </span>
           </div>
         </div>

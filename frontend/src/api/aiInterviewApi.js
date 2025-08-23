@@ -242,7 +242,7 @@ class AiInterviewApi {
   /**
    * 특정 지원자의 면접 질문+답변 로그 조회
    * @param {number} applicationId - 지원서 ID
-   * @param {string} interviewType - 면접 유형 (AI_INTERVIEW, FIRST_INTERVIEW, SECOND_INTERVIEW, FINAL_INTERVIEW)
+   * @param {string} interviewType - 면접 유형 (AI_INTERVIEW, PRACTICAL_INTERVIEW, EXECUTIVE_INTERVIEW, FINAL_INTERVIEW)
    * @returns {Promise<Array>} 질문+답변 로그 리스트
    */
   static async getInterviewQuestionLogsByApplication(applicationId, interviewType = null) {

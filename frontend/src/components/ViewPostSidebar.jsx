@@ -30,9 +30,12 @@ export default function ViewPostSidebar({ jobPost }) {
   const interviewProgressPath = `/interview-progress/${effectiveJobPostId}`;
   
   // 면접 단계별 경로
-  const aiInterviewPath = `/interview-progress/${effectiveJobPostId}/ai`;
-  const firstInterviewPath = `/interview-progress/${effectiveJobPostId}/first`;
-  const secondInterviewPath = `/interview-progress/${effectiveJobPostId}/second`;
+  const aiInterviewPath = `/ai-interview/${effectiveJobPostId}`;
+  const firstInterviewPath = `/interview-progress/${effectiveJobPostId}/practice`;
+  const secondInterviewPath = `/interview-progress/${effectiveJobPostId}/executive`;
+
+  // 면접 시스템 관리 경로 추가
+  const interviewManagementSystemPath = `/interview-management-system/${effectiveJobPostId}`;
 
   // 필기합격자 데이터 조회
   useEffect(() => {
@@ -227,7 +230,7 @@ export default function ViewPostSidebar({ jobPost }) {
           onClick={() => navigate(firstInterviewPath)}
         >
           <MdOutlineGroups size={20} />
-          {isHovered && <span className="ml-2">1차 면접</span>}
+          {isHovered && <span className="ml-2">실무진 면접</span>}
         </button>
         {/* 2차 면접 (임원) */}
         <button
@@ -240,7 +243,18 @@ export default function ViewPostSidebar({ jobPost }) {
           onClick={() => navigate(secondInterviewPath)}
         >
           <MdOutlineBusiness size={20} />
-          {isHovered && <span className="ml-2">2차 면접</span>}
+          {isHovered && <span className="ml-2">임원진 면접</span>}
+        </button>
+        {/* 면접 시스템 관리 페이지 추가 */}
+        <button
+          className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm font-semibold
+            ${isHovered ? 'justify-start' : 'justify-center'}
+            bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-200 hover:bg-orange-200 dark:hover:bg-orange-800
+          `}
+          onClick={() => navigate(`/interview-management-system/${effectiveJobPostId}`)}
+        >
+          <MdOutlineAutoAwesome size={20} />
+          {isHovered && <span className="ml-2">면접 시스템 관리</span>}
         </button>
       </div>
       

@@ -6,7 +6,6 @@ WORKDIR /app
 # === 1) 시스템 패키지 설치 (Computer Vision 필수 의존성) ===
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -23,7 +22,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libpng-dev \
     libtiff-dev \
-    libatlas-base-dev \
+    libopenblas-dev \
     gfortran \
     wget \
     curl \

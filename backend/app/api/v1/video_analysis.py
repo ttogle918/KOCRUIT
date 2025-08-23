@@ -179,17 +179,70 @@ async def get_analysis_result(
 ):
     """분석 결과 조회"""
     try:
+        logger.info(f"Video Analysis 결과 조회 시작: application_id={application_id}")
+        
         analysis = db.query(MediaAnalysis).filter(
             MediaAnalysis.application_id == application_id
         ).first()
         
         if not analysis:
+            logger.warning(f"Video Analysis 결과 없음: application_id={application_id}")
             raise HTTPException(status_code=404, detail="분석 결과를 찾을 수 없습니다")
         
-        return {
-            "success": True,
-            "analysis": analysis.to_dict()
-        }
+        logger.info(f"Video Analysis 결과 발견: id={analysis.id}, status={getattr(analysis, 'status', 'unknown')}")
+        
+        # 안전하게 컬럼 값 가져오기 (존재하지 않는 컬럼은 None으로 처리)
+        try:
+            analysis_data = {
+                "id": getattr(analysis, 'id', None),
+                "application_id": getattr(analysis, 'application_id', None),
+                "video_path": getattr(analysis, 'video_path', None),
+                "video_url": getattr(analysis, 'video_url', None),
+                "analysis_timestamp": getattr(analysis, 'analysis_timestamp', None),
+                "status": getattr(analysis, 'status', None),
+                "overall_score": getattr(analysis, 'overall_score', None),
+                "frame_count": getattr(analysis, 'frame_count', None),
+                "fps": getattr(analysis, 'fps', None),
+                "duration": getattr(analysis, 'duration', None),
+                "smile_frequency": getattr(analysis, 'smile_frequency', None),
+                "eye_contact_ratio": getattr(analysis, 'eye_contact_ratio', None),
+                "emotion_variation": getattr(analysis, 'emotion_variation', None),
+                "confidence_score": getattr(analysis, 'confidence_score', None),
+                "posture_changes": getattr(analysis, 'posture_changes', None),
+                "nod_count": getattr(analysis, 'nod_count', None),
+                "posture_score": getattr(analysis, 'posture_score', None),
+                "hand_gestures": getattr(analysis, 'hand_gestures', None),
+                "eye_aversion_count": getattr(analysis, 'eye_aversion_count', None),
+                "focus_ratio": getattr(analysis, 'focus_ratio', None),
+                "gaze_consistency": getattr(analysis, 'gaze_consistency', None),
+                "speech_rate": getattr(analysis, 'speech_rate', None),
+                "clarity_score": getattr(analysis, 'clarity_score', None),
+                "volume_consistency": getattr(analysis, 'volume_consistency', None),
+                "transcription": getattr(analysis, 'transcription', None),
+                "recommendations": getattr(analysis, 'recommendations', None),
+                "detailed_analysis": getattr(analysis, 'detailed_analysis', None)
+            }
+            
+            # analysis_timestamp가 datetime 객체인 경우 ISO 형식으로 변환
+            if analysis_data["analysis_timestamp"] and hasattr(analysis_data["analysis_timestamp"], 'isoformat'):
+                analysis_data["analysis_timestamp"] = analysis_data["analysis_timestamp"].isoformat()
+            
+            return {
+                "success": True,
+                "analysis": analysis_data
+            }
+        except Exception as e:
+            logger.error(f"분석 데이터 변환 오류: {str(e)}")
+            # 기본 데이터만 반환
+            return {
+                "success": True,
+                "analysis": {
+                    "id": getattr(analysis, 'id', None),
+                    "application_id": getattr(analysis, 'application_id', None),
+                    "status": getattr(analysis, 'status', 'unknown'),
+                    "error": "일부 데이터 변환에 실패했습니다"
+                }
+            }
         
     except Exception as e:
         logger.error(f"분석 결과 조회 오류: {str(e)}")

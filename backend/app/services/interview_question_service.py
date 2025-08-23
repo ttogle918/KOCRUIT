@@ -3,7 +3,7 @@ from app.models.interview_question import InterviewQuestion, QuestionType
 from app.schemas.interview_question import InterviewQuestionCreate, InterviewQuestionBulkCreate
 from typing import List, Dict, Any, Optional
 import logging
-from app.models.application import Application, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
+from app.models.application import Application, DocumentStatus, InterviewStatus
 from app.models.job import JobPost
 from app.models.resume import Resume
 
@@ -354,9 +354,9 @@ class InterviewQuestionService:
                 Application.job_post_id == job_post_id,
                 Application.document_status == DocumentStatus.PASSED.value,
                 (
-                    (Application.ai_interview_status == AIInterviewStatus.SCHEDULED) |
-                    (Application.first_interview_status == FirstInterviewStatus.SCHEDULED) |
-                    (Application.second_interview_status == SecondInterviewStatus.SCHEDULED)
+                    (Application.ai_interview_status == InterviewStatus.SCHEDULED) |
+                            (Application.practical_interview_status == InterviewStatus.SCHEDULED) |
+        (Application.executive_interview_status == InterviewStatus.SCHEDULED)
                 )
             ).all()
             

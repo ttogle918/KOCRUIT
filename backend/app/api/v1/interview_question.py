@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 from app.core.database import get_db
 from app.api.v1.auth import get_current_user
 from app.models.user import User
-from app.models.application import Application, DocumentStatus, AIInterviewStatus, FirstInterviewStatus, SecondInterviewStatus
+from app.models.application import Application, DocumentStatus, InterviewStatus
 from app.models.evaluation_criteria import EvaluationCriteria
 from app.models.interview_question import InterviewQuestion, QuestionType
 from app.models.job import JobPost
@@ -423,7 +423,7 @@ async def generate_integrated_questions(request: IntegratedQuestionRequest, db: 
         # LangGraph 워크플로우를 사용한 종합 질문 생성 (DB 저장 없음)
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
@@ -487,7 +487,7 @@ async def generate_resume_analysis(request: ResumeAnalysisRequest, db: Session =
         # LangGraph 워크플로우를 사용한 이력서 분석 (DB 저장 없음)
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행 (이력서 분석만)
@@ -760,76 +760,133 @@ async def generate_company_questions(request: CompanyQuestionRequest):
 @router.get("/application/{application_id}/practical-questions")
 @redis_cache(expire=300)  # 5분 캐시 (실무진 질문 조회)
 async def get_practical_interview_questions(application_id: int, db: Session = Depends(get_db)):
-    """실무진 면접 질문 조회 (DB에서 기존 질문 가져오기)"""
+    """실무진 면접 질문 조회 (interview_question 테이블에서 COMMON, JOB, PERSONAL 타입 질문 가져오기)"""
     try:
         # application_id로 지원자 정보 조회
         application = db.query(Application).filter(Application.id == application_id).first()
         if not application:
             raise HTTPException(status_code=404, detail="Application not found")
         
-        # 이력서 기반 평가 기준에서 질문 가져오기
-        resume_criteria = db.query(EvaluationCriteria).filter(
-            EvaluationCriteria.resume_id == application.resume_id,
-            EvaluationCriteria.evaluation_type == "resume_based",
-            EvaluationCriteria.interview_stage == "practical"
-        ).first()
+        # interview_question 테이블에서 실무진 면접용 질문 가져오기
+        # COMMON, JOB, PERSONAL(applicant_id 필터링) 타입만
+        questions = []
         
-        if resume_criteria and resume_criteria.evaluation_questions:
-            questions = resume_criteria.evaluation_questions
-        else:
-            # 기존 질문이 없으면 기본 질문 반환
-            questions = [
-                "지원자의 주요 프로젝트 경험에 대해 설명해주세요.",
-                "기술적 문제를 해결한 경험이 있다면 구체적으로 설명해주세요.",
-                "팀 프로젝트에서 본인의 역할과 기여도는 어떻게 되었나요?",
-                "최근 관심 있는 기술이나 트렌드가 있다면 무엇인가요?",
-                "직무와 관련된 본인의 강점과 개선점은 무엇인가요?"
-            ]
+        # 1. COMMON 타입 질문 (모든 지원자에게 공통)
+        common_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.type == "COMMON"
+        ).all()
+        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in common_questions])
         
+        # 2. JOB 타입 질문 (직무 관련) - application_id가 NULL인 것만
+        job_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.type == "JOB",
+            InterviewQuestion.application_id.is_(None)
+        ).all()
+        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in job_questions])
+        
+        # 3. PERSONAL 타입 질문 (특정 지원자 전용) - application_id 사용
+        personal_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.type == "PERSONAL",
+            InterviewQuestion.application_id == application_id
+        ).all()
+        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in personal_questions])
+        
+        # 질문 중복 제거 및 정렬 (question_text 기준)
+        seen_questions = set()
+        unique_questions = []
+        for q in questions:
+            if q["question_text"] not in seen_questions:
+                seen_questions.add(q["question_text"])
+                unique_questions.append(q)
+        
+        questions = sorted(unique_questions, key=lambda x: x["question_text"])
+        
+        # 질문 타입별 분류 정보 생성
+        question_details = {
+            "common": [q.question_text for q in common_questions],
+            "job": [q.question_text for q in job_questions],
+            "personal": [q.question_text for q in personal_questions]
+        }
+        
+        # 질문이 없으면 빈 배열 반환 (기본 질문 제거)
         return {
             "application_id": application_id,
+            "user_id": application.user_id,
             "resume_id": application.resume_id,
             "questions": questions,
-            "source": "database" if resume_criteria else "default"
+            "question_count": len(questions),
+            "types": ["COMMON", "JOB", "PERSONAL"],
+            "question_details": question_details,
+            "source": "database"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ 실무진 면접 질문 조회 오류: {str(e)}")
+        print(f"application_id: {application_id}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"실무진 면접 질문 조회 중 오류가 발생했습니다: {str(e)}")
 
 
 @router.get("/application/{application_id}/executive-questions")
 @redis_cache(expire=300)  # 5분 캐시 (임원진 질문 조회)
 async def get_executive_interview_questions(application_id: int, db: Session = Depends(get_db)):
-    """임원진 면접 질문 조회 (DB에서 기존 질문 또는 평가기준 기반 질문 가져오기)"""
+    """임원진 면접 질문 조회 (interview_question 테이블에서 COMMON, EXECUTIVE, PERSONAL 타입 질문 가져오기)"""
     try:
         # application_id로 지원자 정보 조회
         application = db.query(Application).filter(Application.id == application_id).first()
         if not application:
             raise HTTPException(status_code=404, detail="Application not found")
 
-        # 이력서 기반 평가 기준에서 임원진 단계 질문 가져오기
-        resume_criteria = db.query(EvaluationCriteria).filter(
-            EvaluationCriteria.resume_id == application.resume_id,
-            EvaluationCriteria.evaluation_type == "resume_based",
-            EvaluationCriteria.interview_stage == "executive"
-        ).first()
-
-        if resume_criteria and resume_criteria.evaluation_questions:
-            questions = resume_criteria.evaluation_questions
-        else:
-            # 기본 임원진 질문 세트 (fallback)
-            questions = [
-                "조직의 비전과 전략을 어떻게 수립하고 추진하셨습니까?",
-                "팀 리딩 경험과 어려운 의사결정을 내린 사례를 말씀해 주세요.",
-                "윤리적 딜레마 상황에서 어떤 기준으로 판단하셨습니까?",
-                "조직 문화에 기여한 사례가 있다면 설명해 주세요.",
-                "향후 3년간 본인의 성장 계획과 기여 방안을 말씀해 주세요."
-            ]
-
+        # interview_question 테이블에서 임원진 면접용 질문 가져오기
+        # COMMON, EXECUTIVE, PERSONAL(applicant_id 필터링) 타입만
+        questions = []
+        
+        # 1. COMMON 타입 질문 (모든 지원자에게 공통)
+        common_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.type == "COMMON"
+        ).all()
+        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in common_questions])
+        
+        # 2. EXECUTIVE 타입 질문 (임원진 전용)
+        executive_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.type == "EXECUTIVE"
+        ).all()
+        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in executive_questions])
+        
+        # 3. PERSONAL 타입 질문 (특정 지원자 전용) - application_id 사용
+        personal_questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.type == "PERSONAL",
+            InterviewQuestion.application_id == application_id
+        ).all()
+        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in personal_questions])
+        
+        # 질문 중복 제거 및 정렬 (question_text 기준)
+        seen_questions = set()
+        unique_questions = []
+        for q in questions:
+            if q["question_text"] not in seen_questions:
+                seen_questions.add(q["question_text"])
+                unique_questions.append(q)
+        
+        questions = sorted(unique_questions, key=lambda x: x["question_text"])
+        
+        # 질문 타입별 분류 정보 생성
+        question_details = {
+            "common": [q.question_text for q in common_questions],
+            "executive": [q.question_text for q in executive_questions],
+            "personal": [q.question_text for q in personal_questions]
+        }
+        
+        # 질문이 없으면 빈 배열 반환 (기본 질문 제거)
         return {
             "application_id": application_id,
+            "user_id": application.user_id,
             "resume_id": application.resume_id,
             "questions": questions,
-            "source": "database" if resume_criteria else "default"
+            "question_count": len(questions),
+            "types": ["COMMON", "EXECUTIVE", "PERSONAL"],
+            "question_details": question_details,
+            "source": "database"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -860,7 +917,7 @@ async def generate_project_questions(request: ProjectQuestionRequest, db: Sessio
         # LangGraph 워크플로우를 사용한 종합 질문 생성
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
@@ -975,7 +1032,7 @@ async def generate_job_questions(request: JobQuestionRequest, db: Session = Depe
         # LangGraph 워크플로우를 사용한 종합 질문 생성
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
@@ -1235,7 +1292,7 @@ async def generate_passed_applicants_questions(
         # AI Agent를 통한 개인별 질문 생성
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.tools.personal_question_tool import generate_batch_personal_questions
         
         # 일괄 질문 생성
@@ -1433,7 +1490,7 @@ async def generate_ai_interview_questions(request: AiInterviewRequest, db: Sessi
         # LangGraph 워크플로우를 사용한 AI 면접 질문 생성 (DB 저장 없음)
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
@@ -1487,7 +1544,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
             # LangGraph 워크플로우를 사용한 AI 면접 질문 생성
             import sys
             import os
-            sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+            sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
             from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
             
             # 워크플로우 실행
@@ -2790,7 +2847,7 @@ async def generate_interview_questions_with_langgraph(request: IntegratedQuestio
         # LangGraph 워크플로우 실행
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
@@ -2843,7 +2900,7 @@ async def generate_resume_analysis_with_langgraph(request: ResumeAnalysisRequest
         # LangGraph 워크플로우 실행
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
@@ -2897,7 +2954,7 @@ async def generate_ai_interview_with_langgraph(request: AiInterviewRequest, db: 
         # LangGraph 워크플로우 실행
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행
@@ -2947,7 +3004,7 @@ async def generate_evaluation_tools_with_langgraph(request: AiToolsRequest, db: 
         # LangGraph 워크플로우 실행
         import sys
         import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+        sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
         from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
         
         # 워크플로우 실행

@@ -41,20 +41,6 @@ services:
       DB_NAME: kocruit
       DB_USER: root
       DB_PASSWORD: root1234!
-      # MySQL 연결 안정성 향상 설정
-      MYSQL_CONNECT_TIMEOUT: 30
-      MYSQL_READ_TIMEOUT: 30
-      MYSQL_WRITE_TIMEOUT: 30
-      MYSQL_MAX_CONNECTIONS: 10
-      MYSQL_WAIT_TIMEOUT: 28800
-      MYSQL_INTERACTIVE_TIMEOUT: 28800
-      # Redis 캐싱 설정
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_DB: 0
-      # 애플리케이션 성능 설정
-      WORKERS: 2
-      WORKER_CONNECTIONS: 1000
     networks:
       - app-net
     volumes:
@@ -82,7 +68,6 @@ services:
     container_name: kocruit_agent
     ports:
       - "8001:8001"
-
     env_file:
       - .env
     environment:

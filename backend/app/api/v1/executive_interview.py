@@ -11,6 +11,7 @@ from app.models.job import JobPost
 from app.models.resume import Resume
 from app.schemas.interview_evaluation import InterviewEvaluationCreate
 from app.schemas.application import ApplicationDetail
+from app.models.application import InterviewStatus
 
 router = APIRouter()
 
@@ -19,9 +20,8 @@ def get_executive_interview_candidates(db: Session = Depends(get_db)):
     """임원면접 대상자 조회"""
     try:
         # 1차 면접(실무진 면접) 합격자들 조회
-        from app.models.application import FirstInterviewStatus
         candidates = db.query(Application).filter(
-            Application.first_interview_status == FirstInterviewStatus.PASSED
+            Application.practical_interview_status == InterviewStatus.PASSED
         ).all()
         
         return candidates

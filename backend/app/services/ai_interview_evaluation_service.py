@@ -2,7 +2,7 @@ import json
 import os
 from app.models.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationStatus, EvaluationType
 from app.models.schedule import Schedule, ScheduleInterview, InterviewScheduleStatus
-from app.models.application import AIInterviewStatus
+from app.models.application import InterviewStatus
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -525,11 +525,10 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
         # AI 평가 점수를 지원서에 반영
         application.ai_interview_score = total_score
         # AI 면접 상태 업데이트 (새로운 3개 컬럼 구조에 맞게)
-        from app.models.application import AIInterviewStatus
         if passed:
-            application.ai_interview_status = AIInterviewStatus.PASSED
+            application.ai_interview_status = InterviewStatus.PASSED
         else:
-            application.ai_interview_status = AIInterviewStatus.FAILED
+            application.ai_interview_status = InterviewStatus.FAILED
 
     
     db.commit()

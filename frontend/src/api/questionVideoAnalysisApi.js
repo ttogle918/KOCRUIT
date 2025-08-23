@@ -8,7 +8,7 @@ class QuestionVideoAnalysisApi {
    */
   static async startQuestionAnalysis(applicationId) {
     try {
-      const response = await api.post(`/question-video-analysis/analyze/${applicationId}`);
+      const response = await api.post(`/question-media-analysis/analyze/${applicationId}`);
       return response.data;
     } catch (error) {
       console.error('질문별 분석 시작 실패:', error);
@@ -23,7 +23,7 @@ class QuestionVideoAnalysisApi {
    */
   static async getQuestionAnalysisResults(applicationId) {
     try {
-      const response = await api.get(`/question-video-analysis/results/${applicationId}`);
+      const response = await api.get(`/question-media-analysis/results/${applicationId}`);
       return response.data;
     } catch (error) {
       console.error('질문별 분석 결과 조회 실패:', error);
@@ -38,7 +38,7 @@ class QuestionVideoAnalysisApi {
    */
   static async getQuestionAnalysisStatistics(applicationId) {
     try {
-      const response = await api.get(`/question-video-analysis/statistics/${applicationId}`);
+      const response = await api.get(`/question-media-analysis/statistics/${applicationId}`);
       return response.data;
     } catch (error) {
       console.error('질문별 분석 통계 조회 실패:', error);

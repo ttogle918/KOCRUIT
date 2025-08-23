@@ -91,6 +91,7 @@ class QAAnalysisRequest(BaseModel):
     output_dir: Optional[str] = None
     max_workers: Optional[int] = 2
     delete_after_input: Optional[bool] = False
+    run_emotion_context: Optional[bool] = False
 
 # 헬스체크 엔드포인트
 @app.get("/health")
@@ -1573,6 +1574,39 @@ async def diarized_qa_analysis(request: QAAnalysisRequest):
             application_id=str(application_id) if application_id else None,
             max_workers=int(request.max_workers or 2)
         )
+        
+        # 감정/문맥 분석 옵션이 활성화된 경우 추가 분석 수행
+        if request.run_emotion_context and result.get("success"):
+            try:
+                print("🎭 감정/문맥 분석 시작...")
+                
+                # 전체 전사본 수집
+                full_transcription = ""
+                for qa in result.get("qa", []):
+                    if qa.get("answer_transcription"):
+                        full_transcription += qa["answer_transcription"] + " "
+                
+                if full_transcription.strip():
+                    # 감정 분석
+                    emotion_result = await emotion_analysis_api({"transcription": full_transcription})
+                    if emotion_result.get("success"):
+                        result["emotion_analysis"] = emotion_result["analysis"]
+                        print("✅ 감정 분석 완료")
+                    
+                    # 문맥 분석
+                    context_result = await openai_context_analysis_api({
+                        "transcription": full_transcription,
+                        "speakers": result.get("speakers", [])
+                    })
+                    if context_result.get("success"):
+                        result["context_analysis"] = context_result["analysis"]
+                        print("✅ 문맥 분석 완료")
+                
+                print("🎭 감정/문맥 분석 완료")
+                
+            except Exception as e:
+                print(f"⚠️ 감정/문맥 분석 중 오류 (무시): {str(e)}")
+                # 감정/문맥 분석 실패해도 QA 분석 결과는 반환
         # 로그 저장(선택)
         try:
             speaker_analysis_service.save_speaker_analysis_log(

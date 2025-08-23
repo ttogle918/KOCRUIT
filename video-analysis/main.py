@@ -39,6 +39,9 @@ class AudioExtractionRequest(BaseModel):
     output_path: Optional[str] = None
     max_duration_seconds: Optional[int] = None  # 앞부분 N초만 추출 (옵션)
 
+class FileDeleteRequest(BaseModel):
+    file_path: str
+
 # 분석기 인스턴스
 video_analyzer = VideoAnalyzer()
 video_downloader = VideoDownloader()
@@ -153,6 +156,26 @@ async def analyze_question_segments(request: QuestionAnalysisRequest):
         logger.error(f"질문별 분석 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=f"질문별 분석 중 오류가 발생했습니다: {str(e)}")
 
+@app.post("/delete-file")
+async def delete_file(request: FileDeleteRequest):
+    """파일 삭제 (임시 파일 정리용)"""
+    try:
+        logger.info(f"파일 삭제 요청: {request.file_path}")
+        
+        if not os.path.exists(request.file_path):
+            logger.warning(f"파일이 존재하지 않음: {request.file_path}")
+            return {"success": True, "message": "파일이 이미 존재하지 않습니다"}
+        
+        # 파일 삭제
+        os.remove(request.file_path)
+        logger.info(f"파일 삭제 완료: {request.file_path}")
+        
+        return {"success": True, "message": "파일이 성공적으로 삭제되었습니다"}
+        
+    except Exception as e:
+        logger.error(f"파일 삭제 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"파일 삭제 중 오류가 발생했습니다: {str(e)}")
+
 @app.get("/")
 async def root():
     """루트 엔드포인트"""
@@ -160,8 +183,11 @@ async def root():
         "message": "Video Analysis Service",
         "endpoints": [
             "/health",
+            "/download-video",
+            "/extract-audio",
             "/analyze-video-url",
-            "/analyze-question-segments"
+            "/analyze-question-segments",
+            "/delete-file"
         ]
     }
 

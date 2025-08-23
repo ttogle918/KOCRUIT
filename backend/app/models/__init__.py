@@ -23,6 +23,8 @@ from .statistics_analysis import StatisticsAnalysis
 from app.core.database import Base
 
 from .evaluation_criteria import EvaluationCriteria
+from .media_analysis import MediaAnalysis
+from .question_media_analysis import QuestionMediaAnalysis
 
 __all__ = [
     "User",
@@ -58,5 +60,7 @@ __all__ = [
     "HighPerformer",
     "Weight",
     "EmailVerificationToken",
-    "EvaluationCriteria"
+    "EvaluationCriteria",
+    "MediaAnalysis",
+    "QuestionMediaAnalysis"
 ] 

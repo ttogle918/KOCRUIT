@@ -12,10 +12,15 @@ import logging
 from datetime import datetime
 
 # LLM 초기화
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 llm = ChatOpenAI(
     model="gpt-4o",
     temperature=0.1,
-    api_key="sk-proj-..."
+    api_key=os.getenv("OPENAI_API_KEY")
 )
 
 def initialize_ai_interview_session(state: Dict[str, Any]) -> Dict[str, Any]:

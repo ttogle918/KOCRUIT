@@ -23,7 +23,7 @@ from ..models.interview_question_log import InterviewQuestionLog
 # LangGraph 워크플로우 import
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../agent'))
 from agent.agents.interview_question_workflow import generate_comprehensive_interview_questions
 from agent.agents.ai_interview_workflow import run_ai_interview
 

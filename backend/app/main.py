@@ -208,16 +208,41 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Static files (interview videos 등) 제공 - 디렉토리가 없으면 건너뛰기
+# Static files (interview videos 등) 제공 - 디렉토리 자동 생성 및 마운트
 import os
-if os.path.exists("app/scripts/interview_videos"):
+
+# 필요한 디렉토리 목록
+required_directories = [
+    "interview_videos",           # 면접 영상 파일
+    "uploads",                    # 업로드된 파일들
+    "uploads/interview_audio",    # 면접 오디오 파일
+    "uploads/resumes",            # 이력서 파일
+    "temp",                       # 임시 파일
+    "logs",                       # 로그 파일
+    "cache",                      # 캐시 파일
+    "chroma_db"                   # ChromaDB 벡터 저장소
+]
+
+# 모든 필요한 디렉토리 생성
+for directory in required_directories:
+    if not os.path.exists(directory):
+        try:
+            os.makedirs(directory, exist_ok=True)
+            print(f"✅ {directory} 디렉토리를 생성했습니다.")
+        except Exception as e:
+            print(f"❌ {directory} 디렉토리 생성 실패: {e}")
+
+# interview_videos 디렉토리 StaticFiles 마운트
+interview_videos_dir = "interview_videos"
+if os.path.exists(interview_videos_dir):
     app.mount(
         "/static/interview_videos",
-        StaticFiles(directory="app/scripts/interview_videos"),
+        StaticFiles(directory=interview_videos_dir),
         name="interview_videos"
     )
+    print(f"✅ {interview_videos_dir} 디렉토리를 정적 파일로 마운트했습니다.")
 else:
-    print("⚠️ interview_videos 디렉토리가 없어서 StaticFiles 마운트를 건너뜁니다.")
+    print(f"⚠️ {interview_videos_dir} 디렉토리가 없어서 StaticFiles 마운트를 건너뜁니다.")
 
 # FastAPI 등록된 경로 목록 출력 (디버깅용)
 @app.on_event("startup")

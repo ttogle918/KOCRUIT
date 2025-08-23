@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.question_video_analysis import QuestionMediaAnalysis
+from app.models.question_media_analysis import QuestionMediaAnalysis
 from app.models.media_analysis import MediaAnalysis
 from app.models.application import Application
 from app.services.whisper_analysis_service import whisper_analysis_service
@@ -506,6 +506,8 @@ async def process_qa_based_analysis(
     application_id: int,
     persist: bool = False,
     output_dir: str = None,
+    run_emotion_context: bool = False,
+    delete_video_after: bool = True,
     db: Session = Depends(get_db)
 ):
     """화자분리 기반으로 면접관→지원자 페어를 만들고, 지원자 답변만 Whisper 분석하여 리스트로 반환"""
@@ -535,7 +537,8 @@ async def process_qa_based_analysis(
                     "audio_path": audio_path,
                     "application_id": application_id,
                     "persist": persist,
-                    "output_dir": output_dir
+                    "output_dir": output_dir,
+                    "run_emotion_context": run_emotion_context
                 },
                 timeout=1200
             )
@@ -581,13 +584,42 @@ async def process_qa_based_analysis(
             db.rollback()
             print(f"❌ QA 분석 DB 저장 오류: {str(e)}")
 
-        # 6) 결과 반환 (프론트는 dropdown으로 qa 배열을 표시)
+        # 6) 임시 파일 정리 (분석 완료 후)
+        try:
+            if delete_video_after and video_path:
+                # video-analysis 컨테이너에 비디오 삭제 요청
+                cleanup_response = requests.post(
+                    f"{VIDEO_ANALYSIS_URL}/delete-file",
+                    json={"file_path": video_path},
+                    timeout=30
+                )
+                if cleanup_response.status_code == 200:
+                    print(f"✅ 임시 비디오 파일 삭제 완료: {video_path}")
+                else:
+                    print(f"⚠️ 임시 비디오 파일 삭제 실패: {cleanup_response.text}")
+            
+            if delete_video_after and audio_path:
+                # video-analysis 컨테이너에 오디오 삭제 요청
+                cleanup_response = requests.post(
+                    f"{VIDEO_ANALYSIS_URL}/delete-file",
+                    json={"file_path": audio_path},
+                    timeout=30
+                )
+                if cleanup_response.status_code == 200:
+                    print(f"✅ 임시 오디오 파일 삭제 완료: {audio_path}")
+                else:
+                    print(f"⚠️ 임시 오디오 파일 삭제 실패: {cleanup_response.text}")
+        except Exception as e:
+            print(f"⚠️ 임시 파일 정리 중 오류 (무시): {str(e)}")
+
+        # 7) 결과 반환 (프론트는 dropdown으로 qa 배열을 표시)
         return {
             "success": True,
             "application_id": application_id,
             "total_pairs": result.get("total_pairs", 0),
             "applicant_speaker_id": result.get("applicant_speaker_id"),
-            "qa": result.get("qa", [])
+            "qa": result.get("qa", []),
+            "files_cleaned": delete_video_after
         }
 
     except HTTPException:
@@ -735,3 +767,177 @@ async def get_whisper_analysis_status(
         return {
             "has_analysis": False
         }
+
+@router.get("/qa-analysis/{application_id}")
+async def get_qa_analysis_result(
+    application_id: int,
+    db: Session = Depends(get_db)
+):
+    """지원자의 QA 분석 결과 조회"""
+    try:
+        # QuestionMediaAnalysis 테이블에서 QA 분석 결과 확인
+        analysis = db.query(QuestionMediaAnalysis).filter(
+            QuestionMediaAnalysis.application_id == application_id,
+            QuestionMediaAnalysis.question_log_id == 999  # 전체 영상 분석용 임시 ID
+        ).first()
+        
+        if analysis and analysis.detailed_analysis:
+            qa_data = analysis.detailed_analysis.get("qa_analysis", {})
+            
+            return {
+                "success": True,
+                "qa_analysis": {
+                    "total_pairs": qa_data.get("total_pairs", 0),
+                    "applicant_speaker_id": qa_data.get("applicant_speaker_id"),
+                    "qa": qa_data.get("qa", []),
+                    "extra_emotion_context": analysis.detailed_analysis.get("extra_emotion_context", {}),
+                    "source": analysis.detailed_analysis.get("source", "unknown"),
+                    "analysis_timestamp": analysis.analysis_timestamp.isoformat() if analysis.analysis_timestamp else None
+                }
+            }
+        else:
+                    return {
+            "success": False,
+            "message": "QA 분석 결과가 없습니다"
+        }
+        
+    except Exception as e:
+        print(f"❌ QA 분석 결과 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"QA 분석 결과 조회 중 오류가 발생했습니다: {str(e)}")
+
+
+@router.post("/process-qa")
+async def process_qa_audio_upload(
+    audio_file: UploadFile = File(...),
+    application_id: int = Form(...),
+    interview_type: str = Form("practical"),
+    db: Session = Depends(get_db)
+):
+    """오디오 파일 업로드 및 Whisper 분석 (실시간 녹음용)"""
+    import tempfile
+    import uuid
+    from pathlib import Path
+    
+    temp_file_path = None
+    
+    try:
+        # 1. 파일 유효성 검사
+        if not audio_file.filename:
+            raise HTTPException(status_code=400, detail="파일이 선택되지 않았습니다.")
+        
+        # 지원 형식: WEBM, MP3, WAV, OGG, M4A, AAC
+        allowed_extensions = ['.webm', '.mp3', '.wav', '.ogg', '.m4a', '.aac']
+        file_extension = Path(audio_file.filename).suffix.lower()
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"지원하지 않는 파일 형식입니다. 지원 형식: {', '.join(allowed_extensions)}"
+            )
+        
+        # 2. 지원자 정보 확인
+        application = db.query(Application).filter(Application.id == application_id).first()
+        if not application:
+            raise HTTPException(status_code=404, detail="지원자 정보를 찾을 수 없습니다.")
+        
+        # 3. 임시 파일로 저장
+        temp_file_path = tempfile.mktemp(suffix=file_extension)
+        with open(temp_file_path, "wb") as buffer:
+            content = await audio_file.read()
+            buffer.write(content)
+        
+        print(f"✅ 오디오 파일 임시 저장 완료: {temp_file_path}")
+        
+        # 4. Agent에 QA 분석 요청
+        try:
+            response = requests.post(
+                f"{AGENT_URL}/diarized-qa-analysis",
+                json={
+                    "audio_path": temp_file_path,
+                    "application_id": application_id,
+                    "persist": True,
+                    "output_dir": None,
+                    "run_emotion_context": True
+                },
+                timeout=1200  # 20분 타임아웃
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Agent 호출 실패: {str(e)}")
+
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Agent 오류: {response.text}")
+
+        result = response.json()
+        if not result.get("success"):
+            raise HTTPException(status_code=500, detail=f"QA 분석 실패: {result.get('error', 'unknown')}")
+
+        # 5. 결과를 DB에 저장/업데이트
+        try:
+            existing = db.query(QuestionMediaAnalysis).filter(
+                QuestionMediaAnalysis.application_id == application_id,
+                QuestionMediaAnalysis.question_log_id == 999
+            ).first()
+            
+            if existing:
+                existing.analysis_timestamp = datetime.now()
+                existing.status = "completed"
+                existing.detailed_analysis = {
+                    "qa_analysis": result,
+                    "source": "process-qa-upload",
+                    "interview_type": interview_type,
+                    "upload_timestamp": datetime.now().isoformat()
+                }
+            else:
+                new_row = QuestionMediaAnalysis(
+                    application_id=application_id,
+                    question_log_id=999,
+                    question_text=f"Uploaded Audio Analysis ({interview_type})",
+                    analysis_timestamp=datetime.now(),
+                    status="completed",
+                    detailed_analysis={
+                        "qa_analysis": result,
+                        "source": "process-qa-upload",
+                        "interview_type": interview_type,
+                        "upload_timestamp": datetime.now().isoformat()
+                    }
+                )
+                db.add(new_row)
+            
+            db.commit()
+            print(f"✅ QA 분석 결과 DB 저장 완료: application_id={application_id}")
+            
+        except Exception as e:
+            db.rollback()
+            print(f"❌ QA 분석 DB 저장 오류: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"분석 결과 저장 중 오류가 발생했습니다: {str(e)}")
+
+        # 6. 임시 파일 삭제 (중요!)
+        try:
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+                print(f"✅ 임시 오디오 파일 삭제 완료: {temp_file_path}")
+        except Exception as e:
+            print(f"⚠️ 임시 파일 삭제 실패: {str(e)}")
+
+        return {
+            "success": True,
+            "message": "오디오 분석이 완료되었습니다.",
+            "application_id": application_id,
+            "interview_type": interview_type,
+            "analysis_result": result,
+            "uploaded_at": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ process-qa 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"오디오 분석 중 오류가 발생했습니다: {str(e)}")
+    
+    finally:
+        # 7. 에러 발생 시에도 임시 파일 정리
+        try:
+            if temp_file_path and os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+                print(f"✅ finally 블록에서 임시 파일 정리 완료: {temp_file_path}")
+        except Exception as e:
+            print(f"⚠️ finally 블록에서 임시 파일 정리 실패: {str(e)}")

@@ -14,7 +14,7 @@ from .executive_interview import router as executive_interview_router
 from .analysis_results import router as analysis_results_router
 from .video_analysis import router as video_analysis_router
 from .background_analysis import router as background_analysis_router
-from app.api.v1.question_video_analysis import router as question_video_analysis_router
+from app.api.v1.question_media_analysis import router as question_media_analysis_router
 from app.api.v1.whisper_analysis import router as whisper_analysis_router
 
 
@@ -47,11 +47,11 @@ api_router.include_router(executive_interview_router, prefix="/executive-intervi
 api_router.include_router(analysis_results_router, prefix="/analysis-results", tags=["analysis-results"])
 api_router.include_router(video_analysis_router, prefix="/video-analysis", tags=["video-analysis"])
 api_router.include_router(background_analysis_router, prefix="/background-analysis", tags=["background-analysis"])
-# 질문별 비디오 분석 라우터 추가
+# 질문별 미디어 분석 라우터 추가
 api_router.include_router(
-    question_video_analysis_router,
-    prefix="/question-video-analysis",
-    tags=["Question Video Analysis"]
+    question_media_analysis_router,
+    prefix="/question-media-analysis",
+    tags=["Question Media Analysis"]
 )
 # Whisper 분석 라우터 추가
 api_router.include_router(
