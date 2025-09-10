@@ -40,6 +40,14 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       endpoint: '/v1/resumes/impact-points',
       icon: '⭐',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
+    },
+    {
+      id: 'plagiarism',
+      name: '표절 여부',
+      description: '이력서 표절 검사',
+      endpoint: '/resume-plagiarism/check-resume',
+      icon: '🚨',
+      activeColor: 'bg-red-500 hover:bg-red-600'
     }
   ];
 
@@ -109,15 +117,25 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
     try {
       console.log(`${tool.name} 분석 시작 - 요청 데이터:`, { resume_id: resumeId, application_id: applicationId });
       
-      const requestData = {
-        resume_id: resumeId,
-        application_id: applicationId || null
-      };
+      let response;
+      
+      // 표절 검사는 다른 엔드포인트 사용
+      if (tool.id === 'plagiarism') {
+        response = await axiosInstance.post(`${tool.endpoint}/${resumeId}?similarity_threshold=0.9&force=false`, {}, {
+          timeout: 30000
+        });
+      } else {
+        const requestData = {
+          resume_id: resumeId,
+          application_id: applicationId || null
+        };
 
-      // 타임아웃 설정 (60초로 증가)
-      const response = await axiosInstance.post(tool.endpoint, requestData, {
-        timeout: 60000
-      });
+        // 타임아웃 설정 (60초로 증가)
+        response = await axiosInstance.post(tool.endpoint, requestData, {
+          timeout: 60000
+        });
+      }
+      
       console.log(`${tool.name} 분석 응답:`, response.data);
       
       // 응답 데이터 검증
@@ -165,7 +183,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-5 gap-3">
         {tools.map((tool) => {
           const isActive = selectedTool === tool.id; // 사용자가 선택한 도구만 활성화
           const isLoading = loading[tool.id];
