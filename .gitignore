@@ -16,8 +16,11 @@ env.bak/
 
 # === FastAPI secrets ===
 .env
+.env.*
+!env.example
 backend/.env
 backend/.env.*
+!backend/env.example
 
 # === Python test artifacts ===
 coverage/
@@ -37,6 +40,11 @@ agent/chroma_db/
 *.faiss
 *.pkl
 
+# === Agent secrets ===
+agent/.env
+agent/.env.*
+!agent/env.example
+
 # === Node.js / React / Vite ===
 node_modules/
 dist/
@@ -51,6 +59,7 @@ frontend/.vite/
 frontend/.cache/
 frontend/.env
 frontend/.env.*
+!frontend/env.example
 
 # === Spring Boot ===
 *.jar
