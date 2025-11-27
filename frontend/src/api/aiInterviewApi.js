@@ -242,7 +242,7 @@ class AiInterviewApi {
   /**
    * 특정 지원자의 면접 질문+답변 로그 조회
    * @param {number} applicationId - 지원서 ID
-   * @param {string} interviewType - 면접 유형 (AI_INTERVIEW, FIRST_INTERVIEW, SECOND_INTERVIEW, FINAL_INTERVIEW)
+   * @param {string} interviewType - 면접 유형 (AI_INTERVIEW, PRACTICAL_INTERVIEW, EXECUTIVE_INTERVIEW, FINAL_INTERVIEW)
    * @returns {Promise<Array>} 질문+답변 로그 리스트
    */
   static async getInterviewQuestionLogsByApplication(applicationId, interviewType = null) {
@@ -267,6 +267,60 @@ class AiInterviewApi {
       return response.data;
     } catch (error) {
       console.error('면접 로그 통계 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 면접 유형별 Whisper 분석 결과 조회
+   * @param {number} applicationId - 지원서 ID
+   * @param {string} interviewType - 면접 유형 (executive, practice, ai_interview)
+   * @returns {Promise<Object>} Whisper 분석 결과
+   */
+  static async getWhisperAnalysisByInterviewType(applicationId, interviewType) {
+    try {
+      const response = await api.get(`/ai-interview/whisper-analysis/${applicationId}`, {
+        params: { interview_type: interviewType }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`${interviewType} 면접 Whisper 분석 조회 실패:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 모든 면접 유형의 Whisper 분석 결과 조회
+   * @param {number} applicationId - 지원서 ID
+   * @returns {Promise<Object>} 모든 면접 유형의 분석 결과
+   */
+  static async getAllWhisperAnalysis(applicationId) {
+    try {
+      const interviewTypes = ['executive', 'practice', 'ai_interview'];
+      const results = {};
+      
+      for (const type of interviewTypes) {
+        try {
+          const response = await api.get(`/ai-interview/whisper-analysis/${applicationId}`, {
+            params: { interview_type: type }
+          });
+          if (response.data.success) {
+            results[type] = response.data;
+          }
+        } catch (error) {
+          console.warn(`${type} 면접 데이터 없음:`, error.message);
+          results[type] = { success: false, message: `${type} 면접 데이터를 찾을 수 없습니다.` };
+        }
+      }
+      
+      return {
+        success: true,
+        application_id: applicationId,
+        results: results,
+        available_types: Object.keys(results).filter(key => results[key].success)
+      };
+    } catch (error) {
+      console.error('전체 Whisper 분석 조회 실패:', error);
       throw error;
     }
   }

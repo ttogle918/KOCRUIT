@@ -166,8 +166,11 @@ def get_company_job_post(
                 "id": app.id,
                 "status": app.status.value if app.status else None,
                 "document_status": app.document_status.value if app.document_status else None,
-                "interview_status": app.interview_status.value if app.interview_status else None,
-                "final_status": app.final_status.value if app.final_status else None
+                "ai_interview_status": app.ai_interview_status.value if app.ai_interview_status else None,
+                        "practical_interview_status": app.practical_interview_status.value if app.practical_interview_status else None,
+        "executive_interview_status": app.executive_interview_status.value if app.executive_interview_status else None,
+                "final_status": app.final_status.value if app.final_status else None,
+                "ai_interview_video_url": app.ai_interview_video_url
             }
             for app in job_post.applications
         ] if job_post.applications else []
@@ -678,7 +681,7 @@ def update_company_job_post(
                     schedule_id=interview_schedule.id,
                     user_id=current_user.id,
                     schedule_date=scheduled_at,
-                    status=InterviewStatus.AI_INTERVIEW_SCHEDULED
+                    status=InterviewStatus.SCHEDULED
                 )
                 db.add(schedule_interview)
                 db.flush()

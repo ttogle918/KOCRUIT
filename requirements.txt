@@ -40,7 +40,7 @@ tqdm==4.66.2
 weasyprint==62.2
 jinja2==3.1.2
 
-# === AI & ML (torch 계열 제외) === -> Dockerfile 에 추가했음
+# === AI & ML (PyTorch 기반만 유지) ===
 sentence-transformers==2.5.1
 numpy==1.26.4
 pandas==2.2.2

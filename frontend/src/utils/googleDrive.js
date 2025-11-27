@@ -2,29 +2,57 @@
  * Google Drive 연동 유틸리티
  */
 
-// Google Drive 공유 링크를 직접 재생 가능한 URL로 변환
+// Google Drive 공유 링크를 직접 재생 가능한 URL로 변환 (개선된 버전)
 export const convertDriveUrlToDirect = (shareUrl) => {
+  if (!shareUrl) return null;
+  
   const videoId = extractVideoIdFromUrl(shareUrl);
   if (!videoId) {
-    throw new Error('유효하지 않은 Google Drive 링크입니다.');
+    console.error('유효하지 않은 Google Drive 링크:', shareUrl);
+    return null;
   }
   
-  // 직접 재생 가능한 URL 생성
-  return `https://drive.google.com/uc?export=download&id=${videoId}`;
+  // 여러 가지 직접 재생 가능한 URL 형식 시도
+  const directUrls = [
+    `https://drive.google.com/uc?export=download&id=${videoId}`,
+    `https://drive.google.com/uc?export=view&id=${videoId}`,
+    `https://drive.google.com/file/d/${videoId}/preview`,
+    `https://drive.google.com/uc?id=${videoId}&export=download`,
+    `https://drive.google.com/file/d/${videoId}/view`,
+    `https://drive.google.com/uc?export=download&confirm=t&id=${videoId}`
+  ];
+  
+  return directUrls[0]; // 첫 번째 형식 반환
 };
 
-// Google Drive URL에서 파일 ID 추출
+// Google Drive URL에서 파일 ID 추출 (개선된 버전)
 export const extractVideoIdFromUrl = (url) => {
+  if (!url) return null;
+  
   const patterns = [
     /\/file\/d\/([a-zA-Z0-9-_]+)/,
     /id=([a-zA-Z0-9-_]+)/,
-    /\/d\/([a-zA-Z0-9-_]+)/
+    /\/d\/([a-zA-Z0-9-_]+)/,
+    /\/view\?usp=sharing&id=([a-zA-Z0-9-_]+)/,
+    /\/edit\?usp=sharing&id=([a-zA-Z0-9-_]+)/,
+    /\/preview\?id=([a-zA-Z0-9-_]+)/,
+    /\/open\?id=([a-zA-Z0-9-_]+)/
   ];
   
   for (const pattern of patterns) {
     const match = url.match(pattern);
     if (match) return match[1];
   }
+  
+  // URL에서 직접 ID 추출 시도
+  try {
+    const urlParams = new URLSearchParams(url.split('?')[1] || '');
+    const id = urlParams.get('id');
+    if (id) return id;
+  } catch (error) {
+    console.warn('URL 파싱 실패:', error);
+  }
+  
   return null;
 };
 
@@ -136,4 +164,155 @@ export const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+}; 
+
+// 동영상 URL 유효성 검사 및 변환
+export const processVideoUrl = async (url) => {
+  if (!url) return null;
+  
+  try {
+    console.log('🔍 동영상 URL 처리 시작:', url);
+    
+    // 이미 직접 재생 가능한 URL인 경우 (uc 형식)
+    if (url.includes('drive.google.com/uc')) {
+      console.log('✅ 이미 직접 재생 가능한 URL 형식:', url);
+      return url;
+    }
+    
+    // Google Drive 공유 링크인 경우
+    if (url.includes('drive.google.com')) {
+      const videoId = extractVideoIdFromUrl(url);
+      if (!videoId) {
+        console.error('❌ Google Drive 파일 ID 추출 실패:', url);
+        return null;
+      }
+      
+      // Google Drive는 브라우저에서 직접 재생이 어려우므로 iframe으로 임베드하는 방식 사용
+      const embedUrl = `https://drive.google.com/file/d/${videoId}/preview`;
+      console.log('✅ Google Drive 임베드 URL 생성:', embedUrl);
+      return embedUrl;
+    }
+    
+    // 다른 클라우드 스토리지 URL들
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      // YouTube URL 처리
+      return processYouTubeUrl(url);
+    }
+    
+    // 일반 HTTP/HTTPS URL
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      console.log('✅ 일반 URL 사용:', url);
+      return url;
+    }
+    
+    console.error('❌ 지원하지 않는 URL 형식:', url);
+    return null;
+    
+  } catch (error) {
+    console.error('❌ URL 처리 중 오류:', error);
+    return null;
+  }
+};
+
+// YouTube URL 처리
+export const processYouTubeUrl = (url) => {
+  const videoId = extractYouTubeVideoId(url);
+  if (videoId) {
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  return url;
+};
+
+// YouTube URL에서 비디오 ID 추출
+export const extractYouTubeVideoId = (url) => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9-_]+)/,
+    /youtube\.com\/watch\?.*v=([a-zA-Z0-9-_]+)/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+};
+
+// 동영상 파일 다운로드 및 임시 저장 (백엔드 API 호출)
+export const downloadAndCacheVideo = async (url, applicationId) => {
+  try {
+    const response = await fetch('/api/v1/interview-questions/download-video', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        video_url: url,
+        application_id: applicationId
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('동영상 다운로드 실패');
+    }
+    
+    const data = await response.json();
+    return data.cached_url;
+    
+  } catch (error) {
+    console.error('동영상 다운로드 오류:', error);
+    return null;
+  }
+};
+
+// Google Drive에 파일 업로드
+export const uploadFileToGoogleDrive = async (file, fileName, apiKey) => {
+  if (!apiKey) {
+    console.warn('Google Drive API 키가 필요합니다.');
+    return null;
+  }
+  
+  try {
+    // 파일을 FormData로 변환
+    const formData = new FormData();
+    formData.append('file', file, fileName);
+    
+    // Google Drive API를 통한 업로드
+    const response = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: formData
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error('Google Drive 업로드 실패');
+    }
+    
+    const result = await response.json();
+    return {
+      fileId: result.id,
+      fileName: result.name,
+      webViewLink: result.webViewLink,
+      directLink: `https://drive.google.com/uc?export=download&id=${result.id}`
+    };
+    
+  } catch (error) {
+    console.error('Google Drive 업로드 오류:', error);
+    return null;
+  }
+};
+
+// 동영상 URL 테스트 (간단한 버전)
+export const testVideoUrl = async (url) => {
+  try {
+    const processedUrl = await processVideoUrl(url);
+    return !!processedUrl;
+  } catch (error) {
+    console.error('동영상 URL 테스트 실패:', error);
+    return false;
+  }
 }; 

@@ -9,7 +9,7 @@ from app.schemas.application import (
     ApplicationCreate, ApplicationUpdate, ApplicationDetail, 
     ApplicationList
 )
-from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus, WrittenTestStatus
+from app.models.application import Application, ApplyStatus, DocumentStatus, WrittenTestStatus, InterviewStatus
 from app.models.user import User
 from app.api.v1.auth import get_current_user
 from app.models.resume import Resume, Spec
@@ -21,7 +21,11 @@ from app.utils.llm_cache import redis_cache
 from app.models.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
 from app.services.application_evaluation_service import auto_evaluate_all_applications
-from app.utils.enum_converter import get_safe_interview_status
+from app.utils.enum_converter import get_safe_interview_statuses
+from app.models.media_analysis import MediaAnalysis
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -237,14 +241,6 @@ def get_application(
         "experiences": experiences, # activities + project_experience 통합
         "content": application.resume.content if application.resume else ""
     }
-    
-    print(f"API 응답 데이터: {response_data}")
-    print(f"User 정보: {application.user.name if application.user else 'None'}")
-    print(f"Resume 정보: {application.resume.content[:50] if application.resume and application.resume.content is not None else 'None'}")
-    print(f"Spec 개수: {len(application.resume.specs) if application.resume else 0}")
-    print(f"Education 개수: {len(educations)}")
-    print(f"Awards 개수: {len(awards)}")
-    print(f"Certificates 개수: {len(certificates)}")
     
     return response_data
 
@@ -726,7 +722,9 @@ def get_applicants_by_job(
             "application_id": app.id,
             "status": app.status,
             "document_status": app.document_status,  # 서류 상태 추가
-            "interview_status": app.interview_status,  # 면접 상태 추가
+            "ai_interview_status": app.ai_interview_status,  # AI 면접 상태 추가
+            "practical_interview_status": app.practical_interview_status,  # 실무진 면접 상태 추가
+            "executive_interview_status": app.executive_interview_status,  # 임원진 면접 상태 추가
             "applied_at": app.applied_at,
             "score": app.score,
             "ai_score": app.ai_score,
@@ -746,7 +744,6 @@ def get_applicants_by_job(
     
     print(f"📤 전체 지원자 목록 응답: {len(applicants)}명")
     return applicants
-@router.get("/job/{job_post_id}/applicants-with-interview")
 @redis_cache(expire=300)  # 5분 캐시
 def get_applicants_with_interview(job_post_id: int, db: Session = Depends(get_db)):
     # 지원자 + 면접일정 포함 API : "지원자 면접시간 그룹핑"과 "첫 지원자만 미리 상세 fetch"
@@ -811,18 +808,65 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
         # 디버깅을 위한 로그 추가
         print(f"🔍 AI 면접 지원자 조회 - ID: {app.user_id}, 이름: {user.name if user else 'Unknown'}")
         print(f"   - ai_interview_score: {app.ai_interview_score}")
-        print(f"   - interview_status: {app.interview_status}")
+        print(f"   - ai_interview_status: {app.ai_interview_status}")
         print(f"   - written_test_status: {app.written_test_status}")
         
+        result.append({
+            "applicant_id": app.user_id,
+            "application_id": app.id,  # application_id 추가
+            "name": user.name if user else "",
+            "schedule_interview_id": schedule_interview_id,
+            "schedule_date": schedule_date,
+            "ai_interview_status": app.ai_interview_status,  # AI 면접 상태 추가
+            "practical_interview_status": app.practical_interview_status,  # 실무진 면접 상태 추가
+            "executive_interview_status": app.executive_interview_status,  # 임원진 면접 상태 추가
+            "document_status": app.document_status,  # 서류 상태 추가
+            "status": app.status,  # 전체 상태 추가
+            "ai_interview_score": app.ai_interview_score,  # Application 테이블의 AI 면접 점수
+            "ai_interview_video_url": app.ai_interview_video_url,  # AI 면접 비디오 URL 추가
+            "video_url": app.video_url,  # 기존 비디오 URL도 추가
+            "resume_id": app.resume_id,  # 이력서 ID 추가
+            "job_post_id": app.job_post_id,  # 채용공고 ID 추가
+        })
+    return result
+
+
+@router.get("/job/{job_post_id}/applicants-with-first-interview")
+@redis_cache(expire=300)  # 5분 캐시
+def get_applicants_with_first_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """1차 면접(실무진 면접) 지원자 + 면접일정 포함 API"""
+    # AI 면접 합격자만 필터링
+    meta = MetaData()
+    schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+    
+    # AI 면접 합격자 조회 (AI 면접에서 합격한 지원자)
+    applicants = db.query(Application).filter(
+        Application.job_post_id == job_post_id,
+        Application.ai_interview_status == InterviewStatus.PASSED,
+        Application.status.in_([ApplyStatus.PASSED, ApplyStatus.IN_PROGRESS])
+    ).all()
+    
+    result = []
+    for app in applicants:
+        # 1차 면접 일정 조회
+        sia_row = db.execute(
+            select(
+                schedule_interview_applicant.c.schedule_interview_id
+            ).where(schedule_interview_applicant.c.user_id == app.user_id)
+        ).first()
+        schedule_interview_id = None
+        schedule_date = None
+        if sia_row:
+            schedule_interview_id = sia_row[0]
+            si = db.query(ScheduleInterview).filter(ScheduleInterview.id == schedule_interview_id).first()
+            if si:
+                schedule_date = si.schedule_date
+        user = db.query(User).filter(User.id == app.user_id).first()
         result.append({
             "applicant_id": app.user_id,
             "name": user.name if user else "",
             "schedule_interview_id": schedule_interview_id,
             "schedule_date": schedule_date,
-            "interview_status": get_safe_interview_status(app.interview_status),  # AI 면접 상태 추가 (안전 변환)
-            "document_status": app.document_status,  # 서류 상태 추가
-            "status": app.status,  # 전체 상태 추가
-            "ai_interview_score": app.ai_interview_score,  # Application 테이블의 AI 면접 점수
         })
     return result
 
@@ -836,10 +880,10 @@ def get_applicants_with_second_interview(job_post_id: int, db: Session = Depends
     schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
     
     # 1차 면접 합격자 조회 (실무진 면접에서 합격한 지원자)
-    # interview_status가 FIRST_INTERVIEW_COMPLETED인 지원자
+    # first_interview_status가 COMPLETED인 지원자
     applicants = db.query(Application).filter(
         Application.job_post_id == job_post_id,
-        Application.interview_status == InterviewStatus.FIRST_INTERVIEW_COMPLETED,
+        Application.practical_interview_status == InterviewStatus.COMPLETED,
         Application.status.in_([ApplyStatus.PASSED, ApplyStatus.IN_PROGRESS])
     ).all()
     
@@ -1040,7 +1084,9 @@ def get_passed_applicants(
             "application_id": app.id,
             "status": app.status,
             "document_status": app.document_status,  # 서류 상태 추가
-            "interview_status": app.interview_status,  # 면접 상태 추가
+            "ai_interview_status": app.ai_interview_status,  # AI 면접 상태 추가
+            "practical_interview_status": app.practical_interview_status,  # 실무진 면접 상태 추가
+            "executive_interview_status": app.executive_interview_status,  # 임원진 면접 상태 추가
             "applied_at": app.applied_at,
             "score": app.score,
             "ai_score": app.ai_score,
@@ -1073,3 +1119,353 @@ def get_written_test_answers(job_post_id: int, user_id: int, db: Session = Depen
         WrittenTestAnswer.user_id == user_id
     ).all()
     return answers
+
+@router.get("/pending-video-analysis")
+async def get_pending_video_analyses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """분석이 필요한 영상 목록 조회 (백그라운드 분석용)"""
+    try:
+        # AI 면접 합격자 중 video_url이 있고 분석이 안된 지원자 조회
+        pending_analyses = db.query(Application).filter(
+            Application.ai_interview_status == "PASSED",
+            Application.ai_interview_video_url.isnot(None),
+            Application.ai_interview_video_url != "",
+            ~Application.id.in_(
+                db.query(MediaAnalysis.application_id).distinct()
+            )
+        ).all()
+        
+        result = []
+        for application in pending_analyses:
+            result.append({
+                "application_id": application.id,
+                "video_url": application.ai_interview_video_url,
+                "applicant_name": application.applicant_name,
+                "job_post_title": application.job_post.title if application.job_post else None
+            })
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"대기 중인 분석 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail="분석 목록 조회 중 오류가 발생했습니다")
+
+
+@router.get("/job/{job_post_id}/applicants-with-practical-interview")
+@redis_cache(expire=300)  # 5분 캐시
+def get_applicants_with_practical_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """실무진 면접 지원자 목록 조회 API - practical_interview_status 참조"""
+    try:
+        print(f"🔍 실무진 면접 지원자 조회 시작 - job_post_id: {job_post_id}")
+        
+        # AI 면접 합격자 중 실무진 면접 대상자 조회 (PENDING 제외)
+        print(f"🔍 필터링 조건:")
+        print(f"   - job_post_id: {job_post_id}")
+        print(f"   - ai_interview_status: {InterviewStatus.PASSED}")
+        print(f"   - practical_interview_status: SCHEDULED, IN_PROGRESS, COMPLETED, PASSED, FAILED")
+        print(f"   - status: {ApplyStatus.PASSED}, {ApplyStatus.IN_PROGRESS}")
+        
+        # 전체 지원자 수 확인
+        total_applications = db.query(Application).filter(
+            Application.job_post_id == job_post_id
+        ).count()
+        print(f"📊 해당 공고의 전체 지원자 수: {total_applications}")
+        
+        # AI 면접 합격자 수 확인
+        ai_passed_count = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.ai_interview_status == InterviewStatus.PASSED
+        ).count()
+        print(f"📊 AI 면접 합격자 수: {ai_passed_count}")
+        
+        applicants = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.ai_interview_status == InterviewStatus.PASSED,
+            Application.practical_interview_status.in_([
+                InterviewStatus.SCHEDULED,
+                InterviewStatus.IN_PROGRESS,
+                InterviewStatus.COMPLETED,
+                InterviewStatus.PASSED,
+                InterviewStatus.FAILED
+            ]),
+            Application.status.in_([ApplyStatus.PASSED, ApplyStatus.IN_PROGRESS])
+        ).all()
+        
+        print(f"📊 실무진 면접 대상자 수: {len(applicants)}")
+        
+        # 각 지원자의 상태 상세 로깅
+        for app in applicants:
+            print(f"   - 지원자 {app.user_id}: ai_interview_status={app.ai_interview_status}, practical_interview_status={app.practical_interview_status}, status={app.status}")
+        
+        result = []
+        for app in applicants:
+            user = db.query(User).filter(User.id == app.user_id).first()
+            
+            # 실무진 면접 일정 조회
+            meta = MetaData()
+            schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+            
+            sia_row = db.execute(
+                select(
+                    schedule_interview_applicant.c.schedule_interview_id
+                ).where(schedule_interview_applicant.c.user_id == app.user_id)
+            ).first()
+            
+            schedule_interview_id = None
+            schedule_date = None
+            if sia_row:
+                schedule_interview_id = sia_row[0]
+                si = db.query(ScheduleInterview).filter(ScheduleInterview.id == schedule_interview_id).first()
+                if si:
+                    schedule_date = si.schedule_date
+            
+            result.append({
+                "id": app.user_id,
+                "user_id": app.user_id,
+                "name": user.name if user else "",
+                "email": user.email if user else "",
+                "phone": user.phone if user else "",
+                "application_id": app.id,
+                "status": app.status,
+                "ai_interview_status": app.ai_interview_status,
+                "practical_interview_status": app.practical_interview_status,
+                "executive_interview_status": app.executive_interview_status,
+                "ai_interview_score": app.ai_interview_score,
+                "applied_at": app.applied_at,
+                # "created_at": app.created_at,
+                "schedule_interview_id": schedule_interview_id,
+                "schedule_date": schedule_date.isoformat() if schedule_date else None,
+                "resume_id": app.resume_id
+            })
+            
+            print(f"✅ 지원자 {app.user_id} ({user.name if user else 'Unknown'}) 실무진 면접 상태: {app.practical_interview_status}")
+        
+        print(f"🎯 실무진 면접 대상자 목록: {len(result)}명 반환")
+        
+        return {
+            "success": True,
+            "total_count": len(result),
+            "applicants": result
+        }
+        
+    except Exception as e:
+        print(f"💥 실무진 면접 지원자 조회 중 오류: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"실무진 면접 지원자 조회 실패: {str(e)}")
+
+
+@router.get("/job/{job_post_id}/interview-statistics")
+@redis_cache(expire=300)  # 5분 캐시
+def get_interview_statistics(job_post_id: int, db: Session = Depends(get_db)):
+    """면접 단계별 통계 조회 API"""
+    try:
+        print(f"🔍 면접 통계 조회 시작 - job_post_id: {job_post_id}")
+        
+        # 전체 지원자 수
+        total_applications = db.query(Application).filter(
+            Application.job_post_id == job_post_id
+        ).count()
+        
+        # AI 면접 통계
+        ai_passed = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.ai_interview_status == InterviewStatus.PASSED
+        ).count()
+        
+        ai_failed = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.ai_interview_status == InterviewStatus.FAILED
+        ).count()
+        
+        ai_pending = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.ai_interview_status == InterviewStatus.PENDING
+        ).count()
+        
+        ai_in_progress = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.ai_interview_status.in_([
+                InterviewStatus.SCHEDULED,
+                InterviewStatus.IN_PROGRESS,
+                InterviewStatus.COMPLETED
+            ])
+        ).count()
+        
+        # 실무진 면접 통계
+        practical_passed = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.practical_interview_status == InterviewStatus.PASSED
+        ).count()
+        
+        practical_failed = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.practical_interview_status == InterviewStatus.FAILED
+        ).count()
+        
+        practical_pending = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.practical_interview_status == InterviewStatus.PENDING
+        ).count()
+        
+        practical_in_progress = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.practical_interview_status.in_([
+                InterviewStatus.SCHEDULED,
+                InterviewStatus.IN_PROGRESS,
+                InterviewStatus.COMPLETED,
+                InterviewStatus.PASSED,
+                InterviewStatus.FAILED
+            ])
+        ).count()
+        
+        # 임원진 면접 통계
+        executive_passed = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.executive_interview_status == InterviewStatus.PASSED
+        ).count()
+        
+        executive_failed = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.executive_interview_status == InterviewStatus.FAILED
+        ).count()
+        
+        executive_pending = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.executive_interview_status == InterviewStatus.PENDING
+        ).count()
+        
+        executive_in_progress = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.executive_interview_status.in_([
+                InterviewStatus.SCHEDULED,
+                InterviewStatus.IN_PROGRESS,
+                InterviewStatus.COMPLETED
+            ])
+        ).count()
+        
+        # 통계 데이터 구성
+        statistics = {
+            "total_applications": total_applications,
+            "ai_interview": {
+                "passed": ai_passed,
+                "failed": ai_failed,
+                "pending": ai_pending,
+                "in_progress": ai_in_progress,
+                "total": ai_passed + ai_failed + ai_pending + ai_in_progress
+            },
+            "practical_interview": {
+                "passed": practical_passed,
+                "failed": practical_failed,
+                "pending": practical_pending,
+                "in_progress": practical_in_progress,
+                "total": practical_passed + practical_failed + practical_pending + practical_in_progress
+            },
+            "executive_interview": {
+                "passed": executive_passed,
+                "failed": executive_failed,
+                "pending": executive_pending,
+                "in_progress": executive_in_progress,
+                "total": executive_passed + executive_failed + executive_pending + executive_in_progress
+            }
+        }
+        
+        print(f"📊 면접 통계 결과:")
+        print(f"   - 전체 지원자: {total_applications}명")
+        print(f"   - AI 면접: 합격 {ai_passed}명, 불합격 {ai_failed}명, 대기 {ai_pending}명, 진행중 {ai_in_progress}명")
+        print(f"   - 실무진 면접: 합격 {practical_passed}명, 불합격 {practical_failed}명, 대기 {practical_pending}명, 진행중 {practical_in_progress}명")
+        print(f"   - 임원진 면접: 합격 {executive_passed}명, 불합격 {executive_failed}명, 대기 {executive_pending}명, 진행중 {executive_in_progress}명")
+        
+        return {
+            "success": True,
+            "statistics": statistics
+        }
+        
+    except Exception as e:
+        print(f"💥 면접 통계 조회 중 오류: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"면접 통계 조회 실패: {str(e)}")
+
+
+@router.get("/job/{job_post_id}/applicants-with-executive-interview")
+@redis_cache(expire=300)  # 5분 캐시
+def get_applicants_with_executive_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """임원진 면접 지원자 목록 조회 API - executive_interview_status 참조"""
+    try:
+        print(f"🔍 임원진 면접 지원자 조회 시작 - job_post_id: {job_post_id}")
+        
+        # 실무진 면접 합격자 중 임원진 면접 대상자 조회 (PENDING 제외)
+        applicants = db.query(Application).filter(
+            Application.job_post_id == job_post_id,
+            Application.practical_interview_status == InterviewStatus.PASSED,
+            Application.executive_interview_status.in_([
+                InterviewStatus.SCHEDULED,
+                InterviewStatus.IN_PROGRESS,
+                InterviewStatus.COMPLETED,
+                InterviewStatus.PASSED,
+                InterviewStatus.FAILED
+            ]),
+            Application.status.in_([ApplyStatus.PASSED, ApplyStatus.IN_PROGRESS])
+        ).all()
+        
+        print(f"📊 임원진 면접 지원자 수: {len(applicants)}")
+        
+        result = []
+        for app in applicants:
+            user = db.query(User).filter(User.id == app.user_id).first()
+            
+            # 임원진 면접 일정 조회
+            meta = MetaData()
+            schedule_interview_applicant = Table('schedule_interview_applicant', meta, autoload_with=db.bind)
+            
+            sia_row = db.execute(
+                select(
+                    schedule_interview_applicant.c.schedule_interview_id
+                ).where(schedule_interview_applicant.c.user_id == app.user_id)
+            ).first()
+            
+            schedule_interview_id = None
+            schedule_date = None
+            if sia_row:
+                schedule_interview_id = sia_row[0]
+                si = db.query(ScheduleInterview).filter(ScheduleInterview.id == schedule_interview_id).first()
+                if si:
+                    schedule_date = si.schedule_date
+            
+            result.append({
+                "id": app.user_id,
+                "user_id": app.user_id,
+                "name": user.name if user else "",
+                "email": user.email if user else "",
+                "phone": user.phone if user else "",
+                "application_id": app.id,
+                "status": app.status,
+                "ai_interview_status": app.ai_interview_status,
+                "practical_interview_status": app.practical_interview_status,
+                "executive_interview_status": app.executive_interview_status,
+                "ai_interview_score": app.ai_interview_score,
+                "applied_at": app.applied_at,
+                # "created_at": app.created_at,
+                "schedule_interview_id": schedule_interview_id,
+                "schedule_date": schedule_date.isoformat() if schedule_date else None,
+                "resume_id": app.resume_id
+            })
+            
+            print(f"✅ 지원자 {app.user_id} ({user.name if user else 'Unknown'}) 임원진 면접 상태: {app.executive_interview_status}")
+        
+        print(f"🎯 임원진 면접 지원자 목록: {len(result)}명 반환")
+        
+        return {
+            "success": True,
+            "total_count": len(result),
+            "applicants": result
+        }
+        
+    except Exception as e:
+        print(f"💥 임원진 면접 지원자 조회 중 오류: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"임원진 면접 지원자 조회 실패: {str(e)}")

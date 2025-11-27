@@ -37,11 +37,25 @@ function InterviewReport() {
   const [searchParams] = useSearchParams();
   const jobPostId = searchParams.get("job_post_id");
 
-  // AI 인사이트 데이터 가져오기
+  // 캐싱 상태 추가
+  const [reportCache, setReportCache] = useState(new Map());
+  const [jobPostCache, setJobPostCache] = useState(new Map());
+  const [aiInsightsCache, setAiInsightsCache] = useState(new Map());
+  const [compareDataCache, setCompareDataCache] = useState(new Map());
+
+  // AI 인사이트 데이터 가져오기 (캐싱 적용)
   const fetchAiInsights = async () => {
     try {
+      // 캐시 확인
+      if (aiInsightsCache.has(jobPostId)) {
+        setAiInsights(aiInsightsCache.get(jobPostId));
+        console.log('✅ AI 인사이트 캐시에서 로드');
+        return;
+      }
+
       const response = await api.get(`/interview-evaluation/job-post/${jobPostId}/ai-insights`);
       setAiInsights(response.data);
+      setAiInsightsCache(prev => new Map(prev).set(jobPostId, response.data));
       console.log("🤖 AI 인사이트 데이터:", response.data);
     } catch (error) {
       console.error('AI 인사이트 조회 실패:', error);
@@ -49,11 +63,19 @@ function InterviewReport() {
     }
   };
 
-  // 비교 분석 데이터 가져오기
+  // 비교 분석 데이터 가져오기 (캐싱 적용)
   const fetchCompareData = async () => {
     try {
+      // 캐시 확인
+      if (compareDataCache.has(jobPostId)) {
+        setCompareData(compareDataCache.get(jobPostId));
+        console.log('✅ 비교 분석 데이터 캐시에서 로드');
+        return;
+      }
+
       const response = await api.get(`/interview-evaluation/job-post/${jobPostId}/comparison-analysis`);
       setCompareData(response.data);
+      setCompareDataCache(prev => new Map(prev).set(jobPostId, response.data));
       console.log("📊 비교 분석 데이터:", response.data);
     } catch (error) {
       console.error('비교 데이터 조회 실패:', error);
@@ -197,56 +219,81 @@ function InterviewReport() {
 
   const fetchData = () => {
     if (jobPostId) {
-      // AI 면접 데이터 조회
-      AiInterviewApi.getAiInterviewEvaluationsByJobPost(jobPostId)
-        .then(setAiData)
-        .catch((e) => {
-          console.error("AI 면접 데이터 조회 실패:", e);
-          console.error("에러 상세:", e.response?.data);
-          setAiData({ evaluations: [], total_evaluations: 0 });
-        });
+      // 캐시 키 생성
+      const cacheKey = `report_${jobPostId}`;
+      
+      // 캐시 확인
+      if (reportCache.has(cacheKey)) {
+        const cachedData = reportCache.get(cacheKey);
+        setAiData(cachedData.aiData);
+        setPracticalData(cachedData.practicalData);
+        setExecutiveData(cachedData.executiveData);
+        setFinalSelectedData(cachedData.finalSelectedData);
+        setJobPostData(cachedData.jobPostData);
+        console.log('✅ 면접 리포트 데이터 캐시에서 로드');
+        return;
+      }
 
-      // 실무진 면접 데이터 조회
-      api.get(`/interview-evaluation/job-post/${jobPostId}/practical`)
-        .then((res) => setPracticalData(res.data))
-        .catch((e) => {
-          console.error("실무진 면접 데이터 조회 실패:", e);
-          console.error("에러 상세:", e.response?.data);
-          setPracticalData({ evaluations: [], total_evaluations: 0 });
-        });
-
-      // 임원진 면접 데이터 조회
-      api.get(`/interview-evaluation/job-post/${jobPostId}/executive`)
-        .then((res) => setExecutiveData(res.data))
-        .catch((e) => {
-          console.error("임원진 면접 데이터 조회 실패:", e);
-          console.error("에러 상세:", e.response?.data);
-          setExecutiveData({ evaluations: [], total_evaluations: 0 });
-        });
-
-      // 최종 선발된 지원자들 조회 (final_status = 'SELECTED')
-      api.get(`/interview-evaluation/job-post/${jobPostId}/final-selected`)
-        .then((res) => {
-          console.log("🔥 최종 선발자 데이터:", res.data);
-          setFinalSelectedData(res.data);
-        })
-        .catch((e) => {
-          console.error("최종 선발자 데이터 조회 실패:", e);
-          console.error("에러 상세:", e.response?.data);
-          setFinalSelectedData({ evaluations: [], total_evaluations: 0 });
-        });
-
-      // 공고 정보 조회
-      api.get(`/company/jobposts/${jobPostId}`)
-        .then((res) => {
-          console.log("🔥 공고 정보:", res.data);
-          setJobPostData(res.data);
-        })
-        .catch((e) => {
-          console.error("공고 정보 조회 실패:", e);
-          console.error("에러 상세:", e.response?.data);
-          setJobPostData({ title: "공고 정보 없음" });
-        });
+      // 병렬로 모든 데이터 조회
+      Promise.all([
+        // AI 면접 데이터 조회
+        AiInterviewApi.getAiInterviewEvaluationsByJobPost(jobPostId)
+          .catch((e) => {
+            console.error("AI 면접 데이터 조회 실패:", e);
+            return { evaluations: [], total_evaluations: 0 };
+          }),
+        
+        // 실무진 면접 데이터 조회
+        api.get(`/interview-evaluation/job-post/${jobPostId}/practical`)
+          .then(res => res.data)
+          .catch((e) => {
+            console.error("실무진 면접 데이터 조회 실패:", e);
+            return { evaluations: [], total_evaluations: 0 };
+          }),
+        
+        // 임원진 면접 데이터 조회
+        api.get(`/interview-evaluation/job-post/${jobPostId}/executive`)
+          .then(res => res.data)
+          .catch((e) => {
+            console.error("임원진 면접 데이터 조회 실패:", e);
+            return { evaluations: [], total_evaluations: 0 };
+          }),
+        
+        // 최종 선발된 지원자들 조회
+        api.get(`/interview-evaluation/job-post/${jobPostId}/final-selected`)
+          .then(res => res.data)
+          .catch((e) => {
+            console.error("최종 선발자 데이터 조회 실패:", e);
+            return { evaluations: [], total_evaluations: 0 };
+          }),
+        
+        // 공고 정보 조회
+        api.get(`/company/jobposts/${jobPostId}`)
+          .then(res => res.data)
+          .catch((e) => {
+            console.error("공고 정보 조회 실패:", e);
+            return { title: "공고 정보 없음" };
+          })
+      ]).then(([aiData, practicalData, executiveData, finalSelectedData, jobPostData]) => {
+        // 상태 업데이트
+        setAiData(aiData);
+        setPracticalData(practicalData);
+        setExecutiveData(executiveData);
+        setFinalSelectedData(finalSelectedData);
+        setJobPostData(jobPostData);
+        
+        // 캐시에 저장
+        const reportData = {
+          aiData,
+          practicalData,
+          executiveData,
+          finalSelectedData,
+          jobPostData
+        };
+        setReportCache(prev => new Map(prev).set(cacheKey, reportData));
+        
+        console.log('✅ 면접 리포트 데이터 로드 완료');
+      });
     }
   };
 
@@ -531,14 +578,15 @@ function InterviewReport() {
                 <button 
                   onClick={handleRefreshCache}
                   disabled={isRefreshing}
-                  className={`flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                     isRefreshing 
                       ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
                       : 'bg-gray-600 dark:bg-gray-700 text-white hover:bg-gray-700 dark:hover:bg-gray-800'
                   }`}
                   title="캐시 새로고침"
                 >
-                  <MdCached size={18} className={isRefreshing ? 'animate-spin' : ''} />
+                  <MdCached size={20} className={isRefreshing ? 'animate-spin' : ''} />
+                  {isRefreshing ? '새로고침 중...' : '캐시 새로고침'}
                 </button>
                 <button 
                   onClick={handleDownload}

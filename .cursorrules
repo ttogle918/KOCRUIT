@@ -1,0 +1,35 @@
+# .cursorrules
+
+# 1. Project Identity & Tech Stack
+- Role: Senior AI Backend Engineer
+- Language: Python 3.11+
+- Framework: FastAPI (Async)
+- Database: MySQL (Running in Docker)
+- ORM: SQLAlchemy (Async)
+- AI Integration: OpenAI API
+- Convention: 
+    - Variables: snake_case
+    - Classes: PascalCase
+    - Use Type Hints explicitly
+    - Comments: Korean (Explain 'Why' logic)
+
+# 2. Workflow for Coding Tasks
+When I ask for a **feature implementation** or **refactoring**, follow this 3-step process:
+
+## Step 1: Context Analysis
+- Analyze relevant files and dependencies.
+- Acknowledge the Docker environment (e.g., connection strings might differ).
+- Check for existing MySQL models/schemas.
+
+## Step 2: Implementation Plan
+- Summarize the task and create a checklist.
+- Consider MySQL specific behaviors (e.g., timestamp precision, charsets).
+
+## Step 3: Coding
+- Write production-ready code.
+- Provide `docker-compose` command or SQL hints if schema changes are needed.
+- Show code with context (don't just show the changed line).
+
+# 3. Output Rules
+- **Process:** Think in English (Logic/Reasoning), Output in Korean.
+- **Tone:** Professional and Concise.

@@ -106,6 +106,13 @@ const ApplicantCard = forwardRef(({
     return '안전';
   };
 
+  // 안전한 값 접근을 위한 변수 정의 (한 번만 선언)
+  const applicantName = applicant?.name || '이름 없음';
+  const applicantAge = applicant?.birthDate ? calculateAge(applicant.birthDate) : '나이 정보 없음';
+  const applicationSource = applicant?.applicationSource || 'DIRECT';
+  const appliedDate = applicant?.appliedAt || applicant?.applied_at;
+  const aiScore = applicant?.ai_score || 0;
+
   const similarityScore = getSimilarityScore();
   const similarityColor = getSimilarityColor(similarityScore);
   const similarityStatus = getSimilarityStatus(similarityScore);
@@ -113,7 +120,7 @@ const ApplicantCard = forwardRef(({
   return (
     <div ref={ref} className={`${compact ? 'p-1' : ''}`}> {/* 바깥 div는 padding/마진만 */}
       <div
-        className={`relative bg-white dark:bg-gray-800 rounded-3xl flex items-center gap-2 cursor-pointer transition-all duration-300 ease-in-out ${compact ? 'p-2' : 'p-4'} 
+        className={`relative bg-white dark:bg-gray-800 rounded-3xl flex items-center gap-3 cursor-pointer transition-all duration-300 ease-in-out ${compact ? 'p-2' : 'p-4'} 
           ${isSelected ? 'border-2 border-blue-500 ring-1 ring-blue-300 bg-blue-50 dark:bg-blue-900 shadow-lg scale-[1.01]' : 'border border-gray-200'}
         `}
         style={isSelected ? { boxShadow: '0 0 0 2px #3b82f6, 0 2px 12px 0 rgba(59,130,246,0.10)' } : {}}
@@ -123,11 +130,11 @@ const ApplicantCard = forwardRef(({
         }}
       >
         {/* 번호 */}
-        <div className={`absolute top-1 left-2 text-xs font-bold text-blue-600 ${compact ? 'text-[10px]' : ''}`}>{index}</div>
+        <div className={`absolute top-2 left-3 text-xs font-bold text-blue-600 ${compact ? 'text-[10px]' : ''}`}>{index}</div>
 
         {/* 즐겨찾기 별 버튼 */}
         <button
-          className={`absolute top-1 right-2 transition-all duration-200 ease-in-out ${compact ? 'text-base' : 'text-xl'}`}
+          className={`absolute top-2 right-3 transition-all duration-200 ease-in-out ${compact ? 'text-base' : 'text-xl'}`}
           onClick={e => {
             e.stopPropagation();
             onBookmarkToggle();
@@ -141,42 +148,45 @@ const ApplicantCard = forwardRef(({
         </button>
 
         {/* 프로필 이미지 */}
-        <div className={`flex items-center justify-center ${compact ? 'w-8 h-8' : 'w-12 h-12'} rounded-full bg-gray-300`}>
+        <div className={`flex items-center justify-center ${compact ? 'w-8 h-8' : 'w-12 h-12'} rounded-full bg-gray-300 ml-6`}>
           <i className="fa-solid fa-user text-white text-xl" />
         </div>
 
-        {/* 중앙 텍스트 정보 */}
-        <div className="flex flex-col flex-grow min-w-0">
-          <div className={`font-semibold text-gray-800 dark:text-white truncate ${compact ? 'text-xs' : 'text-base'}`}>
-            {applicant.name} ({calculateAge(applicant.birthDate)}세)
+        {/* 중앙 텍스트 정보 - 더 넓은 공간 확보 */}
+        <div className="flex flex-col flex-grow min-w-0 mr-4">
+          <div className={`font-semibold text-gray-800 dark:text-white truncate ${compact ? 'text-xs' : 'text-base'} mb-1`}>
+            {applicantName}
           </div>
-          <div className={`text-gray-500 dark:text-gray-400 truncate ${compact ? 'text-[11px]' : 'text-sm'}`}>
-            {applicant.applicationSource || 'DIRECT'}
+          <div className={`text-gray-500 dark:text-gray-400 truncate ${compact ? 'text-[11px]' : 'text-sm'} mb-1`}>
+            {applicantAge}세
+          </div>
+          <div className={`text-gray-400 dark:text-gray-500 truncate ${compact ? 'text-[10px]' : 'text-xs'}`}>
+            {applicationSource}
           </div>
         </div>
 
-        {/* 날짜 및 표절률 영역 (점수 원 왼쪽에 위치) */}
-        <div className="flex flex-col items-center justify-between mr-3 self-stretch">
+        {/* 날짜 및 표절률 영역 - 더 컴팩트하게 */}
+        <div className="flex flex-col items-center justify-between mr-4 self-stretch min-w-[120px]">
           {/* 지원일 */}
-          <div className={`text-xs text-gray-500 dark:text-gray-400 ${compact ? 'text-[10px]' : ''} flex justify-end w-full`}>
-            <span>지원일: </span>
-            <span>
-              {applicant.appliedAt || applicant.applied_at ? 
-                new Date(applicant.appliedAt || applicant.applied_at).toLocaleDateString('ko-KR', {
+          <div className={`text-xs text-gray-500 dark:text-gray-400 ${compact ? 'text-[10px]' : ''} text-center mb-2`}>
+            <div className="font-medium mb-1">지원일</div>
+            <div className="text-gray-700 dark:text-gray-300">
+              {appliedDate ? 
+                new Date(appliedDate).toLocaleDateString('ko-KR', {
                   year: 'numeric',
                   month: '2-digit', 
                   day: '2-digit'
                 }).replace(/\./g, '/').replace(/\s/g, '').slice(0, -1) : 
-                'Invalid Date'
+                '날짜 없음'
               }
-            </span>
+            </div>
           </div>
           
           {/* 표절률 */}
           <div className="flex flex-col items-center w-full">
             <span className={`text-gray-500 font-medium ${compact ? 'text-[9px]' : 'text-xs'} mb-1 whitespace-nowrap`}>표절률</span>
-            <div className="flex items-center w-full max-w-[130px] ml-auto">
-              <div className="bg-gray-200 rounded-full h-1.5 flex-1 mr-2 min-w-[40px]">
+            <div className="flex items-center w-full max-w-[100px]">
+              <div className="bg-gray-200 rounded-full h-1.5 flex-1 mr-2 min-w-[30px]">
                 <div 
                   className="h-full rounded-full transition-all duration-300"
                   style={{ 
@@ -186,24 +196,24 @@ const ApplicantCard = forwardRef(({
                 ></div>
               </div>
               <span 
-                className="font-medium text-xs ml-1 whitespace-nowrap"
+                className="font-medium text-xs whitespace-nowrap"
                 style={{ color: similarityColor }}
               >
                 {similarityScore}%
               </span>
-              <span className="text-xs text-gray-500 ml-1 min-w-[32px] text-center whitespace-nowrap">{similarityStatus}</span>
             </div>
+            <span className="text-xs text-gray-500 mt-1 text-center whitespace-nowrap">{similarityStatus}</span>
           </div>
         </div>
 
-        {/* 점수 원 (기존과 동일) */}
-        <div className={`flex flex-col items-center justify-center ${compact ? 'w-12 h-12' : 'w-20 h-20'}`}>
-          <div className={`font-bold text-gray-800 dark:text-white border-2 border-blue-300 rounded-full flex items-center justify-center ${compact ? 'w-10 h-10 text-xs' : 'w-16 h-16 text-sm'}`}>
-            {applicant.ai_score || 0}점
+        {/* 점수 원 - 더 명확하게 */}
+        <div className={`flex flex-col items-center justify-center ${compact ? 'w-12 h-12' : 'w-20 h-20'} mr-2`}>
+          <div className={`font-bold text-gray-800 dark:text-white border-2 border-blue-300 rounded-full flex items-center justify-center ${compact ? 'w-10 h-10 text-xs' : 'w-16 h-16 text-sm'} bg-blue-50`}>
+            {aiScore}점
           </div>
-          {applicant.ai_score && (
-            <div className={`text-xs text-blue-600 dark:text-blue-400 mt-1 ${compact ? 'text-[10px]' : ''}`}>
-              AI: {applicant.ai_score}점
+          {aiScore > 0 && (
+            <div className={`text-xs text-blue-600 dark:text-blue-400 mt-1 ${compact ? 'text-[10px]' : ''} font-medium`}>
+              AI: {aiScore}점
             </div>
           )}
         </div>
@@ -211,5 +221,7 @@ const ApplicantCard = forwardRef(({
     </div>
   );
 });
+
+ApplicantCard.displayName = 'ApplicantCard';
 
 export default ApplicantCard;

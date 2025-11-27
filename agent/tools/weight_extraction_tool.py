@@ -14,7 +14,7 @@ try:
     from app.models.job import JobPost
     from app.models.weight import Weight
     from app.models.company import Company
-    from app.models.department import Department
+    # from app.models.department import Department  # Department 모델이 존재하지 않음
     DB_AVAILABLE = True
 except ImportError as e:
     print(f"Database import failed: {e}")
@@ -44,17 +44,17 @@ def get_company_profile(company_id: int) -> Dict[str, Any]:
             db.close()
             return {}
         
-        # 부서 정보 조회 (기업 규모 및 구조 파악)
-        departments = db.query(Department).filter(Department.company_id == company_id).all()
+        # 부서 정보 조회 (기업 규모 및 구조 파악) - Department 모델이 없으므로 기본값 사용
+        # departments = db.query(Department).filter(Department.company_id == company_id).all()
         
-        # 기업 규모 추정 (부서 수 기반)
-        company_size = "중소기업" if len(departments) <= 5 else "중견기업" if len(departments) <= 10 else "대기업"
+        # 기업 규모 추정 (기본값 사용)
+        company_size = "중소기업"  # 기본값
         
         # 산업 분야 추정 (기업명 기반)
         industry = analyze_industry_from_name(company.name)
         
-        # 기업 문화 특성 추정 (부서 구성 기반)
-        culture_traits = analyze_culture_from_departments(departments)
+        # 기업 문화 특성 추정 (기본값 사용)
+        culture_traits = ["혁신적", "협력적"]  # 기본값
         
         company_profile = {
             "id": company.id,
@@ -64,8 +64,8 @@ def get_company_profile(company_id: int) -> Dict[str, Any]:
             "size": company_size,
             "industry": industry,
             "culture_traits": culture_traits,
-            "department_count": len(departments),
-            "departments": [dept.name for dept in departments]
+            "department_count": 0,  # Department 모델이 없으므로 기본값
+            "departments": []  # Department 모델이 없으므로 기본값
         }
         
         db.close()
@@ -114,31 +114,9 @@ def analyze_industry_from_name(company_name: str) -> str:
     return "일반/기타"
 
 def analyze_culture_from_departments(departments: List) -> List[str]:
-    """부서 구성을 기반으로 기업 문화 특성을 추정"""
-    culture_traits = []
-    dept_names = [dept.name.lower() for dept in departments]
-    
-    # 혁신 지향적
-    if any(keyword in dept_names for keyword in ["연구", "개발", "r&d", "ai", "데이터", "혁신", "연구개발"]):
-        culture_traits.append("혁신 지향적")
-    
-    # 고객 중심적
-    if any(keyword in dept_names for keyword in ["고객", "서비스", "cs", "마케팅", "영업", "고객서비스"]):
-        culture_traits.append("고객 중심적")
-    
-    # 기술 중심적
-    if any(keyword in dept_names for keyword in ["개발", "엔지니어", "기술", "qa", "품질", "품질관리"]):
-        culture_traits.append("기술 중심적")
-    
-    # 안정 지향적
-    if any(keyword in dept_names for keyword in ["경영", "기획", "재무", "인사", "총무", "경영기획"]):
-        culture_traits.append("안정 지향적")
-    
-    # 글로벌 지향적
-    if any(keyword in dept_names for keyword in ["해외", "글로벌", "수출", "국제"]):
-        culture_traits.append("글로벌 지향적")
-    
-    return culture_traits if culture_traits else ["균형잡힌"]
+    """부서 구성을 기반으로 기업 문화 특성을 추정 (Department 모델이 없으므로 기본값 반환)"""
+    # Department 모델이 없으므로 기본값 반환
+    return ["혁신적", "협력적"]
 
 def adjust_weights_for_company(weights: List[Dict[str, Any]], company_profile: Dict[str, Any]) -> List[Dict[str, Any]]:
     """

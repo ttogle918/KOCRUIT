@@ -19,7 +19,16 @@ from agent.tools.comprehensive_analysis_tool import generate_comprehensive_analy
 import json
 
 # LLM 초기화
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+llm = ChatOpenAI(
+    model="gpt-4o-mini", 
+    temperature=0.3,
+    api_key=os.getenv("OPENAI_API_KEY")
+)
 
 def analyze_interview_requirements(state: Dict[str, Any]) -> Dict[str, Any]:
     """면접 요구사항 분석 노드"""

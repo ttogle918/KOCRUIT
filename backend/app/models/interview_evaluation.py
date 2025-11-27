@@ -267,7 +267,7 @@ def auto_evaluate_all_applications(db: Session):
             
             # AI 면접 평가 완료 상태로 업데이트
             if result.get("ai_interview_score"):
-                application.interview_status = InterviewStatus.AI_INTERVIEW_COMPLETED.value
+                application.ai_interview_status = InterviewStatus.COMPLETED
             
             # AI가 제안한 서류 상태로 업데이트
             ai_suggested_status = result.get("status", "REJECTED")

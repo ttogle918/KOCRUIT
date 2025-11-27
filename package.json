@@ -1,9 +1,18 @@
 {
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
-    "plotly.js": "^3.0.1"
+    "plotly.js": "^3.0.1",
+    "frontend": "file:./frontend"
   },
   "devDependencies": {
     "vite-plugin-commonjs": "^0.10.4"
+  },
+  "scripts": {
+    "frontend:install": "cd frontend && npm install",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:preview": "cd frontend && npm run preview",
+    "docker:frontend": "docker-compose up frontend",
+    "docker:frontend:build": "docker-compose build frontend"
   }
 }

@@ -1,128 +1,31 @@
-# version: '3.8'
-
-# services:
-#   backend:
-#     build:
-#       context: .
-#       dockerfile: backend/Dockerfile
-#     container_name: kocruit_fastapi
-#     ports:
-#       - "8000:8000"
-#     env_file:
-#       - .env
-#     environment:
-#       DB_HOST: kocruit-02.c5k2wi2q8g80.us-east-2.rds.amazonaws.com
-#       DB_PORT: 3306
-#       DB_NAME: kocruit
-#       DB_USER: admin
-#       DB_PASSWORD: kocruit1234!
-#       # MySQL 연결 안정성 향상 설정
-#       MYSQL_CONNECT_TIMEOUT: 30
-#       MYSQL_READ_TIMEOUT: 30
-#       MYSQL_WRITE_TIMEOUT: 30
-#       MYSQL_MAX_CONNECTIONS: 10  # 연결 풀 크기 줄임
-#       MYSQL_WAIT_TIMEOUT: 28800
-#       MYSQL_INTERACTIVE_TIMEOUT: 28800
-#       # Redis 캐싱 설정 (t3.small용 적극적 캐싱)
-#       REDIS_HOST: redis
-#       REDIS_PORT: 6379
-#       REDIS_DB: 0
-#       # 애플리케이션 성능 설정 (t3.small용)
-#       WORKERS: 2  # 워커 수 줄임 (연결 부하 감소)
-#       WORKER_CONNECTIONS: 500
-#     networks:
-#       - app-net
-#     volumes:
-#       - ./backend:/app
-#       - ./agent:/app/agent
-#       - ./initdb:/app/initdb
-#     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 2
-#     restart: unless-stopped
-#     depends_on:
-#       redis:
-#         condition: service_healthy
-#     healthcheck:
-#       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-#       interval: 30s
-#       timeout: 10s
-#       retries: 3
-#       start_period: 40s
-
-#   agent:
-#     build:
-#       context: .
-#       dockerfile: agent/Dockerfile
-#     container_name: kocruit_agent
-#     ports:
-#       - "8001:8001"
-#     env_file:
-#       - .env
-#     environment:
-#       - REDIS_URL=redis://redis:6379
-#       - REDIS_HOST=redis
-#     depends_on:
-#       redis:
-#         condition: service_healthy
-#     volumes:
-#       - ./agent:/app/agent
-#       - ./backend:/app/backend
-#       - ./.env:/app/.env
-#       - huggingface_cache:/app/.cache/huggingface
-#     networks:
-#       - app-net
-#     command: uvicorn agent.main:app --host 0.0.0.0 --port 8001
-#     restart: unless-stopped
-
-#   frontend:
-#     image: node:18-alpine
-#     container_name: kocruit_react
-#     working_dir: /app
-#     volumes:
-#       - ./frontend:/app
-#       - /app/node_modules
-#     ports:
-#       - "5173:5173"
-#     environment:
-#       - CHOKIDAR_USEPOLLING=true
-#       - VITE_API_BASE_URL=http://localhost:8000/api/v1
-#     command: sh -c "npm install && npm run dev -- --host"
-#     networks:
-#       - app-net
-#     restart: unless-stopped
-#     depends_on:
-#       - backend
-#       - agent
-
-#   redis:
-#     image: redis:7.2-alpine
-#     container_name: kosa-redis
-#     command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000 --tcp-keepalive 300
-#     ports:
-#       - "6379:6379"
-#     volumes:
-#       - redis_data:/data
-#       - ./redis.conf:/usr/local/etc/redis/redis.conf
-#     restart: always
-#     networks:
-#       - app-net
-#     healthcheck:
-#       test: ["CMD", "redis-cli", "ping"]
-#       interval: 30s
-#       timeout: 10s
-#       retries: 3
-
-# volumes:
-#   redis_data:
-#   huggingface_cache:
-
-# networks:
-#   app-net:
-#     driver: bridge
-
-
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: kocruit_mysql_local
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234!
+      MYSQL_DATABASE: kocruit
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+      MYSQL_DEFAULT_AUTHENTICATION_PLUGIN: mysql_native_password
+      MYSQL_ROOT_HOST: '%'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d
+    networks:
+      - app-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot1234!"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   backend:
     build:
       context: .
@@ -130,29 +33,14 @@ services:
     container_name: kocruit_fastapi
     ports:
       - "8000:8000"
-
     env_file:
       - .env
     environment:
-      DB_HOST: kocruit-02.c5k2wi2q8g80.us-east-2.rds.amazonaws.com
+      DB_HOST: mysql
       DB_PORT: 3306
       DB_NAME: kocruit
-      DB_USER: admin
-      DB_PASSWORD: kocruit1234!
-      # MySQL 연결 안정성 향상 설정
-      MYSQL_CONNECT_TIMEOUT: 30
-      MYSQL_READ_TIMEOUT: 30
-      MYSQL_WRITE_TIMEOUT: 30
-      MYSQL_MAX_CONNECTIONS: 10  # 연결 풀 크기 줄임
-      MYSQL_WAIT_TIMEOUT: 28800
-      MYSQL_INTERACTIVE_TIMEOUT: 28800
-      # Redis 캐싱 설정 (t3.small용 적극적 캐싱)
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_DB: 0
-      # 애플리케이션 성능 설정 (t3.small용)
-      WORKERS: 2  # 워커 수 줄임 (연결 부하 감소)
-      WORKER_CONNECTIONS: 500
+      DB_USER: root
+      DB_PASSWORD: root1234!
     networks:
       - app-net
     volumes:
@@ -162,6 +50,8 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --workers 2
     restart: unless-stopped
     depends_on:
+      mysql:
+        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -178,13 +68,19 @@ services:
     container_name: kocruit_agent
     ports:
       - "8001:8001"
-
     env_file:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379
       - REDIS_HOST=redis
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=kocruit
+      - DB_USER=root
+      - DB_PASSWORD=root1234!
     depends_on:
+      mysql:
+        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
@@ -193,6 +89,7 @@ services:
       - ./.env:/app/.env
       - ./data:/app/data
       - ./initdb:/app/initdb
+      - shared_temp:/tmp
     networks:
       - app-net
     command: uvicorn agent.main:app --host 0.0.0.0 --port 8001 --reload
@@ -217,10 +114,51 @@ services:
       - backend
       - agent
 
+  video-analysis:
+    build:
+      context: .
+      dockerfile: video-analysis/Dockerfile
+    container_name: kocruit_video_analysis
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=kocruit
+      - DB_USER=root
+      - DB_PASSWORD=root1234!
+      - GOOGLE_DRIVE_API_KEY=${GOOGLE_DRIVE_API_KEY}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./video-analysis:/app
+      - ./backend:/app/backend
+      - ./.env:/app/.env
+      - ./data:/app/data
+      - video_analysis_cache:/app/.cache
+      - shared_temp:/tmp
+    networks:
+      - app-net
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8002/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   redis:
     image: redis:7.2-alpine
     container_name: kosa-redis
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000 --tcp-keepalive 300
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000 --tcp-keepalive 300
     ports:
       - "6379:6379"
     volumes:
@@ -236,7 +174,10 @@ services:
       retries: 3
 
 volumes:
+  mysql_data:
   redis_data:
+  video_analysis_cache:
+  shared_temp:
 
 networks:
   app-net:

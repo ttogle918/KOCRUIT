@@ -4,13 +4,14 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.application import Application, InterviewStatus
+from app.models.application import Application
 from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
 from app.models.user import User
 from app.models.job import JobPost
 from app.models.resume import Resume
 from app.schemas.interview_evaluation import InterviewEvaluationCreate
 from app.schemas.application import ApplicationDetail
+from app.models.application import InterviewStatus
 
 router = APIRouter()
 
@@ -18,9 +19,9 @@ router = APIRouter()
 def get_executive_interview_candidates(db: Session = Depends(get_db)):
     """임원면접 대상자 조회"""
     try:
-        # FIRST_INTERVIEW_PASSED 상태인 지원자들 조회
+        # 1차 면접(실무진 면접) 합격자들 조회
         candidates = db.query(Application).filter(
-            Application.interview_status == InterviewStatus.FIRST_INTERVIEW_PASSED.value
+            Application.practical_interview_status == InterviewStatus.PASSED
         ).all()
         
         return candidates

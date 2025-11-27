@@ -4,7 +4,7 @@ import { FaRegStar, FaStar, FaCalendarAlt, FaEnvelope } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/api';
 import PassReasonCard from '../../components/PassReasonCard';
-import InterviewInfoModal from '../../components/InterviewInfoModal';
+import InterviewInfoModal from '../../components/interview/InterviewInfoModal';
 import ViewPostSidebar from '../../components/ViewPostSidebar';
 import { calculateAge } from '../../utils/resumeUtils';
 

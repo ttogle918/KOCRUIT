@@ -12,7 +12,7 @@ from sqlalchemy import or_
 
 # agent tool import
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
 from agent.tools.written_test_generation_tool import generate_written_test_questions
 from agent.tools.answer_grading_tool import grade_written_test_answer
 from app.schemas.written_test_answer import WrittenTestAnswerCreate, WrittenTestAnswerResponse

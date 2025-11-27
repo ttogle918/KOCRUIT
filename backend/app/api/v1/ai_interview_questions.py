@@ -15,7 +15,8 @@ import sys
 import os
 
 # LangGraph 워크플로우 import를 위한 경로 추가
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../../agent'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../../..'))
 
 from ...core.database import get_db
 from ...models.interview_question import InterviewQuestion, QuestionType
@@ -25,6 +26,16 @@ from ...services.interview_question_service import InterviewQuestionService
 from ...data.general_interview_questions import get_random_general_questions, get_random_game_test
 
 router = APIRouter()
+
+@router.get("/test")
+async def test_endpoint():
+    """간단한 테스트 엔드포인트"""
+    return {
+        "success": True,
+        "message": "AI 면접 질문 API가 정상적으로 동작합니다.",
+        "timestamp": datetime.now().isoformat(),
+        "python_path": sys.path
+    }
 
 # WebSocket 연결 관리
 class ConnectionManager:
@@ -67,12 +78,14 @@ async def get_langgraph_status():
             "message": "면접 랭그래프 워크플로우가 정상적으로 로드되었습니다."
         }
     except ImportError as e:
+        logging.error(f"LangGraph 워크플로우 import 실패: {e}")
         return {
             "status": "error",
             "error": f"LangGraph 워크플로우 import 실패: {str(e)}",
-            "message": "면접 랭그래프 워크플로우를 로드할 수 없습니다."
+            "message": "면접 랭그래프 워크플로우를 로드할 수 없습니다. 경로: {sys.path}"
         }
     except Exception as e:
+        logging.error(f"예상치 못한 오류: {e}")
         return {
             "status": "error",
             "error": f"예상치 못한 오류: {str(e)}",
