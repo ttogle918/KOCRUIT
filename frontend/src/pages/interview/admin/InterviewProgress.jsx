@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Navbar from '../../components/Navbar';
-import ViewPostSidebar from '../../components/ViewPostSidebar';
-import api from '../../api/api';
+import Navbar from '../../../components/Navbar';
+import ViewPostSidebar from '../../../components/ViewPostSidebar';
+import api from '../../../api/api';
 import { FiChevronLeft, FiChevronRight, FiPlus, FiEdit, FiTrash2, FiSave } from 'react-icons/fi';
-import { useAuth } from '../../context/AuthContext';
-import { mapResumeData } from '../../utils/resumeUtils';
+import { useAuth } from '../../../context/AuthContext';
+import { mapResumeData } from '../../../utils/resumeUtils';
 
 // Import modularized components
-import { CommonQuestionsPanel, CommonQuestionsPanelFull } from '../../components/interview/CommonQuestionsPanel';
-import ResumePanel from '../../components/interview/ResumePanel';
-import CustomQuestionsPanel from '../../components/interview/CustomQuestionsPanel';
-import QuestionRecommendationPanel from '../../components/interview/QuestionRecommendationPanel';
+import { CommonQuestionsPanel, CommonQuestionsPanelFull } from '../../../components/interview/CommonQuestionsPanel';
+import ResumePanel from '../../../components/interview/ResumePanel';
+import CustomQuestionsPanel from '../../../components/interview/CustomQuestionsPanel';
+import QuestionRecommendationPanel from '../../../components/interview/QuestionRecommendationPanel';
 
-import EvaluationSlider from '../../components/interview/EvaluationSlider';
-import EvaluationPanelFull from '../../components/interview/EvaluationPanel';
-import InterviewStatistics from '../../components/interview/InterviewStatistics';
-import InterviewStatisticsPanel from '../../components/interview/InterviewStatisticsPanel';
+import EvaluationSlider from '../../../components/interview/EvaluationSlider';
+import EvaluationPanelFull from '../../../components/interview/EvaluationPanel';
+import InterviewStatistics from '../../../components/interview/InterviewStatistics';
+import InterviewStatisticsPanel from '../../../components/interview/InterviewStatisticsPanel';
 
 // Import existing better components
-import ApplicantCard from '../../components/ApplicantCard';
-import ApplicantCardWithInterviewStatus from '../../components/interview/ApplicantCardWithInterviewStatus';
-import ResumeCard from '../../components/ResumeCard';
+import ApplicantCard from '../../../components/ApplicantCard';
+import ApplicantCardWithInterviewStatus from '../../../components/interview/ApplicantCardWithInterviewStatus';
+import ResumeCard from '../../../components/ResumeCard';
 
 // Material-UI 컴포넌트 import
 import {
@@ -101,7 +101,7 @@ function InterviewProgress() {
   const [loading, setLoading] = useState(true);
   const [jobPost, setJobPost] = useState(null);
   
-  // 질문 관리 (초기값 비움 → API 연동으로 채움)
+  // 질문 관리 (초기화 및 API 연동으로 채움)
   const [commonQuestions, setCommonQuestions] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
   
@@ -125,7 +125,7 @@ function InterviewProgress() {
   const minColWidth = 320;
   const gutter = 6; // 리사이저 두께
 
-  // 중앙 컬럼 상/하 분할 높이
+  // 중앙 컬럼 상하 분할 높이
   const [middleTopHeight, setMiddleTopHeight] = useState(260);
   const minRowHeight = 160;
 
@@ -133,7 +133,7 @@ function InterviewProgress() {
   const [draggingCol, setDraggingCol] = useState(null); // 'left' | 'right' | null
   const [draggingRow, setDraggingRow] = useState(false);
   
-  // 실시간 분석 상태 (중앙 하단 STT 토글/데이터)
+  // 실시간 분석 상태 (중앙 하단 STT 녹음/데이터)
   const [isRealtimeAnalysisEnabled, setIsRealtimeAnalysisEnabled] = useState(false);
   const [realtimeAnalysisResults, setRealtimeAnalysisResults] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -182,7 +182,7 @@ function InterviewProgress() {
     const handleMove = (e) => {
       if (!draggingCol && !draggingRow) return;
       if (draggingCol) {
-        // 전체 가용 폭 계산
+        // 전체 가로폭 계산
         const total = window.innerWidth - layoutOffsets.left - gutter * 2; // 두 개의 수직 리사이저
         let lx = leftWidth;
         let mx = middleWidth;
@@ -195,7 +195,7 @@ function InterviewProgress() {
         } else if (draggingCol === 'right') {
           const usedLeft = leftWidth + gutter + middleWidth + gutter;
           const newRight = Math.max(minColWidth, Math.min(total - minColWidth, total - (e.clientX - layoutOffsets.left)));
-          // 오른쪽 기준 조정: 남는 영역을 right에 할당
+          // 오른쪽 기준 조정: 남는 영역 right에 할당
           const delta = newRight - rightWidth;
           rx = newRight;
           mx = Math.max(minColWidth, middleWidth - delta);
@@ -233,31 +233,31 @@ function InterviewProgress() {
           ? `/applications/job/${jobPostId}/applicants-with-executive-interview`
           : `/applications/job/${jobPostId}/applicants-with-practical-interview`;
 
-        console.log('🔍 지원자 목록 API 호출:', endpoint);
-        console.log('🔍 interviewStage:', interviewStage);
-        console.log('🔍 jobPostId:', jobPostId);
+        console.log('🚀 지원자 목록 API 호출:', endpoint);
+        console.log('🚀 interviewStage:', interviewStage);
+        console.log('🚀 jobPostId:', jobPostId);
         
         const res = await api.get(endpoint);
-        console.log('✅ 지원자 목록 응답:', res.data);
-        console.log('✅ 응답 타입:', typeof res.data);
-        console.log('✅ 응답 키들:', Object.keys(res.data || {}));
+        console.log('📦 지원자 목록 응답:', res.data);
+        console.log('📦 응답 타입:', typeof res.data);
+        console.log('📦 응답 키들:', Object.keys(res.data || {}));
         
         // API 응답 구조에 맞게 데이터 추출
         let data = [];
         if (res.data && typeof res.data === 'object') {
           if (res.data.applicants && Array.isArray(res.data.applicants)) {
             data = res.data.applicants;
-            console.log('✅ res.data.applicants에서 데이터 추출:', data.length);
+            console.log('📦 res.data.applicants에서 데이터 추출:', data.length);
           } else if (Array.isArray(res.data)) {
             data = res.data;
-            console.log('✅ res.data가 배열이므로 직접 사용:', data.length);
+            console.log('📦 res.data가 배열이므로 직접 사용:', data.length);
           } else {
-            console.log('⚠️ 예상하지 못한 응답 구조:', res.data);
+            console.log('⚠️ 예상치 못한 응답 구조:', res.data);
           }
         }
         
-        console.log('📊 파싱된 지원자 데이터:', data);
-        console.log('📊 첫 번째 지원자 샘플:', data[0]);
+        console.log('🚀 파싱된 지원자 데이터:', data);
+        console.log('🚀 첫 번째 지원자 샘플:', data[0]);
         setApplicants(data);
       } catch (err) {
         console.error('지원자 목록 로드 실패:', err);
@@ -286,8 +286,8 @@ function InterviewProgress() {
       try {
         // 면접 일정 API가 구현될 때까지 임시로 주석 처리
         // const res = await api.get(`/schedules/job/${jobPostId}`);
-        // console.log('📅 면접 일정:', res.data);
-        console.log('📅 면접 일정 API 호출 건너뜀 (구현 예정)');
+        // console.log('🚀 면접 일정:', res.data);
+        console.log('🚀 면접 일정 API 호출 건너뜀 (구현 예정)');
       } catch (err) {
         console.warn('면접 일정 로드 실패(선택):', err?.response?.status);
       }
@@ -297,7 +297,7 @@ function InterviewProgress() {
       try {
         setStatisticsLoading(true);
         const res = await api.get(`/applications/job/${jobPostId}/interview-statistics`);
-        console.log('📊 면접 통계:', res.data);
+        console.log('🚀 면접 통계:', res.data);
         setInterviewStatistics(res.data.statistics);
       } catch (err) {
         console.error('면접 통계 로드 실패:', err);
@@ -315,7 +315,7 @@ function InterviewProgress() {
 
   // 지원자 선택 핸들러
   const handleSelectApplicant = async (applicant) => {
-    console.log('🎯 지원자 선택됨:', applicant);
+    console.log('🚀 지원자 선택:', applicant);
     
     setSelectedApplicant({
       ...applicant,
@@ -332,12 +332,12 @@ function InterviewProgress() {
       // 공통/맞춤형 질문 로드 (API 연동)
       await fetchStageQuestions(applicationId);
       
-      // 면접 평가 모드로 전환
+      // 면접 진행 모드로 전환
       setShowSelectionScreen(false);
-      console.log('✅ 면접 평가 모드로 전환됨');
+      console.log('📦 면접 진행 모드로 전환됨');
     } catch (err) {
       console.error('지원자 데이터 로드 실패:', err);
-      alert('지원자 정보를 불러오는데 실패했습니다. 다시 시도해주세요.');
+      alert('지원자 정보를 불러오는 데 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -352,7 +352,7 @@ function InterviewProgress() {
       const res = await api.get(endpoint);
       const data = res.data || {};
 
-      // 다양한 응답 형태 대응
+      // 다양한 응답 형태 처리
       let fetchedCommon = [];
       if (Array.isArray(data.questions)) {
         fetchedCommon = data.questions.map(q => (typeof q === 'string' ? q : (q.question_text || ''))).filter(Boolean);
@@ -369,24 +369,24 @@ function InterviewProgress() {
         // 폴백 기본 질문
         setCommonQuestions([
           '자기소개를 해주세요.',
-          '지원 동기는 무엇인가요?',
-          '본인의 강점과 약점은 무엇인가요?'
+          '지원 동기는 무엇입니까?',
+          '본인의 강점과 약점은 무엇입니까?'
         ]);
       }
 
-      // 2) 맞춤형 질문은 이력서 기반 초기값 (간단 폴백)
+      // 2) 맞춤형 질문은 이력서 기반 초기화 (간단 폴백)
       setCustomQuestions([
         '주요 프로젝트 경험에 대해 설명해주세요.',
         '어려운 기술 문제를 해결한 경험을 공유해주세요.',
-        '팀 프로젝트에서의 역할과 기여도를 설명해주세요.'
+        '이 프로젝트에서의 역할과 기여도를 설명해주세요.'
       ]);
     } catch (err) {
       console.error('질문 로드 실패:', err);
       // 네트워크 오류 시 폴백
       setCommonQuestions([
         '자기소개를 해주세요.',
-        '지원 동기는 무엇인가요?',
-        '본인의 강점과 약점은 무엇인가요?'
+        '지원 동기는 무엇입니까?',
+        '본인의 강점과 약점은 무엇입니까?'
       ]);
     }
   };
@@ -462,7 +462,7 @@ function InterviewProgress() {
     try {
       // 환경 변수 상태 확인
       const apiKey = import.meta.env.OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY;
-      console.log('🔑 STT 시작 - API 키 상태:', apiKey ? '설정됨' : '설정되지 않음');
+      console.log('🚀 STT 시작 - API 키 상태:', apiKey ? '설정됨 : ' + apiKey : '설정되지 않음');
       
       if (!apiKey || apiKey === 'your-api-key-here') {
         console.warn('⚠️ OpenAI API 키가 설정되지 않았습니다. 백엔드 API를 사용합니다.');
@@ -511,7 +511,7 @@ function InterviewProgress() {
        try {
          audioContextRef.current.close();
        } catch (error) {
-         console.log('AudioContext가 이미 닫혀있습니다:', error);
+         console.log('AudioContext가 이미 닫혔습니다:', error);
        }
      }
     
@@ -551,9 +551,9 @@ function InterviewProgress() {
         const average = dataArray.reduce((a, b) => a + b) / bufferLength;
         const currentTime = Date.now();
         
-        // 음성이 감지되고 일정 시간이 지났으면 STT 처리
+        // 음성이 감지되고 일정 시간이 지났으므로 STT 처리
         if (average > 30 && (currentTime - lastVoiceDetection) > voiceDetectionThreshold) {
-          console.log('🎤 음성 감지됨, STT 처리 시작...');
+          console.log('🚀 음성 감지됨! STT 처리 시작...');
           lastVoiceDetection = currentTime;
           
           // 현재 오디오 스트림에서 짧은 청크 캡처
@@ -603,11 +603,11 @@ function InterviewProgress() {
   // 오디오 청크 처리 (실제 Whisper API 연동)
   const processAudioChunk = async (audioBlob) => {
     try {
-      console.log('🎤 오디오 청크 처리 시작:', audioBlob.size, 'bytes');
+      console.log('🚀 오디오 청크 처리 시작:', audioBlob.size, 'bytes');
       
       // 환경 변수 확인
       const apiKey = import.meta.env.OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY;
-      console.log('🔑 API 키 상태:', apiKey ? '설정됨' : '설정되지 않음');
+      console.log('🚀 API 키 상태:', apiKey ? '설정됨 : ' + apiKey : '설정되지 않음');
       
       if (!apiKey || apiKey === 'your-api-key-here') {
         console.warn('⚠️ OpenAI API 키가 설정되지 않았습니다. 백엔드 API를 사용합니다.');
@@ -620,7 +620,7 @@ function InterviewProgress() {
       formData.append('model', 'whisper-1');
       formData.append('language', 'ko');
       
-      console.log('📡 Whisper API 호출 중...');
+      console.log('🚀 Whisper API 호출 중...');
       
       // OpenAI Whisper API 직접 호출
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -636,20 +636,20 @@ function InterviewProgress() {
       }
       
       const result = await response.json();
-      console.log('✅ Whisper API 응답:', result);
+      console.log('📦 Whisper API 응답:', result);
       
       if (result.text && result.text.trim()) {
         addSTTResult(result.text.trim());
       } else {
-        addSTTResult('음성이 인식되지 않았습니다.');
+        addSTTResult('음성을 인식하지 못했습니다.');
       }
       
     } catch (error) {
-      console.error('❌ Whisper API 호출 실패:', error);
+      console.error('📦 Whisper API 호출 실패:', error);
       
       // 백엔드 API가 있는 경우 대체 시도
       try {
-        console.log('🔄 백엔드 API 시도 중...');
+        console.log('🚀 백엔드 API 시도 중...');
         const formData = new FormData();
         formData.append('audio', audioBlob);
         
@@ -659,27 +659,27 @@ function InterviewProgress() {
           }
         });
         
-        console.log('✅ 백엔드 API 응답:', backendResponse.data);
+        console.log('📦 백엔드 API 응답:', backendResponse.data);
         
         if (backendResponse.data.transcription) {
           addSTTResult(backendResponse.data.transcription);
         } else if (backendResponse.data.text) {
           addSTTResult(backendResponse.data.text);
         } else {
-          addSTTResult('음성이 인식되지 않았습니다.');
+          addSTTResult('음성을 인식하지 못했습니다.');
         }
         
       } catch (backendError) {
-        console.error('❌ 백엔드 API도 실패:', backendError);
+        console.error('📦 백엔드 API도 실패:', backendError);
         
         // 폴백: 더미 결과 생성 (개발/테스트용)
         const dummyResults = [
           '자기소개를 해주세요.',
-          '지원 동기는 무엇인가요?',
-          '본인의 강점과 약점은 무엇인가요?',
+          '지원 동기는 무엇입니까?',
+          '본인의 강점과 약점은 무엇입니까?',
           '주요 프로젝트 경험에 대해 설명해주세요.',
           '어려운 기술 문제를 해결한 경험을 공유해주세요.',
-          '팀 프로젝트에서의 역할과 기여도를 설명해주세요.',
+          '이 프로젝트에서의 역할과 기여도를 설명해주세요.',
           '최근에 새로 학습한 기술이나 프레임워크가 있나요?',
           '앞으로의 커리어 계획은 어떻게 되시나요?'
         ];
@@ -769,7 +769,7 @@ function InterviewProgress() {
         </Fab>
       )}
       
-             {/* 메인 콘텐츠 */}
+             {/* 메인 컨텐츠 */}
        <div
          className="flex-1"
          style={{
@@ -799,13 +799,13 @@ function InterviewProgress() {
                    color="primary"
                    onClick={() => setActiveTab('applicants')}
                    className="rounded-none min-w-fit px-4 py-3"
-                   startIcon={<span className="hidden sm:inline">👥</span>}
+                   startIcon={<span className="hidden sm:inline">👤</span>}
                  >
                    <div className="flex items-center space-x-1">
                      <span className="hidden sm:inline">지원자 목록</span>
                      <span className="sm:hidden">지원자</span>
                      <Chip 
-                       label={`${applicants.length}명`} 
+                       label={`${applicants.length}개` || '0개'} 
                        size="small" 
                        color="primary" 
                        variant="outlined"
@@ -823,7 +823,7 @@ function InterviewProgress() {
                      <span className="hidden sm:inline">공통 질문</span>
                      <span className="sm:hidden">질문</span>
                      <Chip 
-                       label={`${commonQuestions.length}개`} 
+                       label={`${commonQuestions.length}개` || '0개'} 
                        size="small" 
                        color="primary" 
                        variant="outlined"
@@ -842,7 +842,7 @@ function InterviewProgress() {
                      <span className="hidden sm:inline">면접 통계</span>
                      <span className="sm:hidden">통계</span>
                      <Chip 
-                       label="통계" 
+                       label="계" 
                        size="small" 
                        color="primary" 
                        variant="outlined"
@@ -914,7 +914,7 @@ function InterviewProgress() {
           </div>
         ) : (
           <>
-            {/* 면접 평가 모드 헤더 */}
+            {/* 면접 진행 모드 헤더 */}
             <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -928,7 +928,7 @@ function InterviewProgress() {
                   </Button>
                   <div className="flex items-center gap-2">
                     <Typography variant="h6" className="text-gray-800 dark:text-white">
-                      {selectedApplicant?.name || '지원자'} 면접 평가
+                      {selectedApplicant?.name || '지원자'} 면접 진행
                     </Typography>
                     <Chip 
                       label={getStageTitle()} 
@@ -958,7 +958,7 @@ function InterviewProgress() {
             {/* 반응형 레이아웃 */}
             <div className="flex-1" style={{ height: `calc(100vh - ${layoutOffsets.top + 80}px)` }}>
               {isMobile ? (
-                // 모바일: 세로 스택 레이아웃
+                // 모바일 세로 스택 레이아웃
                 <div className="flex flex-col space-y-2 h-full p-2">
                   {/* 이력서 섹션 */}
                   <Card>
@@ -979,7 +979,7 @@ function InterviewProgress() {
                   <Card>
                     <CardContent className="p-3">
                       <Typography variant="h6" component="h3" className="mb-3 font-semibold">
-                        질문 추천 내역
+                        질문 추천 영역
                       </Typography>
                       <QuestionRecommendationPanel 
                         resume={resume} 
@@ -1009,7 +1009,7 @@ function InterviewProgress() {
                         evaluationType={interviewStage === 'practice' ? 'PRACTICAL' : 'EXECUTIVE'}
                         jobPostId={jobPostId} // 채용공고 ID 추가
                         onEvaluationSubmit={(evaluationData) => {
-                          console.log('평가 제출됨:', evaluationData);
+                          console.log('평가 제출됨', evaluationData);
                           // 평가 데이터 처리 로직 추가 가능
                         }}
                       />
@@ -1030,102 +1030,102 @@ function InterviewProgress() {
                     style={{ width: leftWidth }}
                   >
                     <CardContent className="p-4">
-                      <Typography variant="h6" component="h3" className="mb-3 font-semibold">
-                        이력서
-                      </Typography>
-                      <ResumeCard 
-                        resume={resume} 
-                        loading={false} 
-                        jobpostId={jobPostId}
-                        applicationId={selectedApplicant?.application_id || selectedApplicant?.id}
-                      />
-                    </CardContent>
-                  </Paper>
-                  
-                  {/* 수직 리사이저 (좌-중) */}
-                  <div
-                    onMouseDown={() => setDraggingCol('left')}
-                    className="h-full"
-                    style={{ width: gutter, cursor: 'col-resize', background: 'transparent' }}
-                  />
-                  
-                  {/* 중앙: 질문추천(상) + 실시간 STT(하) */}
-                  <Paper 
-                    sx={{ 
-                      height: '100%', 
-                      overflow: 'hidden', 
-                      borderRight: '1px solid #e5e7eb',
-                      borderRadius: 0
-                    }} 
-                    style={{ width: middleWidth }}
-                  >
-                    <div className="h-full flex flex-col">
-                      {/* 상단 질문 추천 */}
-                      <div className="h-full overflow-auto p-4">
-                        <QuestionRecommendationPanel 
+                        <Typography variant="h6" component="h3" className="mb-3 font-semibold">
+                          이력서
+                        </Typography>
+                        <ResumeCard 
                           resume={resume} 
-                          applicantName={selectedApplicant?.name}
+                          loading={false} 
+                          jobpostId={jobPostId}
                           applicationId={selectedApplicant?.application_id || selectedApplicant?.id}
-                          interviewType={interviewStage === 'practice' ? 'practical' : 'executive'}
-                          isRealtimeAnalysisEnabled={isRealtimeAnalysisEnabled}
-                          isRecording={isRecording}
-                          realtimeAnalysisResults={realtimeAnalysisResults}
-                          onSTTToggle={handleSTTToggle}
-                          onRemoveSTTResult={removeSTTResult}
-                          onClearSTTResults={clearSTTResults}
                         />
+                      </CardContent>
+                    </Paper>
+                    
+                    {/* 수직 리사이저 (좌측) */}
+                    <div
+                      onMouseDown={() => setDraggingCol('left')}
+                      className="h-full"
+                      style={{ width: gutter, cursor: 'col-resize', background: 'transparent' }}
+                    />
+                    
+                    {/* 중앙: 질문추천(상) + 실시간 STT(하) */}
+                    <Paper 
+                      sx={{ 
+                        height: '100%', 
+                        overflow: 'hidden', 
+                        borderRight: '1px solid #e5e7eb',
+                        borderRadius: 0
+                      }} 
+                      style={{ width: middleWidth }}
+                    >
+                      <div className="h-full flex flex-col">
+                        {/* 상단 질문 추천 */}
+                        <div className="h-full overflow-auto p-4">
+                          <QuestionRecommendationPanel 
+                            resume={resume} 
+                            applicantName={selectedApplicant?.name}
+                            applicationId={selectedApplicant?.application_id || selectedApplicant?.id}
+                            interviewType={interviewStage === 'practice' ? 'practical' : 'executive'}
+                            isRealtimeAnalysisEnabled={isRealtimeAnalysisEnabled}
+                            isRecording={isRecording}
+                            realtimeAnalysisResults={realtimeAnalysisResults}
+                            onSTTToggle={handleSTTToggle}
+                            onRemoveSTTResult={removeSTTResult}
+                            onClearSTTResults={clearSTTResults}
+                          />
+                        </div>
+                        
+                        {/* 수평 리사이저 */}
+                        <div
+                          onMouseDown={() => setDraggingRow(true)}
+                          style={{ height: gutter, cursor: 'row-resize', background: 'transparent' }}
+                        />
+                        
+
                       </div>
-                      
-                      {/* 수평 리사이저 */}
-                      <div
-                        onMouseDown={() => setDraggingRow(true)}
-                        style={{ height: gutter, cursor: 'row-resize', background: 'transparent' }}
-                      />
-                      
+                    </Paper>
+                    
+                    {/* 수직 리사이저 (우측) */}
+                    <div
+                      onMouseDown={() => setDraggingCol('right')}
+                      className="h-full"
+                      style={{ width: gutter, cursor: 'col-resize', background: 'transparent' }}
+                    />
+                    
+                    {/* 우측: 평가(5점 만점) */}
+                    <Paper 
+                      sx={{ 
+                        height: '100%', 
+                        overflow: 'auto', 
+                        borderRadius: 0
+                      }} 
+                      style={{ width: rightWidth }}
+                    >
+                      <CardContent className="p-4">
+                        <Typography variant="h6" component="h3" className="mb-3 font-semibold">
+                          면접 평가
+                        </Typography>
+                        <EvaluationPanelFull
+                          selectedApplicant={selectedApplicant}
+                          interviewId={selectedApplicant?.id || 1}
+                          evaluatorId={user?.id || 1}
+                          evaluationType={interviewStage === 'practice' ? 'PRACTICAL' : 'EXECUTIVE'}
+                          jobPostId={jobPostId}
+                          onEvaluationSubmit={(evaluationData) => {
+                            console.log('평가 제출됨', evaluationData);
+                          }}
+                        />
+                      </CardContent>
+                    </Paper>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </Container>
+    );
+  }
 
-                    </div>
-                  </Paper>
-                  
-                  {/* 수직 리사이저 (중-우) */}
-                  <div
-                    onMouseDown={() => setDraggingCol('right')}
-                    className="h-full"
-                    style={{ width: gutter, cursor: 'col-resize', background: 'transparent' }}
-                  />
-                  
-                  {/* 우측: 평가(5점 만점) */}
-                  <Paper 
-                    sx={{ 
-                      height: '100%', 
-                      overflow: 'auto',
-                      borderRadius: 0
-                    }} 
-                    style={{ width: rightWidth }}
-                  >
-                    <CardContent className="p-4">
-                      <Typography variant="h6" component="h3" className="mb-3 font-semibold">
-                        면접 평가
-                      </Typography>
-                      <EvaluationPanelFull
-                        selectedApplicant={selectedApplicant}
-                        interviewId={selectedApplicant?.id || 1}
-                        evaluatorId={user?.id || 1}
-                        evaluationType={interviewStage === 'practice' ? 'PRACTICAL' : 'EXECUTIVE'}
-                        jobPostId={jobPostId}
-                        onEvaluationSubmit={(evaluationData) => {
-                          console.log('평가 제출됨:', evaluationData);
-                        }}
-                      />
-                    </CardContent>
-                  </Paper>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-       </div>
-     </Container>
-   );
- }
-
-export default InterviewProgress; 
+export default InterviewProgress;

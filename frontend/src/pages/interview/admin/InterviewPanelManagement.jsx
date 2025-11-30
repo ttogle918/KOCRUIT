@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import Navbar from '../../components/Navbar';
-import ViewPostSidebar from '../../components/ViewPostSidebar';
-import { interviewPanelApi } from '../../api/interviewPanelApi';
-import api from '../../api/api';
+import Navbar from '../../../components/Navbar';
+import ViewPostSidebar from '../../../components/ViewPostSidebar';
+import { interviewPanelApi } from '../../../api/interviewPanelApi';
+import api from '../../../api/api';
 import { FiUsers, FiClock, FiCheck, FiX, FiTrash2, FiPlus, FiSearch, FiUserPlus, FiChevronDown, FiChevronUp, FiStar, FiTarget, FiTrendingUp, FiEye, FiInfo } from 'react-icons/fi';
 
 export default function InterviewPanelManagement() {
@@ -37,7 +37,7 @@ export default function InterviewPanelManagement() {
         setJobPost(response.data);
       } catch (error) {
         console.error('공고 정보 로드 실패:', error);
-        setError('공고 정보를 불러올 수 없습니다.');
+        setError('공고 정보를 불러오지 못했습니다.');
       }
     };
 
@@ -53,7 +53,7 @@ export default function InterviewPanelManagement() {
         const response = await api.get('/auth/me');
         setCurrentUser(response.data);
       } catch (error) {
-        console.error('현재 사용자 정보 로드 실패:', error);
+        console.error('현재 채용관 정보 로드 실패:', error);
       }
     };
 
@@ -94,7 +94,7 @@ export default function InterviewPanelManagement() {
         setMatchingDetails(matchingMap);
       } catch (error) {
         console.error('면접관 배정 정보 로드 실패:', error);
-        setError('면접관 배정 정보를 불러올 수 없습니다.');
+        setError('면접관 배정 정보를 불러오지 못했습니다.');
       } finally {
         setLoading(false);
       }
@@ -209,7 +209,7 @@ export default function InterviewPanelManagement() {
       const classification = getMemberClassification(member);
       
       if (!classification.canInvite) {
-        alert(`${classification.label} 소속 멤버는 초대할 수 없습니다.`);
+        alert(`${classification.label} 소속 멤버를 초대할 수 없습니다.`);
         return;
       }
 
@@ -398,7 +398,7 @@ export default function InterviewPanelManagement() {
   const renderMatchingAnalysis = (assignmentGroup) => {
     const matchingInfo = matchingDetails[assignmentGroup[0].assignment_id]; // Assuming all assignments in group have the same matching info
     if (!matchingInfo) {
-      return <p className="text-gray-500 dark:text-gray-400">매칭 분석 정보를 불러올 수 없습니다.</p>;
+      return <p className="text-gray-500 dark:text-gray-400">매칭 분석 정보를 불러오지 못했습니다.</p>;
     }
 
     const { matching_info } = matchingInfo;
@@ -465,7 +465,7 @@ export default function InterviewPanelManagement() {
             </span>
             {matching_info.ai_recommendation_available && (
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                • 프로필 데이터 활용
+                AI 프로필 데이터 활용
               </span>
             )}
           </div>
@@ -481,7 +481,7 @@ export default function InterviewPanelManagement() {
               {matching_info.balance_factors.strictness_balance && (
                 <ProgressBar 
                   value={matching_info.balance_factors.strictness_balance} 
-                  label="엄격도 밸런스" 
+                  label="엄격성 밸런스" 
                   color="purple" 
                 />
               )}
@@ -495,7 +495,7 @@ export default function InterviewPanelManagement() {
               {matching_info.balance_factors.experience_avg && (
                 <ProgressBar 
                   value={matching_info.balance_factors.experience_avg} 
-                  label="평균 경험치" 
+                  label="평균 경험도" 
                   color="orange" 
                 />
               )}
@@ -536,7 +536,7 @@ export default function InterviewPanelManagement() {
         <Navbar />
         <ViewPostSidebar jobPost={jobPost} />
         <div className="flex h-screen items-center justify-center ml-[90px]">
-          <div className="text-lg">로딩 중...</div>
+          <div className="text-lg">로딩 중..</div>
         </div>
       </div>
     );
@@ -563,9 +563,9 @@ export default function InterviewPanelManagement() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold mb-2">면접관 편성 현황</h1>
+            <h1 className="text-2xl font-bold mb-2">면접관 구성 현황</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {jobPost?.title || '공고 제목을 불러오는 중...'}
+              {jobPost?.title || '공고 제목을 불러오는 중..'}
             </p>
           </div>
 
@@ -577,7 +577,7 @@ export default function InterviewPanelManagement() {
                 면접관 배정이 없습니다
               </h3>
               <p className="text-gray-400 dark:text-gray-500">
-                아직 면접 일정에 대한 면접관 배정이 생성되지 않았습니다.
+                아직 면접 일정에 대한 면접관 배정이 생성되지 않았습니다
               </p>
             </div>
           ) : (
@@ -622,7 +622,7 @@ export default function InterviewPanelManagement() {
                         <div className="flex items-center space-x-2 mb-3">
                           <FiCheck className="text-green-600 dark:text-green-400" size={18} />
                           <h4 className="text-lg font-semibold text-green-900 dark:text-green-100">
-                            정식 면접관 ({groupedRequests.accepted.length}명)
+                            확정 면접관 ({groupedRequests.accepted.length}명)
                           </h4>
                         </div>
                         {groupedRequests.accepted.length === 0 ? (
@@ -654,9 +654,9 @@ export default function InterviewPanelManagement() {
                                 </div>
                                 {/* Interviewer characteristics */}
                                 <div className="flex items-center space-x-1 mt-2">
-                                  <FiStar className="text-green-500" size={12} title="엄격도" />
+                                  <FiStar className="text-green-500" size={12} title="엄격성" />
                                   <FiTarget className="text-green-500" size={12} title="기술 중심도" />
-                                  <FiTrendingUp className="text-green-500" size={12} title="경험치" />
+                                  <FiTrendingUp className="text-green-500" size={12} title="경험도" />
                                   <span className="text-xs text-green-600 dark:text-green-400">프로필 보기</span>
                                 </div>
                               </div>
@@ -812,7 +812,7 @@ export default function InterviewPanelManagement() {
                     새 면접관 초대
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    {getJobPostDepartment() ? `${getJobPostDepartment()} 부서 기준으로 자동 분류됩니다` : '부서 정보를 확인할 수 없습니다'}
+                    {getJobPostDepartment() ? `${getJobPostDepartment()} 부서 기준으로 자동 분류됩니다` : '부서명 확인 불가'}
                   </p>
                 </div>
                 <button
@@ -833,7 +833,7 @@ export default function InterviewPanelManagement() {
                 </div>
                 <input
                   type="text"
-                  placeholder="이름이나 이메일로 검색..."
+                  placeholder="이름이나 이메일로 검색.."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -844,7 +844,7 @@ export default function InterviewPanelManagement() {
               <div className="max-h-64 overflow-y-auto">
                 {searchLoading ? (
                   <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                    검색 중...
+                    검색 중..
                   </div>
                 ) : companyMembers.length === 0 ? (
                   <div className="text-center py-4 text-gray-500 dark:text-gray-400">
@@ -888,7 +888,7 @@ export default function InterviewPanelManagement() {
                                 {member.email}
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-500">
-                                {member.department && `${member.department} • `}
+                                {member.department && `${member.department} 팀`}
                                 {member.ranks || '직급 정보 없음'}
                               </div>
                             </div>
@@ -900,7 +900,7 @@ export default function InterviewPanelManagement() {
                                   ? 'bg-blue-500 hover:bg-blue-600 text-white'
                                   : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
                               }`}
-                              title={classification.canInvite ? `${classification.label}으로 초대` : '초대할 수 없습니다'}
+                              title={classification.canInvite ? `${classification.label}(으)로 초대` : '초대할 수 없습니다'}
                             >
                               초대
                             </button>
@@ -915,10 +915,10 @@ export default function InterviewPanelManagement() {
             {/* Modal Footer */}
             <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4">
               <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 space-y-1">
-                <p>• <span className="text-blue-600 dark:text-blue-400">같은 부서</span>: {getJobPostDepartment() || '부서명 확인 불가'} 부서 소속 멤버 (초대 가능)</p>
-                <p>• <span className="text-purple-600 dark:text-purple-400">인사팀</span>: 인사, HR, 채용 관련 부서 소속 멤버 (초대 가능)</p>
-                <p>• <span className="text-orange-600 dark:text-orange-400">다른 부서</span>: 기타 부서 소속 멤버 (초대 불가)</p>
-                <p>• <span className="text-gray-600 dark:text-gray-400">부서 미확인</span>: 부서 정보가 없는 멤버 (초대 불가)</p>
+                <p>🔵 <span className="text-blue-600 dark:text-blue-400">같은 부서</span>: {getJobPostDepartment() || '부서명 확인 불가'} 부서 소속 멤버 (초대 가능)</p>
+                <p>🟣 <span className="text-purple-600 dark:text-purple-400">인사팀</span>: 인사, HR, 채용 관련 부서 소속 멤버 (초대 가능)</p>
+                <p>🟠 <span className="text-orange-600 dark:text-orange-400">다른 부서</span>: 기타 부서 소속 멤버 (초대 불가)</p>
+                <p>⚪ <span className="text-gray-600 dark:text-gray-400">부서 미확인</span>: 부서 정보가 없는 멤버 (초대 불가)</p>
               </div>
               <div className="flex justify-end">
                 <button
@@ -971,7 +971,7 @@ export default function InterviewPanelManagement() {
                         {getConfidenceDisplay(interviewerProfile.profile?.confidence).text}
                       </span>
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        (면접 {interviewerProfile.profile?.total_interviews || 0}회 기준)
+                        (면접 {interviewerProfile.profile?.total_interviews || 0}회 기반)
                       </span>
                     </div>
                     <div className="text-right">
@@ -983,7 +983,7 @@ export default function InterviewPanelManagement() {
                   {(interviewerProfile.profile?.confidence || 0) < 50 && (
                     <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border-l-4 border-blue-400">
                       <p className="text-xs text-blue-700 dark:text-blue-300">
-                        💡 면접 평가 데이터가 부족하여 특성 분석의 정확도가 낮을 수 있습니다. 
+                        누적 면접 평가 데이터가 부족하여 성향 분석의 정확도가 낮을 수 있습니다. 
                         더 많은 면접 경험이 쌓이면 분석이 정확해집니다.
                       </p>
                     </div>
@@ -1000,7 +1000,7 @@ export default function InterviewPanelManagement() {
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         {Math.round(interviewerProfile.profile?.strictness_score || 50)}
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">엄격도</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">엄격성</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -1012,7 +1012,7 @@ export default function InterviewPanelManagement() {
                       <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                         {Math.round(interviewerProfile.profile?.experience_score || 50)}
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">경험치</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">경험도</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
@@ -1066,10 +1066,10 @@ export default function InterviewPanelManagement() {
             {/* Modal Footer */}
             <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4">
               <div className="text-xs text-gray-600 dark:text-gray-400 mb-3 space-y-1">
-                <p>• <span className="text-purple-600 dark:text-purple-400">엄격도</span>: 다른 면접관 대비 점수를 낮게 주는 정도</p>
-                <p>• <span className="text-green-600 dark:text-green-400">기술 중심도</span>: 기술적 역량을 중시하는 정도</p>
-                <p>• <span className="text-orange-600 dark:text-orange-400">경험치</span>: 면접 경험 및 숙련도</p>
-                <p>• <span className="text-blue-600 dark:text-blue-400">일관성</span>: 평가 기준의 일관성 정도</p>
+                <p>🟣 <span className="text-purple-600 dark:text-purple-400">엄격성</span>: 다른 면접관 대비 점수를 짜게 주는 정도</p>
+                <p>🟢 <span className="text-green-600 dark:text-green-400">기술 중심도</span>: 기술적 역량을 중시하는 정도</p>
+                <p>🟠 <span className="text-orange-600 dark:text-orange-400">경험도</span>: 면접 경험 및 숙련도</p>
+                <p>🔵 <span className="text-blue-600 dark:text-blue-400">일관성</span>: 평가 기준의 일관성 정도</p>
               </div>
               <div className="flex justify-end">
                 <button

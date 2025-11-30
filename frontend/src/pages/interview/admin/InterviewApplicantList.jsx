@@ -3,7 +3,7 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ApplicantCardWithDocsScore from '../../components/ApplicantCardWithDocsScore';
+import ApplicantCardWithDocsScore from '../../../../components/ApplicantCardWithDocsScore';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -18,7 +18,7 @@ function groupApplicantsByTime(applicants) {
   applicants.forEach(applicant => {
     const time = applicant.schedule_date
       ? dayjs.utc(applicant.schedule_date).tz('Asia/Seoul').format('YYYY-MM-DD HH:mm')
-      : '시간 미정';
+      : '?�간 미정';
     if (!groups[time]) groups[time] = [];
     groups[time].push(applicant);
   });
@@ -47,7 +47,7 @@ function InterviewApplicantList({
 
   return (
     <div className="flex flex-col w-full h-full">
-      {/* 열기/닫기 버튼 */}
+      {/* ?�기/?�기 버튼 */}
       <div className="flex justify-center mb-2">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
@@ -56,18 +56,18 @@ function InterviewApplicantList({
           {isExpanded ? (
             <>
               <FiChevronUp size={14} />
-              <span>접기</span>
+              <span>?�기</span>
             </>
           ) : (
             <>
               <FiChevronDown size={14} />
-              <span>펼치기</span>
+              <span>?�치�?/span>
             </>
           )}
         </button>
       </div>
       
-      {/* 지원자 목록 */}
+      {/* 지?�자 목록 */}
       <div 
         className={`flex flex-col gap-2 transition-all duration-300 ${!isExpanded && !showAll ? 'max-h-32 overflow-hidden' : ''}`}
         onMouseEnter={() => setIsHovered(true)}
@@ -89,7 +89,7 @@ function InterviewApplicantList({
                   key={applicant.id}
                   ref={isSelected ? selectedCardRef : null}
                   applicant={applicant}
-                  index={localIndex + 1} // 시간별 인덱싱으로 변경
+                  index={localIndex + 1} // ?�간�??�덱?�으�?변�?
                   isSelected={isSelected}
                   splitMode={splitMode}
                   bookmarked={bookmarkedList[globalIndex]}
@@ -105,7 +105,7 @@ function InterviewApplicantList({
                   onBookmarkToggle={() => toggleBookmark(globalIndex)}
                   calculateAge={calculateAge}
                   compact={compact}
-                  showCompact={!isHovered} // 호버 상태에 따른 컴팩트 모드
+                  showCompact={!isHovered} // ?�버 ?�태???�른 컴팩??모드
                 />
               );
             })}

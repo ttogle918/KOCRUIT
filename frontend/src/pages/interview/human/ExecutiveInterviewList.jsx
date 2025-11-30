@@ -41,7 +41,7 @@ const ExecutiveInterviewList = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">임원면접 대상자를 불러오는 중...</p>
+          <p className="mt-4 text-gray-600">임원면접 대상자를 불러오는 중..</p>
         </div>
       </div>
     );
@@ -68,27 +68,27 @@ const ExecutiveInterviewList = () => {
           임원면접 대상자 목록
         </h1>
         <p className="text-gray-600">
-          실무진 면접을 통과한 지원자들의 임원면접을 진행합니다.
+          실무진 면접을 통과한 지원자의 임원면접을 진행합니다.
         </p>
       </div>
 
       {/* 통계 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardHeader title="총 대상자" />
-            <MdPerson className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"
+            title="총 대상자"
+            action={<MdPerson className="h-4 w-4 text-muted-foreground" />}
+          />
           <CardContent>
             <div className="text-2xl font-bold">{candidates.length}명</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardHeader title="평가 완료" />
-            <MdStar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"
+            title="평가 완료"
+            action={<MdStar className="h-4 w-4 text-muted-foreground" />}
+          />
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
               {candidates.filter(c => c.executive_evaluation).length}명
@@ -97,10 +97,10 @@ const ExecutiveInterviewList = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardHeader title="평가 대기" />
-            <MdCalendarToday className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"
+            title="평가 대기"
+            action={<MdCalendarToday className="h-4 w-4 text-muted-foreground" />}
+          />
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
               {candidates.filter(c => !c.executive_evaluation).length}명
@@ -109,10 +109,10 @@ const ExecutiveInterviewList = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardHeader title="평균 실무진 점수" />
-            <MdDescription className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"
+            title="평균 실무진 점수"
+            action={<MdDescription className="h-4 w-4 text-muted-foreground" />}
+          />
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
               {candidates.length > 0 
@@ -125,14 +125,13 @@ const ExecutiveInterviewList = () => {
 
       {/* 대상자 목록 */}
       <Card>
-        <CardHeader>
-          <CardHeader title={
+        <CardHeader title={
             <div className="flex items-center gap-2">
               <MdBusiness className="h-5 w-5" />
               임원면접 대상자 목록
             </div>
-          } />
-        </CardHeader>
+          } 
+        />
         <CardContent>
           {candidates.length === 0 ? (
             <div className="text-center py-12">
@@ -148,12 +147,12 @@ const ExecutiveInterviewList = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableHead>지원자</TableHead>
-                  <TableHead>지원 공고</TableHead>
-                  <TableHead>실무진 평가</TableHead>
-                  <TableHead>임원진 평가</TableHead>
-                  <TableHead>상태</TableHead>
-                  <TableHead>작업</TableHead>
+                  <TableCell>지원자</TableCell>
+                  <TableCell>지원 공고</TableCell>
+                  <TableCell>실무진 점수</TableCell>
+                  <TableCell>임원진 점수</TableCell>
+                  <TableCell>상태</TableCell>
+                  <TableCell>작업</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -178,29 +177,27 @@ const ExecutiveInterviewList = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Badge variant="outlined" color="success" badgeContent={candidate.practical_score || 0} />
-                        <span className="text-sm text-gray-500">통과</span>
+                        <Badge badgeContent={candidate.practical_score || 0} color="primary" />
+                        <span className="text-sm text-gray-500">점</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       {candidate.executive_evaluation ? (
-                        <Badge variant="outlined" color="success" badgeContent={candidate.executive_evaluation.total_score} />
+                        <Badge badgeContent={candidate.executive_evaluation.total_score} color="success" />
                       ) : (
-                        <Badge variant="outlined" color="warning" badgeContent="대기" />
+                        <Badge badgeContent="대기" color="warning" />
                       )}
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant={candidate.executive_evaluation ? "filled" : "outlined"}
+                        badgeContent={candidate.executive_evaluation ? '평가 완료' : '평가 대기'}
                         color={candidate.executive_evaluation ? "success" : "warning"}
-                      >
-                        {candidate.executive_evaluation ? '평가 완료' : '평가 대기'}
-                      </Badge>
+                      />
                     </TableCell>
                     <TableCell>
                       <Link to={`/applicant/executive-interview/${candidate.id}`}>
                         <Button size="small" variant="outlined" startIcon={<MdArrowForward className="w-4 h-4" />}>
-                          {candidate.executive_evaluation ? '평가 보기' : '평가하기'}
+                          {candidate.executive_evaluation ? '평가 보기' : '평가 하기'}
                         </Button>
                       </Link>
                     </TableCell>
@@ -215,4 +212,4 @@ const ExecutiveInterviewList = () => {
   );
 };
 
-export default ExecutiveInterviewList; 
+export default ExecutiveInterviewList;

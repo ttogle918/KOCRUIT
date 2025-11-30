@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  FaBrain, FaSmile, FaArrowLeft, FaDownload, FaEye, FaSync, FaUsers, FaUser
+  FaBrain, FaSmile, FaArrowLeft, FaSync
 } from 'react-icons/fa';
 import { 
   FiTarget, FiUser
@@ -12,314 +12,11 @@ import {
   MdOutlineAnalytics, MdOutlineRecordVoiceOver
 } from 'react-icons/md';
 
-import api from '../../api/api';
-import { 
-  convertDriveUrlToDirect, 
-  extractVideoIdFromUrl, 
-  extractFolderIdFromUrl,
-  getDriveItemType,
-  getVideosFromSharedFolder,
-  processVideoUrl
-} from '../../utils/googleDrive';
-import { 
-  analyzeVideoByUrl, 
-  getAnalysisResult, 
-  checkVideoAnalysisHealth 
-} from '../../api/videoAnalysisApi';
-import QuestionVideoAnalysisModal from '../../components/common/QuestionVideoAnalysisModal';
-import DetailedWhisperAnalysis from '../../components/common/DetailedWhisperAnalysis';
-import AudioRecorder from '../../components/common/AudioRecorder';
-import AudioUploader from '../../components/common/AudioUploader';
-import ViewPostSidebar from '../../components/ViewPostSidebar';
-
-// Resume 조회 실패 시 안전한 처리를 위한 유틸리티 함수
-const safeApiCall = async (apiCall, fallbackValue = null) => {
-  try {
-    const response = await apiCall();
-    return response.data;
-  } catch (error) {
-    console.warn('API 호출 실패:', error);
-    return fallbackValue;
-  }
-};
-
-// Resume 데이터 로드 함수
-const loadResumeData = async (resumeId) => {
-  if (!resumeId) {
-    return { success: false, message: '이력서 ID가 없습니다.' };
-  }
-  
-  try {
-    const response = await api.get(`/resumes/${resumeId}`);
-    return { success: true, data: response.data };
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      return { success: false, message: '이력서를 찾을 수 없습니다.' };
-    } else if (error.response && error.response.status === 403) {
-      return { success: false, message: '이력서에 접근할 권한이 없습니다.' };
-    } else {
-      return { success: false, message: '이력서 로드 중 오류가 발생했습니다.' };
-    }
-  }
-};
-
-// 성능 최적화: 상태 정보 헬퍼 함수
-const getStatusInfo = (status) => {
-  if (status === 'AI_INTERVIEW_COMPLETED' || status === 'AI_INTERVIEW_PASSED') {
-    return { label: 'AI 면접 합격', color: 'text-green-600', bgColor: 'bg-green-100' };
-  } else if (status === 'AI_INTERVIEW_FAILED') {
-    return { label: 'AI 면접 불합격', color: 'text-red-600', bgColor: 'bg-red-100' };
-  } else if (status === 'PRACTICAL_INTERVIEW_SCHEDULED') {
-    return { label: 'AI 면접 통과 → 1차 면접 예정', color: 'text-blue-600', bgColor: 'bg-blue-100' };
-  } else if (status === 'PRACTICAL_INTERVIEW_IN_PROGRESS') {
-    return { label: 'AI 면접 통과 → 1차 면접 진행중', color: 'text-blue-600', bgColor: 'bg-blue-100' };
-  } else if (status === 'PRACTICAL_INTERVIEW_COMPLETED') {
-    return { label: 'AI 면접 통과 → 1차 면접 완료', color: 'text-blue-600', bgColor: 'bg-blue-100' };
-  } else if (status === 'PRACTICAL_INTERVIEW_PASSED') {
-    return { label: 'AI 면접 통과 → 1차 면접 합격 (실무진)', color: 'text-green-600', bgColor: 'bg-green-100' };
-  } else if (status === 'PRACTICAL_INTERVIEW_FAILED') {
-    return { label: 'AI 면접 통과 → 1차 면접 불합격', color: 'text-red-600', bgColor: 'bg-red-100' };
-  } else if (status === 'EXECUTIVE_INTERVIEW_SCHEDULED') {
-    return { label: 'AI 면접 통과 → 2차 면접 예정', color: 'text-purple-600', bgColor: 'bg-purple-100' };
-  } else if (status === 'EXECUTIVE_INTERVIEW_IN_PROGRESS') {
-    return { label: 'AI 면접 통과 → 2차 면접 진행중', color: 'text-purple-600', bgColor: 'bg-purple-100' };
-  } else if (status === 'EXECUTIVE_INTERVIEW_COMPLETED') {
-    return { label: 'AI 면접 통과 → 2차 면접 완료', color: 'text-purple-600', bgColor: 'bg-purple-100' };
-  } else if (status === 'EXECUTIVE_INTERVIEW_PASSED') {
-    return { label: 'AI 면접 통과 → 2차 면접 합격 (임원진)', color: 'text-green-600', bgColor: 'bg-green-100' };
-  } else if (status === 'EXECUTIVE_INTERVIEW_FAILED') {
-    return { label: 'AI 면접 통과 → 2차 면접 불합격', color: 'text-red-600', bgColor: 'bg-red-100' };
-  } else if (status === 'FINAL_INTERVIEW_SCHEDULED') {
-    return { label: 'AI 면접 통과 → 최종 면접 예정', color: 'text-orange-600', bgColor: 'bg-orange-100' };
-  } else if (status === 'FINAL_INTERVIEW_IN_PROGRESS') {
-    return { label: 'AI 면접 통과 → 최종 면접 진행중', color: 'text-orange-600', bgColor: 'bg-orange-100' };
-  } else if (status === 'FINAL_INTERVIEW_COMPLETED') {
-    return { label: 'AI 면접 통과 → 최종 면접 완료', color: 'text-orange-600', bgColor: 'bg-orange-100' };
-  } else if (status === 'FINAL_INTERVIEW_PASSED') {
-    return { label: 'AI 면접 통과 → 최종 합격', color: 'text-green-600', bgColor: 'bg-green-100' };
-  } else if (status === 'FINAL_INTERVIEW_FAILED') {
-    return { label: 'AI 면접 통과 → 최종 불합격', color: 'text-red-600', bgColor: 'bg-red-100' };
-  } else if (status && status.startsWith('PRACTICAL_INTERVIEW_')) {
-    return { label: 'AI 면접 통과 → 1차 면접 (실무진)', color: 'text-blue-600', bgColor: 'bg-blue-100' };
-  } else if (status && status.startsWith('EXECUTIVE_INTERVIEW_')) {
-    return { label: 'AI 면접 통과 → 2차 면접 (임원진)', color: 'text-purple-600', bgColor: 'bg-purple-100' };
-  } else if (status && status.startsWith('FINAL_INTERVIEW_')) {
-    return { label: 'AI 면접 통과 → 최종 면접', color: 'text-orange-600', bgColor: 'bg-orange-100' };
-  } else {
-    return { label: '대기중', color: 'text-gray-600', bgColor: 'bg-gray-100' };
-  }
-};
-
-// 면접 상태에 따른 버튼 정보 헬퍼 함수
-const getButtonInfo = (status) => {
-  if (status === 'PRACTICAL_INTERVIEW_SCHEDULED' || status === 'EXECUTIVE_INTERVIEW_SCHEDULED' || status === 'FINAL_INTERVIEW_SCHEDULED') {
-    return { 
-      text: '면접 시작', 
-      bgColor: 'bg-blue-600', 
-      hoverColor: 'hover:bg-blue-700',
-      disabled: false,
-      action: 'start'
-    };
-  } else if (status === 'PRACTICAL_INTERVIEW_IN_PROGRESS' || status === 'EXECUTIVE_INTERVIEW_IN_PROGRESS' || status === 'FINAL_INTERVIEW_IN_PROGRESS') {
-    return { 
-      text: '면접 완료', 
-      bgColor: 'bg-orange-600', 
-      hoverColor: 'hover:bg-orange-700',
-      disabled: false,
-      action: 'complete'
-    };
-  } else if (status === 'PRACTICAL_INTERVIEW_COMPLETED' || status === 'EXECUTIVE_INTERVIEW_COMPLETED' || status === 'FINAL_INTERVIEW_COMPLETED' ||
-             status === 'PRACTICAL_INTERVIEW_PASSED' || status === 'EXECUTIVE_INTERVIEW_PASSED' || status === 'FINAL_INTERVIEW_PASSED' ||
-             status === 'PRACTICAL_INTERVIEW_FAILED' || status === 'EXECUTIVE_INTERVIEW_FAILED' || status === 'FINAL_INTERVIEW_FAILED') {
-    return { 
-      text: '면접 평가 보기', 
-      bgColor: 'bg-green-600', 
-      hoverColor: 'hover:bg-green-700',
-      disabled: false,
-      action: 'view'
-    };
-  } else if (status === 'AI_INTERVIEW_COMPLETED' || status === 'AI_INTERVIEW_PASSED' || status === 'AI_INTERVIEW_FAILED') {
-    return { 
-      text: 'AI 면접 결과 보기', 
-      bgColor: 'bg-purple-600', 
-      hoverColor: 'hover:bg-purple-700',
-      disabled: false,
-      action: 'view'
-    };
-  } else {
-    return { 
-      text: '면접 평가 보기', 
-      bgColor: 'bg-gray-600', 
-      hoverColor: 'hover:bg-gray-700',
-      disabled: false,
-      action: 'view'
-    };
-  }
-};
-
-// 실무진 면접 합격 여부 확인 헬퍼 함수
-const getPracticalInterviewResult = (practicalStatus) => {
-  if (!practicalStatus || practicalStatus === 'PENDING') {
-    return {
-      isPassed: null,
-      label: '평가 대기중',
-      bgColor: 'bg-gray-100',
-      textColor: 'text-gray-800',
-      borderColor: 'border-gray-200'
-    };
-  } else if (practicalStatus === 'SCHEDULED') {
-    return {
-      isPassed: null,
-      label: '면접 일정 확정',
-      bgColor: 'bg-blue-100',
-      textColor: 'text-blue-800',
-      borderColor: 'border-blue-200'
-    };
-  } else if (practicalStatus === 'IN_PROGRESS') {
-    return {
-      isPassed: null,
-      label: '면접 진행중',
-      bgColor: 'bg-yellow-100',
-      textColor: 'text-yellow-800',
-      borderColor: 'border-yellow-200'
-    };
-  } else if (practicalStatus === 'COMPLETED') {
-    return {
-      isPassed: null,
-      label: '면접 완료',
-      bgColor: 'bg-orange-100',
-      textColor: 'text-orange-800',
-      borderColor: 'border-orange-200'
-    };
-  } else if (practicalStatus === 'PASSED') {
-    return {
-      isPassed: true,
-      label: '실무진 면접 합격',
-      bgColor: 'bg-green-100',
-      textColor: 'text-green-800',
-      borderColor: 'border-green-200'
-    };
-  } else if (practicalStatus === 'FAILED') {
-    return {
-      isPassed: false,
-      label: '실무진 면접 불합격',
-      bgColor: 'bg-red-100',
-      textColor: 'text-red-800',
-      borderColor: 'border-red-200'
-    };
-  } else {
-    return {
-      isPassed: null,
-      label: '알 수 없음',
-      bgColor: 'bg-gray-100',
-      textColor: 'text-gray-800',
-      borderColor: 'border-gray-200'
-    };
-  }
-};
-
-// 성능 최적화: 지원자 카드 컴포넌트를 메모이제이션
-const MemoizedApplicantCard = React.memo(({ applicant, isSelected, onClick }) => {
-  const statusInfo = useMemo(() => getStatusInfo(applicant.interview_status), 
-    [applicant.interview_status]);
-  
-  const buttonInfo = useMemo(() => getButtonInfo(applicant.interview_status), 
-    [applicant.interview_status]);
-
-  const practicalResult = useMemo(() => getPracticalInterviewResult(applicant.practical_interview_status), 
-    [applicant.practical_interview_status]);
-
-  // 성능 최적화: 클릭 핸들러를 useCallback으로 최적화
-  const handleEvaluationClick = useCallback(() => {
-    onClick(applicant);
-  }, [onClick, applicant]);
-
-  // AI 면접 결과 확인 핸들러 (면접 진행 관리 제거)
-  const handleViewResults = useCallback(() => {
-    onClick(applicant);
-  }, [onClick, applicant]);
-
-  return (
-    <div 
-      className={`p-4 border rounded-lg transition-all duration-200 ${
-        isSelected ? 'border-green-500 bg-green-50' : 'border-gray-200'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <FiUser className="text-blue-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">{applicant.name}</h3>
-            <p className="text-sm text-gray-600">{applicant.email}</p>
-            {applicant.phone && (
-              <p className="text-xs text-gray-500">{applicant.phone}</p>
-            )}
-            {applicant.created_at && (
-              <p className="text-xs text-blue-600">
-                지원일: {new Date(applicant.created_at).toLocaleDateString()}
-              </p>
-            )}
-            {!applicant.resume_id && (
-              <p className="text-xs text-orange-600">
-                ⚠️ 이력서 정보 없음
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
-            {statusInfo.label}
-          </div>
-          <p className="text-xs text-gray-500 mt-1">AI점수: {applicant.ai_interview_score || 'NULL'}</p>
-          
-          {/* 실무진 면접 합격 여부 표시 */}
-          <div className={`mt-2 px-3 py-2 rounded-lg border ${practicalResult.bgColor} ${practicalResult.borderColor}`}>
-            <div className={`text-xs font-medium ${practicalResult.textColor}`}>
-              {practicalResult.label}
-            </div>
-          </div>
-          
-          {/* 임원진 면접 상태 표시 */}
-          {applicant.executive_interview_status && applicant.executive_interview_status !== 'PENDING' && (
-            <div className={`mt-1 px-3 py-2 rounded-lg border ${
-              applicant.executive_interview_status === 'PASSED' ? 'bg-green-100 border-green-200' :
-              applicant.executive_interview_status === 'FAILED' ? 'bg-red-100 border-red-200' :
-              applicant.executive_interview_status === 'IN_PROGRESS' ? 'bg-yellow-100 border-yellow-200' :
-              applicant.executive_interview_status === 'COMPLETED' ? 'bg-orange-100 border-orange-200' :
-              'bg-blue-100 border-blue-200'
-            }`}>
-              <div className={`text-xs font-medium ${
-                applicant.executive_interview_status === 'PASSED' ? 'text-green-800' :
-                applicant.executive_interview_status === 'FAILED' ? 'text-red-800' :
-                applicant.executive_interview_status === 'IN_PROGRESS' ? 'text-yellow-800' :
-                applicant.executive_interview_status === 'COMPLETED' ? 'text-orange-800' :
-                'text-blue-800'
-              }`}>
-                임원진: {applicant.executive_interview_status === 'PASSED' ? '합격' :
-                         applicant.executive_interview_status === 'FAILED' ? '불합격' :
-                         applicant.executive_interview_status === 'IN_PROGRESS' ? '진행중' :
-                         applicant.executive_interview_status === 'COMPLETED' ? '완료' :
-                         applicant.executive_interview_status === 'SCHEDULED' ? '일정확정' : '대기중'}
-              </div>
-            </div>
-          )}
-          
-          {/* AI 면접 결과 확인 버튼 */}
-          <button
-            onClick={handleViewResults}
-            className="mt-2 w-full px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
-            결과 보기
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-MemoizedApplicantCard.displayName = 'MemoizedApplicantCard';
+import api from '../../../api/api';
+import QuestionVideoAnalysisModal from '../../common/QuestionVideoAnalysisModal';
+import DetailedWhisperAnalysis from '../../common/DetailedWhisperAnalysis';
+import AudioRecorder from '../../common/AudioRecorder';
+import AudioUploader from '../../common/AudioUploader';
 
 // 성능 최적화: 면접 결과 상세 컴포넌트를 메모이제이션
 const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
@@ -342,6 +39,8 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
   const [openQa, setOpenQa] = useState(false);
   const [isReAnalyzing, setIsReAnalyzing] = useState(false);
   const [reAnalysisTarget, setReAnalysisTarget] = useState(null);
+  const [showQuestionAnalysisModal, setShowQuestionAnalysisModal] = useState(false);
+  const [showDetailedWhisperAnalysis, setShowDetailedWhisperAnalysis] = useState(false);
   
   // navigate hook 추가
   const navigate = useNavigate();
@@ -779,7 +478,7 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                     <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <button
-                  onClick={() => setShowQuestionAnalysisModal(false)}
+                  onClick={onBack}
                   className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <FaArrowLeft className="w-5 h-5" />
@@ -1128,8 +827,6 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
               </div>
             </div>
             
-            
-
             
             {(interviewData?.hasData || interviewData?.evaluation || interviewData?.videoAnalysis || interviewData?.videoAnalysisSource === 'video-analysis-db') ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1747,8 +1444,6 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h4 className="font-semibold text-gray-900 mb-4">음성 인식 결과</h4>
                 
-
-                
                 {/* 68번 지원자 실제 STT 데이터 표시 */}
                 {applicant.application_id === 68 && interviewData.whisperAnalysis.analysis?.user_analysis ? (
                   <div className="space-y-6">
@@ -1766,7 +1461,7 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                               <span className="text-sm text-gray-500">
                                 {analysis.file_info.duration_seconds.toFixed(1)}초
                               </span>
-                </div>
+                            </div>
                 
                             {/* 파일 정보 */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-sm">
@@ -2175,22 +1870,22 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
               <p className="text-sm text-gray-600">실시간 녹음 또는 기존 파일 업로드로 면접 분석</p>
             </div>
             
-            {selectedApplicant ? (
+            {applicant ? (
               <>
                 {/* 지원자 정보 표시 */}
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium text-blue-900">
-                        📋 {selectedApplicant.name} 지원자 ({selectedApplicant.application_id}번)
+                        📋 {applicant.name} 지원자 ({applicant.application_id}번)
                       </h4>
                       <p className="text-sm text-blue-700 mt-1">
-                        {selectedApplicant.email} • {selectedApplicant.interview_status || '상태 없음'}
+                        {applicant.email} • {applicant.interview_status || '상태 없음'}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-blue-600">
-                        면접 유형: {selectedApplicant.practical_interview_status ? '실무진' : 'AI'} 면접
+                        면접 유형: {applicant.practical_interview_status ? '실무진' : 'AI'} 면접
                       </p>
                     </div>
                   </div>
@@ -2200,40 +1895,40 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* 실시간 녹음 컴포넌트 */}
                   <AudioRecorder
-                    applicationId={selectedApplicant.application_id}
+                    applicationId={applicant.application_id}
                     interviewType="practical"
                     onRecordingComplete={(recordingData) => {
                       console.log('녹음 완료:', recordingData);
                       // 녹음 완료 후 데이터 새로고침
-                      if (selectedApplicant) {
-                        loadInterviewData(selectedApplicant);
+                      if (applicant) {
+                        loadInterviewData(applicant);
                       }
                     }}
                     onAnalysisComplete={(analysisData) => {
                       console.log('분석 완료:', analysisData);
                       // 분석 완료 후 데이터 새로고침
-                      if (selectedApplicant) {
-                        loadInterviewData(selectedApplicant);
+                      if (applicant) {
+                        loadInterviewData(applicant);
                       }
                     }}
                   />
                   
                   {/* 기존 파일 업로드 컴포넌트 */}
                   <AudioUploader
-                    applicationId={selectedApplicant.application_id}
+                    applicationId={applicant.application_id}
                     interviewType="practical"
                     onUploadComplete={(fileData, uploadResult) => {
                       console.log('업로드 완료:', fileData, uploadResult);
                       // 업로드 완료 후 데이터 새로고침
-                      if (selectedApplicant) {
-                        loadInterviewData(selectedApplicant);
+                      if (applicant) {
+                        loadInterviewData(applicant);
                       }
                     }}
                     onAnalysisComplete={(analysisData) => {
                       console.log('분석 완료:', analysisData);
                       // 분석 완료 후 데이터 새로고침
-                      if (selectedApplicant) {
-                        loadInterviewData(selectedApplicant);
+                      if (applicant) {
+                        loadInterviewData(applicant);
                       }
                     }}
                   />
@@ -2254,7 +1949,7 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                             onClick={async () => {
                               try {
                                 console.log('🧪 Whisper 분석 상태 확인 테스트...');
-                                const response = await api.get(`/whisper-analysis/status/${selectedApplicant.application_id}`);
+                                const response = await api.get(`/whisper-analysis/status/${applicant.application_id}`);
                                 console.log('Whisper 상태:', response.data);
                                 alert(`Whisper 분석 상태: ${JSON.stringify(response.data, null, 2)}`);
                               } catch (error) {
@@ -2271,7 +1966,7 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                             onClick={async () => {
                               try {
                                 console.log('🧪 QA 분석 결과 확인 테스트...');
-                                const response = await api.get(`/whisper-analysis/qa-analysis/${selectedApplicant.application_id}`);
+                                const response = await api.get(`/whisper-analysis/qa-analysis/${applicant.application_id}`);
                                 console.log('QA 분석 결과:', response.data);
                                 alert(`QA 분석 결과: ${JSON.stringify(response.data, null, 2)}`);
                               } catch (error) {
@@ -2288,7 +1983,7 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
                             onClick={async () => {
                               try {
                                 console.log('🧪 비디오 분석 상태 확인 테스트...');
-                                const response = await api.get(`/video-analysis/status/${selectedApplicant.application_id}`);
+                                const response = await api.get(`/video-analysis/status/${applicant.application_id}`);
                                 console.log('비디오 분석 상태:', response.data);
                                 alert(`비디오 분석 상태: ${JSON.stringify(response.data, null, 2)}`);
                               } catch (error) {
@@ -2463,820 +2158,12 @@ const InterviewResultDetail = React.memo(({ applicant, onBack }) => {
           </div>
         )}
       </div>
-    </div>
-  );
-});
-
-InterviewResultDetail.displayName = 'InterviewResultDetail';
-
-// 메인 AI 면접 시스템 컴포넌트
-const AiInterviewSystem = () => {
-  const { jobPostId } = useParams();
-  const navigate = useNavigate();
-  
-  // 상태 관리
-  const [applicantsList, setApplicantsList] = useState([]);
-  const [selectedApplicant, setSelectedApplicant] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  // AI 면접 전용 상태 변수들 (면접 진행 관리 제거)
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [selectedApplicantForCancel, setSelectedApplicantForCancel] = useState(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [showQuestionAnalysisModal, setShowQuestionAnalysisModal] = useState(false);
-  const [showDetailedWhisperAnalysis, setShowDetailedWhisperAnalysis] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState([]);
-  const [isReAnalyzing, setIsReAnalyzing] = useState(false);
-  const [reAnalysisTarget, setReAnalysisTarget] = useState(null);
-  const [isClosingPracticalInterview, setIsClosingPracticalInterview] = useState(false);
-  const [isCompletingStage, setIsCompletingStage] = useState(false);
-
-  // 성능 최적화: 지원자 선택 핸들러를 useCallback으로 최적화
-  const handleApplicantSelect = useCallback((applicant) => {
-    setSelectedApplicant(applicant);
-  }, []);
-
-  // 성능 최적화: 뒤로가기 핸들러를 useCallback으로 최적화
-  const handleBackToList = useCallback(() => {
-    setSelectedApplicant(null);
-  }, []);
-
-  // 현재 면접 단계와 다음 단계 정보 계산
-  const getCurrentStageInfo = useMemo(() => {
-    if (!applicantsList.length) return null;
-    
-    // 현재 단계별 지원자 수 계산
-    const stageCounts = {
-      first_completed: 0,
-      first_passed: 0,
-      second_completed: 0,
-      second_passed: 0,
-      final_completed: 0,
-      final_passed: 0
-    };
-    
-    applicantsList.forEach(applicant => {
-      const status = applicant.interview_status;
-      if (status === 'PRACTICAL_INTERVIEW_COMPLETED') stageCounts.first_completed++;
-      if (status === 'PRACTICAL_INTERVIEW_PASSED') stageCounts.first_passed++;
-      if (status === 'EXECUTIVE_INTERVIEW_COMPLETED') stageCounts.second_completed++;
-      if (status === 'EXECUTIVE_INTERVIEW_PASSED') stageCounts.second_passed++;
-      if (status === 'FINAL_INTERVIEW_COMPLETED') stageCounts.final_completed++;
-      if (status === 'FINAL_INTERVIEW_PASSED') stageCounts.final_passed++;
-    });
-    
-    // 현재 단계와 다음 단계 결정
-    if (stageCounts.first_completed > 0) {
-      return {
-        currentStage: '1차 면접 완료',
-        nextStage: '1차 면접 합격/불합격 결정',
-        action: 'complete_first_stage',
-        count: stageCounts.first_completed
-      };
-    } else if (stageCounts.first_passed > 0 && stageCounts.second_completed === 0) {
-      return {
-        currentStage: '1차 면접 합격',
-        nextStage: '2차 면접 진행',
-        action: 'start_second_stage',
-        count: stageCounts.first_passed
-      };
-    } else if (stageCounts.second_completed > 0) {
-      return {
-        currentStage: '2차 면접 완료',
-        nextStage: '2차 면접 합격/불합격 결정',
-        action: 'complete_second_stage',
-        count: stageCounts.second_completed
-      };
-    } else if (stageCounts.second_passed > 0 && stageCounts.final_completed === 0) {
-      return {
-        currentStage: '2차 면접 합격',
-        nextStage: '최종 면접 진행',
-        action: 'start_final_stage',
-        count: stageCounts.second_passed
-      };
-    } else if (stageCounts.final_completed > 0) {
-      return {
-        currentStage: '최종 면접 완료',
-        nextStage: '최종 합격자 결정',
-        action: 'complete_final_stage',
-        count: stageCounts.final_completed
-      };
-    } else if (stageCounts.final_passed > 0) {
-      return {
-        currentStage: '최종 면접 합격',
-        nextStage: '최종 합격자 확정',
-        action: 'finalize_selection',
-        count: stageCounts.final_passed
-      };
-    }
-    
-    return null;
-  }, [applicantsList]);
-
-    // AI 면접 결과 확인 핸들러 (통합)
-  const handleViewResults = useCallback((applicant) => {
-    // AI 면접 결과를 현재 페이지에서 상세 보기로 표시
-    setSelectedApplicant(applicant);
-  }, []);
-
-  // 합격 취소 핸들러
-  const handleCancelPass = useCallback(async () => {
-    if (!selectedApplicantForCancel) return;
-    
-    try {
-      const response = await api.put(`/schedules/${selectedApplicantForCancel.application_id}/interview-status-with-history`, {
-        interview_status: selectedApplicantForCancel.interview_status.replace('PASSED', 'FAILED'),
-        reason: cancelReason || '합격 취소'
-      });
       
-      if (response.data.success) {
-        alert('합격이 취소되었습니다.');
-        setShowCancelModal(false);
-        setSelectedApplicantForCancel(null);
-        setCancelReason('');
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('합격 취소 오류:', error);
-      alert('합격 취소 중 오류가 발생했습니다.');
-    }
-  }, [selectedApplicantForCancel, cancelReason]);
-
-  // 합격 취소 모달 열기
-  const openCancelModal = useCallback((applicant) => {
-    setSelectedApplicantForCancel(applicant);
-    setShowCancelModal(true);
-  }, []);
-  
-  // 지원자 목록 로드
-  useEffect(() => {
-    const fetchApplicantsList = async () => {
-      if (!jobPostId) return;
-      
-      setLoading(true);
-      setError(null);
-      setLoadingProgress(0);
-      
-      try {
-        // 1. 캐시 확인
-        const cache = JSON.parse(localStorage.getItem('applicantsCache') || '{}');
-        if (cache.applicantsCache && cache.applicantsCache[jobPostId]) {
-          const cachedApplicants = cache.applicantsCache[jobPostId];
-          
-          // 캐시된 데이터에도 필터링 적용 (AI 면접 PASSED, FAILED, 그리고 실무진/임원진 면접 단계 지원자 모두 표시)
-          const filteredCachedApplicants = cachedApplicants.filter(applicant => {
-            const aiStatus = applicant.ai_interview_status;
-            const interviewStatus = applicant.interview_status;
-            
-            // AI 면접 PASSED, FAILED인 지원자 모두 포함
-            if (aiStatus === 'PASSED' || aiStatus === 'FAILED') {
-              return true;
-            }
-            
-            // 실무진/임원진 면접 단계에 있는 지원자도 포함
-            if (interviewStatus && (
-              interviewStatus.startsWith('PRACTICAL_INTERVIEW_') || 
-              interviewStatus.startsWith('EXECUTIVE_INTERVIEW_') || 
-              interviewStatus.startsWith('FINAL_INTERVIEW_')
-            )) {
-              return true;
-            }
-            
-            return false;
-          });
-          
-          setApplicantsList(filteredCachedApplicants);
-          setLoadingProgress(100);
-          setIsInitialLoad(false);
-          console.log('✅ AI 면접 결과 목록 캐시에서 로드 (AI/실무진/임원진 면접):', filteredCachedApplicants.length, '명');
-        } else {
-          // 2. 지원자 목록 로드
-          setLoadingProgress(60);
-          console.log('🔍 API 호출 시작:', `/applications/job/${jobPostId}/applicants-with-ai-interview`);
-          const applicantsRes = await api.get(`/applications/job/${jobPostId}/applicants-with-ai-interview`);
-          console.log('✅ API 응답:', applicantsRes.data);
-          const applicants = applicantsRes.data || [];
-          
-          // 지원자 데이터 매핑 개선
-          const mappedApplicants = applicants.map(applicant => ({
-            ...applicant,
-            application_id: applicant.application_id,
-            applicant_id: applicant.applicant_id,
-            name: applicant.name || '',
-            email: applicant.email || '',
-            interview_status: applicant.interview_status,
-            applied_at: applicant.applied_at,
-            ai_interview_score: applicant.ai_interview_score,
-            resume_id: applicant.resume_id || null,
-            // 디버깅을 위한 로그
-            debug_info: {
-              original_resume_id: applicant.resume_id,
-              mapped_resume_id: applicant.resume_id || null
-            }
-          }));
-          
-          console.log('🔍 매핑된 지원자 데이터:', mappedApplicants.map(app => ({
-            id: app.application_id,
-            name: app.name,
-            resume_id: app.resume_id,
-            debug_info: app.debug_info
-          })));
-          
-          // AI 면접 상태에 따라 필터링 (AI 면접 PASSED, FAILED, 그리고 실무진/임원진 면접 단계 지원자 모두 표시)
-          const filteredApplicants = mappedApplicants.filter(applicant => {
-            const aiStatus = applicant.ai_interview_status;
-            const interviewStatus = applicant.interview_status;
-            
-            // AI 면접 PASSED, FAILED인 지원자 모두 포함
-            if (aiStatus === 'PASSED' || aiStatus === 'FAILED') {
-              return true;
-            }
-            
-            // 실무진/임원진 면접 단계에 있는 지원자도 포함
-            if (interviewStatus && (
-              interviewStatus.startsWith('AI_INTERVIEW_INTERVIEW_') || 
-              interviewStatus.startsWith('PRACTICAL_INTERVIEW_') || 
-              interviewStatus.startsWith('EXECUTIVE_INTERVIEW_') || 
-              interviewStatus.startsWith('FINAL_INTERVIEW_')
-            )) {
-              return true;
-            }
-            
-            return false;
-          });
-          
-          // 점수 기준 내림차순 정렬
-          const sortedApplicants = filteredApplicants.sort((a, b) => {
-            const scoreA = a.ai_interview_score || 0;
-            const scoreB = b.ai_interview_score || 0;
-            return scoreB - scoreA;
-          });
-          
-          setApplicantsList(sortedApplicants);
-          setLoadingProgress(100);
-          setIsInitialLoad(false);
-          
-          // 캐시에 저장
-          const updatedCache = {
-            ...cache,
-            applicantsCache: {
-              ...cache.applicantsCache,
-              [jobPostId]: sortedApplicants
-            }
-          };
-          localStorage.setItem('applicantsCache', JSON.stringify(updatedCache));
-          
-          console.log('✅ AI 면접 결과 목록 로드 완료 (AI/실무진/임원진 면접):', sortedApplicants.length, '명');
-        }
-      } catch (error) {
-        console.error('지원자 목록 로드 오류:', error);
-        if (error.response) {
-          console.error('API 응답 오류:', error.response.data);
-          setError(`API 오류: ${error.response.data.detail || error.response.data.message || '지원자 목록을 불러오는 중 오류가 발생했습니다.'}`);
-        } else if (error.request) {
-          console.error('네트워크 오류:', error.request);
-          setError('네트워크 연결을 확인해주세요.');
-        } else {
-          setError('지원자 목록을 불러오는 중 오류가 발생했습니다.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchApplicantsList();
-  }, [jobPostId]);
-
-  // 재분석 핸들러
-  const handleReAnalyze = useCallback(async (applicant) => {
-    try {
-      setIsReAnalyzing(true);
-      setReAnalysisTarget(applicant.application_id);
-      
-      // 재분석 API 호출 (타임아웃 5분으로 증가)
-      const response = await api.post(`/whisper-analysis/process-qa/${applicant.application_id}`, {
-        run_emotion_context: true,
-        delete_video_after: true
-      }, {
-        timeout: 300000 // 5분 (300초)
-      });
-      
-      if (response.data.success) {
-        alert(`${applicant.name} 지원자의 재분석이 시작되었습니다.\n\n분석이 완료될 때까지 기다려주세요.\n(예상 소요시간: 3-5분)`);
-        // 목록 새로고침
-        window.location.reload();
-      } else {
-        alert('재분석 시작에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('재분석 오류:', error);
-      alert('재분석 중 오류가 발생했습니다.');
-    } finally {
-      setIsReAnalyzing(false);
-      setReAnalysisTarget(null);
-    }
-  }, []);
-
-  // 실무진 면접 마감 핸들러
-  const handleClosePracticalInterview = useCallback(async () => {
-    try {
-      setIsClosingPracticalInterview(true);
-      
-      // 실무진 면접 마감 API 호출 (구현 예정)
-      alert('실무진 면접 마감 기능은 구현 예정입니다.');
-      
-    } catch (error) {
-      console.error('실무진 면접 마감 오류:', error);
-      alert('실무진 면접 마감 중 오류가 발생했습니다.');
-    } finally {
-      setIsClosingPracticalInterview(false);
-    }
-  }, []);
-
-  // 단계 마무리 완료 핸들러
-  const handleCompleteStage = useCallback(async () => {
-    try {
-      setIsCompletingStage(true);
-      
-      // 단계 마무리 API 호출 (구현 예정)
-      alert('단계 마무리 기능은 구현 예정입니다.');
-      
-    } catch (error) {
-      console.error('단계 마무리 오류:', error);
-      alert('단계 마무리 중 오류가 발생했습니다.');
-    } finally {
-      setIsCompletingStage(false);
-    }
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">지원자 목록을 불러오는 중...</p>
-                <div className="w-64 bg-gray-200 rounded-full h-2 mt-4">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${loadingProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="text-center py-12">
-              <div className="text-red-500 text-6xl mb-4">⚠️</div>
-              <p className="text-red-600 text-lg mb-2">오류가 발생했습니다</p>
-              <p className="text-gray-500 text-sm mb-4">{error}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                다시 시도
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* ViewPostSidebar 추가 */}
-      <ViewPostSidebar jobPost={jobPostId ? { id: jobPostId } : null} />
-      
-      <div className="max-w-7xl mx-auto">
-        {/* 헤더 */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">AI 면접 시스템</h1>
-              <p className="text-gray-600 mt-1">채용 공고 ID: {jobPostId}</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-600">AI 면접 대상</p>
-                <p className="text-2xl font-bold text-purple-600">{applicantsList.length}명</p>
-              </div>
-              <button
-                onClick={() => navigate(`/interview-management/${jobPostId}`)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                title="전체 면접 관리 시스템으로 이동"
-              >
-                <FaUsers className="w-4 h-4" />
-                전체 면접 관리
-              </button>
-              <button
-                onClick={() => navigate(`/ai-interview-demo/${jobPostId}/demo`)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                title="AI 면접 시스템 데모 보기"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                AI 면접 데모
-              </button>
-              <button
-                onClick={() => navigate(-1)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                돌아가기
-              </button>
-            </div>
-          </div>
-          
-          {/* 실무진 면접 합격/불합격 통계 */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(() => {
-              const stats = {
-                passed: 0,
-                failed: 0,
-                pending: 0
-              };
-              
-              applicantsList.forEach(applicant => {
-                // AI 면접 상태에 따라 통계 계산
-                if (applicant.ai_interview_status === 'PASSED') {
-                  stats.passed++;
-                } else if (applicant.ai_interview_status === 'FAILED') {
-                  stats.failed++;
-                } else {
-                  stats.pending++;
-                }
-              });
-              
-              return (
-                <>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                      <div>
-                        <p className="text-sm text-green-600">AI 면접 합격</p>
-                        <p className="text-2xl font-bold text-green-700">{stats.passed}명</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                      <div>
-                        <p className="text-sm text-red-600">AI 면접 불합격</p>
-                        <p className="text-2xl font-bold text-red-700">{stats.failed}명</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
-                      <div>
-                        <p className="text-sm text-gray-600">평가 대기중</p>
-                        <p className="text-2xl font-bold text-gray-700">{stats.pending}명</p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-          
-          {/* Application 상태 통계 */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-            {(() => {
-              const appStats = {
-                inProgress: 0,
-                passed: 0,
-                failed: 0,
-                selected: 0
-              };
-              
-              applicantsList.forEach(applicant => {
-                if (applicant.final_status === 'SELECTED') appStats.selected++;
-                else if (applicant.document_status === 'PASSED') {
-                  if (applicant.interview_status && applicant.interview_status.includes('FAILED')) {
-                    appStats.failed++;
-                  } else {
-                    appStats.passed++;
-                  }
-                } else {
-                  appStats.inProgress++;
-                }
-              });
-              
-              return (
-                <>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                      <div>
-                        <p className="text-sm text-blue-600">진행중</p>
-                        <p className="text-2xl font-bold text-blue-700">{appStats.inProgress}명</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                      <div>
-                        <p className="text-sm text-green-600">합격</p>
-                        <p className="text-2xl font-bold text-green-700">{appStats.passed}명</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                      <div>
-                        <p className="text-sm text-red-600">불합격</p>
-                        <p className="text-2xl font-bold text-red-700">{appStats.failed}명</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
-                      <div>
-                        <p className="text-sm text-purple-600">최종 선발</p>
-                        <p className="text-2xl font-bold text-purple-700">{appStats.selected}명</p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-          
-          {/* 실무진 면접 마감 버튼 */}
-          {(() => {
-            const practicalInterviewApplicants = applicantsList.filter(applicant => {
-              const status = applicant.interview_status;
-              return status === 'PRACTICAL_INTERVIEW_IN_PROGRESS' || 
-                     status === 'PRACTICAL_INTERVIEW_COMPLETED' || 
-                     status === 'PRACTICAL_INTERVIEW_PASSED' || 
-                     status === 'PRACTICAL_INTERVIEW_FAILED';
-            });
-            
-            if (practicalInterviewApplicants.length > 0) {
-              return (
-                <div className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border border-orange-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">실무진 면접 마감</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        실무진 면접 단계를 한번에 마감하고 다음 단계로 진행합니다. ({practicalInterviewApplicants.length}명)
-                      </p>
-                      <p className="text-xs text-orange-600 mt-2">
-                        ⚠️ 진행중인 면접은 완료로, 완료된 면접은 합격으로 처리됩니다.
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        💡 이 버튼을 클릭하면 실무진 면접 단계를 건너뛰고 다음 단계로 진행할 수 있습니다.
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleClosePracticalInterview}
-                      disabled={isClosingPracticalInterview}
-                      className={`px-6 py-3 text-white rounded-lg font-medium transition-colors ${
-                        isClosingPracticalInterview
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700'
-                      }`}
-                    >
-                      {isClosingPracticalInterview ? (
-                        <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          마감중...
-                        </div>
-                      ) : (
-                        '실무진 면접 마감'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
-          
-          {/* 단계 마무리 완료 버튼 */}
-          {getCurrentStageInfo && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">현재 단계: {getCurrentStageInfo.currentStage}</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    다음 단계: {getCurrentStageInfo.nextStage} ({getCurrentStageInfo.count}명)
-                  </p>
-                  <p className="text-xs text-blue-600 mt-2">
-                    💡 이 버튼을 클릭하면 현재 단계를 마무리하고 다음 단계로 진행합니다.
-                  </p>
-                </div>
-                <button
-                  onClick={handleCompleteStage}
-                  disabled={isCompletingStage}
-                  className={`px-6 py-3 text-white rounded-lg font-medium transition-colors ${
-                    isCompletingStage
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                  }`}
-                >
-                  {isCompletingStage ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      처리중...
-                    </div>
-                  ) : (
-                    '단계 마무리 완료'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 메인 콘텐츠 */}
-        {selectedApplicant ? (
-          <InterviewResultDetail 
-            applicant={selectedApplicant} 
-            onBack={handleBackToList}
-          />
-        ) : (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">AI 면접 결과 목록</h2>
-              <p className="text-gray-600">AI 면접 합격자, 불합격자, 그리고 실무진/임원진 면접 단계에 있는 지원자들의 결과를 확인할 수 있습니다.</p>
-            </div>
-
-            {applicantsList.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">📋</div>
-                <p className="text-gray-500 text-lg mb-2">AI 면접 결과가 없습니다</p>
-                <p className="text-gray-400 text-sm">AI 면접 합격자, 불합격자, 또는 실무진/임원진 면접 단계에 있는 지원자가 없습니다</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {applicantsList.map((applicant) => (
-                  <div key={applicant.application_id} className="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <FaUser className="text-blue-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{applicant.name}</h3>
-                          <p className="text-sm text-gray-600">{applicant.email}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600">AI 점수</div>
-                        <div className="text-xl font-bold text-blue-600">
-                          {applicant.ai_interview_score || 'N/A'}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">지원일:</span>
-                        <span className="font-medium">{new Date(applicant.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">AI 면접:</span>
-                        <span className={`font-medium ${
-                          applicant.ai_interview_status === 'PASSED' ? 'text-green-600' :
-                          applicant.ai_interview_status === 'FAILED' ? 'text-red-600' :
-                          'text-gray-600'
-                        }`}>
-                          {applicant.ai_interview_status === 'PASSED' ? '합격' :
-                           applicant.ai_interview_status === 'FAILED' ? '불합격' :
-                           applicant.ai_interview_status || '대기중'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleApplicantSelect(applicant)}
-                        className="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                      >
-                        <FaEye className="inline w-4 h-4 mr-2" />
-                        상세 보기
-                      </button>
-                      
-                      {/* AI 면접 완료된 지원자에 대해서만 결과 보기 버튼 표시 */}
-                      {(applicant.interview_status === 'AI_INTERVIEW_COMPLETED' || 
-                        applicant.interview_status === 'AI_INTERVIEW_PASSED' || 
-                        applicant.interview_status === 'AI_INTERVIEW_FAILED') && (
-                        <button
-                          onClick={() => handleViewResults(applicant)}
-                          className="px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                          title="AI 면접 결과 및 평가 보기"
-                        >
-                          📊 결과
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => handleReAnalyze(applicant)}
-                        disabled={isReAnalyzing && reAnalysisTarget === applicant.application_id}
-                        className="px-3 py-2 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:bg-gray-400 transition-colors"
-                        title="전체 오디오/비디오 세션 재분석"
-                      >
-                        {isReAnalyzing && reAnalysisTarget === applicant.application_id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>
-                        ) : (
-                          '↺ 재분석'
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-      
-      {/* 합격 취소 모달 */}
-      {showCancelModal && selectedApplicantForCancel && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              합격 취소 확인
-            </h3>
-            <div className="mb-4">
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>{selectedApplicantForCancel.name}</strong>님의 합격을 취소하시겠습니까?
-              </p>
-              <p className="text-xs text-gray-500">
-                현재 상태: {getStatusInfo(selectedApplicantForCancel.interview_status).label}
-              </p>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                취소 사유 (선택사항)
-              </label>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="합격 취소 사유를 입력하세요..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows="3"
-              />
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => {
-                  setShowCancelModal(false);
-                  setSelectedApplicantForCancel(null);
-                  setCancelReason('');
-                }}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleCancelPass}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-              >
-                합격 취소
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* 질문별 분석 버튼 추가 */}
-      <div className="mb-4 flex gap-2">
-        <button
-          onClick={() => setShowQuestionAnalysisModal(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
-        >
-          질문별 분석 결과
-        </button>
-        {/* ... existing buttons ... */}
-      </div>
-
       {/* 질문별 분석 모달 */}
       <QuestionVideoAnalysisModal
         isOpen={showQuestionAnalysisModal}
         onClose={() => setShowQuestionAnalysisModal(false)}
-        applicationId={selectedApplicant?.application_id}
+        applicationId={applicant?.application_id}
       />
       
       {/* 상세 Whisper 분석 모달 */}
@@ -3299,13 +2186,15 @@ const AiInterviewSystem = () => {
               </div>
             </div>
             <div className="p-6">
-              <DetailedWhisperAnalysis applicationId={selectedApplicant?.application_id} />
+              <DetailedWhisperAnalysis applicationId={applicant?.application_id} />
             </div>
           </div>
         </div>
       )}
     </div>
   );
-};
+});
 
-export default AiInterviewSystem; 
+InterviewResultDetail.displayName = 'InterviewResultDetail';
+
+export default InterviewResultDetail;

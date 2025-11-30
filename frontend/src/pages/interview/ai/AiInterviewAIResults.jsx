@@ -6,7 +6,6 @@ import {
   Card, 
   CardContent, 
   Container, 
-  Divider, 
   Grid, 
   Paper, 
   Tab, 
@@ -16,7 +15,6 @@ import {
   AccordionSummary, 
   AccordionDetails,
   Alert,
-  Chip,
   IconButton,
   Tooltip,
   CircularProgress
@@ -31,9 +29,7 @@ import {
   RecordVoiceOver as RecordVoiceOverIcon,
   VideoLibrary as VideoLibraryIcon
 } from '@mui/icons-material';
-import { MdOutlineRecordVoiceOver, MdOutlineAnalytics, MdOutlineVideoLibrary } from 'react-icons/md';
-import { FaList } from 'react-icons/fa';
-import api from '../../api/api';
+import api from '../../../api/api';
 
 const AiInterviewAIResults = () => {
   const { applicationId } = useParams();
@@ -69,7 +65,7 @@ const AiInterviewAIResults = () => {
       setSttStatus(res.data || null);
     } catch (e) {
       console.error('STT 상태 로드 실패:', e);
-      setError('STT 상태를 불러오지 못했습니다');
+      setError('STT 상태를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
@@ -84,7 +80,7 @@ const AiInterviewAIResults = () => {
       if (!(res.data && res.data.success)) {
         throw new Error(res.data?.detail || res.data?.message || 'QA 분석 실패');
       }
-      // 성공 시 자동으로 overview 보이도록 유지
+      // 성공 시 자동으로 overview 보이도록 설정
     } catch (e) {
       console.error('QA 분석 실행 실패:', e);
       setError(e.message || 'QA 분석 실행 중 오류가 발생했습니다');
@@ -93,7 +89,7 @@ const AiInterviewAIResults = () => {
     }
   }, [applicationId]);
 
-  // 초기 한번 STT 상태와 지원자 정보 로드
+  // 초기 한 번 STT 상태와 지원자 정보 로드
   useEffect(() => {
     loadSttStatus();
     loadApplicantInfo();
@@ -112,7 +108,7 @@ const AiInterviewAIResults = () => {
 
   const tabLabels = [
     { label: '개요', icon: <AnalyticsIcon /> },
-    { label: '답변별 분석', icon: <ListIcon /> },
+    { label: '질의응답 분석', icon: <ListIcon /> },
     { label: 'STT', icon: <RecordVoiceOverIcon /> },
     { label: '영상', icon: <VideoLibraryIcon /> }
   ];
@@ -169,9 +165,9 @@ const AiInterviewAIResults = () => {
                     '&:hover': { bgcolor: 'success.dark' },
                     '&:disabled': { bgcolor: 'grey.400' }
                   }}
-                  title="답변별 분석 실행"
+                  title="질의응답 분석 실행"
                 >
-                  답변별 분석 실행
+                  질의응답 분석 실행
                 </Button>
               </Box>
             </Box>
@@ -244,17 +240,17 @@ const AiInterviewAIResults = () => {
             </Tabs>
           </Box>
 
-          {/* 탭 콘텐츠 */}
+          {/* 탭 컨텐츠 */}
           <Box sx={{ p: 3 }}>
             {activeTab === 0 && (
               <Box sx={{ color: 'grey.700', space: 3 }}>
                 {overviewStats ? (
                   <Typography variant="body1" sx={{ mb: 3 }}>
-                    AI 면접의 요약 지표를 확인할 수 있습니다. 상단 버튼으로 STT 새로고침 및 답변별 분석을 실행하세요.
+                    AI 면접의 요약 지표를 확인할 수 있습니다. 상단 버튼으로 STT 새로고침 및 QA분석을 실행하세요.
                   </Typography>
                 ) : (
                   <Typography variant="body1" sx={{ mb: 3 }}>
-                    STT 분석 결과가 아직 없습니다. 상단의 STT 새로고침 또는 Whisper 분석을 먼저 실행하세요.
+                    STT 분석 결과가 아직 없습니다. 상단 STT 새로고침 또는 Whisper 분석을 먼저 실행하세요.
                   </Typography>
                 )}
 
@@ -296,23 +292,23 @@ const AiInterviewAIResults = () => {
                   </AccordionDetails>
                 </Accordion>
 
-                {/* 답변별 분석 아코디언 */}
+                {/* 질의응답 분석 아코디언 */}
                 <Accordion 
                   expanded={openQa} 
                   onChange={() => setOpenQa(!openQa)}
                 >
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                      답변별 분석
+                      질의응답 분석
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails>
                     <Typography variant="body2" sx={{ color: 'grey.600', mb: 2 }}>
-                      상단의 "답변별 분석 실행"을 눌러 분석을 생성하세요.
+                      상단의 "질의응답 분석 실행"을 눌러 분석을 생성하세요.
                     </Typography>
                     {qaItems.length > 0 && (
                       <Typography variant="body2" sx={{ color: 'grey.700' }}>
-                        총 {qaItems.length}개 답변 분석이 생성되었습니다. 탭에서 "답변별 분석"을 선택해 상세를 확인하세요.
+                        총 {qaItems.length}개의 질의응답 분석이 생성되었습니다. 아래 "질의응답 분석" 탭에서 상세 내용을 확인하세요.
                       </Typography>
                     )}
                   </AccordionDetails>
@@ -323,12 +319,12 @@ const AiInterviewAIResults = () => {
             {activeTab === 1 && (
               <Box sx={{ space: 3 }}>
                 <Typography variant="body2" sx={{ color: 'grey.600', mb: 2 }}>
-                  총 페어: {qaItems.length}
+                  총 문항: {qaItems.length}
                 </Typography>
                 {qaItems.length === 0 ? (
                   <Paper sx={{ p: 3, bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200' }}>
                     <Typography variant="body2" sx={{ color: 'grey.600' }}>
-                      답변별 분석 결과가 없습니다. 상단의 "답변별 분석 실행" 버튼을 눌러 분석을 생성하세요.
+                      질의응답 분석 결과가 없습니다. 상단의 "질의응답 분석 실행" 버튼을 눌러 분석을 생성하세요.
                     </Typography>
                   </Paper>
                 ) : (
@@ -447,7 +443,7 @@ const AiInterviewAIResults = () => {
 
             {activeTab === 3 && (
               <Typography variant="body1" sx={{ color: 'grey.600' }}>
-                AI 면접 비디오 프리뷰는 기존 시스템에서 제공된 URL을 재사용하세요. (이 페이지에서는 별도 로딩을 생략했습니다.)
+                AI 면접 비디오 프리뷰는 기존 시스템에서 제공된 URL을 사용하세요. (이 페이지에서는 별도 로딩을 생략했습니다.)
               </Typography>
             )}
           </Box>
@@ -458,5 +454,3 @@ const AiInterviewAIResults = () => {
 };
 
 export default AiInterviewAIResults;
-
-

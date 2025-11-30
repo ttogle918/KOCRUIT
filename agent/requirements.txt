@@ -33,7 +33,7 @@ fastapi==0.110.0
 uvicorn==0.29.0
 jinja2==3.1.2
 aiofiles>=23.1.0
-numpy==1.26.4
+numpy>=1.26.4,<2.0.0
 scikit-learn==1.5.2
 pymysql==1.1.1
 requests==2.31.0
@@ -58,7 +58,8 @@ python-multipart==0.0.6
 httpx==0.27.0
 
 # --- 오디오/음성인식/AI 평가 ---
-openai-whisper==20231117  # ✅ 음성인식
+openai-whisper  # ✅ 음성인식
+numba>=0.57.0
 librosa>=0.10.0           # ✅ 오디오 처리
 soundfile>=0.12.0         # ✅ 파일 처리
 pydub>=0.25.0             # ✅ 포맷 변환

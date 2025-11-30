@@ -24,18 +24,18 @@ import PassedApplicants from "./pages/applicant/PassedApplicants.jsx";
 import RejectedApplicants from "./pages/applicant/RejectedApplicants.jsx";
 import ManagerSchedule from './pages/schedule/ManagerSchedule.jsx';
 import MemberSchedule from './pages/schedule/MemberSchedule.jsx';
-import InterviewProgress from './pages/interview/InterviewProgress';
-import AiInterviewSystem from './pages/interview/AiInterviewSystem';
-import AiInterviewAIResults from './pages/interview/AiInterviewAIResults';
+import InterviewProgress from './pages/interview/admin/InterviewProgress';
+import AiSessionPage from './pages/interview/ai/AiSessionPage';
+import AiInterviewAIResults from './pages/interview/ai/AiInterviewAIResults';
 import AiInterviewDemo from './components/interview/AiInterviewDemo';
 import InterviewDashboard from './pages/interview/InterviewDashboard';
-import InterviewResults from './pages/interview/InterviewResults.jsx';
+import InterviewResults from './pages/interview/admin/InterviewResults';
 import GoogleDriveTest from './pages/common/GoogleDriveTest';
 import WrittenTestGenerator from './pages/applicant/WrittenTestGenerator';
-import InterviewPanelManagement from './pages/interview/InterviewPanelManagement';
-import ExecutiveInterviewList from './pages/interview/ExecutiveInterviewList';
-import ExecutiveInterviewDetail from './pages/interview/ExecutiveInterviewDetail';
-import InterviewManagementSystem from './pages/interview/InterviewManagementSystem';
+import InterviewPanelManagement from './pages/interview/admin/InterviewPanelManagement';
+import ExecutiveInterviewList from './pages/interview/human/ExecutiveInterviewList';
+import ExecutiveInterviewDetail from './pages/interview/human/ExecutiveInterviewDetail';
+import InterviewAdminPage from './pages/interview/admin/InterviewAdminPage';
 import DocumentReport from "./pages/DocumentReport.jsx";
 import JobAptitudeReport from "./pages/JobAptitudeReport.jsx";
 import FinalReport from "./pages/FinalReport.jsx";
@@ -223,8 +223,8 @@ function AppRoutes() {
         <Route path="/interview-progress/:jobPostId/:interviewStage/:applicantId" element={<ProtectedRoute><InterviewProgress /></ProtectedRoute>} />
         
         {/* AI 면접 시스템 */}
-        <Route path="/ai-interview/:jobPostId" element={<ProtectedRoute><AiInterviewSystem /></ProtectedRoute>} />
-        <Route path="/ai-interview/:jobPostId/:applicantId" element={<ProtectedRoute><AiInterviewSystem /></ProtectedRoute>} />
+        <Route path="/ai-interview/:jobPostId" element={<ProtectedRoute><AiSessionPage /></ProtectedRoute>} />
+        <Route path="/ai-interview/:jobPostId/:applicantId" element={<ProtectedRoute><AiSessionPage /></ProtectedRoute>} />
         
         {/* AI 면접 결과 */}
         <Route path="/ai-interview-results/:applicationId" element={<ProtectedRoute><AiInterviewAIResults /></ProtectedRoute>} />
@@ -236,8 +236,8 @@ function AppRoutes() {
                 <Route path="/applicant/written-test-generator" element={<ProtectedRoute><WrittenTestGenerator /></ProtectedRoute>} />
                 <Route path="/applicant/executive-interview" element={<ProtectedRoute><ExecutiveInterviewList /></ProtectedRoute>} />
                 <Route path="/applicant/executive-interview/:applicationId" element={<ProtectedRoute><ExecutiveInterviewDetail /></ProtectedRoute>} />
-                <Route path="/interview-management/:jobPostId" element={<ProtectedRoute><InterviewManagementSystem /></ProtectedRoute>} />
-                <Route path="/interview-management-system/:jobPostId" element={<ProtectedRoute><InterviewManagementSystem /></ProtectedRoute>} />
+                <Route path="/interview-management/:jobPostId" element={<ProtectedRoute><InterviewAdminPage /></ProtectedRoute>} />
+                <Route path="/interview-management-system/:jobPostId" element={<ProtectedRoute><InterviewAdminPage /></ProtectedRoute>} />
                 <Route path="/report/document" element={<ProtectedRoute><DocumentReport /></ProtectedRoute>} />
                 <Route path="/report/job-aptitude" element={<ProtectedRoute><JobAptitudeReport /></ProtectedRoute>} />
                 <Route path="/report/final" element={<ProtectedRoute><FinalReport /></ProtectedRoute>} />

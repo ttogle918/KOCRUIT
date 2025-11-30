@@ -13,27 +13,27 @@ import {
   MdOutlineAnalytics, MdOutlineDashboard
 } from 'react-icons/md';
 
-import api from '../../api/api';
+import api from '../../../api/api';
 
 // 지원자 카드 컴포넌트 (전체 프로세스 통합)
 const ApplicantProcessCard = ({ applicant, onViewDetails }) => {
   const getStageInfo = (status) => {
     if (status === 'AI_INTERVIEW_COMPLETED' || status === 'AI_INTERVIEW_PASSED') {
-      return { stage: 'AI 면접', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: '🤖' };
+      return { stage: 'AI 면접', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: <FaBrain /> };
     } else if (status === 'PRACTICAL_INTERVIEW_SCHEDULED' || status === 'PRACTICAL_INTERVIEW_IN_PROGRESS' || 
                status === 'PRACTICAL_INTERVIEW_COMPLETED' || status === 'PRACTICAL_INTERVIEW_PASSED' || 
                status === 'PRACTICAL_INTERVIEW_FAILED') {
-      return { stage: '실무진 면접', color: 'text-green-600', bgColor: 'bg-green-100', icon: '👔' };
+      return { stage: '실무진 면접', color: 'text-green-600', bgColor: 'bg-green-100', icon: <MdOutlineBusinessCenter /> };
     } else if (status === 'EXECUTIVE_INTERVIEW_SCHEDULED' || status === 'EXECUTIVE_INTERVIEW_IN_PROGRESS' || 
                status === 'EXECUTIVE_INTERVIEW_COMPLETED' || status === 'EXECUTIVE_INTERVIEW_PASSED' || 
                status === 'EXECUTIVE_INTERVIEW_FAILED') {
-      return { stage: '임원진 면접', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: '👑' };
+      return { stage: '임원진 면접', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: <FaCrown /> };
     } else if (status === 'FINAL_INTERVIEW_SCHEDULED' || status === 'FINAL_INTERVIEW_IN_PROGRESS' || 
                status === 'FINAL_INTERVIEW_COMPLETED' || status === 'FINAL_INTERVIEW_PASSED' || 
                status === 'FINAL_INTERVIEW_FAILED') {
-      return { stage: '최종 면접', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: '🎯' };
+      return { stage: '최종 면접', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: <FiTarget /> };
     } else {
-      return { stage: '서류 전형', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: '📄' };
+      return { stage: '서류 전형', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: <FaFileAlt /> };
     }
   };
 
@@ -61,7 +61,7 @@ const ApplicantProcessCard = ({ applicant, onViewDetails }) => {
         </div>
         <div className="text-right">
           <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${stageInfo.bgColor} ${stageInfo.color}`}>
-            {stageInfo.icon} {stageInfo.stage}
+            {stageInfo.icon} <span className="ml-1">{stageInfo.stage}</span>
           </div>
           <p className="text-xs text-gray-500 mt-1">AI점수: {applicant.ai_interview_score || 'N/A'}</p>
         </div>
@@ -99,7 +99,7 @@ const ApplicantProcessDetail = ({ applicant, onBack }) => {
   useEffect(() => {
     const loadProcessData = async () => {
       try {
-        // 지원자의 전체 프로세스 데이터 로드
+        // 지원자 전체 프로세스 데이터 로드
         const response = await api.get(`/applications/${applicant.application_id}/process-detail`);
         setProcessData(response.data);
       } catch (error) {
@@ -231,7 +231,7 @@ const ApplicantProcessDetail = ({ applicant, onBack }) => {
 };
 
 // 메인 면접 관리 시스템 컴포넌트
-const InterviewManagementSystem = () => {
+const InterviewAdminPage = () => {
   const { jobPostId } = useParams();
   const navigate = useNavigate();
   
@@ -244,7 +244,7 @@ const InterviewManagementSystem = () => {
   const [isCompletingStage, setIsCompletingStage] = useState(false);
   const [isClosingPracticalInterview, setIsClosingPracticalInterview] = useState(false);
 
-  // 새로운 상태 관리 변수들
+  // 필터링 및 상태 관리 변수들
   const [searchTerm, setSearchTerm] = useState('');
   const [filterJobPosting, setFilterJobPosting] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -458,7 +458,7 @@ const InterviewManagementSystem = () => {
   // 총 페이지 수
   const totalPages = Math.ceil(filteredAndSortedApplicants.length / itemsPerPage);
 
-  // 상태 배지 함수들
+  // 상태 배지 함수
   const getStatusBadge = (status, stage) => {
     if (!status) return <span className="text-gray-400">N/A</span>;
     
@@ -660,7 +660,7 @@ const InterviewManagementSystem = () => {
   // PDF 생성 (간단한 구현)
   const generatePDF = async (data, jobPostId) => {
     // 실제로는 jsPDF 등의 라이브러리를 사용하여 PDF 생성
-    // 여기서는 간단한 다운로드만 구현
+    // 여기서는 간단한 다운로드로 구현
     const content = `지원자 목록 - ${jobPostId}\n\n${data.map(a => `${a.name} (${a.email})`).join('\n')}`;
     downloadFile(content, `applicants_${jobPostId}_${new Date().toISOString().split('T')[0]}.txt`, 'text/plain');
   };
@@ -842,7 +842,7 @@ const InterviewManagementSystem = () => {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="이름 또는 이메일로 검색..."
+                  placeholder="이름 또는 이메일로 검색.."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -904,7 +904,7 @@ const InterviewManagementSystem = () => {
               </select>
             </div>
 
-            {/* 정렬 및 액션 */}
+            {/* 정렬 및 옵션 */}
             <div className="flex items-center gap-4">
               {/* 정렬 */}
               <div className="flex items-center gap-2">
@@ -933,7 +933,7 @@ const InterviewManagementSystem = () => {
                 className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-gray-400 flex items-center gap-2"
               >
                 <FaSync className="w-4 h-4" />
-                {isReAnalyzing ? '재분석중...' : '↺ 재분석'}
+                {isReAnalyzing ? '재분석중...' : '일괄 재분석'}
               </button>
 
               {/* 내보내기 */}
@@ -963,7 +963,7 @@ const InterviewManagementSystem = () => {
         <div className="bg-white rounded-lg shadow-lg p-6">
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* 전체 채용 현황 대시보드 */}
+              {/* 전체 채용 현황 (대시보드) */}
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">전체 채용 현황</h2>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -1008,7 +1008,7 @@ const InterviewManagementSystem = () => {
                 {/* 단계별 상세 현황 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-3">AI 면접 단계</h3>
+                    <h3 className="font-semibold text-gray-900 mb-3">AI 면접 통계</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">통과:</span>
@@ -1026,7 +1026,7 @@ const InterviewManagementSystem = () => {
                   </div>
                   
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-900 mb-3">실무진 면접 단계</h3>
+                    <h3 className="font-semibold text-gray-900 mb-3">실무진 면접 통계</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">합격:</span>
@@ -1052,7 +1052,7 @@ const InterviewManagementSystem = () => {
                   <div className="border rounded-lg p-4">
                     <h3 className="font-medium text-gray-900 mb-2">AI 면접 단계</h3>
                     <p className="text-sm text-gray-600 mb-3">
-                      🤖 {statistics.aiInterview.passed}명 통과, {statistics.aiInterview.failed}명 불합격
+                      현재 {statistics.aiInterview.passed}명 통과, {statistics.aiInterview.failed}명 불합격
                     </p>
                     <button 
                       onClick={() => {
@@ -1068,7 +1068,7 @@ const InterviewManagementSystem = () => {
                   <div className="border rounded-lg p-4">
                     <h3 className="font-medium text-gray-900 mb-2">실무진 면접 단계</h3>
                     <p className="text-sm text-gray-600 mb-3">
-                      👔 {statistics.practical.passed}명 합격, {statistics.practical.inProgress}명 진행중
+                      현재 {statistics.practical.passed}명 합격, {statistics.practical.inProgress}명 진행중
                     </p>
                     <button 
                       onClick={() => {
@@ -1084,7 +1084,7 @@ const InterviewManagementSystem = () => {
                   <div className="border rounded-lg p-4">
                     <h3 className="font-medium text-gray-900 mb-2">임원진 면접 단계</h3>
                     <p className="text-sm text-gray-600 mb-3">
-                      👑 {statistics.executive.passed}명 합격, {statistics.executive.inProgress}명 진행중
+                      현재 {statistics.executive.passed}명 합격, {statistics.executive.inProgress}명 진행중
                     </p>
                     <button 
                       onClick={() => {
@@ -1132,8 +1132,8 @@ const InterviewManagementSystem = () => {
           {activeTab === 'applicants' && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">지원자별 전체 프로세스 추적</h2>
-                <p className="text-sm text-gray-600">전체 채용 프로세스에서 지원자별 진행 현황을 확인할 수 있습니다.</p>
+                <h2 className="text-xl font-semibold text-gray-900">지원자 전체 프로세스 추적</h2>
+                <p className="text-sm text-gray-600">전체 채용 프로세스에서 지원자의 진행 현황을 확인할 수 있습니다.</p>
               </div>
 
               {applicantsList.length === 0 ? (
@@ -1253,7 +1253,7 @@ const InterviewManagementSystem = () => {
                                     }}
                                     className="text-yellow-600 hover:text-yellow-900"
                                   >
-                                    ↺ 재분석
+                                    재분석
                                   </button>
                                 </div>
                               </td>
@@ -1346,7 +1346,7 @@ const InterviewManagementSystem = () => {
                   <div className="space-y-3">
                     <button className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
                       <FaDownload className="inline w-4 h-4 mr-2" />
-                      월간 채용 리포트
+                      주간 채용 리포트
                     </button>
                     <button className="w-full px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
                       <FaDownload className="inline w-4 h-4 mr-2" />
@@ -1411,13 +1411,13 @@ const InterviewManagementSystem = () => {
                   <h4 className="font-medium text-gray-900 mb-3">주요 강점</h4>
                   <div className="space-y-2">
                     <div className="bg-green-50 p-3 rounded-lg">
-                      <p className="text-sm text-green-800">• AI 면접에서 높은 점수 획득</p>
+                      <p className="text-sm text-green-800">✅ AI 면접에서 높은 점수 획득</p>
                     </div>
                     <div className="bg-green-50 p-3 rounded-lg">
-                      <p className="text-sm text-green-800">• 실무진 면접 통과</p>
+                      <p className="text-sm text-green-800">✅ 실무진 면접 통과</p>
                     </div>
                     <div className="bg-green-50 p-3 rounded-lg">
-                      <p className="text-sm text-green-800">• 적극적인 지원 의지</p>
+                      <p className="text-sm text-green-800">✅ 적극적인 지원 태도</p>
                     </div>
                   </div>
                 </div>
@@ -1466,7 +1466,7 @@ const InterviewManagementSystem = () => {
                   <div className="border rounded-lg">
                     <div className="border-b">
                       <button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        서류 평가
+                        서류 전형
                       </button>
                     </div>
                     <div className="border-b">
@@ -1500,7 +1500,7 @@ const InterviewManagementSystem = () => {
                     }}
                     className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
                   >
-                    ↺ 재분석
+                    재분석
                   </button>
                 </div>
               </div>
@@ -1538,7 +1538,7 @@ const InterviewManagementSystem = () => {
                           onChange={(e) => setBatchModalData({ ...batchModalData, confirmed: e.target.checked })}
                         />
                         <span className="ml-2 text-sm text-gray-700">
-                          이 작업이 되돌릴 수 없음을 확인했습니다
+                          위 작업을 확인했습니다
                         </span>
                       </label>
                     </div>
@@ -1578,7 +1578,7 @@ const InterviewManagementSystem = () => {
                           </div>
                         ))}
                       {paginatedApplicants.filter(a => a.interview_status && a.interview_status.startsWith('PRACTICAL_INTERVIEW_')).length > 5 && (
-                        <p className="text-xs text-gray-500 text-center">... 및 {paginatedApplicants.filter(a => a.interview_status && a.interview_status.startsWith('PRACTICAL_INTERVIEW_')).length - 5}명 더</p>
+                        <p className="text-xs text-gray-500 text-center">... 외 {paginatedApplicants.filter(a => a.interview_status && a.interview_status.startsWith('PRACTICAL_INTERVIEW_')).length - 5}명</p>
                       )}
                     </div>
                     <div className="mt-6 flex space-x-3">
@@ -1624,4 +1624,4 @@ const InterviewManagementSystem = () => {
   );
 };
 
-export default InterviewManagementSystem;
+export default InterviewAdminPage;

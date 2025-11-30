@@ -1,7 +1,7 @@
 import React from 'react';
-import InterviewPanel from './InterviewPanel';
+import InterviewWorkspace from '../../../../../components/interview/common/InterviewWorkspace';
 
-// 실무진 면접 전용 페이지 (기존 InterviewPanel 재사용, 라우팅/타이틀 분리)
+// 실무진 면접 전용 페이지 (기존 InterviewPanel 복사본, 향후 커스터마이징 분리)
 export default function PracticalInterviewPage(props) {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -17,13 +17,13 @@ export default function PracticalInterviewPage(props) {
               실무진 면접
             </div>
             <div className="text-sm text-gray-500">
-              기술력 • 의사소통 • 문제해결능력 평가
+              기술적 의사소통 및 문제해결능력 평가
             </div>
           </div>
         </div>
         
         {/* InterviewPanel에 실무진 면접 타입 전달 */}
-        <InterviewPanel 
+        <InterviewWorkspace 
           {...props} 
           interviewType="practical"
           interviewStage="practical"
@@ -32,5 +32,3 @@ export default function PracticalInterviewPage(props) {
     </div>
   );
 }
-
-
