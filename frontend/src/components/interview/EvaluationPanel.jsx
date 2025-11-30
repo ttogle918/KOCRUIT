@@ -141,7 +141,6 @@ const EvaluationPanelFull = ({
         
         // 기존 평가 데이터로 폼 초기화
         const evaluationItems = data.evaluation_items || [];
-        const details = data.details || [];
         
         // 평가 항목별 점수 매핑
         const itemScores = {};
@@ -483,254 +482,239 @@ const EvaluationPanelFull = ({
 
   return (
     <>
-      <Card className="h-full">
-        <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <Typography variant="h6" gutterBottom>
-              {selectedApplicant.name} 지원자 평가
-            </Typography>
-            <div className="flex items-center gap-2">
-              {hasExistingData && (
-                <Chip
-                  icon={<FiDatabase />}
-                  label="DB 저장됨"
-                  color="success"
-                  size="small"
-                  variant="outlined"
-                />
-              )}
-              <Tooltip title="가중치 설정">
-                <IconButton
-                  size="small"
-                  onClick={() => setWeightSettingsOpen(true)}
-                  color="primary"
-                >
-                  <FiSettings />
-                </IconButton>
-              </Tooltip>
-            </div>
-          </div>
-
-          <Stack sx={{ width: '100%', gap: '24px' }}>
-            {/* 지원자 정보 */}
-            <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                지원자 정보
-              </Typography>
-              <div className="flex items-center gap-4">
-                <Typography variant="body1">
-                  {selectedApplicant?.name || '이름 없음'}
-                </Typography>
-                <Chip 
-                  label={selectedApplicant?.status || '상태 없음'} 
-                  size="small" 
-                  variant="outlined" 
-                />
-                <Chip 
-                  label={evaluationType === 'PRACTICAL' ? '실무진' : '임원진'} 
-                  size="small" 
-                  color="primary"
-                  variant="filled"
-                />
-              </div>
-            </div>
-
-            {/* 기존 평가 데이터 표시 */}
-            {hasExistingData && existingEvaluation && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-                <Typography variant="subtitle2" color="primary" gutterBottom>
-                  📊 기존 평가 데이터
-                </Typography>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>총점: <strong>{existingEvaluation?.total_score || 0}점</strong></div>
-                  <div>상태: <strong>{existingEvaluation?.status || 'N/A'}</strong></div>
-                  <div>평가일: <strong>{existingEvaluation?.created_at ? new Date(existingEvaluation.created_at).toLocaleDateString() : 'N/A'}</strong></div>
-                  <div>평가자: <strong>ID {existingEvaluation?.evaluator_id || 'N/A'}</strong></div>
-                </div>
-              </div>
+      <Card className="h-full flex flex-col">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0 bg-white dark:bg-gray-800 rounded-t-lg">
+          <Typography variant="h6">
+            {selectedApplicant.name} 지원자 평가
+          </Typography>
+          <div className="flex items-center gap-2">
+            {hasExistingData && (
+              <Chip
+                icon={<FiDatabase />}
+                label="DB 저장됨"
+                color="success"
+                size="small"
+                variant="outlined"
+              />
             )}
+            <Tooltip title="가중치 설정">
+              <IconButton
+                size="small"
+                onClick={() => setWeightSettingsOpen(true)}
+                color="primary"
+              >
+                <FiSettings />
+              </IconButton>
+            </Tooltip>
+          </div>
+        </div>
 
-            {/* 세부 평가 항목 */}
-            <div className="space-y-4">
-              <Typography variant="subtitle1" gutterBottom>
-                세부 평가
+        <CardContent className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+          {/* 기존 평가 데이터 표시 */}
+          {hasExistingData && existingEvaluation && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+              <Typography variant="subtitle2" color="primary" gutterBottom>
+                📊 기존 평가 데이터
               </Typography>
-              
-              {Array.isArray(evaluationItems) && evaluationItems.length > 0 ? evaluationItems.map(({ field, label, description, weight }) => (
-                <div key={field} className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <Typography variant="body2" className="font-medium">
-                        {label || '제목 없음'}
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>총점: <strong>{existingEvaluation?.total_score || 0}점</strong></div>
+                <div>상태: <strong>{existingEvaluation?.status || 'N/A'}</strong></div>
+                <div>평가일: <strong>{existingEvaluation?.created_at ? new Date(existingEvaluation.created_at).toLocaleDateString() : 'N/A'}</strong></div>
+                <div>평가자: <strong>ID {existingEvaluation?.evaluator_id || 'N/A'}</strong></div>
+              </div>
+            </div>
+          )}
+
+          {/* 세부 평가 항목 */}
+          <div className="space-y-4">
+            <Typography variant="subtitle1" gutterBottom className="font-bold">
+              세부 평가
+            </Typography>
+            
+            {Array.isArray(evaluationItems) && evaluationItems.length > 0 ? evaluationItems.map(({ field, label, description, weight }) => (
+              <div key={field} className="space-y-1 p-2 bg-gray-50 rounded-md">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <Typography variant="body2" className="font-medium">
+                      {label || '제목 없음'}
+                    </Typography>
+                    {description && (
+                      <Typography 
+                        variant="caption" 
+                        color="textSecondary"
+                        className="text-xs leading-tight block mt-1"
+                      >
+                        {description}
                       </Typography>
-                      {description && (
-                        <Typography 
-                          variant="caption" 
-                          color="textSecondary"
-                          className="text-xs leading-tight block mt-1"
-                        >
-                          {description}
-                        </Typography>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {typeof weight === 'number' && (
-                        <Chip
-                          label={`${(weight * 100).toFixed(0)}%`}
-                          size="small"
-                          variant="outlined"
-                          color="secondary"
-                        />
-                      )}
-                      <Rating
-                        value={evaluation[field] || 0}
-                        onChange={(_, value) => handleRatingChange(field, value)}
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {typeof weight === 'number' && (
+                      <Chip
+                        label={`${(weight * 100).toFixed(0)}%`}
                         size="small"
+                        variant="outlined"
+                        color="secondary"
                       />
-                      <Typography variant="caption" color="textSecondary">
-                        {getRatingLabel(evaluation[field] || 0)}
-                      </Typography>
-                    </div>
+                    )}
+                    <Rating
+                      value={evaluation[field] || 0}
+                      onChange={(_, value) => handleRatingChange(field, value)}
+                      size="small"
+                    />
+                    <Typography variant="caption" color="textSecondary" sx={{ minWidth: '60px', textAlign: 'right' }}>
+                      {getRatingLabel(evaluation[field] || 0)}
+                    </Typography>
                   </div>
                 </div>
-              )) : (
-                <div className="text-center py-4 text-gray-500">
-                  평가 항목을 불러올 수 없습니다.
-                </div>
-              )}
-            </div>
-
-            {/* 전체 평가 */}
-            <div className="space-y-2">
-              <Typography variant="subtitle1" gutterBottom>
-                전체 평가
-              </Typography>
-              <div className="flex items-center gap-2">
-                <Rating
-                  value={evaluation.overallRating}
-                  onChange={(_, value) => handleRatingChange('overallRating', value)}
-                  size="large"
-                />
-                <Typography variant="h6" color="primary">
-                  {evaluation.overallRating}/5
-                </Typography>
               </div>
-              {errors.overallRating && (
-                <Alert severity="error" size="small">{errors.overallRating}</Alert>
-              )}
-            </div>
+            )) : (
+              <div className="text-center py-4 text-gray-500">
+                평가 항목을 불러올 수 없습니다.
+              </div>
+            )}
+          </div>
 
-            {/* 강점/약점 */}
-            <div className="grid grid-cols-2 gap-4">
+          <Divider />
+
+          {/* 전체 평가 */}
+          <div className="space-y-2">
+            <Typography variant="subtitle1" gutterBottom className="font-bold">
+              전체 평가
+            </Typography>
+            <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg">
+              <Rating
+                value={evaluation.overallRating}
+                onChange={(_, value) => handleRatingChange('overallRating', value)}
+                size="large"
+              />
+              <Typography variant="h5" color="primary" className="font-bold">
+                {evaluation.overallRating}/5
+              </Typography>
+            </div>
+            {errors.overallRating && (
+              <Alert severity="error" size="small">{errors.overallRating}</Alert>
+            )}
+          </div>
+
+          <Divider />
+
+          {/* 강점/약점 */}
+          <div className="space-y-4">
+            <Typography variant="subtitle1" gutterBottom className="font-bold">
+              상세 의견
+            </Typography>
+            <div className="grid grid-cols-1 gap-4">
               <TextField
                 fullWidth
                 label="강점"
                 multiline
-                rows={3}
+                rows={2}
                 value={evaluation.strengths}
                 onChange={(e) => handleTextChange('strengths', e.target.value)}
                 placeholder="지원자의 주요 강점을 입력하세요"
+                variant="outlined"
+                size="small"
               />
               <TextField
                 fullWidth
                 label="개선점"
                 multiline
-                rows={3}
+                rows={2}
                 value={evaluation.weaknesses}
                 onChange={(e) => handleTextChange('weaknesses', e.target.value)}
                 placeholder="개선이 필요한 부분을 입력하세요"
+                variant="outlined"
+                size="small"
               />
             </div>
+          </div>
 
-            {/* 평가 코멘트 */}
-            <TextField
-              fullWidth
-              label="종합 평가 코멘트"
-              multiline
-              rows={4}
-              value={evaluation.comments}
-              onChange={(e) => handleTextChange('comments', e.target.value)}
-              placeholder="지원자에 대한 종합적인 평가를 입력하세요"
-              error={!!errors.comments}
-              helperText={errors.comments}
-              required
+          {/* 평가 코멘트 */}
+          <TextField
+            fullWidth
+            label="종합 평가 코멘트"
+            multiline
+            rows={3}
+            value={evaluation.comments}
+            onChange={(e) => handleTextChange('comments', e.target.value)}
+            placeholder="지원자에 대한 종합적인 평가를 입력하세요"
+            error={!!errors.comments}
+            helperText={errors.comments}
+            required
+            variant="outlined"
+          />
+
+          {/* 최종 추천 */}
+          <FormControl fullWidth>
+            <InputLabel>최종 추천</InputLabel>
+            <Select
+              value={evaluation.recommendation}
+              onChange={(e) => handleTextChange('recommendation', e.target.value)}
+              label="최종 추천"
+            >
+              <MenuItem value="STRONGLY_RECOMMEND">강력 추천</MenuItem>
+              <MenuItem value="RECOMMEND">추천</MenuItem>
+              <MenuItem value="PENDING">보류</MenuItem>
+              <MenuItem value="NOT_RECOMMEND">추천 안함</MenuItem>
+            </Select>
+          </FormControl>
+
+          {/* 최종 추천 표시 */}
+          <div className="flex justify-center pb-4">
+            <Chip
+              label={getRecommendationLabel(evaluation.recommendation)}
+              color={getRecommendationColor(evaluation.recommendation)}
+              variant="filled"
+              size="medium" 
+              sx={{ fontWeight: 'bold', px: 2 }}
             />
-
-            {/* 최종 추천 */}
-            <FormControl fullWidth>
-              <InputLabel>최종 추천</InputLabel>
-              <Select
-                value={evaluation.recommendation}
-                onChange={(e) => handleTextChange('recommendation', e.target.value)}
-                label="최종 추천"
-              >
-                <MenuItem value="STRONGLY_RECOMMEND">강력 추천</MenuItem>
-                <MenuItem value="RECOMMEND">추천</MenuItem>
-                <MenuItem value="PENDING">보류</MenuItem>
-                <MenuItem value="NOT_RECOMMEND">추천 안함</MenuItem>
-              </Select>
-            </FormControl>
-
-            {/* 최종 추천 표시 */}
-            <div className="flex justify-center">
-              <Chip
-                label={getRecommendationLabel(evaluation.recommendation)}
-                color={getRecommendationColor(evaluation.recommendation)}
-                variant="filled"
-                size="large"
-              />
-            </div>
-
-            <Divider />
-
-            {/* 액션 버튼 */}
-            <div className="flex gap-2">
-              <Button
-                variant="contained"
-                onClick={handleSubmit}
-                startIcon={isSaving ? <CircularProgress size={20} /> : <FiSave />}
-                disabled={isSaving}
-                fullWidth
-              >
-                {isSaving ? '저장 중...' : '평가 제출'}
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={loadExistingEvaluation}
-                startIcon={<FiRefreshCw />}
-                disabled={isLoading}
-              >
-                새로고침
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setEvaluation({
-                  technicalSkills: 0,
-                  communication: 0,
-                  problemSolving: 0,
-                  teamwork: 0,
-                  motivation: 0,
-                  overallRating: 0,
-                  strengths: '',
-                  weaknesses: '',
-                  comments: '',
-                  recommendation: 'PENDING'
-                })}
-                startIcon={<FiX />}
-              >
-                초기화
-              </Button>
-            </div>
-          </Stack>
+          </div>
         </CardContent>
+
+        {/* 하단 고정 버튼 영역 */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex gap-2 flex-shrink-0 rounded-b-lg">
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <FiSave />}
+            disabled={isSaving}
+            fullWidth
+            size="large"
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {isSaving ? '저장 중...' : '평가 제출'}
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => setEvaluation({
+              technicalSkills: 0,
+              communication: 0,
+              problemSolving: 0,
+              teamwork: 0,
+              motivation: 0,
+              overallRating: 0,
+              strengths: '',
+              weaknesses: '',
+              comments: '',
+              recommendation: 'PENDING'
+            })}
+            startIcon={<FiRefreshCw />}
+            color="inherit"
+          >
+            초기화
+          </Button>
+        </div>
       </Card>
 
       {/* 가중치 설정 모달 */}
       <Dialog 
         open={weightSettingsOpen} 
         onClose={() => setWeightSettingsOpen(false)}
-        maxWidth="sm"
-        fullWidth
+        maxWidth={false}
+        PaperProps={{
+          sx: { width: '100%', maxWidth: '600px' }
+        }}
       >
         <DialogTitle>
           <div className="flex items-center gap-2">
@@ -758,7 +742,7 @@ const EvaluationPanelFull = ({
                     step: 0.1
                   }}
                   sx={{ width: 100 }}
-                  helperText={`${(weightSettings && typeof weightSettings === 'object' && label ? (weightSettings[label] || weight || 0.2) : (weight || 0.2)) * 100}%`}
+                  helperText={`${((weightSettings && typeof weightSettings === 'object' && label ? (weightSettings[label] || weight || 0.2) : (weight || 0.2)) * 100).toFixed(0)}%`}
                 />
               </div>
             )) : (
@@ -776,7 +760,7 @@ const EvaluationPanelFull = ({
                   }
                 </strong>
                 {weightSettings && typeof weightSettings === 'object' && Object.keys(weightSettings).length > 0 && 
-                 Object.values(weightSettings).reduce((sum, weight) => sum + (parseFloat(weight) || 0), 0) !== 1 && (
+                 Math.abs(Object.values(weightSettings).reduce((sum, weight) => sum + (parseFloat(weight) || 0), 0) - 1.0) > 0.01 && (
                   <span className="text-orange-600 ml-2">
                     (권장: 1.0)
                   </span>

@@ -48,7 +48,7 @@ class AIQuestionGenerationWorkflow:
     
     def __init__(self):
         self.llm = ChatOpenAI(
-            model="gpt-4o",
+            model="gpt-4o-mini",
             temperature=0.7,
             api_key=settings.OPENAI_API_KEY
         )

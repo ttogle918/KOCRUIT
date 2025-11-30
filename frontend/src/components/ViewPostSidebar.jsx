@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { CiSettings, CiUser, CiCalendar } from 'react-icons/ci';
 import { MdOutlinePlayCircle, MdCheckCircle } from 'react-icons/md';
-import { MdOutlineAutoAwesome, MdOutlineGroups, MdOutlineBusiness } from 'react-icons/md';
+import { MdOutlineAutoAwesome, MdOutlineGroups, MdOutlineBusiness, MdOutlineSettingsInputComponent, MdOutlineDashboard } from 'react-icons/md';
 import axiosInstance from '../api/axiosInstance';
 
 export default function ViewPostSidebar({ jobPost }) {
@@ -206,18 +206,19 @@ export default function ViewPostSidebar({ jobPost }) {
         <div className={`text-xs font-semibold px-2 mb-1 ${isHovered ? 'block' : 'hidden'}`}>
           면접 진행
         </div>
-        {/* AI 면접 */}
+        {/* AI 면접 설정 및 체험 */}
         <button
           className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
-            ${isAiInterview
+            ${location.pathname.includes('/ai-interview-setup')
               ? 'bg-green-600 text-white hover:bg-green-700'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}
           `}
-          onClick={() => navigate(aiInterviewPath)}
+          onClick={() => navigate(`/ai-interview-setup/${effectiveJobPostId}`)}
+          title="AI 면접 설정 및 체험"
         >
-          <MdOutlineAutoAwesome size={20} />
-          {isHovered && <span className="ml-2">AI 면접</span>}
+          <MdOutlineSettingsInputComponent size={20} />
+          {isHovered && <span className="ml-2">AI 면접 설정/체험</span>}
         </button>
         {/* 1차 면접 (실무진) */}
         <button
@@ -245,16 +246,17 @@ export default function ViewPostSidebar({ jobPost }) {
           <MdOutlineBusiness size={20} />
           {isHovered && <span className="ml-2">임원진 면접</span>}
         </button>
-        {/* 면접 시스템 관리 페이지 추가 */}
+        {/* 전체 채용 관리 (구 면접 시스템 관리) */}
         <button
           className={`flex items-center w-full h-10 rounded-md px-2 transition text-sm font-semibold
             ${isHovered ? 'justify-start' : 'justify-center'}
             bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-200 hover:bg-orange-200 dark:hover:bg-orange-800
           `}
           onClick={() => navigate(`/interview-management-system/${effectiveJobPostId}`)}
+          title="전체 채용 관리"
         >
-          <MdOutlineAutoAwesome size={20} />
-          {isHovered && <span className="ml-2">면접 시스템 관리</span>}
+          <MdOutlineDashboard size={20} />
+          {isHovered && <span className="ml-2">전체 채용 관리</span>}
         </button>
       </div>
       

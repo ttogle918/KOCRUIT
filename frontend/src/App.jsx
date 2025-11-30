@@ -36,6 +36,7 @@ import InterviewPanelManagement from './pages/interview/admin/InterviewPanelMana
 import ExecutiveInterviewList from './pages/interview/human/ExecutiveInterviewList';
 import ExecutiveInterviewDetail from './pages/interview/human/ExecutiveInterviewDetail';
 import InterviewAdminPage from './pages/interview/admin/InterviewAdminPage';
+import AiInterviewSetupPage from './pages/interview/ai/AiInterviewSetupPage';
 import DocumentReport from "./pages/DocumentReport.jsx";
 import JobAptitudeReport from "./pages/JobAptitudeReport.jsx";
 import FinalReport from "./pages/FinalReport.jsx";
@@ -223,6 +224,8 @@ function AppRoutes() {
         <Route path="/interview-progress/:jobPostId/:interviewStage/:applicantId" element={<ProtectedRoute><InterviewProgress /></ProtectedRoute>} />
         
         {/* AI 면접 시스템 */}
+        <Route path="/ai-interview-setup/:jobPostId" element={<ProtectedRoute><AiInterviewSetupPage /></ProtectedRoute>} />
+        <Route path="/ai-interview-system/:jobPostId" element={<ProtectedRoute><AiSessionPage /></ProtectedRoute>} />
         <Route path="/ai-interview/:jobPostId" element={<ProtectedRoute><AiSessionPage /></ProtectedRoute>} />
         <Route path="/ai-interview/:jobPostId/:applicantId" element={<ProtectedRoute><AiSessionPage /></ProtectedRoute>} />
         

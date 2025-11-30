@@ -108,31 +108,15 @@ function InterviewProgress() {
   // 패널 상태
   const [showSelectionScreen, setShowSelectionScreen] = useState(true);
   const [activeTab, setActiveTab] = useState('applicants'); // 'applicants', 'questions', 'statistics'
-  const [panelSizes, setPanelSizes] = useState({
-    resume: { width: 400, height: 300 },
-    commonQuestions: { width: 400, height: 300 },
-    customQuestions: { width: 400, height: 300 },
-    questionRecommendation: { width: 400, height: 300 }
-  });
-
-  // 사이드바/헤더 크기에 맞춰 동적 좌표 계산
-  const [layoutOffsets, setLayoutOffsets] = useState({ top: 120, left: 90 });
-
-  // 3-분할 레이아웃 가변 크기 상태
-  const [leftWidth, setLeftWidth] = useState(420);
-  const [middleWidth, setMiddleWidth] = useState(560);
-  const [rightWidth, setRightWidth] = useState(520);
-  const minColWidth = 320;
-  const gutter = 6; // 리사이저 두께
-
-  // 중앙 컬럼 상하 분할 높이
-  const [middleTopHeight, setMiddleTopHeight] = useState(260);
-  const minRowHeight = 160;
-
-  // 드래그 상태
-  const [draggingCol, setDraggingCol] = useState(null); // 'left' | 'right' | null
-  const [draggingRow, setDraggingRow] = useState(false);
   
+  // 레이아웃 상태
+  const [layoutOffsets, setLayoutOffsets] = useState({ top: 120, left: 90 });
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // 필터링 상태 (PASSED, FAILED, null)
+  const [filterStatus, setFilterStatus] = useState(null);
+
   // 실시간 분석 상태 (중앙 하단 STT 녹음/데이터)
   const [isRealtimeAnalysisEnabled, setIsRealtimeAnalysisEnabled] = useState(false);
   const [realtimeAnalysisResults, setRealtimeAnalysisResults] = useState([]);
@@ -155,10 +139,6 @@ function InterviewProgress() {
   const [interviewStatistics, setInterviewStatistics] = useState(null);
   const [statisticsLoading, setStatisticsLoading] = useState(false);
 
-  // 반응형 레이아웃 상태
-  const [isMobile, setIsMobile] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-
   // STT 관련 refs
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -176,52 +156,6 @@ function InterviewProgress() {
     window.addEventListener('resize', measureOffsets);
     return () => window.removeEventListener('resize', measureOffsets);
   }, []);
-
-  // 컬럼 리사이즈 핸들러
-  useEffect(() => {
-    const handleMove = (e) => {
-      if (!draggingCol && !draggingRow) return;
-      if (draggingCol) {
-        // 전체 가로폭 계산
-        const total = window.innerWidth - layoutOffsets.left - gutter * 2; // 두 개의 수직 리사이저
-        let lx = leftWidth;
-        let mx = middleWidth;
-        let rx = rightWidth;
-        if (draggingCol === 'left') {
-          const newLeft = Math.max(minColWidth, Math.min(total - minColWidth * 2, e.clientX - layoutOffsets.left));
-          const delta = newLeft - leftWidth;
-          lx = newLeft;
-          mx = Math.max(minColWidth, middleWidth - delta);
-        } else if (draggingCol === 'right') {
-          const usedLeft = leftWidth + gutter + middleWidth + gutter;
-          const newRight = Math.max(minColWidth, Math.min(total - minColWidth, total - (e.clientX - layoutOffsets.left)));
-          // 오른쪽 기준 조정: 남는 영역 right에 할당
-          const delta = newRight - rightWidth;
-          rx = newRight;
-          mx = Math.max(minColWidth, middleWidth - delta);
-        }
-        setLeftWidth(lx);
-        setMiddleWidth(mx);
-        setRightWidth(rx);
-      } else if (draggingRow) {
-        const containerTop = layoutOffsets.top;
-        const cursorY = e.clientY - containerTop; // 컨테이너 기준 Y
-        const available = window.innerHeight - layoutOffsets.top;
-        const newTop = Math.max(minRowHeight, Math.min(available - minRowHeight - gutter, cursorY));
-        setMiddleTopHeight(newTop);
-      }
-    };
-    const stopDrag = () => {
-      setDraggingCol(null);
-      setDraggingRow(false);
-    };
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', stopDrag);
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', stopDrag);
-    };
-  }, [draggingCol, draggingRow, leftWidth, middleWidth, rightWidth, layoutOffsets.top, layoutOffsets.left]);
 
   // 지원자 목록 로드
   useEffect(() => {
@@ -752,6 +686,19 @@ function InterviewProgress() {
     }
   };
 
+  // 필터링된 지원자 목록
+  const filteredApplicants = applicants.filter(applicant => {
+    if (!filterStatus) return true;
+    
+    const statusField = interviewStage === 'executive' 
+      ? 'executive_interview_status' 
+      : 'practical_interview_status';
+      
+    const status = applicant[statusField] || 'PENDING';
+    
+    return status === filterStatus;
+  });
+
   return (
     <Container maxWidth={false} disableGutters className="relative min-h-screen bg-[#f7faff] dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <Navbar />
@@ -780,111 +727,173 @@ function InterviewProgress() {
        >
         {showSelectionScreen ? (
           // 탭 기반 선택 화면
-          <div className="flex-1 flex flex-col">
-                         {/* 탭 네비게이션 */}
-                           <Paper sx={{ borderBottom: '1px solid #d1d5db', bgcolor: '#f9fafb' }}>
-               <div className="flex overflow-x-auto">
-                 {/* 면접 단계 정보 표시 */}
-                 <div className="flex items-center px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-r border-blue-200 dark:border-blue-700">
-                   <Typography variant="h6" className="text-blue-700 dark:text-blue-300 font-semibold">
-                     {getStageTitle()}
-                   </Typography>
-                   <Typography variant="body2" className="text-blue-600 dark:text-blue-400 ml-2">
-                     {getStageDescription()}
-                   </Typography>
+          <div className="flex-1 flex flex-col overflow-hidden">
+               <Paper sx={{ borderBottom: '1px solid #e5e7eb', bgcolor: 'white', zIndex: 10, p: 3, flexShrink: 0 }}>
+               {/* 3D 파스텔 카드형 헤더 섹션 */}
+               <div className={`
+                 rounded-2xl p-6 shadow-md border
+                 transition-all duration-300 hover:shadow-lg hover:scale-[1.005]
+                 ${interviewStage === 'executive' 
+                   ? 'bg-gradient-to-br from-purple-50 via-fuchsia-50 to-pink-50 border-purple-100' 
+                   : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 border-blue-100'}
+               `}>
+                 <div className="flex justify-between items-center">
+                   <div className="flex items-start gap-4">
+                     {/* 아이콘 박스 */}
+                     <div className={`
+                       p-3 rounded-xl shadow-sm
+                       ${interviewStage === 'executive' 
+                         ? 'bg-white text-purple-600' 
+                         : 'bg-white text-blue-600'}
+                     `}>
+                       {interviewStage === 'executive' ? <AssessmentIcon fontSize="large" /> : <LightbulbIcon fontSize="large" />}
+                     </div>
+
+                     <div>
+                       <div className="flex items-center gap-3 mb-1">
+                         <Typography variant="h5" className={`font-bold tracking-tight ${interviewStage === 'executive' ? 'text-purple-900' : 'text-slate-800'}`}>
+                           {getStageTitle()}
+                         </Typography>
+                         <Chip 
+                           label={interviewStage === 'executive' ? '최종 결정' : '심층 평가'} 
+                           size="small"
+                           className={`${
+                             interviewStage === 'executive' 
+                               ? 'bg-white/80 text-purple-700 border-purple-200 shadow-sm' 
+                               : 'bg-white/80 text-blue-700 border-blue-200 shadow-sm'
+                           } font-bold`}
+                         />
+                       </div>
+                       <Typography variant="body1" className={`${interviewStage === 'executive' ? 'text-purple-700/80' : 'text-slate-600'}`}>
+                         {getStageDescription()}
+                       </Typography>
+                     </div>
+                   </div>
+                   
+                   {/* 간단 통계 뱃지들 (파스텔 톤에 맞춰 수정) */}
+                   <div className="flex gap-3">
+                     <div className="px-5 py-3 bg-white/60 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm text-center min-w-[100px]">
+                       <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">전체 지원자</div>
+                       <div className="text-2xl font-extrabold text-gray-800">{applicants.length}</div>
+                     </div>
+                     <div className={`px-5 py-3 bg-white/60 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm text-center min-w-[100px]`}>
+                       <div className={`text-xs font-medium uppercase tracking-wider ${interviewStage === 'executive' ? 'text-green-600' : 'text-blue-600'}`}>
+                         평가 완료
+                       </div>
+                       <div className={`text-2xl font-extrabold ${interviewStage === 'executive' ? 'text-green-700' : 'text-blue-700'}`}>
+                         {applicants.filter(a => a.interview_status?.includes('COMPLETED')).length}
+                       </div>
+                     </div>
+                   </div>
                  </div>
+               </div>
+
+               {/* 탭 네비게이션 (간격 조정) */}
+               <div className="flex mt-6 px-2 border-b border-gray-100">
                  
                  <Button
-                   variant={activeTab === 'applicants' ? 'contained' : 'text'}
-                   color="primary"
                    onClick={() => setActiveTab('applicants')}
-                   className="rounded-none min-w-fit px-4 py-3"
-                   startIcon={<span className="hidden sm:inline">👤</span>}
+                   className={`rounded-none min-w-fit px-6 py-3 border-b-2 transition-colors ${
+                     activeTab === 'applicants' 
+                       ? 'border-blue-600 text-blue-700 bg-white font-bold' 
+                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                   }`}
                  >
-                   <div className="flex items-center space-x-1">
-                     <span className="hidden sm:inline">지원자 목록</span>
-                     <span className="sm:hidden">지원자</span>
-                     <Chip 
-                       label={`${applicants.length}개` || '0개'} 
-                       size="small" 
-                       color="primary" 
-                       variant="outlined"
-                     />
-                   </div>
-                 </Button>
-                 <Button
-                   variant={activeTab === 'questions' ? 'contained' : 'text'}
-                   color="primary"
-                   onClick={() => setActiveTab('questions')}
-                   className="rounded-none min-w-fit px-4 py-3"
-                   startIcon={<span className="hidden sm:inline">❓</span>}
-                 >
-                   <div className="flex items-center space-x-1">
-                     <span className="hidden sm:inline">공통 질문</span>
-                     <span className="sm:hidden">질문</span>
-                     <Chip 
-                       label={`${commonQuestions.length}개` || '0개'} 
-                       size="small" 
-                       color="primary" 
-                       variant="outlined"
-                     />
+                   <div className="flex items-center space-x-2">
+                     <span>👤</span>
+                     <span className={activeTab === 'applicants' ? 'text-blue-700' : 'text-gray-600'}>지원자 목록</span>
+                     <span className={`text-xs px-2 py-0.5 rounded-full ${
+                       activeTab === 'applicants' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+                     }`}>
+                       {filteredApplicants.length}
+                     </span>
                    </div>
                  </Button>
                  
                  <Button
-                   variant={activeTab === 'statistics' ? 'contained' : 'text'}
-                   color="primary"
-                   onClick={() => setActiveTab('statistics')}
-                   className="rounded-none min-w-fit px-4 py-3"
-                   startIcon={<span className="hidden sm:inline">📊</span>}
+                   onClick={() => setActiveTab('questions')}
+                   className={`rounded-none min-w-fit px-6 py-3 border-b-2 transition-colors ${
+                     activeTab === 'questions' 
+                       ? 'border-blue-600 text-blue-700 bg-white font-bold' 
+                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                   }`}
                  >
-                   <div className="flex items-center space-x-1">
-                     <span className="hidden sm:inline">면접 통계</span>
-                     <span className="sm:hidden">통계</span>
-                     <Chip 
-                       label="계" 
-                       size="small" 
-                       color="primary" 
-                       variant="outlined"
-                     />
+                   <div className="flex items-center space-x-2">
+                     <span>❓</span>
+                     <span className={activeTab === 'questions' ? 'text-blue-700' : 'text-gray-600'}>공통 질문</span>
+                     <span className={`text-xs px-2 py-0.5 rounded-full ${
+                       activeTab === 'questions' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+                     }`}>
+                       {commonQuestions.length}
+                     </span>
+                   </div>
+                 </Button>
+                 
+                 <Button
+                   onClick={() => setActiveTab('statistics')}
+                   className={`rounded-none min-w-fit px-6 py-3 border-b-2 transition-colors ${
+                     activeTab === 'statistics' 
+                       ? 'border-blue-600 text-blue-700 bg-white font-bold' 
+                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                   }`}
+                 >
+                   <div className="flex items-center space-x-2">
+                     <span>📊</span>
+                     <span className={activeTab === 'statistics' ? 'text-blue-700' : 'text-gray-600'}>면접 통계</span>
                    </div>
                  </Button>
                </div>
              </Paper>
             
             {/* 탭 컨텐츠 */}
-            <div className="flex-1 flex gap-6 p-2 sm:p-4 md:p-6">
+            <div className="flex-1 flex gap-6 p-2 sm:p-4 md:p-6 overflow-hidden">
               {/* 좌측: 지원자 목록 */}
-              <div className="w-[40%] min-w-[300px]">
+              <div className="w-[40%] min-w-[300px] h-full flex flex-col">
                 {activeTab === 'applicants' ? (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 md:p-6 h-full">
-                    <Typography variant="h5" component="h3" className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-gray-900 dark:text-gray-100">
-                      지원자 목록
-                    </Typography>
-                    <div className="space-y-3 h-full overflow-y-auto">
-                      {applicants.map((applicant, index) => (
-                        <ApplicantCardWithInterviewStatus
-                          key={applicant.applicant_id || applicant.id}
-                          applicant={applicant}
-                          index={index + 1}
-                          isSelected={selectedApplicant?.id === (applicant.applicant_id || applicant.id)}
-                          onClick={() => handleSelectApplicant(applicant)}
-                          calculateAge={(birthDate) => {
-                            if (!birthDate) return 'N/A';
-                            const today = new Date();
-                            const birth = new Date(birthDate);
-                            let age = today.getFullYear() - birth.getFullYear();
-                            const monthDiff = today.getMonth() - birth.getMonth();
-                            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-                              age--;
-                            }
-                            return age;
-                          }}
-                          compact={true}
-                          interviewStage={interviewStage}
-                          showInterviewStatus={true}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 md:p-6 flex-1 flex flex-col min-h-0">
+                    <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                      <Typography variant="h5" component="h3" className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
+                        지원자 목록
+                      </Typography>
+                      {filterStatus && (
+                        <Chip 
+                          label={`${filterStatus === 'PASSED' ? '합격자' : '불합격자'}만 보기`} 
+                          onDelete={() => setFilterStatus(null)}
+                          color={filterStatus === 'PASSED' ? 'primary' : 'error'}
+                          size="small"
                         />
-                      ))}
+                      )}
+                    </div>
+                    <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
+                      {filteredApplicants.length > 0 ? (
+                        filteredApplicants.map((applicant, index) => (
+                          <ApplicantCardWithInterviewStatus
+                            key={applicant.applicant_id || applicant.id}
+                            applicant={applicant}
+                            index={index + 1}
+                            isSelected={selectedApplicant?.id === (applicant.applicant_id || applicant.id)}
+                            onClick={() => handleSelectApplicant(applicant)}
+                            calculateAge={(birthDate) => {
+                              if (!birthDate) return 'N/A';
+                              const today = new Date();
+                              const birth = new Date(birthDate);
+                              let age = today.getFullYear() - birth.getFullYear();
+                              const monthDiff = today.getMonth() - birth.getMonth();
+                              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+                                age--;
+                              }
+                              return age;
+                            }}
+                            compact={true}
+                            interviewStage={interviewStage}
+                            showInterviewStatus={true}
+                          />
+                        ))
+                      ) : (
+                        <div className="text-center py-10 text-gray-500">
+                          해당 조건의 지원자가 없습니다.
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : activeTab === 'statistics' ? (
@@ -901,14 +910,18 @@ function InterviewProgress() {
               </div>
 
               {/* 우측: 통계 패널 */}
-              <div className="w-[30%] min-w-[280px]">
-                <InterviewStatisticsPanel
-                  applicants={applicants}
-                  interviewStage={interviewStage}
-                  onNavigateToStage={(stage) => {
-                    navigate(`/interview/${jobPostId}/${stage}`);
-                  }}
-                />
+              <div className="w-[30%] min-w-[280px] h-full flex flex-col">
+                <div className="flex-1 min-h-0">
+                  <InterviewStatisticsPanel
+                    applicants={applicants}
+                    interviewStage={interviewStage}
+                    filterStatus={filterStatus}
+                    onFilterChange={setFilterStatus}
+                    onNavigateToStage={(stage) => {
+                      navigate(`/interview/${jobPostId}/${stage}`);
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1004,20 +1017,19 @@ function InterviewProgress() {
                       </Typography>
                       <EvaluationPanelFull
                         selectedApplicant={selectedApplicant}
-                        interviewId={selectedApplicant?.id || 1} // 실제 면접 ID로 교체 필요
-                        evaluatorId={user?.id || 1} // 현재 로그인한 사용자 ID
+                        interviewId={selectedApplicant?.id || 1}
+                        evaluatorId={user?.id || 1}
                         evaluationType={interviewStage === 'practice' ? 'PRACTICAL' : 'EXECUTIVE'}
-                        jobPostId={jobPostId} // 채용공고 ID 추가
+                        jobPostId={jobPostId}
                         onEvaluationSubmit={(evaluationData) => {
                           console.log('평가 제출됨', evaluationData);
-                          // 평가 데이터 처리 로직 추가 가능
                         }}
                       />
                     </CardContent>
                   </Card>
                 </div>
               ) : (
-                // 데스크톱: 3-분할 고정 레이아웃 + 드래그 리사이즈
+                // 데스크톱: 3-분할 고정 레이아웃 (드래그 리사이즈 제거)
                 <div className="h-full flex relative select-none" style={{ marginRight: 0 }}>
                   {/* 좌측: 이력서 */}
                   <Paper 
@@ -1027,7 +1039,7 @@ function InterviewProgress() {
                       borderRight: '1px solid #e5e7eb',
                       borderRadius: 0
                     }} 
-                    style={{ width: leftWidth }}
+                    className="w-1/3"
                   >
                     <CardContent className="p-4">
                         <Typography variant="h6" component="h3" className="mb-3 font-semibold">
@@ -1042,13 +1054,6 @@ function InterviewProgress() {
                       </CardContent>
                     </Paper>
                     
-                    {/* 수직 리사이저 (좌측) */}
-                    <div
-                      onMouseDown={() => setDraggingCol('left')}
-                      className="h-full"
-                      style={{ width: gutter, cursor: 'col-resize', background: 'transparent' }}
-                    />
-                    
                     {/* 중앙: 질문추천(상) + 실시간 STT(하) */}
                     <Paper 
                       sx={{ 
@@ -1057,7 +1062,7 @@ function InterviewProgress() {
                         borderRight: '1px solid #e5e7eb',
                         borderRadius: 0
                       }} 
-                      style={{ width: middleWidth }}
+                      className="w-1/3 flex-1"
                     >
                       <div className="h-full flex flex-col">
                         {/* 상단 질문 추천 */}
@@ -1075,23 +1080,8 @@ function InterviewProgress() {
                             onClearSTTResults={clearSTTResults}
                           />
                         </div>
-                        
-                        {/* 수평 리사이저 */}
-                        <div
-                          onMouseDown={() => setDraggingRow(true)}
-                          style={{ height: gutter, cursor: 'row-resize', background: 'transparent' }}
-                        />
-                        
-
                       </div>
                     </Paper>
-                    
-                    {/* 수직 리사이저 (우측) */}
-                    <div
-                      onMouseDown={() => setDraggingCol('right')}
-                      className="h-full"
-                      style={{ width: gutter, cursor: 'col-resize', background: 'transparent' }}
-                    />
                     
                     {/* 우측: 평가(5점 만점) */}
                     <Paper 
@@ -1100,7 +1090,7 @@ function InterviewProgress() {
                         overflow: 'auto', 
                         borderRadius: 0
                       }} 
-                      style={{ width: rightWidth }}
+                      className="w-1/3"
                     >
                       <CardContent className="p-4">
                         <Typography variant="h6" component="h3" className="mb-3 font-semibold">

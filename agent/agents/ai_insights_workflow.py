@@ -19,7 +19,7 @@ class AIInsightsState(TypedDict):
 
 # LangChain 모델 초기화
 llm = ChatOpenAI(
-    model="gpt-4o",
+    model="gpt-4o-mini",
     temperature=0.1,
     max_tokens=4000
 )

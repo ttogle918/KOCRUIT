@@ -92,33 +92,48 @@ const ApplicantCardWithInterviewStatus = ({
   const statusConfig = getInterviewStatusConfig(interviewStatus, interviewStage);
 
   return (
-    <div className="relative">
-      {/* 기존 ApplicantCard */}
-      <ApplicantCard
-        applicant={applicant}
-        index={index}
-        isSelected={isSelected}
-        onClick={onClick}
-        onBookmarkToggle={onBookmarkToggle}
-        calculateAge={calculateAge}
-        compact={compact}
-        resumeId={resumeId}
-      />
+    <div 
+      className={`
+        relative group cursor-pointer transition-all duration-300 ease-out
+        rounded-xl border mb-3 overflow-hidden
+        ${isSelected 
+          ? 'border-blue-500 bg-blue-50 shadow-[0_8px_20px_-6px_rgba(59,130,246,0.4)] -translate-y-1' 
+          : 'border-gray-200 bg-white hover:border-blue-200 hover:shadow-lg hover:-translate-y-1'
+        }
+      `}
+      onClick={onClick}
+    >
+      {/* 카드 입체감을 위한 하단 두께 효과 */}
+      <div className={`absolute bottom-0 left-0 w-full h-1 ${isSelected ? 'bg-blue-500' : 'bg-gray-100 group-hover:bg-blue-200'} transition-colors duration-300`}></div>
+
+      {/* 내용 영역 (패딩 추가) */}
+      <div className="p-1 pb-2">
+        <ApplicantCard
+          applicant={applicant}
+          index={index}
+          isSelected={isSelected}
+          // onClick은 상위 div에서 처리하므로 여기선 제외하거나 전파 방지
+          // onClick={onClick} 
+          onBookmarkToggle={onBookmarkToggle}
+          calculateAge={calculateAge}
+          compact={compact}
+          resumeId={resumeId}
+          // 기존 스타일 무력화를 위해 className 전달 가능 시 사용
+        />
+      </div>
       
-      {/* 면접 상태 배지 (우측 상단에 오버레이) */}
+      {/* 면접 상태 배지 (카드 내부 우측 상단, 디자인 개선) */}
       {showInterviewStatus && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-md border ${statusConfig.color} ${statusConfig.bgColor}`}>
+        <div className="absolute top-3 right-3 z-10">
+          <div className={`
+            flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-sm border
+            backdrop-blur-sm bg-opacity-90 transition-all duration-300
+            ${statusConfig.color.replace('text-', 'text-opacity-100 text-')} 
+            ${statusConfig.bgColor}
+            border-opacity-20 border-gray-400
+          `}>
             {statusConfig.icon}
             <span className="hidden sm:inline whitespace-nowrap">{statusConfig.label}</span>
-            <span className="sm:hidden whitespace-nowrap">
-              {interviewStatus === 'PASSED' ? '합격' : 
-               interviewStatus === 'FAILED' ? '불합격' : 
-               interviewStatus === 'IN_PROGRESS' ? '진행중' : 
-               interviewStatus === 'COMPLETED' ? '완료' : 
-               interviewStatus === 'SCHEDULED' ? '일정확정' : 
-               interviewStatus === 'CANCELLED' ? '취소' : '대기'}
-            </span>
           </div>
         </div>
       )}

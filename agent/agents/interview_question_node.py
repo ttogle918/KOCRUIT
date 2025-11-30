@@ -28,7 +28,7 @@ FIXED_QUESTIONS = {
     ]
 }
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 # Tavily 검색 도구 초기화
 search_tool = TavilySearchResults()
