@@ -5,6 +5,7 @@ import {
   FiCheckCircle, FiPlus, FiTrash2, FiList, FiCheckSquare
 } from 'react-icons/fi';
 import api from '../../api/api';
+import { mockQuestions, mockSttLogs } from '../../api/mockData';
 
 // --- [Component] Audio Visualizer ---
 const AudioVisualizer = ({ isRecording }) => {
@@ -228,7 +229,10 @@ const QuestionRecommendationPanel = ({
       setLastUpdated(new Date());
     } catch (err) {
       console.error('질문 내역 조회 실패:', err);
-      setError('질문 내역을 가져오는데 실패했습니다: ' + (err.message || '알 수 없는 오류'));
+      // setError('질문 내역을 가져오는데 실패했습니다: ' + (err.message || '알 수 없는 오류'));
+      console.log('⚠️ API 호출 실패. Mock Data를 사용합니다.');
+      setQuestions(mockQuestions);
+      setLastUpdated(new Date());
     } finally {
       setLoading(false);
     }
@@ -247,6 +251,8 @@ const QuestionRecommendationPanel = ({
       setSttAnswers(answersWithQuestions);
     } catch (err) {
       console.error('STT 답변 데이터 조회 실패:', err);
+      console.log('⚠️ API 호출 실패. Mock Data를 사용합니다.');
+      setSttAnswers(mockSttLogs);
     } finally {
       setSttLoading(false);
     }

@@ -1,48 +1,3 @@
-# FROM python:3.11-slim
-
-# WORKDIR /app
-
-# # 시스템 패키지 설치
-# RUN apt-get update && apt-get install -y \
-#     gcc \
-#     g++ \
-#     libsndfile1 \
-#     libportaudio2 \
-#     portaudio19-dev \
-#     git \
-#     wget \
-#     curl \
-#     && rm -rf /var/lib/apt/lists/*
-
-# RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
-
-# # Python 의존성 설치
-# COPY agent/requirements.txt .
-# RUN pip install --no-cache-dir -r requirements.txt
-
-# # 🆕 모델은 런타임에 로딩 (빌드 타임 다운로드 제거)
-# # SentenceTransformer와 Transformers 모델 모두 런타임에 안전하게 로딩
-
-# # 애플리케이션 코드 복사
-# COPY agent/ .
-
-# # 포트 노출
-# EXPOSE 8001
-
-# # 애플리케이션 실행
-# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
-
-# ENV PYTHONPATH=/app
-
-# # 🆕 HuggingFace 캐시 디렉토리 설정
-# ENV HF_HOME=/app/.cache/huggingface
-# ENV TRANSFORMERS_CACHE=/app/.cache/huggingface/transformers
-# ENV HF_DATASETS_CACHE=/app/.cache/huggingface/datasets
-
-# # 🆕 모델 다운로드 시 진행률 표시 활성화
-# ENV HF_HUB_DISABLE_PROGRESS_BARS=false
-
-
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -59,16 +14,20 @@ RUN apt-get update && apt-get install -y \
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Python 의존성 설치
+# docker-compose context가 root(.)이므로, agent/requirements.txt 경로 사용
 COPY agent/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
-COPY agent/ .
+# context root의 agent 폴더 내용을 컨테이너의 /app/agent로 복사
+COPY agent/ /app/agent/
 
 # 포트 노출
 EXPOSE 8001
 
-# 애플리케이션 실행
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"] 
-
+# PYTHONPATH 설정 (agent 모듈 인식 위함)
 ENV PYTHONPATH=/app
+
+# 애플리케이션 실행
+# agent 패키지 내의 main 모듈 실행
+CMD ["uvicorn", "agent.main:app", "--host", "0.0.0.0", "--port", "8001"]

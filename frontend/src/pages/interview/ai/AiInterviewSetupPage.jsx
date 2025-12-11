@@ -1,23 +1,46 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, Button, Divider, Card, CardContent } from '@mui/material';
 import { MdOutlinePlayCircle, MdCheckCircle, MdMic, MdVideocam, MdSettings } from 'react-icons/md';
 import Navbar from '../../../components/Navbar';
 import ViewPostSidebar from '../../../components/ViewPostSidebar';
+import { mockQuestions } from '../../../api/mockData';
+import api from '../../../api/api';
 
 export default function AiInterviewSetupPage() {
   const { jobPostId } = useParams();
   const navigate = useNavigate();
   
-  // 질문 목록 상태 (초기값: 데모 데이터)
-  const [questions, setQuestions] = React.useState([
-    "간단한 자기소개를 해주세요.",
-    "우리 회사에 지원하게 된 동기는 무엇인가요?",
-    "본인의 강점과 약점에 대해 설명해주세요.",
-    "직무와 관련된 프로젝트 경험이 있다면 이야기해주세요.",
-    "입사 후 5년 뒤 본인의 모습을 그려본다면?"
-  ]);
+  // 질문 목록 상태
+  const [questions, setQuestions] = React.useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = React.useState(null);
+
+  // 질문 목록 가져오기 (API 호출 -> 실패 시 Mock Data)
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        // AI 면접 공통 질문 조회 API (가정)
+        const response = await api.get(`/interview-questions/job-post/${jobPostId}/ai-common`);
+        if (response.data && response.data.questions) {
+          setQuestions(response.data.questions);
+        } else {
+          throw new Error('데이터 형식 불일치');
+        }
+      } catch (error) {
+        console.warn('AI 면접 질문 로드 실패. Mock Data를 사용합니다.', error);
+        // Fallback to mock data or default questions
+        setQuestions([
+          "간단한 자기소개를 해주세요.",
+          "우리 회사에 지원하게 된 동기는 무엇인가요?",
+          "본인의 강점과 약점에 대해 설명해주세요.",
+          "직무와 관련된 프로젝트 경험이 있다면 이야기해주세요.",
+          "입사 후 5년 뒤 본인의 모습을 그려본다면?"
+        ]);
+      }
+    };
+
+    fetchQuestions();
+  }, [jobPostId]);
 
   const handleStartDemo = () => {
     // 데모 모드 페이지로 이동 (applicantId 자리에 'demo' 사용)

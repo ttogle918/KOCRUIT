@@ -36,6 +36,7 @@
 | :--- | :--- | :--- | :--- |
 | **backend** | `8000` | 메인 비즈니스 로직, DB 관리, 사용자 인증 | FastAPI, SQLAlchemy |
 | **agent** | `8001` | AI 워크플로우 실행, LLM 연동, 챗봇 | FastAPI, LangGraph, LangChain |
+| **video-analysis** | `8002` | 면접 영상/음성 분석 (표정, 시선, 화자 분리) | TensorFlow, DeepFace, MediaPipe |
 | **frontend** | `5173` | 사용자 인터페이스 | React, Vite, Tailwind |
 | **redis** | `6379` | 세션 관리, 캐싱, 작업 큐 | Redis 7.2 |
 | **db** | `3306` | 주 데이터 저장소 (AWS RDS 연결 또는 로컬) | MySQL |
@@ -61,6 +62,10 @@ KOSA-FINAL-PROJECT-02/
 │   │   ├── schemas/        # Pydantic 데이터 스키마
 │   │   └── scheduler/      # 백그라운드 작업 (APScheduler)
 │   └── main.py             # Backend 서비스 진입점
+├── video-analysis/         # 🎥 영상 분석 서비스 (독립 실행 권장)
+│   ├── video_analyzer.py   # 영상 분석 코어 로직
+│   ├── main.py             # FastAPI 진입점
+│   └── ...
 ├── frontend/               # 🎨 프론트엔드 (React)
 │   ├── src/
 │   │   ├── components/     # UI 컴포넌트

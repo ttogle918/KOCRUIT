@@ -18,6 +18,15 @@ import EvaluationPanelFull from '../../../components/interview/EvaluationPanel';
 import InterviewStatistics from '../../../components/interview/InterviewStatistics';
 import InterviewStatisticsPanel from '../../../components/interview/InterviewStatisticsPanel';
 
+// Mock Data Import
+import { 
+  mockApplicants, 
+  mockJobPost, 
+  mockInterviewStatistics, 
+  mockQuestions, 
+  mockResume 
+} from '../../../api/mockData';
+
 // Import existing better components
 import ApplicantCard from '../../../components/ApplicantCard';
 import ApplicantCardWithInterviewStatus from '../../../components/interview/ApplicantCardWithInterviewStatus';
@@ -195,6 +204,9 @@ function InterviewProgress() {
         setApplicants(data);
       } catch (err) {
         console.error('지원자 목록 로드 실패:', err);
+        // Fallback to mock data
+        console.log('⚠️ API 호출 실패. Mock Data를 사용합니다.');
+        setApplicants(mockApplicants);
       } finally {
         setLoading(false);
       }
@@ -213,6 +225,7 @@ function InterviewProgress() {
         setJobPost(res.data);
       } catch (err) {
         console.error('공고 정보 로드 실패:', err);
+        setJobPost(mockJobPost);
       }
     };
 
@@ -235,6 +248,7 @@ function InterviewProgress() {
         setInterviewStatistics(res.data.statistics);
       } catch (err) {
         console.error('면접 통계 로드 실패:', err);
+        setInterviewStatistics(mockInterviewStatistics);
       } finally {
         setStatisticsLoading(false);
       }
@@ -271,7 +285,22 @@ function InterviewProgress() {
       console.log('📦 면접 진행 모드로 전환됨');
     } catch (err) {
       console.error('지원자 데이터 로드 실패:', err);
-      alert('지원자 정보를 불러오는 데 실패했습니다. 다시 시도해주세요.');
+      // alert('지원자 정보를 불러오는 데 실패했습니다. 다시 시도해주세요.');
+      console.log('⚠️ API 호출 실패. Mock Data를 사용합니다.');
+      setResume(mockResume);
+      setShowSelectionScreen(false);
+      
+      // Mock Questions 설정
+      if (interviewStage === 'executive') {
+        setCommonQuestions(mockQuestions.executive.map(q => q.question_text));
+      } else {
+        setCommonQuestions(mockQuestions.practical.map(q => q.question_text));
+      }
+      setCustomQuestions([
+        '주요 프로젝트 경험에 대해 설명해주세요.',
+        '어려운 기술 문제를 해결한 경험을 공유해주세요.',
+        '이 프로젝트에서의 역할과 기여도를 설명해주세요.'
+      ]);
     }
   };
 
