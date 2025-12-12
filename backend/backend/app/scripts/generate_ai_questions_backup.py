@@ -9,9 +9,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
 from app.core.database import SessionLocal
 from app.models.job import JobPost
-from app.models.application import Application, AIInterviewStatus
+from app.models.application import Application, StageStatus, StageName
 from app.models.interview_question import InterviewQuestion, QuestionType
 from app.data.general_interview_questions import get_random_general_questions
+from app.services.application_service import update_stage_status
 
 def generate_ai_questions():
     db = SessionLocal()
@@ -120,7 +121,8 @@ def generate_ai_questions():
         print(f"\n🔄 {len(applications)}명의 지원자 AI 면접 일정 확정 중...")
         
         for app in applications:
-            app.ai_interview_status = AIInterviewStatus.SCHEDULED
+            # app.ai_interview_status = AIInterviewStatus.SCHEDULED <- 대체
+            update_stage_status(db, app.id, StageName.AI_INTERVIEW, StageStatus.SCHEDULED)
             print(f"  - App {app.id}: AI 면접 일정 확정")
         
         db.commit()

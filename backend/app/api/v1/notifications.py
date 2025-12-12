@@ -6,8 +6,8 @@ from app.schemas.notification import (
     NotificationCreate, NotificationUpdate, NotificationDetail, NotificationList
 )
 from app.models.notification import Notification
-from app.models.user import User
-from app.api.v1.auth import get_current_user
+from app.models.auth.user import User
+from app.api.v1.auth.auth import get_current_user
 
 router = APIRouter()
 

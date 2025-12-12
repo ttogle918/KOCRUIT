@@ -48,7 +48,29 @@ export default function CorpHome() {
         setJobPosts(jobPostsResponse.data);
       } catch (err) {
         console.error('Error fetching job posts:', err);
-        setError('채용공고를 불러올 수 없습니다.');
+        setError('서버 연결에 실패하여 데모 데이터를 표시합니다.');
+        
+        // --- Fallback Mock Data ---
+        const mockJobPosts = [
+          {
+            id: 1, title: "[데모] 2025년 상반기 신입 개발자 채용", status: "RECRUITING", 
+            end_date: "2025-06-30", applicant_count: 150, headcount: 10
+          },
+          {
+            id: 2, title: "[데모] AI 연구원 경력직 채용", status: "SCHEDULED", 
+            start_date: "2025-07-01", applicant_count: 0, headcount: 2
+          },
+          {
+            id: 3, title: "[데모] 마케팅 기획자 채용", status: "SELECTING", 
+            end_date: "2025-05-31", applicant_count: 85, headcount: 5
+          },
+          {
+            id: 4, title: "[데모] 인사팀 채용 (마감)", status: "CLOSED", 
+            end_date: "2025-04-30", applicant_count: 40, headcount: 1, final_selected_count: 1
+          }
+        ];
+        setJobPosts(mockJobPosts);
+        // --------------------------
       } finally {
         setLoading(false);
       }

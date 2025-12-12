@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List
 from app.models.notification import Notification
-from app.models.user import CompanyUser
+from app.models.auth.user import CompanyUser
 from app.models.job import JobPost
 
 

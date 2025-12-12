@@ -46,6 +46,8 @@ class InterviewEvaluationBase(BaseModel):
     total_score: Optional[float]  # score -> total_score로 변경
     summary: Optional[str]
     status: Optional[EvaluationStatus] = EvaluationStatus.PENDING
+    application_id: Optional[int] = None # application_id 추가 (Create 시 필요할 수 있음)
+    interview_type: Optional[str] = None # interview_type 추가 (Create 시 필요할 수 있음)
 
 class InterviewEvaluationCreate(InterviewEvaluationBase):
     details: Optional[List[EvaluationDetailCreate]] = []  # 기존 호환성
@@ -58,4 +60,8 @@ class InterviewEvaluation(InterviewEvaluationBase):
     details: List[EvaluationDetail] = []  # 기존 호환성
     evaluation_items: List[InterviewEvaluationItem] = []  # 새로운 구조
     class Config:
-        orm_mode = True 
+        orm_mode = True
+
+# --- Alias for Compatibility ---
+InterviewEvaluationSchema = InterviewEvaluation
+InterviewEvaluationDetailSchema = EvaluationDetail

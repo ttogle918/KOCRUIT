@@ -58,9 +58,9 @@ aiocache[redis]==0.12.2
 
 # AI & ML for pattern analysis (CPU 전용으로 최적화)
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.0+cpu
-torchvision==0.17.0+cpu
-torchaudio==2.2.0+cpu
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+torchaudio==2.1.0+cpu
 
 # Embedding/AI
 transformers==4.36.2

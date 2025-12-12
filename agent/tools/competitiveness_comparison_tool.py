@@ -32,7 +32,7 @@ try:
     
     from backend.app.models.resume import Resume
     from backend.app.models.application import Application
-    from backend.app.models.user import User
+    from backend.app.models.auth.user import User
     from backend.app.models.applicant_user import ApplicantUser
     from backend.app.models.job import JobPost
     from backend.app.models.spec import Spec
@@ -46,7 +46,7 @@ except ImportError as e:
     try:
         from app.models.resume import Resume
         from app.models.application import Application
-        from app.models.user import User
+        from app.models.auth.user import User
         from app.models.applicant_user import ApplicantUser
         from app.models.job import JobPost
         from app.models.spec import Spec

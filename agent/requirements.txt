@@ -13,9 +13,9 @@ chromadb==0.4.24
 
 # === CPU 전용 PyTorch 및 AI 모델 ===
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.2.0+cpu
-torchvision>=0.17.0+cpu
-torchaudio>=2.2.0+cpu
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+torchaudio==2.1.0+cpu
 sentence-transformers==2.5.1
 transformers==4.36.2
 
@@ -58,13 +58,13 @@ python-multipart==0.0.6
 httpx==0.27.0
 
 # --- 오디오/음성인식/AI 평가 ---
-openai-whisper  # ✅ 음성인식
+openai-whisper  # 음성인식
 numba>=0.57.0
-librosa>=0.10.0           # ✅ 오디오 처리
-soundfile>=0.12.0         # ✅ 파일 처리
-pydub>=0.25.0             # ✅ 포맷 변환
+librosa>=0.10.0           # 오디오 처리
+soundfile>=0.12.0         # 파일 처리
+pydub>=0.25.0             # 포맷 변환
 
 # === 화자 분리 및 실시간 처리 ===
-pyannote.audio>=3.1.0     # ✅ 화자 분리 (6명 구분 가능)
-scipy>=1.10.0             # ✅ 신호 처리
-websockets>=11.0          # ✅ WebSocket 통신
+pyannote.audio>=3.1.1     # 화자 분리 (6명 구분 가능)
+scipy>=1.10.0             # 신호 처리
+websockets>=11.0          # WebSocket 통신

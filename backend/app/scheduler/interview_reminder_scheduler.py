@@ -8,7 +8,7 @@ from app.models.schedule import Schedule, InterviewScheduleStatus
 from app.models.job import JobPost
 from app.services.notification_service import NotificationService
 from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelMember
-from app.models.user import CompanyUser
+from app.models.auth.user import CompanyUser
 
 logger = logging.getLogger(__name__)
 

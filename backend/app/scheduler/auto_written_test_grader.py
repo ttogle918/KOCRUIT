@@ -4,7 +4,8 @@ from app.core.database import SessionLocal
 from app.models.written_test_answer import WrittenTestAnswer
 from app.models.written_test_question import WrittenTestQuestion
 from agent.tools.answer_grading_tool import grade_written_test_answer
-from app.models.application import Application, WrittenTestStatus
+from app.models.application import Application, StageName, StageStatus
+from app.services.application_service import update_stage_status
 from app.models.job import JobPost
 from sqlalchemy import func
 import datetime
@@ -28,9 +29,10 @@ def update_written_test_pass_status(db, jobpost_id):
         cutoff_score = apps[cutoff-1].written_test_score
     for app in apps:
         if app.written_test_score is not None and app.written_test_score >= cutoff_score:
-            app.written_test_status = WrittenTestStatus.PASSED
+            update_stage_status(db, app.id, StageName.WRITTEN_TEST, StageStatus.PASSED)
+
         else:
-            app.written_test_status = WrittenTestStatus.FAILED
+            update_stage_status(db, app.id, StageName.WRITTEN_TEST, StageStatus.FAILED)
     db.commit()
 
 
@@ -95,7 +97,13 @@ def auto_grade_unscored_answers():
                         # 평균점수 소수점 둘째자리까지 반영
                         if avg_score is not None:
                             avg_score = round(float(avg_score), 2)
-                        application.written_test_score = avg_score
+                        
+                        # application.written_test_score = avg_score <- 제거 (setter 없음)
+                        # ApplicationStage 업데이트
+                        update_stage_status(
+                            db, application.id, StageName.WRITTEN_TEST, status=None, score=avg_score
+                        )
+                        
                         db.commit()
                         print(f"[Auto Grader] 평균점수 반영: user_id={user_id}, jobpost_id={jobpost_id}, avg_score={avg_score}")
                         updated_jobpost_ids.add(jobpost_id)
