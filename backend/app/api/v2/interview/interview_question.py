@@ -2,32 +2,26 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict, Any
+import redis
+from pydantic import BaseModel
+from app.utils.llm_cache import redis_cache
+import datetime
 from app.core.database import get_db
 from app.api.v2.auth.auth import get_current_user
 from app.models.v2.auth.user import User
 from app.models.v2.document.application import Application, ApplicationStage, OverallStatus, StageStatus, StageName
-from app.models.v2.evaluation_criteria import EvaluationCriteria
-
-from app.models.v2.interview_question import InterviewQuestion, QuestionType
 from app.models.v2.recruitment.job import JobPost
 from app.models.v2.document.resume import Resume, Spec
-from app.models.v2.personal_question_result import PersonalQuestionResult
+from app.models.v2.interview.personal_question_result import PersonalQuestionResult
 from app.services.v2.interview.interview_question_service import InterviewQuestionService
-from app.schemas.interview_question import (
-    InterviewQuestionCreate, 
-    InterviewQuestionResponse, 
-    InterviewQuestionBulkCreate
-)
-from pydantic import BaseModel
+from app.schemas.interview_question import InterviewQuestionCreate, InterviewQuestionBulkCreate,InterviewQuestionResponse, InterviewQuestionBulkCreate
+from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
+from app.api.v2.interview.company_question_rag import generate_questions, CompanyQuestionRagResponse
+from app.services.v2.interview.evaluation_criteria_service import EvaluationCriteriaService
+from app.models.v2.interview.evaluation_criteria import EvaluationCriteria
+from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
+from app.models.v2.interview.interview_question_log import InterviewQuestionLog, InterviewType
 
-from app.api.v2.company_question_rag import generate_questions
-from app.utils.llm_cache import redis_cache
-
-import redis
-import json
-
-from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
-from app.models.v2.interview_question_log import InterviewQuestionLog, InterviewType
 import tempfile
 import os
 
@@ -382,7 +376,6 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
 @router.get("/application/{application_id}", response_model=List[InterviewQuestionResponse])
 @redis_cache(expire=300)  # 5분 캐시 (질문 조회)
 def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
-    from app.models.v2.interview_question import InterviewQuestion
     return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
 
 @router.get("/application/{application_id}/by-type", response_model=InterviewQuestionResponse)
@@ -665,8 +658,7 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
         # DB 저장 옵션이 활성화된 경우 저장
         if request.save_to_db:
             try:
-                from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
-                from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
+
                 
                 criteria_service = EvaluationCriteriaService(db)
                 
@@ -1591,8 +1583,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
         # DB에 저장
         saved_count = 0
         if request.save_to_db and all_questions:
-            from app.models.v2.interview_question import InterviewQuestion, QuestionType
-            
+            now = datetime.now()
             # job_post_id 찾기
             job_post_id = None
             if request.application_id:
@@ -1667,8 +1658,6 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
 def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db)):
     """특정 지원자의 AI 면접 질문 조회 (job_post_id 기반)"""
     try:
-        from app.models.v2.interview_question import InterviewQuestion, QuestionType
-        
         # 지원자의 job_post_id 찾기
         application = db.query(Application).filter(Application.id == application_id).first()
         if not application:
@@ -1710,7 +1699,7 @@ def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db
 def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 AI 면접 질문 조회 (공통 + 직무별 + 게임)"""
     try:
-        from app.models.v2.interview_question import InterviewQuestion, QuestionType
+        from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
         from app.models.v2.recruitment.job import JobPost
         
         # 공고 정보 조회
@@ -2021,144 +2010,95 @@ class AiToolsResponse(BaseModel):
 @redis_cache(expire=1800)  # 30분 캐시 (LLM 생성 결과)
 async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_db)):
     """AI 면접을 위한 통합 도구 생성 (체크리스트, 강점/약점, 가이드라인, 평가 기준)"""
+    # 이력서 정보 조회
+    resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="이력서를 찾을 수 없습니다.")
+    
+    # Spec 정보 조회
+    specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
+    
+    # 통합 이력서 텍스트 생성
+    resume_text = combine_resume_and_specs(resume, specs)
+    
+    # Agent 호출 준비
+    import httpx
+    from app.core.config import settings
+    agent_url = settings.AGENT_URL or "http://agent:8001"
+    url = f"{agent_url}/api/v2/agent/tools/interview-prep"
+    
+    # Agent 요청을 위한 데이터 구성
+    job_post_dict = {
+        "title": request.interview_stage or "AI 면접",
+        "qualifications": "", # 공고 정보가 없으면 빈 문자열
+        "conditions": "",
+        "job_details": f"회사: {request.company_name}"
+    }
+    
+    resume_dict = {
+        "name": request.name or "지원자",
+        "career_summary": resume_text[:1000], # 요약 필요 시
+        "skills": "", # 파싱 필요 시
+        "introduction": resume_text
+    }
+    
+    payload = {
+        "job_post": job_post_dict,
+        "resume_data": resume_dict,
+        "interview_type": "AI_INTERVIEW"
+    }
+    
     try:
-        # 이력서 정보 조회
-        resume = db.query(Resume).filter(Resume.id == request.resume_id).first()
-        if not resume:
-            raise HTTPException(status_code=404, detail="이력서를 찾을 수 없습니다.")
-        
-        # Spec 정보 조회
-        specs = db.query(Spec).filter(Spec.resume_id == request.resume_id).all()
-        
-        # 통합 이력서 텍스트 생성
-        resume_text = combine_resume_and_specs(resume, specs)
-        
-        # AI 면접 도구 생성 프롬프트
-        ai_tools_prompt = f"""
-다음 지원자의 이력서를 바탕으로 AI 면접을 위한 종합적인 평가 도구를 생성해주세요.
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, json=payload, timeout=60.0)
+            if resp.status_code == 200:
+                tools_data = resp.json()
+                # 응답 구조가 {"evaluation_tools": ...} 형태라고 가정
+                return AiToolsResponse(
+                    evaluation_tools=tools_data.get("evaluation_tools", {}),
+                    questions=None
+                )
+            else:
+                print(f"Agent API 호출 실패: {resp.status_code} {resp.text}")
+                raise Exception("Agent API Error")
 
-지원자 정보:
-- 이름: {request.name or "알 수 없음"}
-- 회사: {request.company_name or "알 수 없음"}
-- 면접 단계: {request.interview_stage or "AI 면접"}
-
-이력서 내용:
-{resume_text}
-
-다음 4가지 도구를 JSON 형식으로 생성해주세요:
-
-1. 면접 체크리스트 (pre_interview_checklist, during_interview_checklist, post_interview_checklist, red_flags_to_watch, green_flags_to_confirm)
-2. 강점/약점 분석 (strengths, weaknesses, development_areas, competitive_advantages)
-3. 면접 가이드라인 (interview_approach, key_questions_by_category, evaluation_criteria, time_allocation, follow_up_questions)
-4. 평가 기준 (suggested_criteria, weight_recommendations, evaluation_questions, scoring_guidelines)
-
-응답 형식:
-{{
-    "evaluation_tools": {{
-        "checklist": {{
-            "pre_interview_checklist": ["항목1", "항목2"],
-            "during_interview_checklist": ["항목1", "항목2"],
-            "post_interview_checklist": ["항목1", "항목2"],
-            "red_flags_to_watch": ["주의사항1", "주의사항2"],
-            "green_flags_to_confirm": ["긍정신호1", "긍정신호2"]
-        }},
-        "strengths_weaknesses": {{
-            "strengths": [{{"area": "기술역량", "description": "설명", "evidence": "근거"}}],
-            "weaknesses": [{{"area": "경험부족", "description": "설명", "suggestion": "개선방안"}}],
-            "development_areas": ["개발영역1", "개발영역2"],
-            "competitive_advantages": ["경쟁우위1", "경쟁우위2"]
-        }},
-        "guideline": {{
-            "interview_approach": "면접 접근 방식",
-            "key_questions_by_category": {{
-                "기술역량": ["질문1", "질문2"],
-                "프로젝트경험": ["질문1", "질문2"]
-            }},
-            "evaluation_criteria": [{{"criterion": "기준", "description": "설명", "weight": 0.3}}],
-            "time_allocation": {{"기술질문": 0.4, "경험질문": 0.3, "소프트스킬": 0.3}},
-            "follow_up_questions": ["후속질문1", "후속질문2"]
-        }},
-        "evaluation_criteria": {{
-            "suggested_criteria": [{{"criterion": "기준", "description": "설명", "weight": 0.3}}],
-            "weight_recommendations": [{{"category": "카테고리", "weight": 0.3, "reason": "이유"}}],
-            "evaluation_questions": ["평가질문1", "평가질문2"],
-            "scoring_guidelines": {{"A": "90-100점", "B": "80-89점", "C": "70-79점", "D": "60-69점", "F": "60점 미만"}}
-        }}
-    }}
-}}
-"""
-        
-        # OpenAI API 호출
-        import openai
-        import os
-        api_key = os.getenv("OPENAI_API_KEY")  # 환경변수에서 가져오기
-        client = openai.OpenAI(api_key=api_key)
-        
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": ai_tools_prompt}],
-            temperature=0.7,
-            max_tokens=3000
-        )
-        
-        # 응답 파싱
-        try:
-            content = response.choices[0].message.content.strip()
-            print(f"OpenAI 응답: {content}")
-            
-            # JSON 블록 추출 시도
-            if "```json" in content:
-                json_start = content.find("```json") + 7
-                json_end = content.find("```", json_start)
-                if json_end != -1:
-                    content = content[json_start:json_end].strip()
-            
-            tools_data = json.loads(content)
-            return AiToolsResponse(
-                evaluation_tools=tools_data.get("evaluation_tools", {}),
-                questions=None
-            )
-        except json.JSONDecodeError as e:
-            print(f"JSON 파싱 오류: {e}")
-            print(f"응답 내용: {response.choices[0].message.content}")
-            # 기본 구조 반환
-            return AiToolsResponse(
-                evaluation_tools={
-                    "checklist": {
-                        "pre_interview_checklist": ["이력서 검토", "기술 스택 확인"],
-                        "during_interview_checklist": ["기술 질문", "경험 확인"],
-                        "post_interview_checklist": ["평가 기록", "결과 정리"],
-                        "red_flags_to_watch": ["기술 부족", "경험 부족"],
-                        "green_flags_to_confirm": ["기술 우수", "경험 풍부"]
-                    },
-                    "strengths_weaknesses": {
-                        "strengths": [{"area": "기술역량", "description": "기술 스택이 다양함", "evidence": "이력서 기반"}],
-                        "weaknesses": [{"area": "경험부족", "description": "실무 경험 부족", "suggestion": "프로젝트 경험 확대"}],
-                        "development_areas": ["실무 경험", "팀워크"],
-                        "competitive_advantages": ["기술 다양성", "학습 능력"]
-                    },
-                    "guideline": {
-                        "interview_approach": "기술 중심 면접",
-                        "key_questions_by_category": {
-                            "기술역량": ["주요 기술 스택은?", "프로젝트에서 어떻게 활용했나?"],
-                            "프로젝트경험": ["가장 어려웠던 프로젝트는?", "팀에서의 역할은?"]
-                        },
-                        "evaluation_criteria": [{"criterion": "기술역량", "description": "기술 스택 숙련도", "weight": 0.4}],
-                        "time_allocation": {"기술질문": 0.5, "경험질문": 0.3, "소프트스킬": 0.2},
-                        "follow_up_questions": ["구체적인 기술 활용 사례는?", "문제 해결 과정은?"]
-                    },
-                    "evaluation_criteria": {
-                        "suggested_criteria": [{"criterion": "기술역량", "description": "기술 스택 숙련도", "weight": 0.4}],
-                        "weight_recommendations": [{"category": "기술역량", "weight": 0.4, "reason": "핵심 역량"}],
-                        "evaluation_questions": ["기술 스택 숙련도는?", "프로젝트 경험은?"],
-                        "scoring_guidelines": {"A": "90-100점", "B": "80-89점", "C": "70-79점", "D": "60-69점", "F": "60점 미만"}
-                    }
-                }
-            )
-        
     except Exception as e:
-        print(f"AI 도구 생성 오류: {e}")
-        raise HTTPException(status_code=500, detail=f"AI 도구 생성 실패: {str(e)}")
+        print(f"AI 도구 생성 오류 (Agent 호출): {e}")
+        # Fallback 로직 (기존 예외 처리와 동일하게 유지하거나 간소화)
+        # 여기서는 기존의 기본값 반환 로직을 그대로 사용
+        return AiToolsResponse(
+            evaluation_tools={
+                "checklist": {
+                    "pre_interview_checklist": ["이력서 검토", "기술 스택 확인"],
+                    "during_interview_checklist": ["기술 질문", "경험 확인"],
+                    "post_interview_checklist": ["평가 기록", "결과 정리"],
+                    "red_flags_to_watch": ["기술 부족", "경험 부족"],
+                    "green_flags_to_confirm": ["기술 우수", "경험 풍부"]
+                },
+                "strengths_weaknesses": {
+                    "strengths": [{"area": "기술역량", "description": "기술 스택이 다양함", "evidence": "이력서 기반"}],
+                    "weaknesses": [{"area": "경험부족", "description": "실무 경험 부족", "suggestion": "프로젝트 경험 확대"}],
+                    "development_areas": ["실무 경험", "팀워크"],
+                    "competitive_advantages": ["기술 다양성", "학습 능력"]
+                },
+                "guideline": {
+                    "interview_approach": "기술 중심 면접",
+                    "key_questions_by_category": {
+                        "기술역량": ["주요 기술 스택은?", "프로젝트에서 어떻게 활용했나?"],
+                        "프로젝트경험": ["가장 어려웠던 프로젝트는?", "팀에서의 역할은?"]
+                    },
+                    "evaluation_criteria": [{"criterion": "기술역량", "description": "기술 스택 숙련도", "weight": 0.4}],
+                    "time_allocation": {"기술질문": 0.5, "경험질문": 0.3, "소프트스킬": 0.2},
+                    "follow_up_questions": ["구체적인 기술 활용 사례는?", "문제 해결 과정은?"]
+                },
+                "evaluation_criteria": {
+                    "suggested_criteria": [{"criterion": "기술역량", "description": "기술 스택 숙련도", "weight": 0.4}],
+                    "weight_recommendations": [{"category": "기술역량", "weight": 0.4, "reason": "핵심 역량"}],
+                    "evaluation_questions": ["기술 스택 숙련도는?", "프로젝트 경험은?"],
+                    "scoring_guidelines": {"A": "90-100점", "B": "80-89점", "C": "70-79점", "D": "60-69점", "F": "60점 미만"}
+                }
+            }
+        )
 
 @router.get("/application/{application_id}/logs")
 @redis_cache(expire=300)  # 5분 캐시 (로그 조회)
@@ -2301,9 +2241,6 @@ async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest,
         
         # DB 저장 시도 (에러 발생 시 로그만 출력)
         try:
-            from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
-            from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
-            
             print("🔍 EvaluationCriteriaService import 성공")
             criteria_service = EvaluationCriteriaService(db)
             print("🔍 EvaluationCriteriaService 인스턴스 생성 성공")
@@ -2412,7 +2349,7 @@ async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest,
 async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 저장된 평가항목 조회"""
     try:
-        from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+        from app.services.v2.interview.evaluation_criteria_service import EvaluationCriteriaService
         
         criteria_service = EvaluationCriteriaService(db)
         criteria = criteria_service.get_evaluation_criteria_by_job_post(job_post_id)
@@ -2436,8 +2373,7 @@ async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depe
 async def delete_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 평가항목 삭제"""
     try:
-        from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
-        
+        now = datetime.now()
         criteria_service = EvaluationCriteriaService(db)
         success = criteria_service.delete_evaluation_criteria(job_post_id)
         
@@ -2503,10 +2439,7 @@ async def create_resume_based_evaluation_criteria(request: EvaluationCriteriaReq
         
         # DB에 저장
         print(f"🔍 LangGraph 결과: {criteria_result}")
-        try:
-            from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
-            from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
-            
+        try:           
             print("🔍 EvaluationCriteriaService import 성공")
             criteria_service = EvaluationCriteriaService(db)
             print("🔍 EvaluationCriteriaService 인스턴스 생성 성공")
@@ -2608,7 +2541,7 @@ async def get_resume_based_evaluation_criteria(
 ):
     """이력서 기반 저장된 평가 기준 조회"""
     try:
-        from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+        from app.services.v2.interview.evaluation_criteria_service import EvaluationCriteriaService
         
         criteria_service = EvaluationCriteriaService(db)
         criteria = criteria_service.get_evaluation_criteria_by_resume(resume_id, application_id, interview_stage)
@@ -3047,7 +2980,7 @@ async def trigger_background_interview_questions_generation(request: IntegratedQ
         
         # 백그라운드 작업 트리거
         import asyncio
-        from ..scheduler.langgraph_background_scheduler import generate_interview_questions_for_application_async
+        from app.scheduler.langgraph_background_scheduler import generate_interview_questions_for_application_async
         
         # 비동기로 백그라운드 작업 실행
         asyncio.create_task(generate_interview_questions_for_application_async(request.application_id))
@@ -3075,7 +3008,7 @@ async def trigger_background_resume_analysis_generation(request: ResumeAnalysisR
         
         # 백그라운드 작업 트리거
         import asyncio
-        from ..scheduler.langgraph_background_scheduler import generate_resume_analysis_for_application_async
+        from app.scheduler.langgraph_background_scheduler import generate_resume_analysis_for_application_async
         
         # 비동기로 백그라운드 작업 실행
         asyncio.create_task(generate_resume_analysis_for_application_async(request.application_id))
@@ -3103,7 +3036,7 @@ async def trigger_background_evaluation_tools_generation(request: AiToolsRequest
         
         # 백그라운드 작업 트리거
         import asyncio
-        from ..scheduler.langgraph_background_scheduler import generate_evaluation_tools_for_application_async
+        from app.scheduler.langgraph_background_scheduler import generate_evaluation_tools_for_application_async
         
         # 비동기로 백그라운드 작업 실행
         asyncio.create_task(generate_evaluation_tools_for_application_async(request.application_id))

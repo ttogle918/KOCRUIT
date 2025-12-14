@@ -11,9 +11,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
-from app.models.application import Application, InterviewStatus
-from app.models.user import User
-from app.models.job import JobPost
+from app.models.v2.document.application import Application, InterviewStatus
+from app.models.v2.auth.user import User
+from app.models.v2.recruitment.job import JobPost
 
 def check_interview_status():
     """면접 상태 필드들을 확인하고 문제점을 진단합니다."""

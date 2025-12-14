@@ -10,10 +10,10 @@ from sqlalchemy.orm import Session
 from pytz import timezone
 KST = timezone('Asia/Seoul')
 from app.core.database import SessionLocal
-from app.models.job import JobPost
-from app.models.application import Application, DocumentStatus, InterviewStatus
-from app.services.interview_question_service import InterviewQuestionService
-from app.models.interview_question import InterviewQuestion, QuestionType
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.application import Application, StageName, StageStatus
+from app.services.v2.interview.interview_question_service import InterviewQuestionService
+from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class QuestionGenerationScheduler:
                     # 이미 공통 질문이 생성되어 있는지 확인
                     applications = db.query(Application).filter(
                         Application.job_post_id == job_post.id,
-                        Application.document_status == DocumentStatus.PASSED.value
+                        Application.document_status == StageStatus.PASSED.value
                     ).all()
                     
                     if applications:
@@ -52,7 +52,7 @@ class QuestionGenerationScheduler:
                         if existing_questions == 0:
                             # 공통 질문 생성
                             company_name = job_post.company.name if job_post.company else ""
-                            from app.api.v2.interview_question import parse_job_post_data
+                            from app.api.v2.interview.interview_question import parse_job_post_data
                             job_info = parse_job_post_data(job_post)
                             
                             questions = InterviewQuestionService.generate_common_questions_for_job_post(
@@ -85,11 +85,11 @@ class QuestionGenerationScheduler:
             # 면접 일정이 확정된 지원자들이 있는 공고 조회 (새로운 3개 컬럼 구조에 맞게 수정)
             scheduled_job_posts = db.query(JobPost).join(Application).filter(
                 (
-                    (Application.ai_interview_status == InterviewStatus.SCHEDULED) |
-                            (Application.practical_interview_status == InterviewStatus.SCHEDULED) |
-        (Application.executive_interview_status == InterviewStatus.SCHEDULED)
+                    (Application.ai_interview_status == StageStatus.SCHEDULED) |
+                            (Application.practical_interview_status == StageStatus.SCHEDULED) |
+        (Application.executive_interview_status == StageStatus.SCHEDULED)
                 ),
-                Application.document_status == DocumentStatus.PASSED.value
+                Application.document_status == StageStatus.PASSED.value
             ).distinct().all()
             
             total_questions = 0

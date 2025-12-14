@@ -11,7 +11,7 @@ from jose import JWTError
 from typing import Optional
 from fastapi.security import OAuth2PasswordBearer
 from app.utils.send_email import send_verification_email
-from app.models.v2.EmailVerificationToken import EmailVerificationToken
+from app.models.v2.auth.email_verification_token import EmailVerificationToken
 from pydantic import BaseModel, EmailStr
 
 

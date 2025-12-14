@@ -9,10 +9,10 @@ import base64
 import tempfile
 import os
 
-from ...core.database import get_db
-from ...models.interview_evaluation import InterviewEvaluation
-from ...models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
-from ...schemas.interview_evaluation import InterviewEvaluationCreate
+from app.core.database import get_db
+from app.models.v2.interview.interview_evaluation import InterviewEvaluation
+from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+from app.schemas.interview_evaluation import InterviewEvaluationCreate
 
 router = APIRouter()
 

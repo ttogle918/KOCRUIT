@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 
-from app.models.v2.interview_panel import (
+from app.models.v2.interview.interview_panel import (
     InterviewPanelAssignment, 
     InterviewPanelMember, 
     InterviewPanelRequest,
@@ -14,11 +14,13 @@ from app.models.v2.interview_panel import (
     AssignmentType
 )
 from app.models.v2.document.application import Application, StageStatus, StageName
-from app.models.v2.document.schedule import Schedule
-from app.models.v2.interview_question import InterviewQuestion
+from app.models.v2.common.schedule import Schedule
+from app.models.v2.interview.interview_question import InterviewQuestion
 from app.models.v2.recruitment.job import JobPost
 from app.models.v2.document.resume import Resume
 from app.models.v2.auth.user import User, CompanyUser
+from app.models.v2.common.schedule import ScheduleInterview, InterviewScheduleStatus
+from app.models.v2.document.application import Application, StageStatus
 from app.schemas.interview_panel import (
     InterviewPanelAssignmentCreate,
     InterviewPanelRequestCreate,
@@ -32,7 +34,7 @@ from app.schemas.interview_panel import (
 from app.models.v2.auth.company import Department
 from app.models.v2.recruitment.job import JobPost
 from app.models.v2.common.notification import Notification
-from app.models.v2.document.schedule import Schedule
+from app.models.v2.common.schedule import Schedule
 from app.services.v2.interview.interviewer_profile_service import InterviewerProfileService
 import random
 
@@ -485,13 +487,11 @@ class InterviewPanelService:
     @staticmethod
     def _create_interview_schedules(db: Session, assignment: InterviewPanelAssignment):
         """면접관 수락 완료 후 자동으로 면접 일정 생성"""
-        from app.models.v2.document.schedule import ScheduleInterview, InterviewScheduleStatus
-        from app.models.v2.document.application import Application, DocumentStatus, InterviewStatus
-        
+          
         # 해당 공고의 서류 합격자들 조회
         applications = db.query(Application).filter(
             Application.job_post_id == assignment.job_post_id,
-            Application.document_status == DocumentStatus.PASSED.value
+            Application.document_status == StageStatus.PASSED.value
         ).all()
         
         if not applications:
@@ -652,7 +652,7 @@ class InterviewPanelService:
                     schedule_id=new_schedule.id,
                     user_id=last_schedule.user_id if existing_schedules else 1,
                     schedule_date=new_datetime,
-                    status=InterviewScheduleStatus.SCHEDULED
+                    status=StageStatus.SCHEDULED
                 )
                 db.add(new_schedule_interview)
                 
@@ -725,7 +725,7 @@ class InterviewPanelService:
                                 user_id=application.user_id
                             )
                         )
-                        application.ai_interview_status = InterviewStatus.SCHEDULED
+                        application.ai_interview_status = StageStatus.SCHEDULED
                         print(f"✅ 지원자 {application.user_id} 연결 성공 (기존 방식)")
                     except Exception as e2:
                         print(f"❌ 지원자 {application.user_id} 연결 완전 실패: {e2}")
@@ -840,7 +840,7 @@ class InterviewPanelService:
     @staticmethod
     def get_panel_members(db: Session, job_post_id: int) -> List[dict]:
         """Get all panel members for a job post"""
-        from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelMember
+        from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelMember
         
         assignments = db.query(InterviewPanelAssignment).filter(
             InterviewPanelAssignment.job_post_id == job_post_id
@@ -871,9 +871,6 @@ class InterviewPanelService:
     @staticmethod
     def get_user_response_history(db: Session, user_id: int) -> List[dict]:
         """Get user's response history for interview panel requests"""
-        from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest
-        from app.models.v2.recruitment.job import JobPost
-        from app.models.v2.document.schedule import Schedule
         
         # Get all requests that the user has responded to (not pending)
         requests = db.query(InterviewPanelRequest).filter(

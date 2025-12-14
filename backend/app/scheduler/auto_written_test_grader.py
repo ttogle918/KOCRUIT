@@ -1,11 +1,10 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
-from app.models.written_test_answer import WrittenTestAnswer
-from app.models.written_test_question import WrittenTestQuestion
-from agent.tools.answer_grading_tool import grade_written_test_answer
-from app.models.application import Application, WrittenTestStatus
-from app.models.job import JobPost
+from app.models.v2.test.written_test_answer import WrittenTestAnswer
+from app.models.v2.test.written_test_question import WrittenTestQuestion
+from app.models.v2.document.application import Application, StageStatus, StageName
+from app.models.v2.recruitment.job import JobPost
 from sqlalchemy import func
 import datetime
 

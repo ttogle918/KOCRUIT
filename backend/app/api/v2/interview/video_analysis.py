@@ -8,7 +8,7 @@ from datetime import datetime
 import json
 
 from app.core.database import get_db
-from app.models.v2.media_analysis import MediaAnalysis
+from app.models.v2.interview.media_analysis import MediaAnalysis
 from app.models.v2.document.application import Application
 from app.api.v2.auth.auth import get_current_user
 from app.models.v2.auth.user import User

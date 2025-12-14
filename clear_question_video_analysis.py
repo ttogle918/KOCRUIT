@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.database import get_db
-from app.models.question_video_analysis import QuestionMediaAnalysis
-from app.models.media_analysis import MediaAnalysis
+from app.models.v2.interview.question_media_analysis import QuestionMediaAnalysis
+from app.models.v2.interview.media_analysis import MediaAnalysis
 
 def clear_all_data():
     """모든 분석 데이터 삭제"""

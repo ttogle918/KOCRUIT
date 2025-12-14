@@ -4,11 +4,11 @@ from sqlalchemy.orm import Session
 from apscheduler.schedulers.background import BackgroundScheduler
 from pytz import timezone
 from app.core.database import SessionLocal
-from app.models.schedule import Schedule, InterviewScheduleStatus
-from app.models.job import JobPost
-from app.services.notification_service import NotificationService
-from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelMember
-from app.models.user import CompanyUser
+from app.models.v2.common.schedule import Schedule, InterviewScheduleStatus
+from app.models.v2.recruitment.job import JobPost
+from app.services.v2.common.notification_service import NotificationService
+from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelMember
+from app.models.v2.auth.user import CompanyUser
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ def send_interview_reminders():
                     if not interviewer:
                         continue
                     # 5. 중복 알림 방지: user_id+schedule_id 조합
-                    from app.models.notification import Notification
+                    from app.models.v2.common.notification import Notification
                     existing = db.query(Notification).filter(
                         Notification.user_id == interviewer.id,
                         Notification.type == REMINDER_TYPE,

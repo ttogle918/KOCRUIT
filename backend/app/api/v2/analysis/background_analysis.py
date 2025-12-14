@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.v2.auth.auth import get_current_user
 from app.models.v2.auth.user import User
-from app.services.v2.background_analysis_service import background_analysis_service
+from app.services.v2.interview.whisper_analysis_service import whisper_analysis_service
 from app.models.v2.document.application import Application
-from app.api.v2.whisper_analysis import process_qa_local
+from app.api.v2.interview.whisper_analysis import process_qa_local
 import os
 import requests
 import logging
@@ -24,11 +24,11 @@ async def start_background_analysis(
     """백그라운드 분석 서비스 시작"""
     try:
         # 이미 실행 중인지 확인
-        if background_analysis_service.is_running:
+        if whisper_analysis_service.is_running:
             return {"message": "백그라운드 분석 서비스가 이미 실행 중입니다", "status": "running"}
         
         # 백그라운드에서 분석 시작
-        background_tasks.add_task(background_analysis_service.run_continuous_analysis)
+        background_tasks.add_task(whisper_analysis_service.run_continuous_analysis)
         
         return {"message": "백그라운드 분석 서비스가 시작되었습니다", "status": "started"}
         
@@ -42,7 +42,7 @@ async def stop_background_analysis(
 ):
     """백그라운드 분석 서비스 중지"""
     try:
-        background_analysis_service.stop()
+        whisper_analysis_service.stop()
         return {"message": "백그라운드 분석 서비스가 중지되었습니다", "status": "stopped"}
         
     except Exception as e:
@@ -56,9 +56,9 @@ async def get_background_analysis_status(
     """백그라운드 분석 서비스 상태 조회"""
     try:
         return {
-            "is_running": background_analysis_service.is_running,
-            "check_interval": background_analysis_service.check_interval,
-            "max_concurrent_analyses": background_analysis_service.max_concurrent_analyses
+            "is_running": whisper_analysis_service.is_running,
+            "check_interval": whisper_analysis_service.check_interval,
+            "max_concurrent_analyses": whisper_analysis_service.max_concurrent_analyses
         }
         
     except Exception as e:
@@ -74,7 +74,7 @@ async def trigger_analysis_now(
     """즉시 분석 실행 (대기 중인 분석 처리)"""
     try:
         # 백그라운드에서 즉시 분석 실행
-        background_tasks.add_task(background_analysis_service.process_pending_analyses)
+        background_tasks.add_task(whisper_analysis_service.process_pending_analyses)
         
         return {"message": "즉시 분석이 시작되었습니다", "status": "triggered"}
         

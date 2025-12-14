@@ -1,88 +1,57 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
-from typing import List, Dict, Any, Optional
-import tempfile
-from weasyprint import HTML
-from jinja2 import Template
-import json
-from langchain_openai import ChatOpenAI
-import re
 from pydantic import BaseModel
+import httpx
 from app.core.config import settings
-from sqlalchemy import or_
-
 from app.core.database import get_db
-from app.models.v2.document.application import Application, OverallStatus, StageStatus, StageName, ApplicationStage
+from app.models.v2.document.application import Application, StageStatus, StageName
 
 from app.models.v2.recruitment.job import JobPost
 from app.models.v2.document.resume import Resume
 from app.models.v2.auth.user import User
-from app.api.v2.auth.auth import get_current_user
-from app.models.v2.written_test_answer import WrittenTestAnswer
-from app.models.v2.interview_evaluation import InterviewEvaluation, EvaluationType
-from app.models.v2.document.schedule import AIInterviewSchedule
-from app.schemas.report import DocumentReportResponse, WrittenTestReportResponse
-from app.utils.llm_cache import redis_cache
+from app.models.v2.interview.interview_evaluation import InterviewEvaluation, EvaluationType
+from app.models.v2.common.schedule import AIInterviewSchedule
 
 router = APIRouter()
 
-# LLM을 이용한 탈락 사유 TOP3 추출 함수
-
-def extract_top3_rejection_reasons_llm(fail_reasons: list[str]) -> list[str]:
+async def extract_top3_rejection_reasons_llm(fail_reasons: list[str]) -> list[str]:
+    """Agent API를 통해 탈락 사유 TOP3 추출"""
     if not fail_reasons:
-        print("[LLM-탈락사유] 불합격자 사유 없음, 빈 리스트 반환")
         return []
-    prompt = f"""
-아래는 한 채용 공고에 지원한 불합격자들의 불합격 사유입니다.
-
-{chr(10).join(fail_reasons)}
-
-이 사유들을 분석해서, 절대 원문을 복사하지 말고, 
-비슷한 사유는 하나로 묶어서, 가장 많이 언급된 탈락 사유 TOP3를 한글 '키워드' 또는 '짧은 문장'(15자 이내)으로만 뽑아줘.
-만약 원문을 복사하면 0점 처리된다. 반드시 아래 예시처럼만 출력해라.
-
-예시1: [\"정보처리기사 자격증 없음\", \"경력 부족\", \"SI/SM 프로젝트 경험 부족\"]
-예시2: [\"PM 경력 부족\", \"자격증 미보유\", \"실무 경험 부족\"]
-예시3: [\"경력 부족\", \"자격증 없음\", \"프로젝트 경험 부족\"]
-
-응답은 반드시 JSON 배열로만 출력해라.
-"""
-    print("[LLM-탈락사유] 프롬프트:\n", prompt)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.9, timeout=30)
+        
+    agent_url = settings.AGENT_URL or "http://agent:8001"
+    url = f"{agent_url}/api/v2/agent/tools/report/rejection-reasons"
+    
     try:
-        response = llm.invoke(prompt)
-        print("[LLM-탈락사유] LLM 응답:", response.content)
-        import json, re
-        match = re.search(r'\[.*\]', response.content, re.DOTALL)
-        if match:
-            result = json.loads(match.group(0))
-            print("[LLM-탈락사유] 파싱된 TOP3:", result)
-            return result
-        result = [line.strip('-•123. ').strip() for line in response.content.strip().split('\n') if line.strip()]
-        print("[LLM-탈락사유] fallback 파싱 TOP3:", result)
-        return result
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json={"reasons": fail_reasons}, timeout=30.0)
+            if response.status_code == 200:
+                return response.json().get("top_reasons", [])
+            else:
+                print(f"[LLM-탈락사유] API 호출 실패: {response.status_code}")
+                return []
     except Exception as e:
-        print(f"[LLM-탈락사유] LLM 탈락 사유 TOP3 추출 오류: {e}")
+        print(f"[LLM-탈락사유] API 호출 오류: {e}")
         return []
 
-def extract_passed_summary_llm(pass_reasons: list[str]) -> str:
+async def extract_passed_summary_llm(pass_reasons: list[str]) -> str:
+    """Agent API를 통해 합격자 유형 요약"""
     if not pass_reasons:
         return ""
-    prompt = f"""
-아래는 이번 채용에서 합격한 지원자들의 합격 사유입니다.
-
-{chr(10).join(pass_reasons)}
-
-이 내용을 바탕으로, 이번 채용에서 어떤 유형/능력의 인재가 합격했는지 한글로 2~3문장으로 요약해줘.
-예시: \"실무 경험과 자격증을 고루 갖춘 지원자가 선발되었습니다. PM 경력과 정보처리기사 자격증 보유가 주요 합격 요인으로 작용했습니다.\"
-"""
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7, timeout=30)
+        
+    agent_url = settings.AGENT_URL or "http://agent:8001"
+    url = f"{agent_url}/api/v2/agent/tools/report/passed-summary"
+    
     try:
-        response = llm.invoke(prompt)
-        return response.content.strip()
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json={"reasons": pass_reasons}, timeout=30.0)
+            if response.status_code == 200:
+                return response.json().get("summary", "")
+            else:
+                print(f"[LLM-합격자요약] API 호출 실패: {response.status_code}")
+                return ""
     except Exception as e:
-        print(f"[LLM-합격자요약] 오류: {e}")
+        print(f"[LLM-합격자요약] API 호출 오류: {e}")
         return ""
 
 
@@ -117,10 +86,6 @@ async def get_document_report_data(
         ).filter(Application.job_post_id == job_post_id).all()
         
         print(f"📊 지원자 수: {len(applications)}명")
-        
-        # 각 지원자의 상세 정보 로그
-        for i, app in enumerate(applications):
-            print(f"  지원자 {i+1}: ID={app.id}, User={app.user.name if app.user else 'None'}, Status={app.overall_status}, DocumentStatus={app.document_status}")
         
         # 통계 계산
         total_applicants = len(applications)
@@ -164,7 +129,7 @@ async def get_document_report_data(
         # LLM을 이용한 TOP3 추출 (실패 시 fallback)
         if rejection_reasons:
             try:
-                top_reasons = extract_top3_rejection_reasons_llm(rejection_reasons)
+                top_reasons = await extract_top3_rejection_reasons_llm(rejection_reasons)
                 if not top_reasons:  # LLM 호출 실패 시 fallback
                     # 가장 많이 언급된 사유들을 간단히 추출
                     from collections import Counter
@@ -211,7 +176,7 @@ async def get_document_report_data(
         
         # 합격자 요약 (실패 시 fallback)
         try:
-            passed_summary = extract_passed_summary_llm(passed_reasons)
+            passed_summary = await extract_passed_summary_llm(passed_reasons)
             if not passed_summary:  # LLM 호출 실패 시 fallback
                 passed_summary = f"총 {len(passed_reasons)}명의 지원자가 합격했습니다."
         except Exception as e:
@@ -302,16 +267,10 @@ async def generate_comprehensive_evaluation(
         if ai_interview_schedule:
             # AI 면접 평가 조회
             ai_evaluation = db.query(InterviewEvaluation).filter(
-                InterviewEvaluation.interview_id == ai_schedule_id_placeholder, # ai_interview_schedule.id
+                InterviewEvaluation.interview_id == ai_interview_schedule.id,
                 InterviewEvaluation.evaluation_type == EvaluationType.AI
-            ).first() # 위 코드에서 ai_schedule_id_placeholder 부분 수정 필요 -> ai_interview_schedule.id 사용
+            ).first()
             
-            # ... (기존 로직 유지)
-
-        # (중략 - 기존 로직 유지)
-        # 4. GPT-4o-mini ...
-        
-        # 임시 반환값
         return {
             "applicant_name": applicant_name,
             "comprehensive_evaluation": "종합 평가 생성 완료 (Mock)",

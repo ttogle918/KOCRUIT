@@ -1,13 +1,7 @@
 import logging
 from typing import Dict, Any, List, Optional
-import numpy as np
 import re
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../agent'))
-from agent.agents.pattern_summary_node import PatternSummaryNode
-from langchain_openai import ChatOpenAI
-import json
+from app.utils.agent_client import generate_growth_reasons, generate_score_narrative
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +33,6 @@ class ApplicantGrowthScoringService:
     """지원자-고성과자 비교 및 성장 가능성 스코어링 서비스"""
     
     def __init__(self, high_performer_stats: Dict[str, Any], high_performer_members: Optional[List[Dict[str, Any]]] = None, weights: Optional[Dict[str, float]] = None):
-        """
-        Args:
-            high_performer_stats: 고성과자 통계(평균 등)
-            high_performer_members: 고성과자 raw 데이터 리스트
-            weights: 각 항목별 가중치 (기본값: KPI=0.4, 승진속도=0.3, 학력=0.2, 자격증=0.1)
-        """
         self.stats = high_performer_stats
         self.high_performer_members = high_performer_members
         self.weights = weights or {
@@ -95,7 +83,7 @@ class ApplicantGrowthScoringService:
             "experience_years": experience_years,
         }
     
-    def score_applicant(self, applicant_specs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def score_applicant(self, applicant_specs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         지원자 스펙과 고성과자 통계 비교, 성장 가능성 점수 산출
         Returns: {total_score, detail: {항목별 점수, raw 값, 평균 대비 % 등}, comparison_chart_data, detail_explanation}
@@ -117,7 +105,7 @@ class ApplicantGrowthScoringService:
             kpi_explanation = "KPI 정보 부족"
         detail["kpi"] = {"score": kpi_score, "value": norm.get("kpi"), "mean": self.stats.get("kpi_score_mean")}
         detail_explanation["kpi"] = kpi_explanation
-        # 승진속도(빠를수록 점수 높음)
+        # 승진속도
         promotion_score = 0.0
         promotion_explanation = ""
         if self.stats.get("promotion_speed_years_mean") and norm.get("promotion_speed"):
@@ -204,44 +192,33 @@ class ApplicantGrowthScoringService:
             "applicant": applicant_values,
             "high_performer": high_performer_values
         }
-        # 주요 근거 생성 (LLM 기반)
+        
+        # 주요 근거 생성 (Agent API 호출)
         llm_reasons = []
         try:
-            llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.3)
-            prompt = f"""
-지원자와 고성과자 평균을 비교해 성장 가능성 점수를 산출했습니다.
+            comparison_data = f"""
+            [학력 점수 산정 기준]
+            - 학사(2) 이상이면 충분히 우수한 학력으로 간주(80점 이상)
+            - 석사(3) 90점, 박사(4) 100점
+            - 학사 이상이면 '학력이 낮다'고 평가하지 않는다
 
-[학력 점수 산정 기준]
-- 학사(2) 이상이면 충분히 우수한 학력으로 간주(80점 이상)
-- 석사(3) 90점, 박사(4) 100점
-- 학사 이상이면 '학력이 낮다'고 평가하지 않는다
+            지원자 주요 스펙:
+            - 경력(년): {norm.get('experience_years')} (고성과자 평균: {self.stats.get('total_experience_years_mean', 0.0)})
+            - 학력: {norm.get('degree')} (고성과자 평균: {self.stats.get('degree_mean')})
+            - 자격증 개수: {norm.get('certifications_count')} (고성과자 평균: {self.stats.get('certifications_count_mean')})
 
-지원자 주요 스펙:
-- 경력(년): {norm.get('experience_years')} (고성과자 평균: {self.stats.get('total_experience_years_mean', 0.0)})
-- 학력: {norm.get('degree')} (고성과자 평균: {self.stats.get('degree_mean')})
-- 자격증 개수: {norm.get('certifications_count')} (고성과자 평균: {self.stats.get('certifications_count_mean')})
-
-항목별 점수:
-- 경력: {detail.get('experience_years', {}).get('score', 0):.1f}
-- 학력: {detail['degree']['score']:.1f}
-- 자격증: {detail['certifications']['score']:.1f}
-
-이 지원자가 왜 이런 성장 점수를 받았는지, 고성과자와 비교해 강점/약점/성장 포인트를 한글로 bullet(✅, ⚠️)로 3~5개 요약해줘.
-단, 학사 이상이면 '학력이 낮다'고 하지 말고, 긍정적으로 평가해라.
-각 bullet은 한 줄로 명확하게 써줘.
-"""
-            response = llm.invoke(prompt)
-            logger.info(f"[LLM raw response] {response.content}")
-            llm_reasons = [
-                line.strip()
-                for line in response.content.split('\n')
-                if re.match(r'^[\s\-•]*[✅⚠️]', line)
-            ]
+            항목별 점수:
+            - 경력: {detail.get('experience_years', {}).get('score', 0):.1f}
+            - 학력: {detail['degree']['score']:.1f}
+            - 자격증: {detail['certifications']['score']:.1f}
+            """
+            
+            llm_reasons = await generate_growth_reasons(comparison_data)
+            
             if not llm_reasons:
-                logger.warning("[LLM fallback] LLM 응답이 비어 있음, rule-based로 대체")
                 raise ValueError('LLM 응답이 비어 있음')
         except Exception as e:
-            logger.warning(f"[LLM fallback] LLM 호출 실패: {e}, rule-based로 대체")
+            logger.warning(f"[LLM fallback] Agent API 호출 실패: {e}, rule-based로 대체")
             reasons = []
             if norm.get("kpi") is not None and self.stats.get("kpi_score_mean"):
                 if norm["kpi"] >= self.stats["kpi_score_mean"]:
@@ -263,16 +240,13 @@ class ApplicantGrowthScoringService:
                 else:
                     reasons.append("⚠️ 학력은 고성과자 평균보다 낮음")
             llm_reasons = reasons
-        # 점수 만점 정의
+            
+        # 점수 만점 정의 및 환산 (기존 로직 유지)
         DEGREE_MAX = 10
         CERT_MAX = 10
         EXP_MAX = 40
-        # 학력 점수 변환 (0~10)
         degree_score_10 = round((degree_score / 100) * DEGREE_MAX)
-        # 자격증 점수 변환 (0~10)
         cert_score_10 = round((cert_score / 100) * CERT_MAX)
-        # 경력 점수 변환 (0~40)
-        # 경력 만점 기준: 고성과자 평균 경력
         exp = norm.get("experience_years", 0)
         high_exp = self.stats.get("total_experience_years_mean", None)
         if high_exp is not None and high_exp > 0:
@@ -281,36 +255,26 @@ class ApplicantGrowthScoringService:
         else:
             exp_score_40 = 0
             high_exp_label = "데이터 없음"
-        # 총점 계산 (항목별 만점 합)
         total = degree_score_10 + cert_score_10 + exp_score_40
+        
         # 표 데이터 생성
         item_table = []
-        # 학력
         degree_label = None
-        if norm.get("degree") == 4:
-            degree_label = "박사"
-        elif norm.get("degree") == 3:
-            degree_label = "석사"
-        elif norm.get("degree") == 2:
-            degree_label = "학사"
-        elif norm.get("degree") == 1:
-            degree_label = "전문학사"
-        else:
-            degree_label = "고졸 이하"
+        if norm.get("degree") == 4: degree_label = "박사"
+        elif norm.get("degree") == 3: degree_label = "석사"
+        elif norm.get("degree") == 2: degree_label = "학사"
+        elif norm.get("degree") == 1: degree_label = "전문학사"
+        else: degree_label = "고졸 이하"
+        
         high_degree_label = None
         if self.stats.get("degree_mean"):
-            if self.stats["degree_mean"] >= 4:
-                high_degree_label = "박사"
-            elif self.stats["degree_mean"] >= 3:
-                high_degree_label = "석사"
-            elif self.stats["degree_mean"] >= 2:
-                high_degree_label = "학사"
-            elif self.stats["degree_mean"] >= 1:
-                high_degree_label = "전문학사"
-            else:
-                high_degree_label = "고졸 이하"
-        else:
-            high_degree_label = "-"
+            if self.stats["degree_mean"] >= 4: high_degree_label = "박사"
+            elif self.stats["degree_mean"] >= 3: high_degree_label = "석사"
+            elif self.stats["degree_mean"] >= 2: high_degree_label = "학사"
+            elif self.stats["degree_mean"] >= 1: high_degree_label = "전문학사"
+            else: high_degree_label = "고졸 이하"
+        else: high_degree_label = "-"
+        
         item_table.append({
             "항목": "학력",
             "지원자": degree_label,
@@ -318,7 +282,6 @@ class ApplicantGrowthScoringService:
             "항목점수": f"{degree_score_10}/{DEGREE_MAX}",
             "비중": f"{int(DEGREE_MAX)}점"
         })
-        # 자격증
         cert_count = norm.get("certifications_count", 0)
         high_cert_count = self.stats.get("certifications_count_mean", 0)
         item_table.append({
@@ -328,7 +291,6 @@ class ApplicantGrowthScoringService:
             "항목점수": f"{cert_score_10}/{CERT_MAX}",
             "비중": f"{int(CERT_MAX)}점"
         })
-        # 경력(년)
         item_table.append({
             "항목": "경력",
             "지원자": f"{int(exp)}년",
@@ -336,35 +298,26 @@ class ApplicantGrowthScoringService:
             "항목점수": f"{exp_score_40}/{EXP_MAX}",
             "비중": f"{int(EXP_MAX)}점"
         })
-        # LLM 기반 점수 구조 설명 생성
+        
+        # 점수 설명 생성 (Agent API 호출)
         llm_narrative = None
         try:
-            llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.3)
-            # 표 데이터를 텍스트 테이블로 변환
             table_str = "| 항목 | 지원자 | 고성과자평균 | 항목점수 | 비중 |\n|---|---|---|---|---|\n"
             for row in item_table:
                 table_str += f"| {row['항목']} | {row['지원자']} | {row['고성과자평균']} | {row['항목점수']} | {row['비중']} |\n"
-            prompt = f"""
-아래는 지원자 성장 가능성 예측 점수 구조와 평가 근거입니다.
-
-점수 구조 표:
-{table_str}
-
-총점: {total}점 (만점: {DEGREE_MAX+CERT_MAX+EXP_MAX}점)
-
-이 표와 점수 구조를 바탕으로, 왜 이런 점수가 나왔는지, 어떤 항목이 중요한지, 개선 포인트는 무엇인지 아래 예시처럼 자연스럽고 논리적으로 설명해줘.
-
-예시)
-지원자의 학력(박사)과 자격증(2개)은 고성과자 평균과 동일하여 만점(각 10점)입니다.\n그러나 경력(0년)이 고성과자 평균(7년)에 한참 못 미쳐 해당 항목(비중 40점)에서 0점을 받았습니다.\n따라서, 총점은 30점으로 평가됩니다.\n경력 항목의 비중이 높으므로, 경력 보완이 성장 가능성 점수 개선의 핵심 포인트입니다.
-
-위 예시처럼, 표와 점수 구조를 바탕으로 한글로 3~5문장으로 명확하게 설명해줘. 각 항목별로 점수/비중/강점/약점/개선포인트를 구체적으로 언급해줘.
-"""
-            response = llm.invoke(prompt)
-            llm_narrative = response.content.strip()
+            
+            prompt_context = f"""
+            점수 구조 표:
+            {table_str}
+            총점: {total}점 (만점: {DEGREE_MAX+CERT_MAX+EXP_MAX}점)
+            """
+            
+            llm_narrative = await generate_score_narrative(prompt_context)
+            
             if not llm_narrative:
                 raise ValueError('LLM narrative empty')
         except Exception as e:
-            logger.warning(f"[LLM narrative fallback] LLM 호출 실패: {e}, rule-based로 대체")
+            logger.warning(f"[LLM narrative fallback] Agent API 호출 실패: {e}, rule-based로 대체")
             # 기존 rule-based narrative
             narrative = ""
             if degree_score_10 == DEGREE_MAX and cert_score_10 == CERT_MAX:
@@ -377,6 +330,7 @@ class ApplicantGrowthScoringService:
             if EXP_MAX >= 30:
                 narrative += "경력 항목의 비중이 높으므로, 경력 보완이 성장 가능성 점수 개선의 핵심 포인트입니다."
             llm_narrative = narrative
+            
         return {
             "total_score": total,
             "detail": detail,
@@ -385,4 +339,4 @@ class ApplicantGrowthScoringService:
             "detail_explanation": detail_explanation,
             "item_table": item_table,
             "narrative": llm_narrative
-        } 
+        }

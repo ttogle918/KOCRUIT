@@ -4,7 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.services.v2.resume_plagiarism_service import ResumePlagiarismService
+from app.services.v2.analysis.resume_plagiarism_service import ResumePlagiarismService
 
 router = APIRouter()
 
@@ -183,23 +183,12 @@ async def clear_all_embeddings():
 @router.get("/health")
 async def health_check():
     """
-    서비스 상태 확인
+    서비스 상태 확인 (Agent 호출)
     """
     try:
-        # OpenAI API 키 검증
-        embedder = plagiarism_service.embedder
-        api_valid = embedder.validate_api_key()
-        
-        # ChromaDB 연결 확인
-        stats = plagiarism_service.get_collection_stats()
-        chroma_ok = "error" not in stats
-        
-        return {
-            "status": "healthy" if api_valid and chroma_ok else "unhealthy",
-            "openai_api_valid": api_valid,
-            "chromadb_connected": chroma_ok,
-            "collection_stats": stats if chroma_ok else None
-        }
+        # Agent의 헬스체크 API 호출
+        status = await plagiarism_service.get_health_status()
+        return status
         
     except Exception as e:
         return {

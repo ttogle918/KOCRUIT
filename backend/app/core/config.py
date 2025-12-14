@@ -32,9 +32,12 @@ class Settings(BaseSettings):
     REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
     REDIS_URL: str = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
     
-    # AI API Keys
+    # AI API Keys (Backend에서는 직접 사용하지 않음)
     OPENAI_API_KEY: Optional[str] = None
     TAVILY_API_KEY: Optional[str] = None
+    
+    # AI Agent URL
+    AGENT_URL: str = "http://agent:8001"
     
     # OAuth
     GOOGLE_CLIENT_ID: Optional[str] = None

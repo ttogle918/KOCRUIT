@@ -46,7 +46,11 @@ class User(Base):
         'polymorphic_identity': 'individual',
         'polymorphic_on': user_type
     }
-
+    
+class ApplicantUser(Base):
+    __tablename__ = "applicant_user"
+    id = Column(Integer, primary_key=True, index=True)
+    resume_file_path = Column(String(255)) 
 
 class CompanyUser(User):
     __tablename__ = "company_user"

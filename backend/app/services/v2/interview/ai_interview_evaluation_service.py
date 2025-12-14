@@ -1,7 +1,7 @@
 import json
 import os
-from app.models.v2.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationStatus, EvaluationType
-from app.models.v2.document.schedule import Schedule, ScheduleInterview, InterviewScheduleStatus
+from app.models.v2.interview.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationStatus, EvaluationType
+from app.models.v2.common.schedule import Schedule, ScheduleInterview, InterviewScheduleStatus
 from app.models.v2.document.application import Application, StageName, StageStatus, ApplicationStage
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -255,7 +255,7 @@ def get_applicant_analysis_data(applicant_id: int, json_path: str = None):
 def create_ai_interview_schedule(db: Session, application_id: int, job_post_id: int):
     """AI 면접용 ai_interview_schedule 자동 생성"""
     from app.models.v2.document.application import Application
-    from app.models.v2.document.schedule import AIInterviewSchedule
+    from app.models.v2.common.schedule import AIInterviewSchedule
     
     # 지원자 정보 조회
     application = db.query(Application).filter(Application.id == application_id).first()
@@ -327,7 +327,7 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
         applicant_user_id = application.user_id
         
         # 1. 기존 면접 일정 찾기 (같은 지원자, 같은 공고)
-        from app.models.v2.document.schedule import AIInterviewSchedule
+        from app.models.v2.common.schedule import AIInterviewSchedule
         ai_schedule = db.query(AIInterviewSchedule).filter(
             AIInterviewSchedule.application_id == application_id,
             AIInterviewSchedule.job_post_id == job_post_id
@@ -341,7 +341,7 @@ def save_ai_interview_evaluation(db: Session, application_id: int, interview_id:
             interview_id = create_ai_interview_schedule(db, application_id, job_post_id)
     else:
         # 사용자가 제공한 interview_id가 유효한지 확인
-        from app.models.v2.document.schedule import AIInterviewSchedule
+        from app.models.v2.common.schedule import AIInterviewSchedule
         existing_interview = db.query(AIInterviewSchedule).filter(AIInterviewSchedule.id == interview_id).first()
         if not existing_interview:
             print(f"⚠️ 제공된 면접 ID {interview_id}가 존재하지 않습니다. 새로운 면접 일정을 생성합니다.")

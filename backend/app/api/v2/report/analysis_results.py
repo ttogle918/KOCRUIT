@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.v2.analysis_result import AnalysisResult
+from app.models.v2.analysis.analysis_result import AnalysisResult
 from app.models.v2.document.application import Application
 from app.models.v2.document.resume import Resume
 from app.models.v2.recruitment.job import JobPost

@@ -11,10 +11,10 @@ import statistics
 from decimal import Decimal
 import json
 
-from app.models.v2.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem
-from app.models.v2.interviewer_profile import InterviewerProfile, InterviewerProfileHistory
+from app.models.v2.interview.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem
+from app.models.v2.interview.interviewer_profile import InterviewerProfile, InterviewerProfileHistory
 from app.models.v2.auth.user import CompanyUser
-from app.models.v2.document.schedule import ScheduleInterview
+from app.models.v2.common.schedule import ScheduleInterview
 
 
 class InterviewerProfileService:

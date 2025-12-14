@@ -9,6 +9,7 @@ from .agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, c
 from .agents.chatbot_node import ChatbotNode
 from .redis_monitor import RedisMonitor
 from .scheduler import RedisScheduler
+from .api.v2.analysis import router as analysis_router  # 분석 관련 API 라우터 추가
 from tools.weight_extraction_tool import weight_extraction_tool
 from tools.form_fill_tool import form_fill_tool, form_improve_tool
 from tools.form_edit_tool import form_edit_tool, form_status_check_tool
@@ -92,6 +93,9 @@ class QAAnalysisRequest(BaseModel):
     max_workers: Optional[int] = 2
     delete_after_input: Optional[bool] = False
     run_emotion_context: Optional[bool] = False
+
+# API 라우터 등록
+app.include_router(analysis_router, prefix="/api/v2/agent", tags=["Analysis"])
 
 # 헬스체크 엔드포인트
 @app.get("/health")

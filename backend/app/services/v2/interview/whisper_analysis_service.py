@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 import requests
 
 from app.core.database import get_db
-from app.models.v2.media_analysis import MediaAnalysis
+from app.models.v2.interview.media_analysis import MediaAnalysis
 from app.models.v2.document.application import Application
-from app.models.v2.interview_question_log import InterviewQuestionLog
+from app.models.v2.interview.interview_question_log import InterviewQuestionLog
 
 logger = logging.getLogger(__name__)
 

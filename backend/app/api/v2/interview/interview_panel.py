@@ -108,9 +108,9 @@ def get_job_post_assignments(
     """
     Get all interview panel assignments for a job post
     """
-    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+    from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
     from app.models.v2.recruitment.job import JobPost
-    from app.models.v2.document.schedule import Schedule
+    from app.models.v2.common.schedule import Schedule
     
     try:
         assignments = db.query(InterviewPanelAssignment).filter(
@@ -159,10 +159,10 @@ def get_assignment_details(
     """
     Get detailed information about a specific assignment
     """
-    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+    from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
     from app.models.v2.auth.user import CompanyUser
     from app.models.v2.recruitment.job import JobPost
-    from app.models.v2.document.schedule import Schedule
+    from app.models.v2.common.schedule import Schedule
     
     try:
         assignment = db.query(InterviewPanelAssignment).filter(
@@ -248,7 +248,7 @@ def cancel_assignment(
     """
     Cancel an interview panel assignment
     """
-    from app.models.v2.interview_panel import InterviewPanelAssignment, AssignmentStatus
+    from app.models.v2.interview.interview_panel import InterviewPanelAssignment, AssignmentStatus
     
     try:
         assignment = db.query(InterviewPanelAssignment).filter(
@@ -277,7 +277,7 @@ def get_assignment_matching_details(
     """
     Get matching details for a specific assignment including balance scores and reasoning
     """
-    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+    from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
     from app.models.v2.auth.user import CompanyUser
     from app.services.v2.interviewer_profile_service import InterviewerProfileService
     import statistics
@@ -485,7 +485,7 @@ def cancel_interview_request(
     """
     Cancel a specific interview panel request
     """
-    from app.models.v2.interview_panel import InterviewPanelRequest, RequestStatus
+    from app.models.v2.interview.interview_panel import InterviewPanelRequest, RequestStatus
     
     try:
         request = db.query(InterviewPanelRequest).filter(
@@ -520,7 +520,7 @@ def invite_interviewer_to_assignment(
     """
     Invite a specific user to an interview panel assignment
     """
-    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, RequestStatus
+    from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, RequestStatus
     from app.models.v2.auth.user import CompanyUser
     from app.models.v2.common.notification import Notification
     
@@ -633,8 +633,8 @@ def get_my_interview_schedules(
     현재 로그인된 유저의 면접 일정을 가져옵니다.
     """
     try:
-        from app.models.v2.interview_panel import InterviewPanelMember, InterviewPanelAssignment
-        from app.models.v2.document.schedule import Schedule
+        from app.models.v2.interview.interview_panel import InterviewPanelMember, InterviewPanelAssignment
+        from app.models.v2.common.schedule import Schedule
         from app.models.v2.recruitment.job import JobPost
         from app.models.v2.auth.user import CompanyUser
         from app.models.v2.document.application import Application
@@ -708,8 +708,8 @@ def get_my_interview_schedules_test(
     임시 테스트용 엔드포인트 - 인증 없이 면접 일정 조회
     """
     try:
-        from app.models.v2.interview_panel import InterviewPanelMember, InterviewPanelAssignment
-        from app.models.v2.document.schedule import Schedule
+        from app.models.v2.interview.interview_panel import InterviewPanelMember, InterviewPanelAssignment
+        from app.models.v2.common.schedule import Schedule
         from app.models.v2.recruitment.job import JobPost
         from app.models.v2.auth.user import CompanyUser
         from app.models.v2.document.application import Application

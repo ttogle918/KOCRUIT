@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from app.models.v2.ai_insights import AIInsights, AIInsightsComparison
-from app.models.v2.interview_evaluation import InterviewEvaluation, EvaluationType
+from app.models.v2.analysis.ai_insights import AIInsights, AIInsightsComparison
+from app.models.v2.interview.interview_evaluation import InterviewEvaluation, EvaluationType
 from app.models.v2.document.application import Application
 import sys
 import os
@@ -9,9 +9,16 @@ import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-# LangGraph 워크플로우 import
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../agent'))
-from agents.ai_insights_workflow import run_ai_insights_analysis
+# TODO: Agent API 호출 함수로 대체
+def run_ai_insights_analysis(job_post_id: int, interview_data: Dict[str, Any]) -> Dict[str, Any]:
+    # 임시 Stub 함수
+    return {
+        "insights": {
+            "basic": {"score_distribution": {}, "pattern_analysis": {}},
+            "advanced": {"risk_assessment": {}, "optimization_suggestions": []}
+        },
+        "recommendations": []
+    }
 
 class AIInsightsService:
     

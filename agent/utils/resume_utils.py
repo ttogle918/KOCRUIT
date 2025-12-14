@@ -1,5 +1,5 @@
 from typing import List
-from app.models.resume import Resume, Spec
+from app.models.v2.document.resume import Resume, Spec
 
 def combine_resume_and_specs(resume: Resume, specs: List[Spec]) -> str:
     """Resume와 Spec을 조합하여 포괄적인 resume_text 생성"""

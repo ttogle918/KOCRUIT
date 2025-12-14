@@ -101,7 +101,7 @@ sequenceDiagram
     
     Note over HR,NOTIFY: 1. 채용공고 작성
     HR->>FE: 공고 작성 요청
-    FE->>BE: POST /api/v1/jobs/
+    FE->>BE: POST /api/v2/jobs/
     BE->>DB: 공고 데이터 저장
     DB->>BE: 저장 완료
     BE->>FE: 공고 ID 반환
@@ -116,7 +116,7 @@ sequenceDiagram
     
     Note over HR,NOTIFY: 3. 공고 게시
     HR->>FE: 공고 게시 승인
-    FE->>BE: PUT /api/v1/jobs/{id}/publish
+    FE->>BE: PUT /api/v2/jobs/{id}/publish
     BE->>DB: 상태 업데이트
     BE->>NOTIFY: 공고 게시 알림
     NOTIFY->>AI: 자동 면접관 배정 요청

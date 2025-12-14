@@ -26,11 +26,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler()]
 )
-# from app.scheduler.job_status_scheduler import JobStatusScheduler
-# from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
-# from app.scheduler.interview_reminder_scheduler import start_interview_reminder_scheduler
-# from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
-# from app.services.background_analysis_service import background_analysis_service
 
 def safe_create_tables():
     """안전한 테이블 생성 - 기존 테이블은 건드리지 않고 새로운 테이블만 생성"""

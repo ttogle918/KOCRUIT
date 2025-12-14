@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, aliased
-from app.models.v2.interview_question import InterviewQuestion, QuestionType
+from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
 from app.schemas.interview_question import InterviewQuestionCreate, InterviewQuestionBulkCreate
 from typing import List, Dict, Any, Optional
 import logging
@@ -271,7 +271,7 @@ class InterviewQuestionService:
             # 해당 공고의 모든 지원자에게 공통 질문 저장
             applications = db.query(Application).filter(
                 Application.job_post_id == job_post_id,
-                Application.document_status == DocumentStatus.PASSED.value
+                Application.document_status == StageStatus.PASSED.value
             ).all()
             
             created_questions = []

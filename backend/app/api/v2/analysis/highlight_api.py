@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.models.v2.document.application import Application
 from app.models.v2.recruitment.job import JobPost
 from app.models.v2.auth.company import Company
-from app.models.v2.highlight_result import HighlightResult
+from app.models.v2.analysis.highlight_result import HighlightResult
 from app.models.v2.document.resume import Resume, Spec
 
 # 공통 유틸리티 import 추가

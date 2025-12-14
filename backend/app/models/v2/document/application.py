@@ -1,9 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Enum, Numeric
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Enum as SqlEnum, Numeric
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
 import enum
-from sqlalchemy import Enum as SqlEnum
 
 # --- Enums Definition ---
 
@@ -29,6 +28,12 @@ class StageStatus(str, enum.Enum):
     PASSED = "PASSED"         # 합격 (다음 단계로)
     FAILED = "FAILED"         # 불합격
     CANCELED = "CANCELED"     # 취소/미응시
+
+class ApplicationViewAction(str, enum.Enum):
+    VIEW = "VIEW"
+    EDIT = "EDIT"
+    DOWNLOAD = "DOWNLOAD"
+    PRINT = "PRINT"
 
 # --- Models Definition ---
 
@@ -57,24 +62,27 @@ class Application(Base):
     job_post = relationship("JobPost", back_populates="applications")
     resume = relationship("Resume", back_populates="applications")
     
-    # New: 단계별 이력 관계 설정 (Lazy loading 주의)
+    # 단계별 이력 관계 설정 (Lazy loading 주의)
     stages = relationship("ApplicationStage", back_populates="application", cascade="all, delete-orphan", order_by="ApplicationStage.stage_order", lazy="joined")
     
-    # 기존 관계들 유지 (사용하지 않는 관계는 주석 처리하여 에러 방지)
     # field_scores = relationship("FieldNameScore", back_populates="application")
-    # memos = relationship("ResumeMemo", back_populates="application")
-    # highlight_results = relationship("HighlightResult", back_populates="application")
-    # analysis_results = relationship("AnalysisResult", back_populates="application")
-    # growth_prediction_results = relationship("GrowthPredictionResult", back_populates="application")
-    # personal_question_results = relationship("PersonalQuestionResult", back_populates="application")
-    # media_analyses = relationship("MediaAnalysis", back_populates="application")
-    # question_media_analyses = relationship("QuestionMediaAnalysis", back_populates="application")
+    memos = relationship("ResumeMemo", back_populates="application")
+    highlight_results = relationship("HighlightResult", back_populates="application")
+    analysis_results = relationship("AnalysisResult", back_populates="application")
+    growth_prediction_results = relationship("GrowthPredictionResult", back_populates="application")
+    personal_question_results = relationship("PersonalQuestionResult", back_populates="application")
+    media_analyses = relationship("MediaAnalysis", back_populates="application")
+    question_media_analyses = relationship("QuestionMediaAnalysis", back_populates="application")
 
     # --- [Compatibility Properties] ---
     # Pydantic이 from_attributes=True 모드일 때 이 프로퍼티들을 읽어갑니다.
     
     @property
     def status(self) -> OverallStatus:
+        return self.overall_status
+
+    @property
+    def final_status(self) -> OverallStatus:
         return self.overall_status
 
     @property

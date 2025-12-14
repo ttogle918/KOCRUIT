@@ -37,7 +37,7 @@ DETAIL_MAPPINGS = [
     # Models (models.v2.xxx)
     (r"app\.models\.v2\.application", "app.models.v2.document.application"), 
     (r"app\.models\.v2\.resume", "app.models.v2.document.resume"),
-    (r"app\.models\.v2\.schedule", "app.models.v2.document.schedule"),
+    (r"app\.models\.v2\.schedule", "app.models.v2.common.schedule"),
     (r"app\.models\.v2\.user", "app.models.v2.auth.user"),
     (r"app\.models\.v2\.company", "app.models.v2.auth.company"),
     (r"app\.models\.v2\.job", "app.models.v2.recruitment.job"),

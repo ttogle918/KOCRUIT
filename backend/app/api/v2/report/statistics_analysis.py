@@ -4,15 +4,11 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 import json
 import os
-from langchain_openai import ChatOpenAI
 from app.core.database import get_db
-from app.models.v2.document.application import Application
-from app.models.v2.document.resume import Resume
-from app.models.v2.auth.user import User
 from app.models.v2.recruitment.job import JobPost
-from app.models.v2.statistics_analysis import StatisticsAnalysis
-from app.schemas.statistics_analysis import StatisticsAnalysisCreate, StatisticsAnalysisResponse, StatisticsAnalysisListResponse
-from app.services.v2.statistics_analysis_service import StatisticsAnalysisService
+from app.schemas.statistics_analysis import StatisticsAnalysisResponse, StatisticsAnalysisListResponse, StatisticsAnalysisCreate
+from app.utils.agent_client import analyze_statistics as agent_analyze_statistics
+from app.models.v2.analysis.statistics_analysis import StatisticsAnalysis
 
 router = APIRouter()
 
@@ -21,97 +17,30 @@ class StatisticsAnalysisRequest(BaseModel):
     chart_type: str  # 'trend', 'age', 'gender', 'education', 'province', 'certificate'
     chart_data: List[Dict[str, Any]]
 
-# LLM 모델 초기화
-def get_llm():
-    """LLM 모델 인스턴스 반환"""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
-    
-    return ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.3,
-        api_key=api_key
-    )
-
-def analyze_with_llm(chart_data: List[Dict[str, Any]], chart_type: str, job_post: JobPost) -> Dict[str, Any]:
-    """LLM을 사용한 통계 데이터 분석"""
-    llm = get_llm()
-    if not llm:
-        # LLM이 없으면 규칙 기반 분석으로 폴백
-        return analyze_with_rules(chart_data, chart_type, job_post)
-    
-    chart_type_labels = {
-        'trend': '지원 시기별 추이',
-        'age': '연령대별 지원자',
-        'gender': '성별 지원자',
-        'education': '학력별 지원자',
-        'province': '지역별 지원자',
-        'certificate': '자격증 보유 현황'
-    }
-    
+async def analyze_with_llm(chart_data: List[Dict[str, Any]], chart_type: str, job_post: JobPost) -> Dict[str, Any]:
+    """LLM을 사용한 통계 데이터 분석 (Agent API 호출)"""
     # 회사명과 직무 설명 안전하게 추출
     company_name = job_post.company.name if job_post.company else "알 수 없는 회사"
-    job_description = job_post.job_details or job_post.qualifications or "직무 설명 없음"
-    
-    prompt = f"""
-    다음은 채용공고의 {chart_type_labels.get(chart_type, chart_type)} 통계 데이터입니다.
-
-    채용공고 정보:
-    - 제목: {job_post.title}
-    - 회사: {company_name}
-    - 직무: {job_description[:200]}...
-
-    통계 데이터:
-    {json.dumps(chart_data, ensure_ascii=False, indent=2)}
-
-    이 데이터를 분석하여 다음을 제공해주세요:
-
-    1. **기본 분석 결과**: 핵심 통계 정보와 주요 특징
-    2. **주요 인사이트**: 데이터에서 발견된 중요한 패턴과 의미 (3-5개)
-    3. **권장사항**: 채용 전략 개선을 위한 구체적인 제안 (3-5개)
-
-    응답 형식 (JSON):
-    {{
-        "analysis": "📊 **분석 제목**\\n\\n**전체 지원자 수**: X명\\n**주요 특징**: ...",
-        "insights": [
-            "💡 첫 번째 인사이트",
-            "💡 두 번째 인사이트",
-            "💡 세 번째 인사이트"
-        ],
-        "recommendations": [
-            "✅ 첫 번째 권장사항",
-            "✅ 두 번째 권장사항",
-            "✅ 세 번째 권장사항"
-        ]
-    }}
-    """
+    job_title = job_post.title or "직무명 없음"
     
     try:
-        response = llm.invoke(prompt)
-        response_text = response.content.strip()
+        # Agent API 호출
+        result = await agent_analyze_statistics(chart_data, chart_type, job_title)
         
-        # JSON 부분만 추출
-        if "```json" in response_text:
-            start = response_text.find("```json") + 7
-            end = response_text.find("```", start)
-            response_text = response_text[start:end].strip()
-        elif "```" in response_text:
-            start = response_text.find("```") + 3
-            end = response_text.find("```", start)
-            response_text = response_text[start:end].strip()
-        
-        result = json.loads(response_text)
+        if result.get("error"):
+            # 에러 시 규칙 기반 폴백
+            print(f"Agent 분석 오류: {result.get('error')}")
+            return analyze_with_rules(chart_data, chart_type, job_post)
+            
         return {
-            "analysis": result.get("analysis", ""),
+            "analysis": result.get("summary", ""), # Agent 응답 필드명 확인 필요
             "insights": result.get("insights", []),
-            "recommendations": result.get("recommendations", []),
+            "recommendations": result.get("recommendation", []), # Agent 응답은 recommendation(str) 또는 리스트일 수 있음
             "is_llm_used": True
         }
         
     except Exception as e:
-        print(f"LLM 분석 중 오류 발생: {e}")
-        # LLM 실패 시 규칙 기반 분석으로 폴백
+        print(f"Agent 통계 분석 요청 중 오류: {e}")
         return analyze_with_rules(chart_data, chart_type, job_post)
 
 def analyze_with_rules(chart_data: List[Dict[str, Any]], chart_type: str, job_post: JobPost) -> Dict[str, Any]:
@@ -468,7 +397,7 @@ async def analyze_statistics(request: StatisticsAnalysisRequest, db: Session = D
             raise HTTPException(status_code=404, detail="Job post not found")
         
         # LLM 기반 분석 시도 (실패 시 규칙 기반으로 폴백)
-        result = analyze_with_llm(request.chart_data, request.chart_type, job_post)
+        result = await analyze_with_llm(request.chart_data, request.chart_type, job_post)
         
         # 분석 결과를 DB에 저장
         analysis_data = StatisticsAnalysisCreate(
@@ -481,7 +410,7 @@ async def analyze_statistics(request: StatisticsAnalysisRequest, db: Session = D
             is_llm_used=result["is_llm_used"]
         )
         
-        db_analysis = StatisticsAnalysisService.create_analysis(db, analysis_data)
+        db_analysis = StatisticsAnalysis.create(db, analysis_data)
         
         return StatisticsAnalysisResponse(
             id=db_analysis.id,
@@ -503,7 +432,7 @@ async def analyze_statistics(request: StatisticsAnalysisRequest, db: Session = D
 async def get_latest_analysis(job_post_id: int, chart_type: str, db: Session = Depends(get_db)):
     """특정 채용공고의 특정 차트 타입에 대한 최신 분석 결과 조회"""
     try:
-        analysis = StatisticsAnalysisService.get_analysis_by_job_post_and_type(
+        analysis = StatisticsAnalysis.get_analysis_by_job_post_and_type(
             db, job_post_id, chart_type
         )
         
@@ -532,7 +461,7 @@ async def get_latest_analysis(job_post_id: int, chart_type: str, db: Session = D
 async def get_all_analyses(job_post_id: int, limit: int = 100, db: Session = Depends(get_db)):
     """특정 채용공고의 모든 분석 결과 조회"""
     try:
-        analyses = StatisticsAnalysisService.get_analyses_by_job_post(db, job_post_id, limit)
+        analyses = StatisticsAnalysis.get_analyses_by_job_post(db, job_post_id, limit)
         
         analysis_responses = []
         for analysis in analyses:
@@ -561,7 +490,7 @@ async def get_all_analyses(job_post_id: int, limit: int = 100, db: Session = Dep
 async def get_analysis_by_id(analysis_id: int, db: Session = Depends(get_db)):
     """ID로 특정 분석 결과 조회"""
     try:
-        analysis = StatisticsAnalysisService.get_analysis_by_id(db, analysis_id)
+        analysis = StatisticsAnalysis.get_analysis_by_id(db, analysis_id)
         
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
@@ -588,7 +517,7 @@ async def get_analysis_by_id(analysis_id: int, db: Session = Depends(get_db)):
 async def delete_analysis(analysis_id: int, db: Session = Depends(get_db)):
     """분석 결과 삭제"""
     try:
-        success = StatisticsAnalysisService.delete_analysis(db, analysis_id)
+        success = StatisticsAnalysis.delete_analysis(db, analysis_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="Analysis not found")

@@ -2,28 +2,18 @@ from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel
 from typing import List
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func, or_
+from app.schemas.written_test_answer import WrittenTestAnswerCreate, WrittenTestAnswerResponse
 from app.core.database import get_db
 from app.models.v2.recruitment.job import JobPost
-from app.models.v2.written_test_question import WrittenTestQuestion
-from app.models.v2.written_test_answer import WrittenTestAnswer
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import func
-from sqlalchemy import or_
-
-# agent tool import
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
-from agent.tools.written_test_generation_tool import generate_written_test_questions
-from agent.tools.answer_grading_tool import grade_written_test_answer
-from app.schemas.written_test_answer import WrittenTestAnswerCreate, WrittenTestAnswerResponse
-
-import openai
-import re
+from app.models.v2.test.written_test_question import WrittenTestQuestion
+from app.models.v2.test.written_test_answer import WrittenTestAnswer
 from app.models.v2.document.application import Application, StageStatus, StageName
 from app.services.v2.document.application_service import update_stage_status
-
 from app.schemas.ai_evaluate import PassReasonSummaryRequest, PassReasonSummaryResponse
-from app.services.v2.llm_service import summarize_pass_reason
+# from app.services.v2.analysis.ai_insights_service import summarize_pass_reason
+from app.utils.agent_client import generate_written_test_questions, grade_written_test_answer, summarize_pass_reason
 
 router = APIRouter()
 
@@ -51,7 +41,7 @@ class WrittenTestStatusUpdateRequest(BaseModel):
     score: float
 
 @router.post('/written-test/generate')
-def generate_written_test(req: WrittenTestGenerateRequest, db: Session = Depends(get_db)):
+async def generate_written_test(req: WrittenTestGenerateRequest, db: Session = Depends(get_db)):
     try:
         job_post = db.query(JobPost).filter(JobPost.id == req.jobPostId).first()
         if not job_post:
@@ -64,20 +54,13 @@ def generate_written_test(req: WrittenTestGenerateRequest, db: Session = Depends
             "conditions": getattr(job_post, "conditions", "") or "",
             "job_details": getattr(job_post, "job_details", "") or ""
         }
-        # 디버깅용 로그 추가
-        print("job_post:", job_post)
-        print("title:", getattr(job_post, "title", None))
-        print("qualifications:", getattr(job_post, "qualifications", None))
-        print("conditions:", getattr(job_post, "conditions", None))
-        print("job_details:", getattr(job_post, "job_details", None))
-        print("jobpost_dict:", jobpost_dict)
         
         for key in ["title", "qualifications", "conditions", "job_details"]:
             if jobpost_dict[key] == "":
                 raise HTTPException(status_code=400, detail=f"JobPost의 '{key}' 필드가 비어 있습니다.")
         
-        # 호출 방식 변경: jobpost_dict를 jobpost 키로 감싸서 넘김
-        questions = generate_written_test_questions({"jobpost": jobpost_dict})
+        # Agent API 호출
+        questions = await generate_written_test_questions(jobpost_dict)
         return {"questions": questions}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"문제 생성 오류: {str(e)}")
@@ -119,7 +102,7 @@ def submit_written_test(req: WrittenTestSubmitRequest, db: Session = Depends(get
         raise HTTPException(status_code=500, detail=f"문제 제출 오류: {str(e)}")
 
 @router.post('/written-test/submit-answer', response_model=WrittenTestAnswerResponse)
-def submit_written_test_answer(req: WrittenTestAnswerCreate, db: Session = Depends(get_db)):
+async def submit_written_test_answer(req: WrittenTestAnswerCreate, db: Session = Depends(get_db)):
     try:
         answer = WrittenTestAnswer(
             user_id=req.user_id,
@@ -130,9 +113,9 @@ def submit_written_test_answer(req: WrittenTestAnswerCreate, db: Session = Depen
         # AI 채점: score, feedback이 없는 경우에만 평가
         question = db.query(WrittenTestQuestion).filter(WrittenTestQuestion.id == req.question_id).first()
         if question and (answer.score is None or answer.score == 0):
-            result = grade_written_test_answer(question.question_text, req.answer_text)
-            answer.score = result["score"]
-            answer.feedback = result["feedback"]
+            result = await grade_written_test_answer(question.question_text, req.answer_text)
+            answer.score = result.get("score")
+            answer.feedback = result.get("feedback")
         db.add(answer)
         db.commit()
         db.refresh(answer)
@@ -142,13 +125,12 @@ def submit_written_test_answer(req: WrittenTestAnswerCreate, db: Session = Depen
         raise HTTPException(status_code=500, detail=f"답안 저장/채점 오류: {str(e)}")
 
 @router.post('/spell-check', response_model=SpellCheckResponse)
-def spell_check_text(req: SpellCheckRequest):
+async def spell_check_text(req: SpellCheckRequest):
     """
     한국어 텍스트의 맞춤법을 검사하고 수정 제안을 제공하는 API
     """
     try:
-        from langchain_openai import ChatOpenAI
-        import json
+        from app.utils.spell_checker import spell_check_text as agent_spell_check
         
         if not req.text:
             return SpellCheckResponse(
@@ -157,86 +139,30 @@ def spell_check_text(req: SpellCheckRequest):
                 suggestions=["텍스트를 입력해주세요."]
             )
         
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+        # Agent API 호출 (비동기)
+        result = await agent_spell_check(req.text)
         
-        prompt = f"""
-        아래의 한국어 텍스트에서 맞춤법 오류를 찾아 수정 제안을 해주세요.
-        
-        검사할 텍스트:
-        {req.text}
-        
-        검사 기준:
-        1. 맞춤법 오류 (띄어쓰기, 받침, 조사 등)
-        2. 문법 오류
-        3. 어색한 표현
-        4. 비표준어 사용
-        5. 채용공고에 적합하지 않은 표현
-        
-        응답 형식 (JSON):
-        {{
-            "errors": [
-                {{
-                    "original": "원본 텍스트",
-                    "corrected": "수정된 텍스트",
-                    "explanation": "수정 이유"
-                }}
-            ],
-            "summary": "전체 맞춤법 검사 요약",
-            "suggestions": [
-                "전반적인 개선 제안 1",
-                "전반적인 개선 제안 2"
-            ]
-        }}
-        
-        주의사항:
-        - 맞춤법이 정확한 경우 errors 배열은 비워두세요
-        - 각 오류는 구체적이고 명확하게 설명하세요
-        - 채용공고의 전문성과 신뢰성을 고려하세요
-        - 수정 제안은 원본 의미를 유지하면서 개선하세요
-        """
-        
-        response = llm.invoke(prompt)
-        response_text = response.content.strip()
-        
-        # JSON 부분만 추출
-        if "```json" in response_text:
-            start = response_text.find("```json") + 7
-            end = response_text.find("```", start)
-            response_text = response_text[start:end].strip()
-        elif "```" in response_text:
-            start = response_text.find("```") + 3
-            end = response_text.find("```", start)
-            response_text = response_text[start:end].strip()
-        
-        spell_check_result = json.loads(response_text)
-        
-        # 수정된 텍스트 생성
-        corrected_text = req.text
-        if spell_check_result.get("errors"):
-            for error in spell_check_result["errors"]:
-                original = error.get("original", "")
-                corrected = error.get("corrected", "")
-                if original and corrected:
-                    corrected_text = corrected_text.replace(original, corrected)
+        # 결과 처리 및 응답 생성
+        corrected = result.get("corrected_text", req.text)
         
         return SpellCheckResponse(
-            errors=spell_check_result.get("errors", []),
-            summary=spell_check_result.get("summary", ""),
-            suggestions=spell_check_result.get("suggestions", []),
-            corrected_text=corrected_text
+            errors=result.get("errors", []),
+            summary=result.get("summary", ""),
+            suggestions=result.get("suggestions", []) or ([corrected] if corrected != req.text else []),
+            corrected_text=corrected
         )
-        
+            
     except Exception as e:
-        print(f"맞춤법 검사 중 오류 발생: {e}")
+        print(f"맞춤법 검사 오류: {e}")
         return SpellCheckResponse(
             errors=[],
-            summary="맞춤법 검사 중 오류가 발생했습니다.",
-            suggestions=["다시 시도해주세요."],
+            summary=f"오류가 발생했습니다: {str(e)}",
+            suggestions=[],
             corrected_text=req.text
         )
 
 @router.post('/written-test/auto-grade/jobpost/{jobpost_id}')
-def auto_grade_written_test_by_jobpost(jobpost_id: int, db: Session = Depends(get_db)):
+async def auto_grade_written_test_by_jobpost(jobpost_id: int, db: Session = Depends(get_db)):
     """
     해당 jobpost_id의 모든 문제/답안 중 score가 NULL인 것만 AI로 자동 채점하여 score/feedback을 저장하고,
     지원자별 평균 점수를 application.written_test_score에 저장, 상위 5배수만 합격(PASSED) 처리
@@ -256,16 +182,15 @@ def auto_grade_written_test_by_jobpost(jobpost_id: int, db: Session = Depends(ge
             question = next((q for q in questions if q.id == answer.question_id), None)
             if not question:
                 continue
-            result = grade_written_test_answer(question.question_text, answer.answer_text)
-            if result["score"] is not None:
+            result = await grade_written_test_answer(question.question_text, answer.answer_text)
+            if result.get("score") is not None:
                 answer.score = result["score"]
                 answer.feedback = result["feedback"]
                 graded_count += 1
             else:
-                answer.feedback = result["feedback"]
+                answer.feedback = result.get("feedback", "")
         db.commit()
         # 2. 지원자별 평균 점수 계산 및 application 테이블에 저장
-        from sqlalchemy import func
         results = (
             db.query(
                 WrittenTestAnswer.user_id,
@@ -438,12 +363,12 @@ def update_written_test_status_and_score(
     return {"message": "Written test status and score updated successfully."}
 
 @router.post("/summary", response_model=PassReasonSummaryResponse)
-def summarize_pass_reason_api(req: PassReasonSummaryRequest):
+async def summarize_pass_reason_api(req: PassReasonSummaryRequest):
     try:
         if not req.pass_reason or not req.pass_reason.strip():
             raise HTTPException(status_code=422, detail="pass_reason이 비어있습니다.")
         
-        summary = summarize_pass_reason(req.pass_reason)
+        summary = await summarize_pass_reason(req.pass_reason)
         if not summary:
             raise HTTPException(status_code=500, detail="요약 생성에 실패했습니다.")
         

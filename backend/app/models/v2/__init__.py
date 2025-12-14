@@ -1,5 +1,5 @@
 # Auth
-from .auth.user import User, CompanyUser
+from .auth.user import User, CompanyUser, ApplicantUser
 from .auth.company import Company, Department
 
 # Recruitment
@@ -7,9 +7,9 @@ from .recruitment.job import JobPost, JobPostRole
 from .recruitment.weight import Weight
 
 # Application
-from .application.application import Application
-from .application.resume import Resume
-from .application.schedule import Schedule
+from .document.application import Application
+from .document.resume import Resume, ResumeMemo, Spec
+from .common.schedule import Schedule
 
 # Interview
 from .interview.interview_question import InterviewQuestion
@@ -28,14 +28,14 @@ from .analysis.analysis_result import AnalysisResult
 from .analysis.growth_prediction_result import GrowthPredictionResult
 from .analysis.statistics_analysis import StatisticsAnalysis
 from .analysis.high_performers import HighPerformer
-from .analysis.ai_insights import AIInsight
+from .analysis.ai_insights import AIInsights
 
 # Others
-from .written_test_question import WrittenTestQuestion
-from .written_test_answer import WrittenTestAnswer
-from .notification import Notification
-from .applicant_user import ApplicantUser
-from .EmailVerificationToken import EmailVerificationToken
+from .test.written_test_question import WrittenTestQuestion
+from .test.written_test_answer import WrittenTestAnswer
+from .common.notification import Notification
+from .auth.user import User
+from .auth.email_verification_token import EmailVerificationToken
 
 from app.core.database import Base
 
@@ -48,6 +48,8 @@ __all__ = [
     "JobPostRole",
     "Application",
     "Resume",
+    "ResumeMemo",
+    "Spec",
     "Schedule",
     "InterviewQuestion",
     "InterviewQuestionLog", 

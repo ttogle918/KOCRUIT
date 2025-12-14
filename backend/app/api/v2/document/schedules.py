@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from app.core.database import get_db
-from app.models.v2.document.schedule import Schedule, ScheduleInterview
+from app.models.v2.common.schedule import Schedule, ScheduleInterview
 from app.models.v2.auth.user import User
 from app.api.v2.auth.auth import get_current_user
 from app.models.v2.document.application import Application, OverallStatus, StageName, StageStatus, ApplicationStage
@@ -154,7 +154,6 @@ def update_application_status(
     
     # [Refactored] 메인 상태 직접 업데이트
     if status_update.status:
-        # 호환성을 위해 ApplyStatus 값을 OverallStatus로 매핑 시도
         try:
             val = str(status_update.status)
             if val == "WAITING": val = OverallStatus.PENDING # 예시 매핑

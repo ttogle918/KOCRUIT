@@ -7,21 +7,20 @@ import re
 from app.core.database import get_db
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationDetail, ApplicationList
 from app.models.v2.document.application import Application, ApplicationStage, OverallStatus, StageName, StageStatus
-from app.models.v2.auth.user import User
+from app.models.v2.auth.user import User, ApplicantUser
 from app.api.v2.auth.auth import get_current_user
 from app.models.v2.document.resume import Resume, Spec
-from app.models.v2.applicant_user import ApplicantUser
-from app.models.v2.document.schedule import ScheduleInterview
+from app.models.v2.common.schedule import ScheduleInterview
 from app.models.v2.recruitment.job import JobPost
 from app.models.v2.recruitment.weight import Weight
 from app.utils.llm_cache import redis_cache
-from app.models.v2.written_test_answer import WrittenTestAnswer
+from app.models.v2.test.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
 from app.services.v2.document.application_evaluation_service import auto_evaluate_all_applications
 from app.utils.enum_converter import get_safe_interview_statuses
-from app.models.v2.media_analysis import MediaAnalysis
+from app.models.v2.interview.media_analysis import MediaAnalysis
 from app.utils.resume_parser import parse_resume_specs
-from app.services.v2.application.application_service import update_stage_status  # [New] Service 함수 import
+from app.services.v2.document.application_service import update_stage_status
 import logging
 import requests 
 
@@ -274,6 +273,25 @@ def ai_evaluate_application(
     except Exception as e:
         logger.error(f"AI evaluation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/job/{job_post_id}/applicants", response_model=List[ApplicationList])
+def get_applicants_by_job(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """채용공고별 지원자 목록 조회"""
+    applications = (
+        db.query(Application)
+        .options(
+            joinedload(Application.user),
+            joinedload(Application.resume),
+            joinedload(Application.stages)
+        )
+        .filter(Application.job_post_id == job_post_id)
+        .all()
+    )
+    return applications
 
 
 @router.get("/job/{job_post_id}/applicants-with-practical-interview")

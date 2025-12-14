@@ -13,12 +13,12 @@ from apscheduler.triggers.cron import CronTrigger
 from typing import Dict, Any, List
 
 from ..core.database import get_db
-from ..models.job import JobPost
-from ..models.application import Application
-from ..models.resume import Resume
-from ..models.interview_question import InterviewQuestion, QuestionType
-from ..models.interview_evaluation import InterviewEvaluation
-from ..models.interview_question_log import InterviewQuestionLog
+from ..models.v2.recruitment.job import JobPost
+from ..models.v2.document.application import Application
+from ..models.v2.document.resume import Resume
+from ..models.v2.interview.interview_question import InterviewQuestion, QuestionType
+from ..models.v2.interview.interview_evaluation import InterviewEvaluation
+from ..models.v2.interview.interview_question_log import InterviewQuestionLog
 
 # LangGraph 워크플로우 import
 import sys

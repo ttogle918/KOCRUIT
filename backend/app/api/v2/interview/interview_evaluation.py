@@ -5,17 +5,16 @@ from decimal import Decimal
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.v2.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationDetail
-# from app.models.v2.evaluation_detail import EvaluationDetail  <- 삭제
+from app.models.v2.interview.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationDetail
 
 from app.models.v2.document.application import Application, StageName, StageStatus, OverallStatus
-from app.models.v2.document.schedule import ScheduleInterview
+from app.models.v2.common.schedule import ScheduleInterview
 from app.schemas.interview_evaluation import (
     InterviewEvaluationCreate,
     InterviewEvaluationSchema,
-    InterviewEvaluationDetailSchema
+    InterviewEvaluationDetailSchema 
 )
-from app.services.v2.interviewer_profile_service import InterviewerProfileService
+from app.services.v2.interview.interviewer_profile_service import InterviewerProfileService
 from app.services.v2.application.application_service import update_stage_status  # [New] Service 함수 import
 from app.utils.llm_cache import invalidate_cache
 

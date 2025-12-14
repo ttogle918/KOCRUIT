@@ -8,10 +8,10 @@ import logging
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.v2.question_media_analysis import QuestionMediaAnalysis
-from app.models.v2.interview_question_log import InterviewQuestionLog
+from app.models.v2.interview.question_media_analysis import QuestionMediaAnalysis
+from app.models.v2.interview.interview_question_log import InterviewQuestionLog
 from app.models.v2.document.application import Application
-from app.services.v2.background_analysis_service import background_analysis_service
+from app.services.v2.interview.whisper_analysis_service import WhisperAnalysisService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

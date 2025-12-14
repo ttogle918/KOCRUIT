@@ -18,12 +18,12 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../agent'))
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../../..'))
 
-from ...core.database import get_db
-from ...models.interview_question import InterviewQuestion, QuestionType
-from ...models.application import Application
-from ...models.job import JobPost
-from ...services.interview_question_service import InterviewQuestionService
-from ...data.general_interview_questions import get_random_general_questions, get_random_game_test
+from app.core.database import get_db
+from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
+from app.models.v2.document.application import Application
+from app.models.v2.recruitment.job import JobPost
+from app.services.v2.interview.interview_question_service import InterviewQuestionService
+from app.data.general_interview_questions import get_random_general_questions, get_random_game_test
 
 router = APIRouter()
 

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from app.models.interview_question import QuestionType
+from app.models.v2.interview.interview_question import QuestionType
 
 class InterviewQuestionBase(BaseModel):
     application_id: int

@@ -30,12 +30,10 @@ try:
     print(f"Current working directory: {os.getcwd()}")
     print(f"Python path: {sys.path[:5]}...")  # 처음 5개만 표시
     
-    from backend.app.models.resume import Resume
-    from backend.app.models.application import Application
-    from backend.app.models.user import User
-    from backend.app.models.applicant_user import ApplicantUser
-    from backend.app.models.job import JobPost
-    from backend.app.models.spec import Spec
+    from backend.app.models.v2.document.resume import Resume, Spec
+    from backend.app.models.v2.document.application import Application
+    from backend.app.models.v2.auth.user import User, ApplicantUser
+    from backend.app.models.v2.recruitment.job import JobPost
     from sqlalchemy.orm import Session, joinedload
     DATABASE_AVAILABLE = True
     print("✅ Database models imported successfully")
@@ -44,12 +42,10 @@ except ImportError as e:
     print(f"Current working directory: {os.getcwd()}")
     # 직접 app 모듈에서 import 시도
     try:
-        from app.models.resume import Resume
-        from app.models.application import Application
-        from app.models.user import User
-        from app.models.applicant_user import ApplicantUser
-        from app.models.job import JobPost
-        from app.models.spec import Spec
+        from app.models.v2.document.resume import Resume, Spec
+        from app.models.v2.document.application import Application
+        from app.models.v2.auth.user import User, ApplicantUser
+        from app.models.v2.recruitment.job import JobPost
         from sqlalchemy.orm import Session, joinedload
         DATABASE_AVAILABLE = True
         print("✅ Database models imported successfully (via app module)")

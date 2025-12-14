@@ -12,11 +12,11 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from ..core.database import get_db
-from ..models.job import JobPost
-from ..models.interview_question import InterviewQuestion, QuestionType
+from ..models.v2.recruitment.job import JobPost
+from ..models.v2.interview.interview_question import InterviewQuestion, QuestionType
 # Agent 서비스는 별도 서비스이므로 import 제거
 # from ..agents.ai_question_generation_workflow import generate_ai_scenario_questions
-from ..data.general_interview_questions import get_random_general_questions, get_random_game_test
+from ..services.v2.interview.interview_question_service import get_random_general_questions, get_random_game_test
 
 logger = logging.getLogger(__name__)
 

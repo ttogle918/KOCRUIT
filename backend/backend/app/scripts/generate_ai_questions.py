@@ -8,10 +8,11 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
 from app.core.database import SessionLocal
-from app.models.job import JobPost
-from app.models.application import Application, AIInterviewStatus
-from app.models.interview_question import InterviewQuestion, QuestionType
-from app.api.v2.interview_question import parse_job_post_data
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.application import Application, AIInterviewStatus
+from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
+from app.api.v2.interview.interview_question import parse_job_post_data
+from app.models.v2.document.resume import Resume
 
 def generate_langgraph_questions():
     """LangGraph로 AI 면접 질문 생성 및 DB 저장"""
@@ -63,7 +64,7 @@ def generate_langgraph_questions():
                 # 지원자의 이력서 정보 조회
                 resume_text = ""
                 if app.resume_id:
-                    from app.models.resume import Resume
+                    from app.models.v2.document.resume import Resume
                     resume = db.query(Resume).filter(Resume.id == app.resume_id).first()
                     if resume and resume.content:
                         resume_text = resume.content

@@ -10,10 +10,10 @@ from pathlib import Path
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.v2.question_media_analysis import QuestionMediaAnalysis
-from app.models.v2.media_analysis import MediaAnalysis
+from app.models.v2.interview.question_media_analysis import QuestionMediaAnalysis
+from app.models.v2.interview.media_analysis import MediaAnalysis
 from app.models.v2.document.application import Application
-from app.services.v2.whisper_analysis_service import whisper_analysis_service
+from app.services.v2.interview.whisper_analysis_service import WhisperAnalysisService
 
 router = APIRouter()
 
@@ -103,18 +103,21 @@ print(json.dumps(result, ensure_ascii=False))
             "context_analysis": {"qa_pairs": [], "evaluation": {}}
         }
 
+import httpx
+
 async def run_openai_answer_analysis(question: str, answer: str) -> Dict[str, Any]:
     """OpenAI 답변 분석 (API 호출 방식)"""
     try:
         # agent 컨테이너의 API 호출
-        response = requests.post(
-            f"{AGENT_URL}/openai-answer-analysis",
-            json={
-                "question": question,
-                "answer": answer
-            },
-            timeout=300
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{AGENT_URL}/openai-answer-analysis",
+                json={
+                    "question": question,
+                    "answer": answer
+                },
+                timeout=300.0
+            )
         
         if response.status_code != 200:
             print(f"❌ OpenAI 답변 분석 실패: {response.text}")
@@ -136,14 +139,15 @@ async def run_openai_context_analysis(transcription: str, speakers: List[Dict]) 
     """OpenAI 문맥 분석 (API 호출 방식)"""
     try:
         # agent 컨테이너의 API 호출
-        response = requests.post(
-            f"{AGENT_URL}/openai-context-analysis",
-            json={
-                "transcription": transcription,
-                "speakers": speakers
-            },
-            timeout=300
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{AGENT_URL}/openai-context-analysis",
+                json={
+                    "transcription": transcription,
+                    "speakers": speakers
+                },
+                timeout=300.0
+            )
         
         if response.status_code != 200:
             print(f"❌ OpenAI 문맥 분석 실패: {response.text}")
@@ -165,13 +169,14 @@ async def run_emotion_analysis(transcription: str) -> Dict[str, Any]:
     """감정 분석 (API 호출 방식)"""
     try:
         # agent 컨테이너의 API 호출
-        response = requests.post(
-            f"{AGENT_URL}/emotion-analysis",
-            json={
-                "transcription": transcription
-            },
-            timeout=300
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{AGENT_URL}/emotion-analysis",
+                json={
+                    "transcription": transcription
+                },
+                timeout=300.0
+            )
         
         if response.status_code != 200:
             print(f"❌ 감정 분석 실패: {response.text}")

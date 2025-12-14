@@ -1,7 +1,12 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus, ApplicationViewAction
+from app.models.v2.document.application import Application, OverallStatus, StageStatus, StageName, ApplicationViewAction
+
+# Alias for backward compatibility
+ApplyStatus = OverallStatus
+DocumentStatus = StageStatus
+InterviewStatus = StageStatus
 
 def to_camel(string: str) -> str:
     parts = string.split('_')
@@ -10,7 +15,7 @@ def to_camel(string: str) -> str:
 class ApplicationBase(BaseModel):
     job_post_id: int
     resume_id: int
-    status: ApplyStatus = ApplyStatus.WAITING
+    status: ApplyStatus = ApplyStatus.IN_PROGRESS
     document_status: DocumentStatus = DocumentStatus.PENDING
     ai_interview_status: InterviewStatus = InterviewStatus.PENDING
     practical_interview_status: InterviewStatus = InterviewStatus.PENDING

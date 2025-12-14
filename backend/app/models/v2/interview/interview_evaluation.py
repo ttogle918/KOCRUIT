@@ -9,7 +9,7 @@ from app.models.v2.document.application import Application, OverallStatus, Stage
 from app.models.v2.document.resume import Resume
 from app.models.v2.recruitment.weight import Weight
 from collections import defaultdict
-from app.models.v2.document.schedule import AIInterviewSchedule
+from app.models.v2.common.schedule import AIInterviewSchedule
 
 # [New] Service 함수 Import (순환 참조 주의: 필요시 함수 내 import)
 # from app.services.v2.document.application_service import update_stage_status 
@@ -66,6 +66,8 @@ class EvaluationDetail(Base):
     score = Column(DECIMAL(5,2))
 
     evaluation = relationship('InterviewEvaluation', back_populates='details')
+
+
 
 def auto_process_applications(db: Session):
     # [Refactored] 기존 로직 수정

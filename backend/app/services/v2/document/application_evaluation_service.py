@@ -1,6 +1,6 @@
 from collections import defaultdict
 from app.models.v2.recruitment.job import JobPost
-from app.models.v2.document.application import Application, ApplyStatus, DocumentStatus
+from app.models.v2.document.application import Application, OverallStatus, StageStatus, StageName
 from app.models.v2.document.resume import Resume
 from app.models.v2.recruitment.weight import Weight
 from sqlalchemy.orm import Session

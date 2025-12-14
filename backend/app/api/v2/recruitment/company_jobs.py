@@ -10,16 +10,16 @@ from app.core.database import get_db
 from app.core.cache import cache_result, invalidate_cache, CACHE_KEYS
 from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostDetail, JobPostList, InterviewScheduleCreate, InterviewScheduleDetail
 from app.models.v2.recruitment.job import JobPost, JobPostRole
-from app.models.v2.document.schedule import Schedule
+from app.models.v2.common.schedule import Schedule
 from app.models.v2.recruitment.weight import Weight
 from app.models.v2.auth.user import User, CompanyUser
 from app.models.v2.auth.company import Department
 from app.models.v2.document.application import Application
-from app.models.v2.interview_panel import InterviewPanelAssignment
+from app.models.v2.interview.interview_panel import InterviewPanelAssignment
 from app.api.v2.auth.auth import get_current_user
 from app.utils.job_status_utils import determine_job_status
 from app.models.v2.document.application import OverallStatus, StageStatus, StageName
-from app.models.v2.document.schedule import ScheduleInterview
+from app.models.v2.common.schedule import ScheduleInterview
 
 from pytz import timezone
 KST = timezone('Asia/Seoul')
@@ -637,7 +637,7 @@ def update_company_job_post(
         schedules_to_delete = [s for s in existing_schedules if (s.scheduled_at.strftime("%Y-%m-%d %H:%M"), s.location) not in new_schedule_keys]
         for schedule in schedules_to_delete:
             # 해당 일정에 연결된 assignment, request, member 등만 삭제
-            from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+            from app.models.v2.interview.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
             db.query(InterviewPanelMember).filter(InterviewPanelMember.assignment_id.in_(
                 db.query(InterviewPanelAssignment.id).filter(InterviewPanelAssignment.schedule_id == schedule.id)
             )).delete()
@@ -732,7 +732,7 @@ def update_company_job_post(
                         
                         if schedule:
                             # 해당 schedule에 대한 기존 배정이 있는지 확인
-                            from app.models.v2.interview_panel import InterviewPanelAssignment
+                            from app.models.v2.interview.interview_panel import InterviewPanelAssignment
                             existing_assignment = db.query(InterviewPanelAssignment).filter(
                                 InterviewPanelAssignment.schedule_id == schedule.id
                             ).first()
@@ -834,7 +834,7 @@ def delete_company_job_post(
         
         # 2. 면접관 배정 관련 데이터 삭제 (CASCADE로 자동 삭제됨)
         try:
-            from app.models.v2.interview_panel import InterviewPanelAssignment
+            from app.models.v2.interview.interview_panel import InterviewPanelAssignment
             interview_assignments = db.query(InterviewPanelAssignment).filter(
                 InterviewPanelAssignment.job_post_id == job_post_id
             ).all()
@@ -848,7 +848,7 @@ def delete_company_job_post(
         
         # 3. schedule_interview 테이블 데이터 삭제
         try:
-            from app.models.v2.document.schedule import ScheduleInterview
+            from app.models.v2.common.schedule import ScheduleInterview
             schedule_interviews = db.query(ScheduleInterview).filter(
                 ScheduleInterview.schedule_id.in_(
                     db.query(Schedule.id).filter(Schedule.job_post_id == job_post_id)
@@ -866,7 +866,7 @@ def delete_company_job_post(
         
         # 4. interview_evaluation_item 테이블 데이터 삭제 (interview_evaluation 참조)
         try:
-            from app.models.v2.interview_evaluation import InterviewEvaluationItem, InterviewEvaluation
+            from app.models.v2.interview.interview_evaluation import InterviewEvaluationItem, InterviewEvaluation
             evaluation_items = db.query(InterviewEvaluationItem).filter(
                 InterviewEvaluationItem.evaluation_id.in_(
                     db.query(InterviewEvaluation.id).filter(
@@ -900,7 +900,7 @@ def delete_company_job_post(
         
         # 5. evaluation_detail 테이블 데이터 삭제 (interview_evaluation 참조)
         try:
-            from app.models.v2.interview_evaluation import EvaluationDetail, InterviewEvaluation
+            from app.models.v2.interview.interview_evaluation import EvaluationDetail, InterviewEvaluation
             evaluation_details = db.query(EvaluationDetail).filter(
                 EvaluationDetail.evaluation_id.in_(
                     db.query(InterviewEvaluation.id).filter(
@@ -934,7 +934,7 @@ def delete_company_job_post(
         
         # 6. interview_evaluation 테이블 데이터 삭제 (schedule_interview 참조)
         try:
-            from app.models.v2.interview_evaluation import InterviewEvaluation
+            from app.models.v2.interview.interview_evaluation import InterviewEvaluation
             interview_evaluations = db.query(InterviewEvaluation).filter(
                 InterviewEvaluation.interview_id.in_(
                     db.query(ScheduleInterview.id).filter(
@@ -950,7 +950,7 @@ def delete_company_job_post(
                 
                 # InterviewerProfileHistory에서 해당 evaluation_id를 참조하는 기록들 정리
                 try:
-                    from app.models.v2.interviewer_profile import InterviewerProfileHistory
+                    from app.models.v2.interview.interviewer_profile import InterviewerProfileHistory
                     profile_histories = db.query(InterviewerProfileHistory).filter(
                         InterviewerProfileHistory.evaluation_id.in_(evaluation_ids)
                     ).all()
@@ -964,7 +964,7 @@ def delete_company_job_post(
                 
                 # InterviewerProfile에서 latest_evaluation_id가 삭제될 evaluation을 참조하는 경우 정리
                 try:
-                    from app.models.v2.interviewer_profile import InterviewerProfile
+                    from app.models.v2.interview.interviewer_profile import InterviewerProfile
                     affected_profiles = db.query(InterviewerProfile).filter(
                         InterviewerProfile.latest_evaluation_id.in_(evaluation_ids)
                     ).all()
@@ -1001,7 +1001,7 @@ def delete_company_job_post(
 
         # 6-2. 면접관 프로필 완전 정리 (평가가 없는 면접관 프로필 삭제)
         try:
-            from app.models.v2.interviewer_profile import InterviewerProfile, InterviewerProfileHistory
+            from app.models.v2.interview.interviewer_profile import InterviewerProfile, InterviewerProfileHistory
             
             # 더 이상 평가가 없는 면접관 프로필들 찾기
             profiles_without_evaluations = db.query(InterviewerProfile).filter(
@@ -1054,7 +1054,7 @@ def delete_company_job_post(
         # 10. 관련된 알림(Notification) 삭제 - 면접관 요청 알림들
         try:
             from app.models.v2.common.notification import Notification
-            from app.models.v2.interview_panel import InterviewPanelRequest
+            from app.models.v2.interview.interview_panel import InterviewPanelRequest
 
             # 면접관 요청과 연결된 알림들 찾기
             interview_requests = db.query(InterviewPanelRequest).filter(

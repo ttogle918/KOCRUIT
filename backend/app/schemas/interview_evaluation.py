@@ -59,3 +59,7 @@ class InterviewEvaluation(InterviewEvaluationBase):
     evaluation_items: List[InterviewEvaluationItem] = []  # 새로운 구조
     class Config:
         orm_mode = True 
+
+# --- Alias for Compatibility ---
+InterviewEvaluationSchema = InterviewEvaluation
+InterviewEvaluationDetailSchema = EvaluationDetail

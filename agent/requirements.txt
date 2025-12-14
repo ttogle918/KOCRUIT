@@ -13,9 +13,9 @@ chromadb==0.4.24
 
 # === CPU 전용 PyTorch 및 AI 모델 ===
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.2.0+cpu
-torchvision>=0.17.0+cpu
-torchaudio>=2.2.0+cpu
+torch==2.1.0+cpu
+torchvision==0.16.0+cpu
+torchaudio==2.1.0+cpu
 sentence-transformers==2.5.1
 transformers==4.36.2
 
