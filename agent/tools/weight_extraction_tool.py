@@ -11,7 +11,7 @@ sys.path.append(backend_path)
 
 try:
     from app.core.database import SessionLocal
-    from app.models.job import JobPost
+    from app.models.v2.recruitment.job import JobPost
     from app.models.weight import Weight
     from app.models.company import Company
     # from app.models.department import Department  # Department 모델이 존재하지 않음

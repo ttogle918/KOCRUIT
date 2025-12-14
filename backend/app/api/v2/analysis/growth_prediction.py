@@ -105,16 +105,22 @@ def predict_growth(
     result = scoring_service.score_applicant(specs_dict)
 
     # 3.5. boxplot_data 생성
-    import numpy as np
+    
     # 고성과자 집단 데이터 추출
     cluster_members = pattern_result["cluster_patterns"][0]["members"]
+    
     # 각 항목별 값 리스트
     def get_values(field, default=0.0):
         vals = [m.get(field) for m in cluster_members if m.get(field) is not None]
-        return [float(v) for v in vals if v is not None]
+        try:
+            return [float(v) for v in vals if v is not None]
+        except:
+            return []
+
     # 학력(숫자화)
     EDU_MAP = {'BACHELOR': 2, 'MASTER': 3, 'PHD': 4}
     degree_vals = [EDU_MAP.get(m.get('education_level'), 0) for m in cluster_members if m.get('education_level')]
+    
     # 자격증 개수
     import json
     cert_vals = []
@@ -126,12 +132,14 @@ def predict_growth(
                 cert_vals.append(len(cert_list))
             except Exception:
                 pass
+    
     # 경력(년)
     exp_vals = get_values('total_experience_years')
     print('고성과자 경력(년) 값:', exp_vals)
     # 지원자 값 추출
     norm = scoring_service.normalize_applicant_specs(specs_dict)
-    # 지원자 경력(년) 추출 (specs에서 직접 추출 필요)
+    
+    # 지원자 경력(년) 추출
     applicant_exp = None
     for spec in specs_dict:
         if spec.get('spec_type') == 'experience' and spec.get('spec_title') == 'years':
@@ -139,43 +147,54 @@ def predict_growth(
                 applicant_exp = float(spec.get('spec_description'))
             except:
                 applicant_exp = None
+    
     boxplot_data = {}
+    
+    # 통계 계산 헬퍼 함수 (numpy 대체)
+    def calculate_stats(values, applicant_value):
+        if not values:
+            return None
+        
+        sorted_vals = sorted(values)
+        n = len(sorted_vals)
+        
+        def percentile(p):
+            k = (n - 1) * (p / 100)
+            f = int(k)
+            c = k - f
+            if f + 1 < n:
+                return sorted_vals[f] * (1 - c) + sorted_vals[f + 1] * c
+            else:
+                return sorted_vals[f]
+        
+        return {
+            'min': float(min(sorted_vals)),
+            'q1': float(percentile(25)),
+            'median': float(percentile(50)),
+            'q3': float(percentile(75)),
+            'max': float(max(sorted_vals)),
+            'applicant': float(applicant_value) if applicant_value is not None else 0.0
+        }
+
     # 경력(년)
-    if exp_vals and len(exp_vals) > 0:
-        exp_vals = [float(v) for v in exp_vals if v is not None and not np.isnan(v)]
-        if exp_vals:
-            boxplot_data['경력(년)'] = {
-                'min': float(np.min(exp_vals)),
-                'q1': float(np.percentile(exp_vals, 25)),
-                'median': float(np.median(exp_vals)),
-                'q3': float(np.percentile(exp_vals, 75)),
-                'max': float(np.max(exp_vals)),
-                'applicant': applicant_exp if applicant_exp is not None and not np.isnan(applicant_exp) else 0.0
-            }
+    if exp_vals:
+        stats = calculate_stats(exp_vals, applicant_exp)
+        if stats:
+            boxplot_data['경력(년)'] = stats
+            
     # 학력
-    if degree_vals and len(degree_vals) > 0:
-        degree_vals = [float(v) for v in degree_vals if v is not None and not np.isnan(v)]
-        if degree_vals:
-            boxplot_data['학력'] = {
-                'min': float(np.min(degree_vals)),
-                'q1': float(np.percentile(degree_vals, 25)),
-                'median': float(np.median(degree_vals)),
-                'q3': float(np.percentile(degree_vals, 75)),
-                'max': float(np.max(degree_vals)),
-                'applicant': norm.get('degree', 0.0) if norm.get('degree') is not None and not np.isnan(norm.get('degree', 0.0)) else 0.0
-            }
+    if degree_vals:
+        app_degree = norm.get('degree', 0.0)
+        stats = calculate_stats(degree_vals, app_degree)
+        if stats:
+            boxplot_data['학력'] = stats
+            
     # 자격증
-    if cert_vals and len(cert_vals) > 0:
-        cert_vals = [float(v) for v in cert_vals if v is not None and not np.isnan(v)]
-        if cert_vals:
-            boxplot_data['자격증'] = {
-                'min': float(np.min(cert_vals)),
-                'q1': float(np.percentile(cert_vals, 25)),
-                'median': float(np.median(cert_vals)),
-                'q3': float(np.percentile(cert_vals, 75)),
-                'max': float(np.max(cert_vals)),
-                'applicant': norm.get('certifications_count', 0.0) if norm.get('certifications_count') is not None and not np.isnan(norm.get('certifications_count', 0.0)) else 0.0
-            }
+    if cert_vals:
+        app_cert = norm.get('certifications_count', 0.0)
+        stats = calculate_stats(cert_vals, app_cert)
+        if stats:
+            boxplot_data['자격증'] = stats
 
     analysis_duration = time.time() - start_time
 

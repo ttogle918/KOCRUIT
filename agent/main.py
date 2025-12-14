@@ -4,19 +4,22 @@ import sys
 import os
 from datetime import datetime
 
+# Python 경로에 현재 디렉토리 추가 (가장 먼저 실행)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from .agents.graph_agent import build_graph
 from .agents.chatbot_graph import create_chatbot_graph, initialize_chat_state, create_session_id
 from .agents.chatbot_node import ChatbotNode
 from .redis_monitor import RedisMonitor
 from .scheduler import RedisScheduler
 from .api.v2.analysis import router as analysis_router  # 분석 관련 API 라우터 추가
-from tools.weight_extraction_tool import weight_extraction_tool
-from tools.form_fill_tool import form_fill_tool, form_improve_tool
-from tools.form_edit_tool import form_edit_tool, form_status_check_tool
-from tools.form_improve_tool import form_improve_tool
+from .tools.weight_extraction_tool import weight_extraction_tool
+from .tools.form_fill_tool import form_fill_tool, form_improve_tool
+from .tools.form_edit_tool import form_edit_tool, form_status_check_tool
+from .tools.form_improve_tool import form_improve_tool
 from .agents.application_evaluation_agent import evaluate_application
-from tools.speech_recognition_tool import speech_recognition_tool
-from tools.highlight_tool import highlight_resume_content
+from .tools.speech_recognition_tool import speech_recognition_tool
+from .tools.highlight_tool import highlight_resume_content
 # from tools.realtime_interview_evaluation_tool import realtime_interview_evaluation_tool, RealtimeInterviewEvaluationTool
 from dotenv import load_dotenv
 import uuid
@@ -31,9 +34,10 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
-from tools.speech_recognition_tool import SpeechRecognitionTool
-from tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
-from tools.answer_grading_tool import grade_written_test_answer
+from .tools.speech_recognition_tool import SpeechRecognitionTool
+from .tools.realtime_interview_evaluation_tool import RealtimeInterviewEvaluationTool
+from .tools.answer_grading_tool import grade_written_test_answer
+from .services.pattern_analysis_service import PatternAnalysisService # 추가
 
 # 화자 분리 및 비디오 자르기 관련
 import base64
@@ -47,8 +51,8 @@ import soundfile as sf
 from pyannote.audio import Pipeline
 from pyannote.audio.pipelines.utils.hook import ProgressHook
 
-# Python 경로에 현재 디렉토리 추가
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Python 경로에 현재 디렉토리 추가 (상단으로 이동됨)
+# sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv()
 
@@ -1812,6 +1816,27 @@ async def realtime_audio_analysis(
             "success": False,
             "error": str(e)
         }
+
+@app.post("/analysis/high-performer-patterns")
+async def analyze_high_performers(request: Request):
+    """고성과자 패턴 분석 (Backend에서 데이터 수신)"""
+    try:
+        data = await request.json()
+        high_performers_data = data.get("data", [])
+        method = data.get("method", "kmeans")
+        n_clusters = data.get("n_clusters", 3)
+        
+        service = PatternAnalysisService()
+        result = service.analyze_patterns(high_performers_data, method, n_clusters)
+        
+        # LLM 요약이 필요하다면 여기서 추가 호출 가능
+        # from .agents.pattern_summary_node import create_pattern_summary_node
+        # ...
+        
+        return result
+    except Exception as e:
+        print(f"Pattern analysis error: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
