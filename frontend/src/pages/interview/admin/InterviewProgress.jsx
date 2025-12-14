@@ -586,7 +586,7 @@ function InterviewProgress() {
       console.log('🚀 Whisper API 호출 중...');
       
       // OpenAI Whisper API 직접 호출
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      const response = await fetch('https://api.openai.com/v2/audio/transcriptions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`

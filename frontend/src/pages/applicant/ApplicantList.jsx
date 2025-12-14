@@ -620,7 +620,7 @@ export default function ApplicantList() {
                 </div>
                 {/*여기를 이력서로*/}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
-                  <ResumePage resume={resume} loading={resumeLoading} error={null} jobpostId={effectiveJobPostId} applicationId={selectedApplicant?.application_id || selectedApplicant?.applicationId}/>
+                  <ResumePage resume={resume} loading={resumeLoading} error={null} jobpostId={effectiveJobPostId} applicationId={selectedApplicant?.id}/>
                 </div>
                 <div className="p-4 border-t bg-white dark:bg-gray-800">
                   {/* 합격/불합격/건너뛰기 버튼 */}

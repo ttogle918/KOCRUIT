@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Literal, Optional
 from datetime import datetime, date
-from app.models.user import UserType, UserRole
+from app.models.v2.auth.user import UserType, UserRole
 
 
 class LoginRequest(BaseModel):

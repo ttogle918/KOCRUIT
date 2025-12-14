@@ -186,7 +186,7 @@ def test_send_to_backend(whisper_result: Dict[str, Any], video_analysis_result: 
         print("📡 백엔드 API로 결과 전송 중...")
         
         # 백엔드 API 엔드포인트
-        backend_url = "http://kocruit_fastapi:8000/api/v1/question-video-analysis/test-results"
+        backend_url = "http://kocruit_fastapi:8000/api/v2/question-video-analysis/test-results"
         
         # 전송할 데이터
         payload = {

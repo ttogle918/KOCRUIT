@@ -15,7 +15,7 @@ conf = ConnectionConfig(
 )
 
 async def send_verification_email(email: EmailStr, token: str):
-    link = f"http://localhost:8000/api/v1/auth/verify-email?token={token}"
+    link = f"http://localhost:8000/api/v2/auth/verify-email?token={token}"
     message = MessageSchema(
         subject="KOCruit 이메일 인증",
         recipients=[email],

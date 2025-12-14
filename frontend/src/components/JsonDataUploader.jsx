@@ -68,7 +68,7 @@ const JsonDataUploader = ({ onUploadSuccess }) => {
     try {
       const data = JSON.parse(jsonData);
       
-      const response = await axiosInstance.post('/api/v1/audio-analysis/save-user-analysis', {
+      const response = await axiosInstance.post('/api/v2/audio-analysis/save-user-analysis', {
         applicant_id: applicantId,
         analysis_data: data,
         file_type: fileType
@@ -128,7 +128,7 @@ const JsonDataUploader = ({ onUploadSuccess }) => {
       formData.append('applicant_id', applicantId);
       formData.append('file_type', fileType);
 
-      const response = await axiosInstance.post('/api/v1/audio-analysis/upload-json-file', formData, {
+      const response = await axiosInstance.post('/api/v2/audio-analysis/upload-json-file', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

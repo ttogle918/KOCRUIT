@@ -8,7 +8,7 @@ import time
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import settings
-from app.api.v1.api import api_router
+from app.api.v2.api import api_router
 from app.core.database import engine, Base
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -16,8 +16,9 @@ except ImportError:
     print("⚠️ APScheduler not available, using fallback")
     BackgroundScheduler = None
 from app.core.database import SessionLocal
-from app.models.interview_evaluation import auto_process_applications
+# from app.models.interview_evaluation import auto_process_applications
 from sqlalchemy import text, inspect
+
 import logging
 
 logging.basicConfig(
@@ -25,11 +26,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler()]
 )
-from app.scheduler.job_status_scheduler import JobStatusScheduler
-from app.scheduler.question_generation_scheduler import QuestionGenerationScheduler
-from app.scheduler.interview_reminder_scheduler import start_interview_reminder_scheduler
-from app.scheduler.auto_written_test_grader import start_written_test_auto_grader
-from app.services.background_analysis_service import background_analysis_service
 
 def safe_create_tables():
     """안전한 테이블 생성 - 기존 테이블은 건드리지 않고 새로운 테이블만 생성"""
@@ -73,13 +69,13 @@ def safe_create_tables():
     except Exception as e:
         print(f"❌ Safe table creation failed: {e}")
 # safe_create_tables 함수 제거 - Base.metadata.create_all()이 모든 테이블을 안전하게 생성함
-from app.models.interview_evaluation import auto_process_applications
-from app.models.interview_question import InterviewQuestion, QuestionType
+# from app.models.interview_evaluation import auto_process_applications
+# from app.models.interview_question import InterviewQuestion, QuestionType
 
 
 # JobPost 상태 스케줄러 인스턴스 (싱글톤)
-from app.scheduler.job_status_scheduler import JobStatusScheduler
-job_status_scheduler = JobStatusScheduler()
+# from app.scheduler.job_status_scheduler import JobStatusScheduler
+# job_status_scheduler = JobStatusScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -117,43 +113,43 @@ async def lifespan(app: FastAPI):
                 raise e
     
     # JobPost 상태 스케줄러 시작
-    print("🔄 Starting JobPost status scheduler...")
-    asyncio.create_task(job_status_scheduler.start())
-    print("JobPost 상태 스케줄러 시작 완료")
+    # print("🔄 Starting JobPost status scheduler...")
+    # asyncio.create_task(job_status_scheduler.start())
+    # print("JobPost 상태 스케줄러 시작 완료")
 
     # 필기 답안 자동 채점 스케줄러 시작
-    start_written_test_auto_grader()
+    # start_written_test_auto_grader()
 
     
     # 면접 질문 생성 스케줄러 시작
-    print("🔄 Starting Question Generation scheduler...")
-    try:
-        # 백그라운드에서 스케줄러 실행
-        import threading
-        scheduler_thread = threading.Thread(
-            target=QuestionGenerationScheduler.run_scheduler,
-            daemon=True
-        )
-        scheduler_thread.start()
-        print("면접 질문 생성 스케줄러 시작 완료")
-    except Exception as e:
-        print(f"면접 질문 생성 스케줄러 시작 실패: {e}")
+    # print("🔄 Starting Question Generation scheduler...")
+    # try:
+    #     # 백그라운드에서 스케줄러 실행
+    #     import threading
+    #     scheduler_thread = threading.Thread(
+    #         target=QuestionGenerationScheduler.run_scheduler,
+    #         daemon=True
+    #     )
+    #     scheduler_thread.start()
+    #     print("면접 질문 생성 스케줄러 시작 완료")
+    # except Exception as e:
+    #     print(f"면접 질문 생성 스케줄러 시작 실패: {e}")
     
     # 면접 일정 리마인더 스케줄러 시작
-    print("Starting Interview Reminder scheduler...")
-    try:
-        start_interview_reminder_scheduler()
-        print("면접 일정 리마인더 스케줄러 시작 완료")
-    except Exception as e:
-        print(f"면접 일정 리마인더 스케줄러 시작 실패: {e}")
+    # print("Starting Interview Reminder scheduler...")
+    # try:
+    #     start_interview_reminder_scheduler()
+    #     print("면접 일정 리마인더 스케줄러 시작 완료")
+    # except Exception as e:
+    #     print(f"면접 일정 리마인더 스케줄러 시작 실패: {e}")
     
     # 서버 시작 시 초기 영상 분석 실행
-    print("🔄 Running initial video analysis...")
-    try:
-        asyncio.create_task(background_analysis_service.run_initial_analysis())
-        print("초기 영상 분석 시작 완료")
-    except Exception as e:
-        print(f"초기 영상 분석 시작 실패: {e}")
+    # print("🔄 Running initial video analysis...")
+    # try:
+    #     asyncio.create_task(background_analysis_service.run_initial_analysis())
+    #     print("초기 영상 분석 시작 완료")
+    # except Exception as e:
+    #     print(f"초기 영상 분석 시작 실패: {e}")
     
     # 시드 데이터 실행
     try:
@@ -191,14 +187,14 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    print("🔄 Stopping JobPost status scheduler...")
-    await job_status_scheduler.stop()
-    print("JobPost 상태 스케줄러 중지 완료")
+    # print("🔄 Stopping JobPost status scheduler...")
+    # await job_status_scheduler.stop()
+    # print("JobPost 상태 스케줄러 중지 완료")
     
     # 백그라운드 영상 분석 서비스 중지
-    print("🔄 Stopping Background Video Analysis service...")
-    background_analysis_service.stop()
-    print("백그라운드 영상 분석 서비스 중지 완료")
+    # print("🔄 Stopping Background Video Analysis service...")
+    # background_analysis_service.stop()
+    # print("백그라운드 영상 분석 서비스 중지 완료")
 
 
 app = FastAPI(
@@ -271,16 +267,16 @@ class CacheMiddleware(BaseHTTPMiddleware):
             # API 엔드포인트별 캐시 설정
             path = request.url.path
             
-            if "/api/v1/applications/" in path:
+            if "/api/v2/applications/" in path:
                 # 지원자 관련 API: 5분 캐시
                 response.headers["Cache-Control"] = "public, max-age=300"
-            elif "/api/v1/resumes/" in path:
+            elif "/api/v2/resumes/" in path:
                 # 이력서 관련 API: 5분 캐시
                 response.headers["Cache-Control"] = "public, max-age=300"
-            elif "/api/v1/company/jobposts/" in path:
+            elif "/api/v2/company/jobposts/" in path:
                 # 채용공고 관련 API: 5분 캐시
                 response.headers["Cache-Control"] = "public, max-age=300"
-            elif "/api/v1/interview-questions/" in path:
+            elif "/api/v2/interview-questions/" in path:
                 # 면접 질문 API: 30분 캐시 (LLM 결과)
                 response.headers["Cache-Control"] = "public, max-age=1800"
             else:
@@ -311,7 +307,7 @@ app.add_middleware(CacheMiddleware)
 
 # API 라우터 등록
 #app.include_router(api_router)
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api/v2")
 
 # 헬스체크 엔드포인트
 @app.get("/health")
@@ -345,30 +341,31 @@ async def performance_info():
         return {"error": str(e)}
 
 def run_auto_process():
-    print("run_auto_process called") 
-    """자동 처리 함수"""
-    db = SessionLocal()
-    try:
-        # 기존 자동 처리
-        auto_process_applications(db)
-        
-        # AI 평가 배치 프로세스 추가 (임시 비활성화)
-        # auto_evaluate_all_applications(db)  # final_status 데이터 보호를 위해 비활성화
-        
-        print("자동 처리 완료")
-    except Exception as e:
-        print(f"자동 처리 중 오류: {e}")
-    finally:
-        db.close()
+    print("run_auto_process called (DISABLED)") 
+    """자동 처리 함수 (비활성화됨)"""
+    pass
+    # db = SessionLocal()
+    # try:
+    #     # 기존 자동 처리
+    #     auto_process_applications(db)
+    #     
+    #     # AI 평가 배치 프로세스 추가 (임시 비활성화)
+    #     # auto_evaluate_all_applications(db)  # final_status 데이터 보호를 위해 비활성화
+    #     
+    #     print("자동 처리 완료")
+    # except Exception as e:
+    #     print(f"자동 처리 중 오류: {e}")
+    # finally:
+    #     db.close()
 
 # APScheduler 등록 (예: 10분마다 실행)
-if BackgroundScheduler:
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(run_auto_process, 'interval', minutes=10)
-    scheduler.start()
-    print("✅ APScheduler started successfully")
-else:
-    print("⚠️ APScheduler not available, skipping scheduled jobs")
+# if BackgroundScheduler:
+#     scheduler = BackgroundScheduler()
+#     scheduler.add_job(run_auto_process, 'interval', minutes=10)
+#     scheduler.start()
+#     print("✅ APScheduler started successfully")
+# else:
+#     print("⚠️ APScheduler not available, skipping scheduled jobs")
 
 
 if __name__ == "__main__":

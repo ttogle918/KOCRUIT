@@ -374,7 +374,7 @@ class MockApi {
     }
 
     // 지원서 상세 조회
-    if (url.startsWith('/api/v1/applications/')) {
+    if (url.startsWith('/api/v2/applications/')) {
       const parts = url.split('/');
       const applicationIdWithQuery = parts[parts.length - 1];
       let applicationId = applicationIdWithQuery;
@@ -406,7 +406,7 @@ class MockApi {
     await this.delay();
     
     // 즐겨찾기 토글
-    if (url.startsWith('/api/v1/applications/') && url.endsWith('/bookmark')) {
+    if (url.startsWith('/api/v2/applications/') && url.endsWith('/bookmark')) {
       const applicationId = url.split('/')[3];
       return this.toggleBookmark(applicationId, data.isBookmarked);
     }

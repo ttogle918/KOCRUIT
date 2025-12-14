@@ -14,7 +14,7 @@ conf = ConnectionConfig(
 )
 
 async def send_verification_email(email: EmailStr, token: str):
-    verify_url = f"http://localhost:8000/api/v1/auth/verify-email?token={token}"
+    verify_url = f"http://localhost:8000/api/v2/auth/verify-email?token={token}"
     html = f"""
     <h3>Kocruit 이메일 인증</h3>
     <p>아래 링크를 클릭하여 이메일을 인증해주세요:</p>

@@ -10,10 +10,10 @@ from agent.utils.llm_cache import redis_cache
 
 # 데이터베이스 모델 import
 try:
-    from backend.app.models.resume import Resume
-    from backend.app.models.spec import Spec
-    from backend.app.models.job import JobPost
-    from backend.app.models.application import Application
+    from backend.app.models.v2.document.resume import Resume
+    from backend.app.models.v2.document.resume import Spec
+    from backend.app.models.v2.recruitment.job import JobPost
+    from backend.app.models.v2.document.application import Application
     from sqlalchemy.orm import Session
 except ImportError:
     # agent 디렉토리에서 실행할 때를 위한 fallback

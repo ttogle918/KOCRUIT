@@ -8,9 +8,9 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
 
 from app.core.database import SessionLocal
-from app.models.job import JobPost
-from app.models.application import Application, AIInterviewStatus
-from app.models.interview_question import InterviewQuestion, QuestionType
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.application import Application, AIInterviewStatus
+from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
 
 def generate_ai_interview_questions():
     """AI 면접용 공통 질문 생성 (job_post_id, company_id 기반)"""

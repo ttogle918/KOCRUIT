@@ -1,7 +1,12 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from app.models.application import Application, ApplyStatus, DocumentStatus, InterviewStatus, ApplicationViewAction
+from app.models.v2.document.application import Application, OverallStatus, StageStatus, StageName, ApplicationViewAction
+
+# Alias for backward compatibility
+ApplyStatus = OverallStatus
+DocumentStatus = StageStatus
+InterviewStatus = StageStatus
 
 def to_camel(string: str) -> str:
     parts = string.split('_')
@@ -10,7 +15,7 @@ def to_camel(string: str) -> str:
 class ApplicationBase(BaseModel):
     job_post_id: int
     resume_id: int
-    status: ApplyStatus = ApplyStatus.WAITING
+    status: ApplyStatus = ApplyStatus.IN_PROGRESS
     document_status: DocumentStatus = DocumentStatus.PENDING
     ai_interview_status: InterviewStatus = InterviewStatus.PENDING
     practical_interview_status: InterviewStatus = InterviewStatus.PENDING
@@ -71,7 +76,7 @@ class ApplicationDetail(ApplicationBase):
         populate_by_name = True
         from_attributes = True
 
-
+# 지원자 요약 정보 목록
 class ApplicationList(BaseModel):
     id: int
     job_post_id: int
@@ -92,7 +97,14 @@ class ApplicationList(BaseModel):
     applied_at: Optional[datetime] = None
     ai_interview_pass_reason: Optional[str] = None
     ai_interview_fail_reason: Optional[str] = None
-    ai_interview_video_url: Optional[str] = None  # AI 면접 비디오 URL
+    ai_interview_video_url: Optional[str] = None
+    
+    # Frontend 호환 필드 (User 정보 등)
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    degree: Optional[str] = None
+    education: Optional[str] = None
     
     class Config:
         alias_generator = to_camel

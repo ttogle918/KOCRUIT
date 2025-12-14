@@ -61,19 +61,19 @@ const AudioAnalysisResultPage = () => {
       
       switch (selectedFileType) {
         case 'detailed':
-          response = await axiosInstance.get(`/api/v1/audio-analysis/analysis/${effectiveApplicantId}/detailed`);
+          response = await axiosInstance.get(`/api/v2/audio-analysis/analysis/${effectiveApplicantId}/detailed`);
           setAnalysisData(response.data.analysis_data);
           break;
         case 'summary':
-          response = await axiosInstance.get(`/api/v1/audio-analysis/analysis/${effectiveApplicantId}/summary`);
+          response = await axiosInstance.get(`/api/v2/audio-analysis/analysis/${effectiveApplicantId}/summary`);
           setAnalysisData(response.data);
           break;
         case 'stt':
-          response = await axiosInstance.get(`/api/v1/audio-analysis/analysis/${effectiveApplicantId}/stt`);
+          response = await axiosInstance.get(`/api/v2/audio-analysis/analysis/${effectiveApplicantId}/stt`);
           setAnalysisData(response.data.stt_data);
           break;
         default:
-          response = await axiosInstance.get(`/api/v1/audio-analysis/analysis/${effectiveApplicantId}`);
+          response = await axiosInstance.get(`/api/v2/audio-analysis/analysis/${effectiveApplicantId}`);
           setAnalysisData(response.data);
       }
       
@@ -98,7 +98,7 @@ const AudioAnalysisResultPage = () => {
 
   const loadAvailableFiles = async () => {
     try {
-      const response = await axiosInstance.get('/api/v1/audio-analysis/analysis-files');
+      const response = await axiosInstance.get('/api/v2/audio-analysis/analysis-files');
       const files = response.data.files_by_applicant[effectiveApplicantId] || [];
       setAvailableFiles(files);
     } catch (err) {

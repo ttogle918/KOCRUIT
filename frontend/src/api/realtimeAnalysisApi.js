@@ -118,7 +118,7 @@ class RealtimeAnalysisApi {
    * @returns {WebSocket} WebSocket 인스턴스
    */
   static createWebSocketConnection(session_id, onMessage, onError) {
-    const wsUrl = `ws://${window.location.host}/api/v1/realtime-analysis/ws/realtime-analysis/${session_id}`;
+    const wsUrl = `ws://${window.location.host}/api/v2/realtime-analysis/ws/realtime-analysis/${session_id}`;
     const ws = new WebSocket(wsUrl);
     
     ws.onmessage = (event) => {

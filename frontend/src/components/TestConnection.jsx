@@ -6,7 +6,7 @@ function TestConnection() {
 
     const testConnection = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/v1/test/hello');
+            const response = await fetch('http://localhost:8000/api/v2/test/hello');
             const data = await response.json();
             setMessage(data.message);
             setError('');

@@ -425,12 +425,12 @@ function JobAptitudeReport() {
       console.log('🌐 직무적성평가 보고서 API 호출');
 
       // 직무적성평가 보고서 데이터 조회
-              axiosInstance.get(`/v1/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 90000 })
+              axiosInstance.get(`/v2/report/job-aptitude?job_post_id=${jobPostId}`, { timeout: 90000 })
         .then((res) => {
           setData(res.data);
 
           // 필기불합격자 데이터 조회
-          axiosInstance.get(`/v1/written-test/failed/${jobPostId}`, { timeout: 90000 })
+          axiosInstance.get(`/v2/written-test/failed/${jobPostId}`, { timeout: 90000 })
             .then((failedRes) => {
               setFailedApplicants(failedRes.data);
               // 캐시에 저장 (두 데이터를 함께 저장)

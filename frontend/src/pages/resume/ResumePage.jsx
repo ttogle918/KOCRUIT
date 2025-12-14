@@ -12,7 +12,7 @@ function ResumeSelfIntroHighlight({ selfIntroText }) {
 
   useEffect(() => {
     if (!selfIntroText) return;
-    axios.post('/api/v1/highlight', { text: selfIntroText })
+    axios.post('/api/v2/highlight', { text: selfIntroText })
       .then(res => setHighlights(res.data.highlights))
       .catch(() => setHighlights([]));
   }, [selfIntroText]);

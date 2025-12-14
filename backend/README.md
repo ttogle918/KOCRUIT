@@ -21,11 +21,11 @@ Kocruit의 백엔드는 FastAPI를 기반으로 구축된 RESTful API 서버입�
 ```
 backend/
 ├── app/
-│   ├── api/v1/          # API 라우터들
+│   ├── api/v2/          # v2 API 라우터들 (Domain-Driven)
 │   ├── core/            # 핵심 설정
-│   ├── models/          # 데이터베이스 모델
+│   ├── models/v2/       # v2 데이터베이스 모델
 │   ├── schemas/         # Pydantic 스키마
-│   ├── services/        # 비즈니스 로직
+│   ├── services/v2/     # v2 비즈니스 로직
 │   └── utils/           # 유틸리티 함수
 ├── initdb/              # 데이터베이스 초기화
 └── Dockerfile           # Docker 설정
@@ -40,10 +40,11 @@ backend/
 
 ### 👤 지원자 관리
 - **지원서 처리**: 지원서 제출, 수정, 삭제
-- **상태 추적**: 지원 단계별 상태 관리
+- **상태 추적**: 지원 단계별 상태 관리 (ApplicationStage 기반 정규화)
 - **이력서 관리**: 파일 업로드, 다운로드, 분석
 
-### 🤖 AI 이력서 분석
+### 🤖 AI 이력서 분석 (Agent 연동)
+- **Agent Service**: 별도 Agent 컨테이너를 통해 LLM 기반 분석 수행
 - **형광펜 하이라이팅**: AI가 핵심 내용 색상별 구분
 - **경쟁력 비교**: 동일 직무 지원자 상대적 평가
 - **키워드 매칭**: 채용공고 요구사항과 적합도 분석
@@ -61,32 +62,32 @@ backend/
 ## 🔧 API 엔드포인트
 
 ### 인증 (Authentication)
-- `POST /api/v1/auth/login` - 로그인
-- `POST /api/v1/auth/register` - 회원가입
-- `POST /api/v1/auth/refresh` - 토큰 갱신
+- `POST /api/v2/auth/login` - 로그인
+- `POST /api/v2/auth/register` - 회원가입
+- `POST /api/v2/auth/refresh` - 토큰 갱신
 
 ### 채용공고 (Job Posts)
-- `GET /api/v1/jobs/` - 채용공고 목록
-- `POST /api/v1/jobs/` - 채용공고 생성
-- `GET /api/v1/jobs/{id}` - 채용공고 상세
-- `PUT /api/v1/jobs/{id}` - 채용공고 수정
-- `DELETE /api/v1/jobs/{id}` - 채용공고 삭제
+- `GET /api/v2/jobs/` - 채용공고 목록
+- `POST /api/v2/jobs/` - 채용공고 생성
+- `GET /api/v2/jobs/{id}` - 채용공고 상세
+- `PUT /api/v2/jobs/{id}` - 채용공고 수정
+- `DELETE /api/v2/jobs/{id}` - 채용공고 삭제
 
 ### 지원자 (Applications)
-- `GET /api/v1/applications/` - 지원자 목록
-- `POST /api/v1/applications/` - 지원서 제출
-- `GET /api/v1/applications/{id}` - 지원서 상세
-- `PUT /api/v1/applications/{id}` - 지원서 수정
+- `GET /api/v2/applications/` - 지원자 목록
+- `POST /api/v2/applications/` - 지원서 제출
+- `GET /api/v2/applications/{id}` - 지원서 상세
+- `PUT /api/v2/applications/{id}` - 지원서 수정
 
 ### 이력서 분석 (Resume Analysis)
-- `POST /api/v1/resume/analyze` - 이력서 분석
-- `GET /api/v1/resume/highlight/{id}` - 하이라이팅 결과
-- `GET /api/v1/resume/competitiveness/{id}` - 경쟁력 분석
+- `POST /api/v2/resumes/analyze` - 이력서 분석
+- `GET /api/v2/resumes/highlight/{id}` - 하이라이팅 결과
+- `GET /api/v2/resumes/competitiveness/{id}` - 경쟁력 분석
 
 ### 면접 (Interview)
-- `POST /api/v1/interview/ai-interview` - AI 면접 시작
-- `POST /api/v1/interview/realtime-interview` - 실시간 면접
-- `GET /api/v1/interview/evaluations/{id}` - 면접 평가 결과
+- `POST /api/v2/interview/ai-interview` - AI 면접 시작
+- `POST /api/v2/interview/realtime-interview` - 실시간 면접
+- `GET /api/v2/interview/evaluations/{id}` - 면접 평가 결과
 
 ## 🚀 실행 방법
 

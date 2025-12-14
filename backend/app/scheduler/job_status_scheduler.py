@@ -2,9 +2,9 @@ import asyncio
 import logging
 from datetime import datetime
 from sqlalchemy import update, and_
-from app.models.job import JobPost
+from app.models.v2.recruitment.job import JobPost
 from app.core.database import SessionLocal
-from app.services.interviewer_profile_service import InterviewerProfileService
+from app.services.v2.interview.interviewer_profile_service import InterviewerProfileService
 
 class JobStatusScheduler:
     _instance = None
@@ -277,7 +277,7 @@ class JobStatusScheduler:
             
             for interviewer_id in evaluator_ids:
                 try:
-                    from app.models.interviewer_profile import InterviewerProfile
+                    from app.models.v2.interview.interviewer_profile import InterviewerProfile
                     
                     # 기존 프로필 확인
                     existing_profile = db.query(InterviewerProfile).filter(
@@ -324,7 +324,7 @@ class JobStatusScheduler:
             db = SessionLocal()
             
             # 기존 프로필 데이터 삭제
-            from app.models.interviewer_profile import InterviewerProfile, InterviewerProfileHistory
+            from app.models.v2.interview.interviewer_profile import InterviewerProfile, InterviewerProfileHistory
             
             db.query(InterviewerProfileHistory).delete()
             db.query(InterviewerProfile).delete()

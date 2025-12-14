@@ -33,7 +33,7 @@ The Interview Panel Auto-Assignment System automatically selects and assigns int
 
 ### Interview Panel Management
 
-#### `POST /api/v1/interview-panel/assign-interviewers/`
+#### `POST /api/v2/interview-panel/assign-interviewers/`
 Manually assign interviewers for a job post.
 
 **Request Body:**
@@ -46,7 +46,7 @@ Manually assign interviewers for a job post.
 }
 ```
 
-#### `POST /api/v1/interview-panel/respond-to-request/`
+#### `POST /api/v2/interview-panel/respond-to-request/`
 Respond to an interview panel request (accept/reject).
 
 **Request Body:**
@@ -57,19 +57,19 @@ Respond to an interview panel request (accept/reject).
 }
 ```
 
-#### `GET /api/v1/interview-panel/my-pending-requests/`
+#### `GET /api/v2/interview-panel/my-pending-requests/`
 Get pending interview panel requests for the current user.
 
-#### `GET /api/v1/interview-panel/panel-members/{job_post_id}/`
+#### `GET /api/v2/interview-panel/panel-members/{job_post_id}/`
 Get all panel members for a specific job post.
 
-#### `GET /api/v1/interview-panel/assignments/{job_post_id}/`
+#### `GET /api/v2/interview-panel/assignments/{job_post_id}/`
 Get all interview panel assignments for a job post.
 
-#### `GET /api/v1/interview-panel/assignment/{assignment_id}/details/`
+#### `GET /api/v2/interview-panel/assignment/{assignment_id}/details/`
 Get detailed information about a specific assignment.
 
-#### `DELETE /api/v1/interview-panel/assignment/{assignment_id}/`
+#### `DELETE /api/v2/interview-panel/assignment/{assignment_id}/`
 Cancel an interview panel assignment.
 
 ## Interviewer Selection Criteria

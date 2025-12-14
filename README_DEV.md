@@ -47,20 +47,17 @@
 
 ```bash
 KOSA-FINAL-PROJECT-02/
-├── agent/                  # 🧠 AI Agent 서비스
-│   ├── agents/             # LangGraph/LangChain 워크플로우 정의
-│   │   ├── chatbot_graph.py       # 챗봇 로직
-│   │   ├── resume_orchestrator.py # 이력서 분석 오케스트레이터
-│   │   └── ...
-│   ├── tools/              # 개별 AI 도구 (검색, 분석, 하이라이팅 등)
+├── agent/                  # 🧠 AI Agent 서비스 (FastAPI + LangGraph)
+│   ├── agents/             # 워크플로우 정의
+│   ├── tools/              # 개별 AI 도구
 │   └── main.py             # Agent 서비스 진입점
 ├── backend/                # ⚙️ 메인 백엔드 서비스
 │   ├── app/
-│   │   ├── api/            # API 엔드포인트 (Router)
-│   │   ├── models/         # SQLAlchemy DB 모델
-│   │   ├── services/       # 비즈니스 로직 (핵심)
+│   │   ├── api/v2/         # v2 API 엔드포인트 (도메인 주도 설계)
+│   │   ├── models/v2/      # v2 SQLAlchemy DB 모델
+│   │   ├── services/v2/    # v2 비즈니스 로직
 │   │   ├── schemas/        # Pydantic 데이터 스키마
-│   │   └── scheduler/      # 백그라운드 작업 (APScheduler)
+│   │   └── utils/          # agent_client.py 등 유틸리티
 │   └── main.py             # Backend 서비스 진입점
 ├── video-analysis/         # 🎥 영상 분석 서비스 (독립 실행 권장)
 │   ├── video_analyzer.py   # 영상 분석 코어 로직
@@ -70,22 +67,31 @@ KOSA-FINAL-PROJECT-02/
 │   ├── src/
 │   │   ├── components/     # UI 컴포넌트
 │   │   └── ...
-├── initdb/                 # 🗄️ DB 초기화 스크립트 (SQL, Python)
+├── initdb/                 # 🗄️ DB 초기화 및 마이그레이션 (migration_v2.sql)
 └── docker-compose.yml      # 🐳 전체 시스템 오케스트레이션
 ```
 
+## 4. 데이터베이스 변경 사항 (v2)
+
+### 🔄 지원자 상태 관리 정규화 (Normalization)
+기존의 `Application` 테이블에 모든 전형 단계의 상태가 컬럼으로 존재하던 방식에서, **`ApplicationStage` 테이블을 분리**하여 관리하는 방식으로 변경되었습니다.
+
+*   **Application**: 지원자 기본 정보, 최종 상태(`overall_status`), 현재 단계(`current_stage`) 관리.
+*   **ApplicationStage**: 각 전형 단계(`DOCUMENT`, `AI_INTERVIEW` 등)별 상태, 점수, 탈락 사유 관리.
+*   **호환성**: 기존 코드를 위해 `Application` 모델에 `@property`를 두어 기존 필드명(`document_status` 등)으로도 접근 가능하도록 처리함.
+
 ---
 
-## 4. 핵심 로직 상세 분석
+## 5. 핵심 로직 상세 분석
 
-### 1) 백엔드 (Backend)
+### 1 백엔드 (Backend)
 *   **역할:** 클라이언트 요청 처리, 데이터 CRUD, AI 서비스로의 작업 위임.
 *   **주요 서비스 (`backend/app/services/`):**
     *   `application_evaluation_service.py`: 지원서를 접수받고 1차적인 처리를 담당.
     *   `ai_interview_evaluation_service.py`: 면접 결과를 저장하고 통계 처리.
     *   `scheduler/`: 주기적으로 상태를 체크하거나, 시간이 오래 걸리는 AI 분석 요청을 관리.
 
-### 2) AI 에이전트 (Agent)
+### 2 AI 에이전트 (Agent)
 *   **역할:** 복잡한 추론이 필요한 작업을 수행하는 독립 서비스.
 *   **LangGraph 활용:**
     *   단순 LLM 호출이 아닌, **상태(State)**를 가진 워크플로우로 구성됨.
@@ -95,7 +101,7 @@ KOSA-FINAL-PROJECT-02/
     *   `/evaluate-application`: 채용 공고와 이력서를 매칭하여 점수화.
     *   `/agent/speech-recognition`: 오디오 파일을 텍스트로 변환(STT) 및 분석.
 
-### 3) 데이터 흐름 예시 (서류 평가)
+### 3 데이터 흐름 예시 (서류 평가)
 1.  **Frontend:** 사용자가 이력서 업로드.
 2.  **Backend:** 이력서 파일 저장, DB에 지원자 정보 등록.
 3.  **Backend:** `Agent` 서비스의 `/evaluate-application` 엔드포인트 호출 (비동기 또는 동기).

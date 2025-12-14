@@ -4,7 +4,7 @@ import axios from 'axios';
 
 // 기존의 중복된 axios 인스턴스 제거
 // const api = axios.create({
-//   baseURL: '/api/v1', // 프록시를 통해 백엔드로 전달
+//   baseURL: '/api/v2', // 프록시를 통해 백엔드로 전달
 //   withCredentials: false, // 쿠키 인증 시 필요
 //   headers: {
 //     'Content-Type': 'application/json',
