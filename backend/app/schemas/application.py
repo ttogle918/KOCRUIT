@@ -76,7 +76,7 @@ class ApplicationDetail(ApplicationBase):
         populate_by_name = True
         from_attributes = True
 
-
+# 지원자 요약 정보 목록
 class ApplicationList(BaseModel):
     id: int
     job_post_id: int
@@ -97,7 +97,14 @@ class ApplicationList(BaseModel):
     applied_at: Optional[datetime] = None
     ai_interview_pass_reason: Optional[str] = None
     ai_interview_fail_reason: Optional[str] = None
-    ai_interview_video_url: Optional[str] = None  # AI 면접 비디오 URL
+    ai_interview_video_url: Optional[str] = None
+    
+    # Frontend 호환 필드 (User 정보 등)
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    degree: Optional[str] = None
+    education: Optional[str] = None
     
     class Config:
         alias_generator = to_camel

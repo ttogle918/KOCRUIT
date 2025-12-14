@@ -116,6 +116,97 @@ class Application(Base):
         stage = self.get_stage(StageName.AI_INTERVIEW)
         return stage.fail_reason if stage else None
 
+    @property
+    def score(self) -> float:
+        """현재 단계의 점수 또는 최종 점수 반환 (호환성용)"""
+        if self.final_score is not None:
+            return float(self.final_score)
+        
+        # 현재 단계의 점수 조회
+        if self.current_stage:
+            stage = self.get_stage(self.current_stage)
+            if stage and stage.score is not None:
+                return float(stage.score)
+        return None
+
+    @property
+    def ai_score(self) -> float:
+        """AI 면접 점수 (호환성용)"""
+        return self.ai_interview_score
+
+    @property
+    def human_score(self) -> float:
+        """사람 평가 점수 (호환성용 - 현재는 미사용)"""
+        return None
+
+    @property
+    def pass_reason(self) -> str:
+        """현재 단계의 합격 사유 (호환성용)"""
+        if self.current_stage:
+            stage = self.get_stage(self.current_stage)
+            return stage.pass_reason if stage else None
+        return None
+
+    @property
+    def fail_reason(self) -> str:
+        """현재 단계의 불합격 사유 (호환성용)"""
+        if self.current_stage:
+            stage = self.get_stage(self.current_stage)
+            return stage.fail_reason if stage else None
+        return None
+
+    @property
+    def created_at(self) -> datetime:
+        return self.applied_at
+
+    @property
+    def name(self) -> str:
+        return self.user.name if self.user else "Unknown"
+
+    @property
+    def email(self) -> str:
+        return self.user.email if self.user else None
+
+    @property
+    def phone(self) -> str:
+        return self.user.phone_number if self.user else None
+
+    @property
+    def degree(self) -> str:
+        # 이력서에서 학위 정보 추출
+        if self.resume and self.resume.specs:
+            for spec in self.resume.specs:
+                if not spec.spec_type: continue
+                stype = spec.spec_type.upper()
+                if stype in ['EDUCATION', 'HAKRYEOK', '학력']:
+                    # 학위 키워드 검색
+                    content = (spec.spec_title or "") + (spec.spec_description or "")
+                    if "박사" in content: return "박사"
+                    if "석사" in content: return "석사"
+                    if "학사" in content or "대학교" in content: return "학사"
+                    if "전문학사" in content or "전문대" in content: return "전문학사"
+                    if "고등학교" in content: return "고졸"
+            
+            # 스펙이 있지만 명시적 학위가 없으면 기본값 (예: 대졸 공고면 학사)
+            if len(self.resume.specs) > 0:
+                 return "학사"
+        return None
+
+    @property
+    def education(self) -> str:
+         # 이력서에서 학교 정보 추출
+        if self.resume and self.resume.specs:
+            for spec in self.resume.specs:
+                if not spec.spec_type: continue
+                stype = spec.spec_type.upper()
+                if stype in ['EDUCATION', 'HAKRYEOK', '학력']:
+                    # spec_title이 키(key) 역할이고 description이 값(value)인 경우 (예: title='institution', desc='OO대학교')
+                    if spec.spec_title and spec.spec_title.lower() in ['institution', 'school', 'university', 'college', '학교', '학교명']:
+                        return spec.spec_description
+                    # spec_title 자체가 학교명인 경우 (일반적인 경우)
+                    return spec.spec_title
+        return None
+
     # --- Helper Methods ---
 
     def get_stage(self, stage_name: StageName):

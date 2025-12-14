@@ -13,7 +13,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'comprehensive',
       name: '핵심 분석',
       description: '전체적인 이력서 분석',
-      endpoint: '/v2/resumes/comprehensive-analysis',
+      endpoint: '/resumes/comprehensive-analysis',
       icon: '📊',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -21,7 +21,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'detailed',
       name: '상세 분석',
       description: '심도있는 역량 분석',
-      endpoint: '/v2/resumes/detailed-analysis',
+      endpoint: '/resumes/detailed-analysis',
       icon: '🔍',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -29,7 +29,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'applicant_comparison',
       name: '지원자 비교',
       description: '해당 공고 지원자 비교',
-      endpoint: '/v2/resumes/applicant-comparison',
+      endpoint: '/resumes/applicant-comparison',
       icon: '👥',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -37,7 +37,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'impact_points',
       name: '임팩트 포인트',
       description: '후보 요약 및 핵심 포인트',
-      endpoint: '/v2/resumes/impact-points',
+      endpoint: '/resumes/impact-points',
       icon: '⭐',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -64,7 +64,12 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
     for (const tool of tools) {
       try {
         const result = await getAnalysisResult(applicationId, tool.id);
-        savedResults[tool.id] = result.analysis_data;
+        let data = result.analysis_data;
+        // 저장된 데이터도 구조 파싱 (backend 응답 구조와 동일한 경우)
+        if (data && data.results && data.results[tool.id]) {
+            data = data.results[tool.id];
+        }
+        savedResults[tool.id] = data;
         console.log(`저장된 ${tool.name} 결과 발견:`, result);
       } catch (error) {
         if (error.response?.status !== 404) {
@@ -143,12 +148,18 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
         throw new Error('응답 데이터가 없습니다.');
       }
       
+      // 데이터 구조 파싱: Backend가 { results: { toolId: ... } } 형태로 주는 경우 처리
+      let analysisData = response.data;
+      if (response.data.results && response.data.results[tool.id]) {
+        analysisData = response.data.results[tool.id];
+      }
+      
       // 분석 결과 저장
-      setResults(prev => ({ ...prev, [tool.id]: response.data }));
+      setResults(prev => ({ ...prev, [tool.id]: analysisData }));
 
       // 부모 컴포넌트에 결과 전달
       if (onAnalysisResult) {
-        onAnalysisResult(tool.id, response.data);
+        onAnalysisResult(tool.id, analysisData);
       }
 
     } catch (err) {

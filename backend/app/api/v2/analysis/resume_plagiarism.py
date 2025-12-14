@@ -64,6 +64,8 @@ async def check_plagiarism(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"표절 검사 중 오류가 발생했습니다: {str(e)}")
 
+from app.models.v2.document.resume import Resume
+
 @router.post("/check-resume/{resume_id}", response_model=PlagiarismCheckResponse)
 async def check_resume_plagiarism(
     resume_id: int,
@@ -73,18 +75,26 @@ async def check_resume_plagiarism(
 ):
     """
     데이터베이스의 특정 이력서에 대해 표절 검사
-    - **resume_id**: 검사할 이력서 ID
-    - **similarity_threshold**: 표절 의심 임계값 (기본값: 0.9)
-    - **force**: 강제 재검사 여부 (기본값: False)
     """
     try:
-        result = plagiarism_service.check_resume_plagiarism(
-            db=db,
-            resume_id=resume_id,
-            similarity_threshold=similarity_threshold,
-            force=force
-        )
+        # 이력서 조회
+        resume = db.query(Resume).filter(Resume.id == resume_id).first()
+        if not resume:
+            raise HTTPException(status_code=404, detail=f"이력서(ID: {resume_id})를 찾을 수 없습니다.")
+            
+        if not resume.content:
+             raise HTTPException(status_code=400, detail="이력서 내용이 비어있습니다.")
+
+        # 표절 검사 수행 (Agent 호출)
+        result = await plagiarism_service.check_plagiarism(resume.content)
+        
+        # 결과에 resume_id 추가
+        result["input_resume_id"] = resume_id
+        result["similarity_threshold"] = similarity_threshold
+        
         return PlagiarismCheckResponse(**result)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"이력서 표절 검사 중 오류가 발생했습니다: {str(e)}")
 

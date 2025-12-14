@@ -285,7 +285,7 @@ def get_applicants_by_job(
         db.query(Application)
         .options(
             joinedload(Application.user),
-            joinedload(Application.resume),
+            joinedload(Application.resume).joinedload(Resume.specs),
             joinedload(Application.stages)
         )
         .filter(Application.job_post_id == job_post_id)
