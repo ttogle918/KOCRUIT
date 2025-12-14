@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
-from app.models.application import Application
-from app.models.resume import Resume, Spec
-from app.models.growth_prediction_result import GrowthPredictionResult
-from app.services.high_performer_pattern_service import HighPerformerPatternService
-from app.services.applicant_growth_scoring_service import ApplicantGrowthScoringService
+from app.models.v2.document.application import Application
+from app.models.v2.document.resume import Resume, Spec
+from app.models.v2.growth_prediction_result import GrowthPredictionResult
+from app.services.v2.high_performer_pattern_service import HighPerformerPatternService
+from app.services.v2.applicant_growth_scoring_service import ApplicantGrowthScoringService
 from app.schemas.growth_prediction import GrowthPredictionRequest, GrowthPredictionResponse
 import time
 

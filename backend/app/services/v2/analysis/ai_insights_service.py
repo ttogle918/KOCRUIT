@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from app.models.ai_insights import AIInsights, AIInsightsComparison
-from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
-from app.models.application import Application
+from app.models.v2.ai_insights import AIInsights, AIInsightsComparison
+from app.models.v2.interview_evaluation import InterviewEvaluation, EvaluationType
+from app.models.v2.document.application import Application
 import sys
 import os
 import json

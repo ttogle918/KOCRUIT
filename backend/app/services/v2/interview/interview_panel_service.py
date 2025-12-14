@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import logging
 
-from app.models.interview_panel import (
+from app.models.v2.interview_panel import (
     InterviewPanelAssignment, 
     InterviewPanelMember, 
     InterviewPanelRequest,
@@ -13,12 +13,12 @@ from app.models.interview_panel import (
     PanelRole,
     AssignmentType
 )
-from app.models.application import Application, StageStatus, StageName
-from app.models.schedule import Schedule
-from app.models.interview_question import InterviewQuestion
-from app.models.job import JobPost
-from app.models.resume import Resume
-from app.models.auth.user import User, CompanyUser
+from app.models.v2.document.application import Application, StageStatus, StageName
+from app.models.v2.document.schedule import Schedule
+from app.models.v2.interview_question import InterviewQuestion
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.resume import Resume
+from app.models.v2.auth.user import User, CompanyUser
 from app.schemas.interview_panel import (
     InterviewPanelAssignmentCreate,
     InterviewPanelRequestCreate,
@@ -29,11 +29,11 @@ from app.schemas.interview_panel import (
     InterviewerSelectionCriteria
 
 )
-from app.models.company import Department
-from app.models.job import JobPost
-from app.models.notification import Notification
-from app.models.schedule import Schedule
-from app.services.interview.interviewer_profile_service import InterviewerProfileService
+from app.models.v2.auth.company import Department
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.common.notification import Notification
+from app.models.v2.document.schedule import Schedule
+from app.services.v2.interview.interviewer_profile_service import InterviewerProfileService
 import random
 
 
@@ -485,8 +485,8 @@ class InterviewPanelService:
     @staticmethod
     def _create_interview_schedules(db: Session, assignment: InterviewPanelAssignment):
         """면접관 수락 완료 후 자동으로 면접 일정 생성"""
-        from app.models.schedule import ScheduleInterview, InterviewScheduleStatus
-        from app.models.application import Application, DocumentStatus, InterviewStatus
+        from app.models.v2.document.schedule import ScheduleInterview, InterviewScheduleStatus
+        from app.models.v2.document.application import Application, DocumentStatus, InterviewStatus
         
         # 해당 공고의 서류 합격자들 조회
         applications = db.query(Application).filter(
@@ -537,8 +537,8 @@ class InterviewPanelService:
             
             # Application의 ai_interview_status를 AI 면접 일정 확정으로 변경
             # application.ai_interview_status = InterviewStatus.SCHEDULED <- 대체
-            from app.models.application import StageName, StageStatus
-            from app.services.application.application_service import update_stage_status
+            from app.models.v2.document.application import StageName, StageStatus
+            from app.services.v2.application.application_service import update_stage_status
             update_stage_status(db, application.id, StageName.AI_INTERVIEW, StageStatus.SCHEDULED)
         
         # 변경사항 저장
@@ -548,13 +548,13 @@ class InterviewPanelService:
         
         # 🆕 면접 일정 생성 완료 후 자동으로 개별 질문 생성
         try:
-            from app.services.interview.interview_question_service import InterviewQuestionService
+            from app.services.v2.interview.interview_question_service import InterviewQuestionService
             
             # 공고 정보 조회
             job_post = db.query(JobPost).filter(JobPost.id == assignment.job_post_id).first()
             if job_post:
                 company_name = job_post.company.name if job_post.company else ""
-                from app.api.v1.interview.interview_question import parse_job_post_data
+                from app.api.v2.interview.interview_question import parse_job_post_data
                 job_info = parse_job_post_data(job_post)
                 
                 # 각 지원자에 대해 개별 질문 생성
@@ -710,7 +710,7 @@ class InterviewPanelService:
                     
                     # Application의 ai_interview_status를 AI 면접 일정 확정으로 변경
                     # application.ai_interview_status = InterviewStatus.SCHEDULED <- 제거
-                    from app.services.application.application_service import update_stage_status
+                    from app.services.v2.application.application_service import update_stage_status
                     update_stage_status(db, application.id, StageName.AI_INTERVIEW, StageStatus.SCHEDULED)
                     
                     print(f"✅ 지원자 {application.user_id}를 면접 일정 {schedule_interview.id}에 연결 (일정 {schedule_index + 1})")
@@ -840,7 +840,7 @@ class InterviewPanelService:
     @staticmethod
     def get_panel_members(db: Session, job_post_id: int) -> List[dict]:
         """Get all panel members for a job post"""
-        from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelMember
+        from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelMember
         
         assignments = db.query(InterviewPanelAssignment).filter(
             InterviewPanelAssignment.job_post_id == job_post_id
@@ -871,9 +871,9 @@ class InterviewPanelService:
     @staticmethod
     def get_user_response_history(db: Session, user_id: int) -> List[dict]:
         """Get user's response history for interview panel requests"""
-        from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest
-        from app.models.job import JobPost
-        from app.models.schedule import Schedule
+        from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest
+        from app.models.v2.recruitment.job import JobPost
+        from app.models.v2.document.schedule import Schedule
         
         # Get all requests that the user has responded to (not pending)
         requests = db.query(InterviewPanelRequest).filter(

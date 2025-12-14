@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.application import Application, OverallStatus, StageStatus, StageName
-from app.models.job import JobPost
-from app.models.resume import Resume
-from app.models.auth.user import User
+from app.models.v2.document.application import Application, OverallStatus, StageStatus, StageName
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.resume import Resume
+from app.models.v2.auth.user import User
 
 router = APIRouter()
 

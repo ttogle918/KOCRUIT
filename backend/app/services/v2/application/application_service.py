@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.application import ApplicationStage, StageName, StageStatus
+from app.models.v2.document.application import ApplicationStage, StageName, StageStatus
 
 def update_stage_status(
     db: Session, 

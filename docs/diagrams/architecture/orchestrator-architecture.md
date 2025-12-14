@@ -129,7 +129,7 @@ sequenceDiagram
     participant C as Cache
 
     U->>F: 이력서 분석 요청
-    F->>A: POST /api/v1/resume/analyze
+    F->>A: POST /api/v2/resume/analyze
     A->>A: 인증/인가 확인
     A->>O: 분석 요청 전달
     

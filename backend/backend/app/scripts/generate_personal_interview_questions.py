@@ -11,7 +11,7 @@ from app.core.database import SessionLocal
 from app.models.job import JobPost
 from app.models.application import Application
 from app.models.interview_question import InterviewQuestion, QuestionType
-from app.api.v1.interview_question import parse_job_post_data
+from app.api.v2.interview_question import parse_job_post_data
 
 def generate_personal_interview_questions():
     """실무진 면접용 개인별 맞춤 질문 생성 (application_id, resume 기반)"""

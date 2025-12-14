@@ -4,7 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from app.core.database import get_db
-from app.services.resume_plagiarism_service import ResumePlagiarismService
+from app.services.v2.resume_plagiarism_service import ResumePlagiarismService
 
 router = APIRouter()
 

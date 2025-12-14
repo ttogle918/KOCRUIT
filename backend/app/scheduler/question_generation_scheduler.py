@@ -52,7 +52,7 @@ class QuestionGenerationScheduler:
                         if existing_questions == 0:
                             # 공통 질문 생성
                             company_name = job_post.company.name if job_post.company else ""
-                            from app.api.v1.interview_question import parse_job_post_data
+                            from app.api.v2.interview_question import parse_job_post_data
                             job_info = parse_job_post_data(job_post)
                             
                             questions = InterviewQuestionService.generate_common_questions_for_job_post(

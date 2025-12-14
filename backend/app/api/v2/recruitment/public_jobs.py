@@ -7,7 +7,7 @@ import time
 from app.core.database import get_db
 from app.core.cache import cache_result, invalidate_cache, CACHE_KEYS
 from app.schemas.job import JobPostDetail, JobPostList
-from app.models.job import JobPost
+from app.models.v2.recruitment.job import JobPost
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -111,7 +111,7 @@ def get_public_job_post(
             # department 필드를 문자열(부서명)로 변환
             department_name = None
             if hasattr(job_post, 'department_id') and job_post.department_id:
-                from app.models.company import Department
+                from app.models.v2.auth.company import Department
                 department = db.query(Department).filter(Department.id == job_post.department_id).first()
                 if department:
                     department_name = department.name

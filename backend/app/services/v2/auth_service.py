@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from app.models.auth.user import User, CompanyUser, ApplicantUser
+from app.models.v2.auth.user import User, CompanyUser, ApplicantUser
 from app.core import security
-from app.models.auth.user import UserType, UserRole
+from app.models.v2.auth.user import UserType, UserRole
 from fastapi import HTTPException
 
 

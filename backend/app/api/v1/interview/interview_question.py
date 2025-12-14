@@ -4,15 +4,15 @@ from sqlalchemy import func
 from typing import List, Optional, Dict, Any
 from app.core.database import get_db
 from app.api.v2.auth.auth import get_current_user
-from app.models.v2.auth.user import User
-from app.models.v2.document.application import Application, ApplicationStage, OverallStatus, StageStatus, StageName
-from app.models.v2.evaluation_criteria import EvaluationCriteria
+from app.models.auth.user import User
+from app.models.application import Application, ApplicationStage, OverallStatus, StageStatus, StageName
+from app.models.evaluation_criteria import EvaluationCriteria
 
-from app.models.v2.interview_question import InterviewQuestion, QuestionType
-from app.models.v2.recruitment.job import JobPost
-from app.models.v2.document.resume import Resume, Spec
-from app.models.v2.personal_question_result import PersonalQuestionResult
-from app.services.v2.interview.interview_question_service import InterviewQuestionService
+from app.models.interview_question import InterviewQuestion, QuestionType
+from app.models.job import JobPost
+from app.models.resume import Resume, Spec
+from app.models.personal_question_result import PersonalQuestionResult
+from app.services.interview_question_service import InterviewQuestionService
 from app.schemas.interview_question import (
     InterviewQuestionCreate, 
     InterviewQuestionResponse, 
@@ -27,7 +27,7 @@ import redis
 import json
 
 from app.schemas.interview_question import InterviewQuestionBulkCreate, InterviewQuestionCreate, InterviewQuestionResponse
-from app.models.v2.interview_question_log import InterviewQuestionLog, InterviewType
+from app.models.interview_question_log import InterviewQuestionLog, InterviewType
 import tempfile
 import os
 
@@ -382,7 +382,7 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
 @router.get("/application/{application_id}", response_model=List[InterviewQuestionResponse])
 @redis_cache(expire=300)  # 5분 캐시 (질문 조회)
 def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
-    from app.models.v2.interview_question import InterviewQuestion
+    from app.models.interview_question import InterviewQuestion
     return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
 
 @router.get("/application/{application_id}/by-type", response_model=InterviewQuestionResponse)
@@ -665,7 +665,7 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
         # DB 저장 옵션이 활성화된 경우 저장
         if request.save_to_db:
             try:
-                from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+                from app.services.evaluation_criteria_service import EvaluationCriteriaService
                 from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
                 
                 criteria_service = EvaluationCriteriaService(db)
@@ -1189,7 +1189,7 @@ async def generate_passed_applicants_questions(
 
     try:
         # 서류 합격자 조회 - applications.py의 함수를 직접 호출
-        from app.api.v2.document.applications import get_passed_applicants
+        from app.api.v2.application.applications import get_passed_applicants
         passed_applicants_response = get_passed_applicants(job_post_id, db)
         passed_applicants = passed_applicants_response.get("passed_applicants", [])
         
@@ -1591,7 +1591,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
         # DB에 저장
         saved_count = 0
         if request.save_to_db and all_questions:
-            from app.models.v2.interview_question import InterviewQuestion, QuestionType
+            from app.models.interview_question import InterviewQuestion, QuestionType
             
             # job_post_id 찾기
             job_post_id = None
@@ -1667,7 +1667,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
 def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db)):
     """특정 지원자의 AI 면접 질문 조회 (job_post_id 기반)"""
     try:
-        from app.models.v2.interview_question import InterviewQuestion, QuestionType
+        from app.models.interview_question import InterviewQuestion, QuestionType
         
         # 지원자의 job_post_id 찾기
         application = db.query(Application).filter(Application.id == application_id).first()
@@ -1710,8 +1710,8 @@ def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db
 def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 AI 면접 질문 조회 (공통 + 직무별 + 게임)"""
     try:
-        from app.models.v2.interview_question import InterviewQuestion, QuestionType
-        from app.models.v2.recruitment.job import JobPost
+        from app.models.interview_question import InterviewQuestion, QuestionType
+        from app.models.job import JobPost
         
         # 공고 정보 조회
         job = db.query(JobPost).filter(JobPost.id == job_post_id).first()
@@ -2301,7 +2301,7 @@ async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest,
         
         # DB 저장 시도 (에러 발생 시 로그만 출력)
         try:
-            from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+            from app.services.evaluation_criteria_service import EvaluationCriteriaService
             from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
             
             print("🔍 EvaluationCriteriaService import 성공")
@@ -2412,7 +2412,7 @@ async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest,
 async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 저장된 평가항목 조회"""
     try:
-        from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
         
         criteria_service = EvaluationCriteriaService(db)
         criteria = criteria_service.get_evaluation_criteria_by_job_post(job_post_id)
@@ -2436,7 +2436,7 @@ async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depe
 async def delete_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 평가항목 삭제"""
     try:
-        from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
         
         criteria_service = EvaluationCriteriaService(db)
         success = criteria_service.delete_evaluation_criteria(job_post_id)
@@ -2504,7 +2504,7 @@ async def create_resume_based_evaluation_criteria(request: EvaluationCriteriaReq
         # DB에 저장
         print(f"🔍 LangGraph 결과: {criteria_result}")
         try:
-            from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+            from app.services.evaluation_criteria_service import EvaluationCriteriaService
             from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
             
             print("🔍 EvaluationCriteriaService import 성공")
@@ -2608,7 +2608,7 @@ async def get_resume_based_evaluation_criteria(
 ):
     """이력서 기반 저장된 평가 기준 조회"""
     try:
-        from app.services.v2.evaluation_criteria_service import EvaluationCriteriaService
+        from app.services.evaluation_criteria_service import EvaluationCriteriaService
         
         criteria_service = EvaluationCriteriaService(db)
         criteria = criteria_service.get_evaluation_criteria_by_resume(resume_id, application_id, interview_stage)

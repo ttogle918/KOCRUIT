@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from typing import List
-from app.models.notification import Notification
-from app.models.auth.user import CompanyUser
-from app.models.job import JobPost
+from app.models.v2.common.notification import Notification
+from app.models.v2.auth.user import CompanyUser
+from app.models.v2.recruitment.job import JobPost
 
 
 class NotificationService:
@@ -133,7 +133,7 @@ class NotificationService:
         """
         Create a reminder notification for an interviewer.
         """
-        from app.models.notification import Notification
+        from app.models.v2.common.notification import Notification
         notification = Notification(
             message=message,
             user_id=user_id,

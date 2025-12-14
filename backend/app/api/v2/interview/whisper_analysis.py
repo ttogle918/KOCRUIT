@@ -10,10 +10,10 @@ from pathlib import Path
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.question_media_analysis import QuestionMediaAnalysis
-from app.models.media_analysis import MediaAnalysis
-from app.models.application import Application
-from app.services.whisper_analysis_service import whisper_analysis_service
+from app.models.v2.question_media_analysis import QuestionMediaAnalysis
+from app.models.v2.media_analysis import MediaAnalysis
+from app.models.v2.document.application import Application
+from app.services.v2.whisper_analysis_service import whisper_analysis_service
 
 router = APIRouter()
 

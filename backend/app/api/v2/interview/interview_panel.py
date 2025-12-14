@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
 from app.core.database import get_db
-from app.models.auth.user import User
+from app.models.v2.auth.user import User
 from app.api.v2.auth.auth import get_current_user
-from app.services.interview_panel_service import InterviewPanelService
+from app.services.v2.interview.interview_panel_service import InterviewPanelService
 from app.schemas.interview_panel import (
     InterviewerSelectionCriteria, InterviewerResponse,
     InterviewPanelAssignmentResponse, InterviewPanelRequestResponse,
@@ -108,9 +108,9 @@ def get_job_post_assignments(
     """
     Get all interview panel assignments for a job post
     """
-    from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
-    from app.models.job import JobPost
-    from app.models.schedule import Schedule
+    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+    from app.models.v2.recruitment.job import JobPost
+    from app.models.v2.document.schedule import Schedule
     
     try:
         assignments = db.query(InterviewPanelAssignment).filter(
@@ -159,10 +159,10 @@ def get_assignment_details(
     """
     Get detailed information about a specific assignment
     """
-    from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
-    from app.models.auth.user import CompanyUser
-    from app.models.job import JobPost
-    from app.models.schedule import Schedule
+    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+    from app.models.v2.auth.user import CompanyUser
+    from app.models.v2.recruitment.job import JobPost
+    from app.models.v2.document.schedule import Schedule
     
     try:
         assignment = db.query(InterviewPanelAssignment).filter(
@@ -248,7 +248,7 @@ def cancel_assignment(
     """
     Cancel an interview panel assignment
     """
-    from app.models.interview_panel import InterviewPanelAssignment, AssignmentStatus
+    from app.models.v2.interview_panel import InterviewPanelAssignment, AssignmentStatus
     
     try:
         assignment = db.query(InterviewPanelAssignment).filter(
@@ -277,9 +277,9 @@ def get_assignment_matching_details(
     """
     Get matching details for a specific assignment including balance scores and reasoning
     """
-    from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
-    from app.models.auth.user import CompanyUser
-    from app.services.interviewer_profile_service import InterviewerProfileService
+    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, InterviewPanelMember
+    from app.models.v2.auth.user import CompanyUser
+    from app.services.v2.interviewer_profile_service import InterviewerProfileService
     import statistics
     
     try:
@@ -442,8 +442,8 @@ def get_interviewer_profile(
     """
     Get detailed profile information for a specific interviewer
     """
-    from app.models.auth.user import CompanyUser
-    from app.services.interviewer_profile_service import InterviewerProfileService
+    from app.models.v2.auth.user import CompanyUser
+    from app.services.v2.interviewer_profile_service import InterviewerProfileService
     
     try:
         company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
@@ -485,7 +485,7 @@ def cancel_interview_request(
     """
     Cancel a specific interview panel request
     """
-    from app.models.interview_panel import InterviewPanelRequest, RequestStatus
+    from app.models.v2.interview_panel import InterviewPanelRequest, RequestStatus
     
     try:
         request = db.query(InterviewPanelRequest).filter(
@@ -520,9 +520,9 @@ def invite_interviewer_to_assignment(
     """
     Invite a specific user to an interview panel assignment
     """
-    from app.models.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, RequestStatus
-    from app.models.auth.user import CompanyUser
-    from app.models.notification import Notification
+    from app.models.v2.interview_panel import InterviewPanelAssignment, InterviewPanelRequest, RequestStatus
+    from app.models.v2.auth.user import CompanyUser
+    from app.models.v2.common.notification import Notification
     
     try:
         assignment = db.query(InterviewPanelAssignment).filter(
@@ -587,8 +587,8 @@ def search_company_members(
     """
     Search company members for interviewer invitation
     """
-    from app.models.auth.user import CompanyUser
-    from app.models.company import Department
+    from app.models.v2.auth.user import CompanyUser
+    from app.models.v2.auth.company import Department
     
     try:
         query = db.query(CompanyUser).filter(CompanyUser.company_id == company_id)
@@ -633,11 +633,11 @@ def get_my_interview_schedules(
     현재 로그인된 유저의 면접 일정을 가져옵니다.
     """
     try:
-        from app.models.interview_panel import InterviewPanelMember, InterviewPanelAssignment
-        from app.models.schedule import Schedule
-        from app.models.job import JobPost
-        from app.models.auth.user import CompanyUser
-        from app.models.application import Application
+        from app.models.v2.interview_panel import InterviewPanelMember, InterviewPanelAssignment
+        from app.models.v2.document.schedule import Schedule
+        from app.models.v2.recruitment.job import JobPost
+        from app.models.v2.auth.user import CompanyUser
+        from app.models.v2.document.application import Application
         from sqlalchemy import and_
         
         # 현재 유저가 면접관으로 배정된 일정들을 조회
@@ -708,11 +708,11 @@ def get_my_interview_schedules_test(
     임시 테스트용 엔드포인트 - 인증 없이 면접 일정 조회
     """
     try:
-        from app.models.interview_panel import InterviewPanelMember, InterviewPanelAssignment
-        from app.models.schedule import Schedule
-        from app.models.job import JobPost
-        from app.models.auth.user import CompanyUser
-        from app.models.application import Application
+        from app.models.v2.interview_panel import InterviewPanelMember, InterviewPanelAssignment
+        from app.models.v2.document.schedule import Schedule
+        from app.models.v2.recruitment.job import JobPost
+        from app.models.v2.auth.user import CompanyUser
+        from app.models.v2.document.application import Application
         from sqlalchemy import and_
         
         # 모든 면접 일정 조회 (테스트용)

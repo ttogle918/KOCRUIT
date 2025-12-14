@@ -13,15 +13,15 @@ from app.core.config import settings
 from sqlalchemy import or_
 
 from app.core.database import get_db
-from app.models.application import Application, OverallStatus, StageStatus, StageName, ApplicationStage
+from app.models.v2.document.application import Application, OverallStatus, StageStatus, StageName, ApplicationStage
 
-from app.models.job import JobPost
-from app.models.resume import Resume
-from app.models.auth.user import User
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.resume import Resume
+from app.models.v2.auth.user import User
 from app.api.v2.auth.auth import get_current_user
-from app.models.written_test_answer import WrittenTestAnswer
-from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
-from app.models.schedule import AIInterviewSchedule
+from app.models.v2.written_test_answer import WrittenTestAnswer
+from app.models.v2.interview_evaluation import InterviewEvaluation, EvaluationType
+from app.models.v2.document.schedule import AIInterviewSchedule
 from app.schemas.report import DocumentReportResponse, WrittenTestReportResponse
 from app.utils.llm_cache import redis_cache
 

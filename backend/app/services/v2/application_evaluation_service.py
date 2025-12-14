@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
-from app.models.job import JobPost
-from app.models.application import Application, OverallStatus, StageName, StageStatus
-from app.models.resume import Resume
-from app.services.application_service import update_stage_status
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.application import Application, OverallStatus, StageName, StageStatus
+from app.models.v2.document.resume import Resume
+from app.services.v2.document.application_service import update_stage_status
 
 def auto_evaluate_all_applications(db: Session):
     """

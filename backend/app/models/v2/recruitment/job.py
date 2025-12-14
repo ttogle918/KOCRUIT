@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Bool
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
-from app.models.written_test_question import WrittenTestQuestion
+from app.models.v2.written_test_question import WrittenTestQuestion
 
 
 class JobPost(Base):

@@ -8,7 +8,7 @@ import apiInstance from './axiosInstance';
  */
 export const saveInterviewEvaluation = async (evaluationData) => {
   try {
-    const response = await apiInstance.post('/api/v1/interview-evaluation/', evaluationData);
+    const response = await apiInstance.post('/api/v2/interview-evaluation/', evaluationData);
     
     if (!response.data) {
       throw new Error('평가 저장에 실패했습니다');
@@ -29,7 +29,7 @@ export const saveInterviewEvaluation = async (evaluationData) => {
  */
 export const getInterviewEvaluation = async (interviewId, evaluatorId) => {
   try {
-    const response = await apiInstance.get(`/api/v1/interview-evaluation/${interviewId}/${evaluatorId}`);
+    const response = await apiInstance.get(`/api/v2/interview-evaluation/${interviewId}/${evaluatorId}`);
     
     if (!response.data) {
       throw new Error('평가 데이터 조회에 실패했습니다');
@@ -49,7 +49,7 @@ export const getInterviewEvaluation = async (interviewId, evaluatorId) => {
  */
 export const getInterviewEvaluationsByApplication = async (applicationId) => {
   try {
-    const response = await apiInstance.get(`/api/v1/interview-evaluation/application/${applicationId}`);
+    const response = await apiInstance.get(`/api/v2/interview-evaluation/application/${applicationId}`);
     
     if (!response.data) {
       throw new Error('평가 목록 조회에 실패했습니다');
@@ -69,7 +69,7 @@ export const getInterviewEvaluationsByApplication = async (applicationId) => {
  */
 export const getInterviewEvaluationStats = async (filters = {}) => {
   try {
-    const response = await apiInstance.get('/api/v1/interview-evaluation/stats', { params: filters });
+    const response = await apiInstance.get('/api/v2/interview-evaluation/stats', { params: filters });
     
     if (!response.data) {
       throw new Error('통계 데이터 조회에 실패했습니다');
@@ -90,7 +90,7 @@ export const getInterviewEvaluationStats = async (filters = {}) => {
  */
 export const getEvaluationCriteria = async (jobPostId, interviewStage) => {
   try {
-    const response = await apiInstance.get(`/api/v1/interview-questions/suggest-evaluation-criteria`, {
+    const response = await apiInstance.get(`/api/v2/interview-questions/suggest-evaluation-criteria`, {
       params: {
         job_post_id: jobPostId,
         interview_stage: interviewStage
@@ -116,7 +116,7 @@ export const getEvaluationCriteria = async (jobPostId, interviewStage) => {
  */
 export const updateEvaluationCriteria = async (criteriaId, updateData) => {
   try {
-    const response = await apiInstance.put(`/api/v1/evaluation-criteria/${criteriaId}`, updateData);
+    const response = await apiInstance.put(`/api/v2/evaluation-criteria/${criteriaId}`, updateData);
     
     if (!response.data) {
       throw new Error('평가 기준 업데이트에 실패했습니다');

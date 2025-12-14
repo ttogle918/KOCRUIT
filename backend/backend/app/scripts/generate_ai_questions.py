@@ -11,7 +11,7 @@ from app.core.database import SessionLocal
 from app.models.job import JobPost
 from app.models.application import Application, AIInterviewStatus
 from app.models.interview_question import InterviewQuestion, QuestionType
-from app.api.v1.interview_question import parse_job_post_data
+from app.api.v2.interview_question import parse_job_post_data
 
 def generate_langgraph_questions():
     """LangGraph로 AI 면접 질문 생성 및 DB 저장"""

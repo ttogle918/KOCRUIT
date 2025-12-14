@@ -3,9 +3,9 @@ from pydantic import BaseModel
 from typing import List
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.job import JobPost
-from app.models.written_test_question import WrittenTestQuestion
-from app.models.written_test_answer import WrittenTestAnswer
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.written_test_question import WrittenTestQuestion
+from app.models.v2.written_test_answer import WrittenTestAnswer
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func
 from sqlalchemy import or_
@@ -19,11 +19,11 @@ from app.schemas.written_test_answer import WrittenTestAnswerCreate, WrittenTest
 
 import openai
 import re
-from app.models.application import Application, StageStatus, StageName
-from app.services.application_service import update_stage_status
+from app.models.v2.document.application import Application, StageStatus, StageName
+from app.services.v2.document.application_service import update_stage_status
 
 from app.schemas.ai_evaluate import PassReasonSummaryRequest, PassReasonSummaryResponse
-from app.services.llm_service import summarize_pass_reason
+from app.services.v2.llm_service import summarize_pass_reason
 
 router = APIRouter()
 
@@ -350,7 +350,7 @@ def get_written_test_results(jobpost_id: int, db: Session = Depends(get_db)):
 
 @router.get('/written-test/passed/{jobpost_id}')
 def get_written_test_passed_applicants(jobpost_id: int, db: Session = Depends(get_db)):
-    from app.models.application import Application, StageStatus, StageName, ApplicationStage
+    from app.models.v2.document.application import Application, StageStatus, StageName, ApplicationStage
     
     try:
         print(f"🔍 필기 합격자 조회 시작 - jobpost_id: {jobpost_id}")

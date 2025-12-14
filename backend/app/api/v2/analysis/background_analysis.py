@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api.v2.auth.auth import get_current_user
-from app.models.auth.user import User
-from app.services.background_analysis_service import background_analysis_service
-from app.models.application import Application
+from app.models.v2.auth.user import User
+from app.services.v2.background_analysis_service import background_analysis_service
+from app.models.v2.document.application import Application
 from app.api.v2.whisper_analysis import process_qa_local
 import os
 import requests

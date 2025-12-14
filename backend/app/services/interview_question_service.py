@@ -366,7 +366,7 @@ class InterviewQuestionService:
                 raise ValueError(f"공고 정보를 찾을 수 없습니다: {job_post_id}")
             
             company_name = job_post.company.name if job_post.company else ""
-            from app.api.v1.interview_question import parse_job_post_data
+            from app.api.v2.interview_question import parse_job_post_data
             job_info = parse_job_post_data(job_post)
             
             results = {

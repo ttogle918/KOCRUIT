@@ -6,15 +6,15 @@ from app.schemas.resume import (
     ResumeCreate, ResumeUpdate, ResumeDetail, ResumeList,
     ResumeMemoCreate, ResumeMemoUpdate, ResumeMemoDetail
 )
-from app.models.resume import Resume, ResumeMemo
-from app.models.auth.user import User
-from app.models.application import Application
+from app.models.v2.document.resume import Resume, ResumeMemo
+from app.models.v2.auth.user import User
+from app.models.v2.document.application import Application
 from app.api.v2.auth.auth import get_current_user
 from app.utils.llm_cache import redis_cache
 from pydantic import BaseModel
-from app.models.job import JobPost
-from app.models.resume import Spec
-from app.models.analysis_result import AnalysisResult
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.resume import Spec
+from app.models.v2.analysis_result import AnalysisResult
 from datetime import datetime
 
 # 공통 유틸리티 import
@@ -225,7 +225,7 @@ async def generate_applicant_comparison_analysis(request: ResumeAnalysisRequest,
         
         # 같은 공고의 다른 지원자들 데이터 수집
         from sqlalchemy.orm import joinedload
-        from app.models.applicant_user import ApplicantUser
+        from app.models.v2.applicant_user import ApplicantUser
         
         other_applications = (
             db.query(Application)

@@ -13,7 +13,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'comprehensive',
       name: '핵심 분석',
       description: '전체적인 이력서 분석',
-      endpoint: '/v1/resumes/comprehensive-analysis',
+      endpoint: '/v2/resumes/comprehensive-analysis',
       icon: '📊',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -21,7 +21,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'detailed',
       name: '상세 분석',
       description: '심도있는 역량 분석',
-      endpoint: '/v1/resumes/detailed-analysis',
+      endpoint: '/v2/resumes/detailed-analysis',
       icon: '🔍',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -29,7 +29,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'applicant_comparison',
       name: '지원자 비교',
       description: '해당 공고 지원자 비교',
-      endpoint: '/v1/resumes/applicant-comparison',
+      endpoint: '/v2/resumes/applicant-comparison',
       icon: '👥',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },
@@ -37,7 +37,7 @@ export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnaly
       id: 'impact_points',
       name: '임팩트 포인트',
       description: '후보 요약 및 핵심 포인트',
-      endpoint: '/v1/resumes/impact-points',
+      endpoint: '/v2/resumes/impact-points',
       icon: '⭐',
       activeColor: 'bg-sky-500 hover:bg-sky-600'
     },

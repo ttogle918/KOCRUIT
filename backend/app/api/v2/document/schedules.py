@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from app.core.database import get_db
-from app.models.schedule import Schedule, ScheduleInterview
-from app.models.auth.user import User
+from app.models.v2.document.schedule import Schedule, ScheduleInterview
+from app.models.v2.auth.user import User
 from app.api.v2.auth.auth import get_current_user
-from app.models.application import Application, OverallStatus, StageName, StageStatus, ApplicationStage
+from app.models.v2.document.application import Application, OverallStatus, StageName, StageStatus, ApplicationStage
 from app.schemas.application import ApplicationUpdate, ApplicationBulkStatusUpdate
-from app.services.application.application_service import update_stage_status
+from app.services.v2.application.application_service import update_stage_status
 
 router = APIRouter()
 

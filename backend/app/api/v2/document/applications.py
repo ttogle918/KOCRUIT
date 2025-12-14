@@ -6,22 +6,22 @@ import json
 import re
 from app.core.database import get_db
 from app.schemas.application import ApplicationCreate, ApplicationUpdate, ApplicationDetail, ApplicationList
-from app.models.application import Application, ApplicationStage, OverallStatus, StageName, StageStatus
-from app.models.auth.user import User
+from app.models.v2.document.application import Application, ApplicationStage, OverallStatus, StageName, StageStatus
+from app.models.v2.auth.user import User
 from app.api.v2.auth.auth import get_current_user
-from app.models.resume import Resume, Spec
-from app.models.applicant_user import ApplicantUser
-from app.models.schedule import ScheduleInterview
-from app.models.job import JobPost
-from app.models.weight import Weight
+from app.models.v2.document.resume import Resume, Spec
+from app.models.v2.applicant_user import ApplicantUser
+from app.models.v2.document.schedule import ScheduleInterview
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.recruitment.weight import Weight
 from app.utils.llm_cache import redis_cache
-from app.models.written_test_answer import WrittenTestAnswer
+from app.models.v2.written_test_answer import WrittenTestAnswer
 from app.schemas.written_test_answer import WrittenTestAnswerResponse
-from app.services.application_evaluation_service import auto_evaluate_all_applications
+from app.services.v2.document.application_evaluation_service import auto_evaluate_all_applications
 from app.utils.enum_converter import get_safe_interview_statuses
-from app.models.media_analysis import MediaAnalysis
+from app.models.v2.media_analysis import MediaAnalysis
 from app.utils.resume_parser import parse_resume_specs
-from app.services.application.application_service import update_stage_status  # [New] Service 함수 import
+from app.services.v2.application.application_service import update_stage_status  # [New] Service 함수 import
 import logging
 import requests 
 

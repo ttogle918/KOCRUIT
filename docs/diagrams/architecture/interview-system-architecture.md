@@ -114,7 +114,7 @@ sequenceDiagram
     participant D as Database
     
     U->>F: 비디오 업로드
-    F->>B: POST /api/v1/ai-interview/upload
+    F->>B: POST /api/v2/ai-interview/upload
     B->>A: 비디오 분석 요청
     A->>M: 비디오 프레임 분석
     M->>A: 표정/자세 데이터

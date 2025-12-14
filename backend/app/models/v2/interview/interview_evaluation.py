@@ -4,15 +4,15 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.models.job import JobPost
-from app.models.application import Application, OverallStatus, StageName, StageStatus, ApplicationStage
-from app.models.resume import Resume
-from app.models.weight import Weight
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.application import Application, OverallStatus, StageName, StageStatus, ApplicationStage
+from app.models.v2.document.resume import Resume
+from app.models.v2.recruitment.weight import Weight
 from collections import defaultdict
-from app.models.schedule import AIInterviewSchedule
+from app.models.v2.document.schedule import AIInterviewSchedule
 
 # [New] Service 함수 Import (순환 참조 주의: 필요시 함수 내 import)
-# from app.services.application_service import update_stage_status 
+# from app.services.v2.document.application_service import update_stage_status 
 
 class EvaluationStatus(str, enum.Enum):
     PENDING = "PENDING"
@@ -82,7 +82,7 @@ def auto_process_applications(db: Session):
             ApplicationStage.status == StageStatus.PENDING
         ).order_by(ApplicationStage.score.desc()).all()
         
-        from app.services.application_service import update_stage_status
+        from app.services.v2.document.application_service import update_stage_status
 
         for idx, app in enumerate(waiting_apps):
             if idx < limit:
@@ -102,7 +102,7 @@ def auto_evaluate_all_applications(db: Session):
     """
     import requests
     import json
-    from app.services.application_service import update_stage_status
+    from app.services.v2.document.application_service import update_stage_status
     
     # AI 평가가 필요한 지원자: DOCUMENT 단계인데 점수가 없는 경우
     # (여기서는 간단히 Application 테이블의 @property나 직접 쿼리로 확인해야 함)

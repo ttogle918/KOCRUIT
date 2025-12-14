@@ -3,15 +3,15 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.auth import LoginRequest, LoginResponse, SignupRequest, RefreshTokenRequest, UserDetail
-from app.models.auth.user import User, CompanyUser, UserType, UserRole
-from app.models.company import Company
+from app.models.v2.auth.user import User, CompanyUser, UserType, UserRole
+from app.models.v2.auth.company import Company
 from app.core import security
 from app.core.config import settings
 from jose import JWTError
 from typing import Optional
 from fastapi.security import OAuth2PasswordBearer
 from app.utils.send_email import send_verification_email
-from app.models.EmailVerificationToken import EmailVerificationToken
+from app.models.v2.EmailVerificationToken import EmailVerificationToken
 from pydantic import BaseModel, EmailStr
 
 
@@ -121,7 +121,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         user = db.query(User).filter(User.email == request.email).first()
         if not user:
             # 개발자 계정이 없으면 자동 생성
-            from app.models.auth.user import CompanyUser, UserRole
+            from app.models.v2.auth.user import CompanyUser, UserRole
             
             # 기본 회사 ID (첫 번째 회사 또는 1)
             company = db.query(Company).first()

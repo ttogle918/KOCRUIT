@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session, aliased
-from app.models.interview_question import InterviewQuestion, QuestionType
+from app.models.v2.interview_question import InterviewQuestion, QuestionType
 from app.schemas.interview_question import InterviewQuestionCreate, InterviewQuestionBulkCreate
 from typing import List, Dict, Any, Optional
 import logging
-from app.models.application import Application, StageStatus, StageName, ApplicationStage
-from app.models.job import JobPost
-from app.models.resume import Resume
+from app.models.v2.document.application import Application, StageStatus, StageName, ApplicationStage
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.resume import Resume
 
 logger = logging.getLogger(__name__)
 
@@ -372,7 +372,7 @@ class InterviewQuestionService:
                 raise ValueError(f"공고 정보를 찾을 수 없습니다: {job_post_id}")
             
             company_name = job_post.company.name if job_post.company else ""
-            from app.api.v1.interview.interview_question import parse_job_post_data
+            from app.api.v2.interview.interview_question import parse_job_post_data
             job_info = parse_job_post_data(job_post)
             
             results = {

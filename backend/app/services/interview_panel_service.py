@@ -551,7 +551,7 @@ class InterviewPanelService:
             job_post = db.query(JobPost).filter(JobPost.id == assignment.job_post_id).first()
             if job_post:
                 company_name = job_post.company.name if job_post.company else ""
-                from app.api.v1.interview_question import parse_job_post_data
+                from app.api.v2.interview_question import parse_job_post_data
                 job_info = parse_job_post_data(job_post)
                 
                 # 각 지원자에 대해 개별 질문 생성

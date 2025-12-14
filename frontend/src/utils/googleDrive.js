@@ -240,7 +240,7 @@ export const extractYouTubeVideoId = (url) => {
 // 동영상 파일 다운로드 및 임시 저장 (백엔드 API 호출)
 export const downloadAndCacheVideo = async (url, applicationId) => {
   try {
-    const response = await fetch('/api/v1/interview-questions/download-video', {
+    const response = await fetch('/api/v2/interview-questions/download-video', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

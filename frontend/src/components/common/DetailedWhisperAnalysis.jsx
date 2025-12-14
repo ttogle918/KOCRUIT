@@ -19,7 +19,7 @@ const DetailedWhisperAnalysis = ({ applicationId }) => {
     setError(null);
     
     try {
-      const response = await fetch(`/api/v1/whisper-analysis/status/${applicationId}`);
+      const response = await fetch(`/api/v2/whisper-analysis/status/${applicationId}`);
       const data = await response.json();
       
       if (data.has_analysis) {

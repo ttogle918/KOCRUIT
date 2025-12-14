@@ -6,11 +6,11 @@ import requests
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.models.application import Application
-from app.models.job import JobPost
-from app.models.company import Company
-from app.models.highlight_result import HighlightResult
-from app.models.resume import Resume, Spec
+from app.models.v2.document.application import Application
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.auth.company import Company
+from app.models.v2.highlight_result import HighlightResult
+from app.models.v2.document.resume import Resume, Spec
 
 # 공통 유틸리티 import 추가
 from agent.utils.resume_utils import combine_resume_and_specs

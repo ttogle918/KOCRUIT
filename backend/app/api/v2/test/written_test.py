@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, aliased
 from app.core.database import get_db
-from app.models.application import Application, ApplicationStage, StageName, StageStatus, OverallStatus
-from app.models.job import JobPost
-from app.services.application_service import update_stage_status
+from app.models.v2.document.application import Application, ApplicationStage, StageName, StageStatus, OverallStatus
+from app.models.v2.recruitment.job import JobPost
+from app.services.v2.document.application_service import update_stage_status
 import traceback
 
 router = APIRouter()

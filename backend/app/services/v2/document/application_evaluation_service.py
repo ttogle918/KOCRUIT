@@ -1,8 +1,8 @@
 from collections import defaultdict
-from app.models.job import JobPost
-from app.models.application import Application, ApplyStatus, DocumentStatus
-from app.models.resume import Resume
-from app.models.weight import Weight
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.application import Application, ApplyStatus, DocumentStatus
+from app.models.v2.document.resume import Resume
+from app.models.v2.recruitment.weight import Weight
 from sqlalchemy.orm import Session
 from datetime import datetime
 

@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import OperationalError
 from sqlalchemy import text
-from app.models.resume import Resume
+from app.models.v2.document.resume import Resume
 from app.utils.openai_embedding_utils import OpenAIEmbedder
 from app.utils.chromadb_utils import ChromaDBManager
 from datetime import datetime

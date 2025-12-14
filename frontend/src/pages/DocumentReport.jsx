@@ -102,7 +102,7 @@ function DocumentReport() {
 
   const handleDownload = () => {
     const token = localStorage.getItem('token');
-    const url = `/api/v1/report/document/pdf?job_post_id=${jobPostId}`;
+    const url = `/api/v2/report/document/pdf?job_post_id=${jobPostId}`;
     
     // 새 창에서 PDF 다운로드
     const newWindow = window.open('', '_blank');

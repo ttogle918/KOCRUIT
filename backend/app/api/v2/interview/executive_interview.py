@@ -4,14 +4,14 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.application import Application, ApplicationStage, StageName, StageStatus, OverallStatus
-from app.models.interview_evaluation import InterviewEvaluation, EvaluationType
-from app.models.auth.user import User
-from app.models.job import JobPost
-from app.models.resume import Resume
+from app.models.v2.document.application import Application, ApplicationStage, StageName, StageStatus, OverallStatus
+from app.models.v2.interview_evaluation import InterviewEvaluation, EvaluationType
+from app.models.v2.auth.user import User
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.document.resume import Resume
 from app.schemas.interview_evaluation import InterviewEvaluationCreate
 from app.schemas.application import ApplicationDetail
-from app.services.application_service import update_stage_status
+from app.services.v2.document.application_service import update_stage_status
 
 router = APIRouter()
 
@@ -116,7 +116,7 @@ def save_executive_evaluation(
         
         # 평가 항목들 저장
         for item_data in evaluation_data.evaluation_items:
-            from app.models.interview_evaluation import InterviewEvaluationItem
+            from app.models.v2.interview_evaluation import InterviewEvaluationItem
             evaluation_item = InterviewEvaluationItem(
                 evaluation_id=evaluation.id,
                 evaluate_type=item_data.evaluate_type,

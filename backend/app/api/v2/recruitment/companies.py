@@ -6,8 +6,8 @@ from app.schemas.company import (
     CompanyCreate, CompanyUpdate, CompanyDetail, CompanyList,
     DepartmentCreate, DepartmentUpdate, DepartmentDetail
 )
-from app.models.company import Company, Department
-from app.models.auth.user import User, CompanyUser
+from app.models.v2.auth.company import Company, Department
+from app.models.v2.auth.user import User, CompanyUser
 from app.api.v2.auth.auth import get_current_user
 
 router = APIRouter()

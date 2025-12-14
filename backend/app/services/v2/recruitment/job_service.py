@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.job import JobPost
+from app.models.v2.recruitment.job import JobPost
 from app.schemas.job import JobPostCreate, JobPostUpdate
 from fastapi import HTTPException
 from typing import List

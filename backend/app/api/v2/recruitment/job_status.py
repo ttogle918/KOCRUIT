@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.auth.user import User
+from app.models.v2.auth.user import User
 from app.api.v2.auth.auth import get_current_user
 # 스케줄러 싱글톤 인스턴스
 from app.scheduler.job_status_scheduler import JobStatusScheduler

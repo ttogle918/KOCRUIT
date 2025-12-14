@@ -120,7 +120,7 @@ const AudioAnalysisPage = () => {
         });
         formData.append('analysis_type', analysisType);
         
-        const response = await axiosInstance.post('/api/v1/audio-analysis/upload', formData, {
+        const response = await axiosInstance.post('/api/v2/audio-analysis/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -138,7 +138,7 @@ const AudioAnalysisPage = () => {
       }
 
       // 백엔드 스크립트 실행
-      const response = await axiosInstance.post('/api/v1/audio-analysis/run', requestData);
+      const response = await axiosInstance.post('/api/v2/audio-analysis/run', requestData);
       
       if (response.data.error) {
         throw new Error(response.data.error);
@@ -172,7 +172,7 @@ const AudioAnalysisPage = () => {
     setIsLoading(true);
     
     try {
-      const response = await axiosInstance.post('/api/v1/audio-analysis/generate-test');
+      const response = await axiosInstance.post('/api/v2/audio-analysis/generate-test');
       
       if (response.data.success) {
         toast({

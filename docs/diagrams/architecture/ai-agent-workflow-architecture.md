@@ -100,7 +100,7 @@ sequenceDiagram
     participant D as Database
     
     U->>F: 이력서 분석 요청
-    F->>B: POST /api/v1/resume/analyze
+    F->>B: POST /api/v2/resume/analyze
     B->>O: 분석 요청 전달
     O->>C: 캐시 확인
     

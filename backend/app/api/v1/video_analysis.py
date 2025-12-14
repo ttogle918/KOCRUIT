@@ -10,7 +10,7 @@ import json
 from app.core.database import get_db
 from app.models.media_analysis import MediaAnalysis
 from app.models.application import Application
-from app.api.v1.auth import get_current_user
+from app.api.v2.auth import get_current_user
 from app.models.user import User
 
 logger = logging.getLogger(__name__)

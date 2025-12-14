@@ -5,11 +5,11 @@ from pydantic import BaseModel
 from datetime import datetime
 
 from app.core.database import get_db
-from app.models.analysis_result import AnalysisResult
-from app.models.application import Application
-from app.models.resume import Resume
-from app.models.job import JobPost
-from app.models.company import Company
+from app.models.v2.analysis_result import AnalysisResult
+from app.models.v2.document.application import Application
+from app.models.v2.document.resume import Resume
+from app.models.v2.recruitment.job import JobPost
+from app.models.v2.auth.company import Company
 
 router = APIRouter()
 

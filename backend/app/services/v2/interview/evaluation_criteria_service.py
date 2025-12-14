@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.evaluation_criteria import EvaluationCriteria
+from app.models.v2.evaluation_criteria import EvaluationCriteria
 from app.schemas.evaluation_criteria import EvaluationCriteriaCreate, EvaluationCriteriaResponse
 from typing import Optional, List
 import json
