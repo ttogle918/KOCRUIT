@@ -7,14 +7,19 @@ import axiosInstance from '../api/axiosInstance';
 
 export default function ViewPostSidebar({ jobPost }) {
   const navigate = useNavigate();
+  const params = useParams();
   const location = useLocation();
-  const { jobPostId: urlJobPostId } = useParams();
+  const { jobPostId: urlJobPostId } = params;
   const [isHovered, setIsHovered] = useState(false);
   const [hasWrittenTestPassed, setHasWrittenTestPassed] = useState(false);
   const checkedJobPostIdsRef = useRef(new Set());
   const headerHeight = 64;
   // jobPost 객체의 id를 우선적으로 사용, 없으면 URL 파라미터 사용
-  const effectiveJobPostId = jobPost?.id || urlJobPostId || '';
+  const effectiveJobPostId = jobPost?.id || 
+                             urlJobPostId || 
+                             params.jobpostId || 
+                             params.id || 
+                             '';
   
   console.log('[ViewPostSidebar] jobPost 정보:', {
     jobPost: jobPost,

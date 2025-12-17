@@ -15,7 +15,7 @@ def to_camel(string: str) -> str:
 class ApplicationBase(BaseModel):
     job_post_id: int
     resume_id: int
-    status: ApplyStatus = ApplyStatus.IN_PROGRESS
+    status: ApplyStatus = ApplyStatus.PASSED
     document_status: DocumentStatus = DocumentStatus.PENDING
     ai_interview_status: InterviewStatus = InterviewStatus.PENDING
     practical_interview_status: InterviewStatus = InterviewStatus.PENDING
@@ -105,6 +105,9 @@ class ApplicationList(BaseModel):
     phone: Optional[str] = None
     degree: Optional[str] = None
     education: Optional[str] = None
+    
+    # [NEW] 프론트엔드 로직 호환용 합성 상태 (예: AI_INTERVIEW_PASSED)
+    interview_status: Optional[str] = None
     
     class Config:
         alias_generator = to_camel

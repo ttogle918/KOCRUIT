@@ -16,7 +16,9 @@ const InterviewStatisticsPanel = ({
   interviewStage = 'practice',
   onNavigateToStage,
   filterStatus,
-  onFilterChange
+  onFilterChange,
+  statistics: propStatistics,
+  todayInterviews: propTodayInterviews
 }) => {
   const [viewMode, setViewMode] = useState('stats'); // 'stats' | 'schedule'
   
@@ -43,8 +45,29 @@ const InterviewStatisticsPanel = ({
     executive: 'executive_interview_status'
   };
 
-  // 통계 계산
+  // 통계 계산 (propStatistics가 있으면 사용, 없으면 applicants 기반 계산)
   useEffect(() => {
+    if (propStatistics) {
+      // propStatistics가 있으면 해당 데이터 사용 (백엔드 데이터 구조에 맞춰 매핑 필요)
+      // 백엔드 구조: { ai_interview: { passed: 0, ... }, practical_interview: { ... }, executive_interview: { ... } }
+      let stageKey = '';
+      if (interviewStage === 'ai') stageKey = 'ai_interview';
+      else if (interviewStage === 'practice') stageKey = 'practical_interview';
+      else if (interviewStage === 'executive') stageKey = 'executive_interview';
+      
+      const stageStats = propStatistics[stageKey] || {};
+      
+      setStatistics({
+        total: propStatistics.total || 0,
+        passed: stageStats.passed || 0,
+        failed: stageStats.failed || 0,
+        pending: stageStats.pending || 0,
+        inProgress: stageStats.in_progress || 0,
+        scheduled: 0 // 백엔드 통계에 scheduled가 없다면 0 또는 pending에 포함
+      });
+      return;
+    }
+
     if (!applicants || applicants.length === 0) return;
 
     const statusField = stageStatusFields[interviewStage];
@@ -79,7 +102,7 @@ const InterviewStatisticsPanel = ({
     });
 
     setStatistics(stats);
-  }, [applicants, interviewStage]);
+  }, [applicants, interviewStage, propStatistics]);
 
   // 진행률 계산
   const progressPercentage = statistics.total > 0 
@@ -91,12 +114,8 @@ const InterviewStatisticsPanel = ({
     ? Math.round((statistics.passed / statistics.total) * 100)
     : 0;
 
-  // 오늘 면접 일정 (예시 데이터)
-  const todayInterviews = [
-    { time: '09:00', name: '김철수', type: '실무진' },
-    { time: '10:30', name: '이영희', type: '실무진' },
-    { time: '14:00', name: '박민수', type: '임원진' }
-  ];
+  // 오늘 면접 일정 (prop 사용)
+  const todayInterviews = propTodayInterviews || [];
 
   // 필터 클릭 핸들러
   const handleFilterClick = (status) => {

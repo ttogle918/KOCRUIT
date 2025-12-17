@@ -7,6 +7,7 @@ AI 면접용 질문 생성 API
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from typing import Dict, List, Any, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import json
 import logging
 import asyncio
@@ -1061,4 +1062,232 @@ async def get_interview_status(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"면접 상태 조회 실패: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"면접 상태 조회 실패: {str(e)}")
+
+@router.get("/job-post/{job_post_id}/common-questions")
+async def get_ai_common_questions(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """특정 공고의 AI 면접 공통 질문 조회 (추천 질문 리스트: is_selected=False 또는 NULL)"""
+    try:
+        logging.info(f"AI 면접 추천 질문 조회 요청 - job_post_id: {job_post_id}")
+        
+        from sqlalchemy import or_, and_
+        
+        questions = db.query(InterviewQuestion).filter(
+            or_(InterviewQuestion.job_post_id == job_post_id, InterviewQuestion.job_post_id.is_(None)),
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.category != "game_test",
+            InterviewQuestion.is_active != False,
+            or_(InterviewQuestion.is_selected == False, InterviewQuestion.is_selected.is_(None)) # 선택되지 않은 것만
+        ).all()
+        
+        logging.info(f"추천 질문 조회 결과: {len(questions)}건")
+        
+        # 만약 추천 질문이 없으면 기본 공통 질문 반환 (job_post_id is NULL)
+        if not questions:
+            logging.info("추천 질문이 없어 기본 공통 질문을 조회합니다.")
+            questions = db.query(InterviewQuestion).filter(
+                InterviewQuestion.job_post_id.is_(None),
+                InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+                InterviewQuestion.is_active == True
+            ).all()
+            logging.info(f"기본 공통 질문 조회 결과: {len(questions)}건")
+            
+        return {
+            "success": True,
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "category": q.category,
+                    "difficulty": q.difficulty
+                } for q in questions
+            ],
+            "total_count": len(questions)
+        }
+    except Exception as e:
+        logging.error(f"AI 공통 질문 조회 실패: {e}")
+        raise HTTPException(status_code=500, detail=f"질문 조회 중 오류가 발생했습니다: {str(e)}")
+
+# --- 질문 관리 (등록, 삭제, 순서) API ---
+
+@router.get("/job-post/{job_post_id}/selected-questions")
+async def get_selected_questions(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """해당 공고에 등록된(확정된) AI 면접 질문 목록 조회 (is_selected=True)"""
+    try:
+        questions = db.query(InterviewQuestion).filter(
+            InterviewQuestion.job_post_id == job_post_id,
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.is_active == True,
+            InterviewQuestion.is_selected == True # 선택된 것만
+        ).order_by(InterviewQuestion.question_order.asc(), InterviewQuestion.id.asc()).all()
+        
+        return {
+            "success": True,
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "category": q.category,
+                    "difficulty": q.difficulty,
+                    "question_order": q.question_order
+                } for q in questions
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"질문 목록 조회 실패: {str(e)}")
+
+@router.post("/job-post/{job_post_id}/questions")
+async def add_interview_question(
+    job_post_id: int,
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """질문 등록 (추천 질문 선택 또는 직접 입력)"""
+    try:
+        question_text = request.get("question_text")
+        question_id = request.get("id") # 기존 질문 ID (있으면 선택 로직)
+        category = request.get("category", "general")
+        difficulty = request.get("difficulty", "medium")
+        
+        if not question_text:
+            raise HTTPException(status_code=400, detail="질문 내용은 필수입니다.")
+
+        # 현재 최대 순서 조회
+        max_order_result = db.query(func.max(InterviewQuestion.question_order)).filter(
+            InterviewQuestion.job_post_id == job_post_id,
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.is_selected == True
+        ).scalar()
+        max_order = max_order_result if max_order_result is not None else 0
+        
+        if question_id:
+            # 기존 질문 ID가 있는 경우 (추천 질문 선택)
+            existing_question = db.query(InterviewQuestion).filter(InterviewQuestion.id == question_id).first()
+            
+            if existing_question:
+                if existing_question.job_post_id == job_post_id:
+                    # 해당 공고의 질문이면 is_selected 업데이트
+                    existing_question.is_selected = True
+                    existing_question.question_order = max_order + 1
+                    db.commit()
+                    return {"success": True, "message": "질문이 선택되었습니다.", "question_id": existing_question.id}
+                else:
+                    # 공통 질문이면 복사해서 생성
+                    new_question = InterviewQuestion(
+                        job_post_id=job_post_id,
+                        type=QuestionType.AI_INTERVIEW,
+                        question_text=question_text,
+                        category=category,
+                        difficulty=difficulty,
+                        question_order=max_order + 1,
+                        is_selected=True,
+                        is_active=True
+                    )
+                    db.add(new_question)
+                    db.commit()
+                    db.refresh(new_question)
+                    return {"success": True, "message": "공통 질문이 복사되어 등록되었습니다.", "question_id": new_question.id}
+
+        # 새 질문 생성 (직접 입력)
+        new_question = InterviewQuestion(
+            job_post_id=job_post_id,
+            type=QuestionType.AI_INTERVIEW,
+            question_text=question_text,
+            category=category,
+            difficulty=difficulty,
+            question_order=max_order + 1,
+            is_selected=True,
+            is_active=True
+        )
+        
+        db.add(new_question)
+        db.commit()
+        db.refresh(new_question)
+        
+        return {"success": True, "message": "새 질문이 등록되었습니다.", "question_id": new_question.id}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"질문 등록 실패: {str(e)}")
+
+@router.put("/questions/order")
+async def update_question_order(
+    request: Dict[str, List[int]],
+    db: Session = Depends(get_db)
+):
+    """질문 순서 일괄 변경"""
+    try:
+        ordered_ids = request.get("question_ids", [])
+        
+        for index, q_id in enumerate(ordered_ids):
+            db.query(InterviewQuestion).filter(InterviewQuestion.id == q_id).update(
+                {"question_order": index + 1}
+            )
+            
+        db.commit()
+        return {"success": True, "message": "질문 순서가 변경되었습니다."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"순서 변경 실패: {str(e)}")
+
+@router.delete("/questions/{question_id}")
+async def delete_interview_question(
+    question_id: int,
+    db: Session = Depends(get_db)
+):
+    """질문 삭제 (비활성화)"""
+    try:
+        question = db.query(InterviewQuestion).filter(InterviewQuestion.id == question_id).first()
+        if not question:
+            raise HTTPException(status_code=404, detail="질문을 찾을 수 없습니다.")
+            
+        # 선택 해제 (Soft Delete 개념)
+        # 만약 커스텀 질문(해당 공고 전용)이라면 is_active=False로 처리할 수도 있지만,
+        # 다시 추천 목록에 뜨게 하려면 is_selected=False로 하는 게 나음.
+        # 하지만 사용자가 '삭제'를 원하면 아예 안보이길 원할 수 있음.
+        
+        if question.is_selected:
+            question.is_selected = False
+            question.question_order = None # 순서 초기화
+            # 만약 커스텀 질문이었다면? -> is_active=False로 아예 숨기는게 맞을수도 있음.
+            # 여기서는 일단 선택 해제로 처리.
+        else:
+            # 이미 선택 안된거면 비활성화
+            question.is_active = False
+        
+        db.commit()
+        return {"success": True, "message": "질문이 선택 해제되었습니다."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"질문 삭제 실패: {str(e)}")
+
+@router.post("/job-post/{job_post_id}/reset-questions")
+async def reset_interview_questions(
+    job_post_id: int,
+    db: Session = Depends(get_db)
+):
+    """해당 공고의 비활성화된 질문들을 다시 활성화 (초기화)"""
+    try:
+        # 해당 공고에 속한 비활성화된 질문들을 다시 활성화
+        db.query(InterviewQuestion).filter(
+            InterviewQuestion.job_post_id == job_post_id,
+            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
+            InterviewQuestion.is_active == False
+        ).update({"is_active": True})
+        
+        # 선택 여부도 초기화할지 결정해야 함. 
+        # "모두 되돌리기"의 의미가 "삭제 취소"라면 is_active=True 만 하면 되고,
+        # "선택 초기화"라면 is_selected=False 도 해야 함.
+        # 사용자 요청: "is_active == False 였던 거를 True로 바꾸는 것" -> 삭제 취소에 가까움.
+        
+        db.commit()
+        return {"success": True, "message": "질문 목록이 복구되었습니다."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"질문 복구 실패: {str(e)}")

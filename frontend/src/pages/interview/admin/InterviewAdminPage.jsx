@@ -17,20 +17,15 @@ import api from '../../../api/api';
 
 // 지원자 카드 컴포넌트 (전체 프로세스 통합)
 const ApplicantProcessCard = ({ applicant, onViewDetails }) => {
-  const getStageInfo = (status) => {
-    if (status === 'AI_INTERVIEW_COMPLETED' || status === 'AI_INTERVIEW_PASSED') {
+  const getStageInfo = (currentStage, status) => {
+    // Backend StageName mapping
+    if (currentStage === 'WRITTEN_TEST' || currentStage === 'AI_INTERVIEW') {
       return { stage: 'AI 면접', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: <FaBrain /> };
-    } else if (status === 'PRACTICAL_INTERVIEW_SCHEDULED' || status === 'PRACTICAL_INTERVIEW_IN_PROGRESS' || 
-               status === 'PRACTICAL_INTERVIEW_COMPLETED' || status === 'PRACTICAL_INTERVIEW_PASSED' || 
-               status === 'PRACTICAL_INTERVIEW_FAILED') {
+    } else if (currentStage === 'PRACTICAL_INTERVIEW') {
       return { stage: '실무진 면접', color: 'text-green-600', bgColor: 'bg-green-100', icon: <MdOutlineBusinessCenter /> };
-    } else if (status === 'EXECUTIVE_INTERVIEW_SCHEDULED' || status === 'EXECUTIVE_INTERVIEW_IN_PROGRESS' || 
-               status === 'EXECUTIVE_INTERVIEW_COMPLETED' || status === 'EXECUTIVE_INTERVIEW_PASSED' || 
-               status === 'EXECUTIVE_INTERVIEW_FAILED') {
+    } else if (currentStage === 'EXECUTIVE_INTERVIEW') {
       return { stage: '임원진 면접', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: <FaCrown /> };
-    } else if (status === 'FINAL_INTERVIEW_SCHEDULED' || status === 'FINAL_INTERVIEW_IN_PROGRESS' || 
-               status === 'FINAL_INTERVIEW_COMPLETED' || status === 'FINAL_INTERVIEW_PASSED' || 
-               status === 'FINAL_INTERVIEW_FAILED') {
+    } else if (currentStage === 'FINAL_RESULT' || currentStage === 'FINAL_INTERVIEW') {
       return { stage: '최종 면접', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: <FiTarget /> };
     } else {
       return { stage: '서류 전형', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: <FaFileAlt /> };
@@ -38,6 +33,7 @@ const ApplicantProcessCard = ({ applicant, onViewDetails }) => {
   };
 
   const getStatusColor = (status) => {
+    if (!status) return 'text-gray-600';
     if (status.includes('PASSED')) return 'text-green-600';
     if (status.includes('FAILED')) return 'text-red-600';
     if (status.includes('COMPLETED')) return 'text-blue-600';
@@ -45,7 +41,7 @@ const ApplicantProcessCard = ({ applicant, onViewDetails }) => {
     return 'text-gray-600';
   };
 
-  const stageInfo = getStageInfo(applicant.interview_status);
+  const stageInfo = getStageInfo(applicant.current_stage, applicant.interview_status);
 
   return (
     <div className="p-4 border rounded-lg transition-all duration-200 hover:shadow-md">
@@ -289,45 +285,38 @@ const InterviewAdminPage = () => {
 
   // 통계 계산
   const statistics = useMemo(() => {
-    if (!applicantsList.length) return {};
+    if (!applicantsList.length) return {
+      total: 0,
+      aiInterview: { total: 0, passed: 0, failed: 0, pending: 0 },
+      practical: { total: 0, passed: 0, failed: 0, inProgress: 0 },
+      executive: { total: 0, passed: 0, failed: 0, inProgress: 0 },
+      final: { total: 0, passed: 0, failed: 0, inProgress: 0 }
+    };
 
     const stats = {
       total: applicantsList.length,
-      aiInterview: {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        pending: 0
-      },
-      practical: {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        inProgress: 0
-      },
-      executive: {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        inProgress: 0
-      },
-      final: {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        inProgress: 0
-      }
+      aiInterview: { total: 0, passed: 0, failed: 0, pending: 0 },
+      practical: { total: 0, passed: 0, failed: 0, inProgress: 0 },
+      executive: { total: 0, passed: 0, failed: 0, inProgress: 0 },
+      final: { total: 0, passed: 0, failed: 0, inProgress: 0 }
     };
 
     applicantsList.forEach(applicant => {
       const status = applicant.interview_status;
+      const currentStage = applicant.current_stage;
       
-      // AI 면접 통계
-      if (status === 'AI_INTERVIEW_COMPLETED' || status === 'AI_INTERVIEW_PASSED' || status === 'AI_INTERVIEW_FAILED') {
+      // AI 면접 통계 (WRITTEN_TEST 대응)
+      // 현재 상태가 AI 면접(WRITTEN_TEST)이거나, 이미 통과해서 다음 단계로 간 경우까지 포함해야 한다면 로직이 복잡해짐.
+      // 여기서는 '해당 단계에서의 결과'를 집계.
+      if (status && (status.includes('WRITTEN_TEST') || status.includes('AI_INTERVIEW'))) {
         stats.aiInterview.total++;
-        if (status === 'AI_INTERVIEW_PASSED') stats.aiInterview.passed++;
-        else if (status === 'AI_INTERVIEW_FAILED') stats.aiInterview.failed++;
+        if (status.includes('PASSED')) stats.aiInterview.passed++;
+        else if (status.includes('FAILED')) stats.aiInterview.failed++;
         else stats.aiInterview.pending++;
+      } else if (['PRACTICAL_INTERVIEW', 'EXECUTIVE_INTERVIEW', 'FINAL_RESULT'].includes(currentStage)) {
+         // 이미 다음 단계로 넘어간 사람들은 AI 면접 통과자로 간주하여 카운트
+         stats.aiInterview.total++;
+         stats.aiInterview.passed++;
       }
       
       // 실무진 면접 통계
@@ -336,6 +325,10 @@ const InterviewAdminPage = () => {
         if (status === 'PRACTICAL_INTERVIEW_PASSED') stats.practical.passed++;
         else if (status === 'PRACTICAL_INTERVIEW_FAILED') stats.practical.failed++;
         else if (status === 'PRACTICAL_INTERVIEW_IN_PROGRESS') stats.practical.inProgress++;
+      } else if (['EXECUTIVE_INTERVIEW', 'FINAL_RESULT'].includes(currentStage)) {
+         // 이미 다음 단계로 넘어간 사람들은 실무진 면접 통과자로 간주
+         stats.practical.total++;
+         stats.practical.passed++;
       }
       
       // 임원진 면접 통계
@@ -344,6 +337,9 @@ const InterviewAdminPage = () => {
         if (status === 'EXECUTIVE_INTERVIEW_PASSED') stats.executive.passed++;
         else if (status === 'EXECUTIVE_INTERVIEW_FAILED') stats.executive.failed++;
         else if (status === 'EXECUTIVE_INTERVIEW_IN_PROGRESS') stats.executive.inProgress++;
+      } else if (['FINAL_RESULT'].includes(currentStage)) {
+          stats.executive.total++;
+          stats.executive.passed++;
       }
       
       // 최종 면접 통계
@@ -379,9 +375,39 @@ const InterviewAdminPage = () => {
 
     // 상태 필터링
     if (filterStatus) {
-      filtered = filtered.filter(applicant =>
-        applicant.interview_status === filterStatus
-      );
+      filtered = filtered.filter(applicant => {
+        const status = applicant.interview_status;
+        const currentStage = applicant.current_stage;
+
+        // 1. AI 면접 통과 필터 (AI_INTERVIEW_PASSED)
+        // WRITTEN_TEST_PASSED 이거나, 그 이후 단계에 있는 사람들 모두 포함
+        if (filterStatus === 'AI_INTERVIEW_PASSED') {
+            if (status === 'WRITTEN_TEST_PASSED' || status === 'AI_INTERVIEW_PASSED') return true;
+            const laterStages = ['PRACTICAL_INTERVIEW', 'EXECUTIVE_INTERVIEW', 'FINAL_RESULT'];
+            return laterStages.includes(currentStage);
+        }
+        
+        // 2. 실무진 면접 합격 필터
+        if (filterStatus === 'PRACTICAL_INTERVIEW_PASSED') {
+            if (status === 'PRACTICAL_INTERVIEW_PASSED') return true;
+            const laterStages = ['EXECUTIVE_INTERVIEW', 'FINAL_RESULT'];
+            return laterStages.includes(currentStage);
+        }
+        
+        // 3. 임원진 면접 합격 필터
+        if (filterStatus === 'EXECUTIVE_INTERVIEW_PASSED') {
+            if (status === 'EXECUTIVE_INTERVIEW_PASSED') return true;
+            const laterStages = ['FINAL_RESULT'];
+            return laterStages.includes(currentStage);
+        }
+        
+        // 4. 불합격/기타 상태는 정확한 매칭 (단, AI_INTERVIEW_FAILED는 WRITTEN_TEST_FAILED도 포함)
+        if (filterStatus === 'AI_INTERVIEW_FAILED') {
+            return status === 'WRITTEN_TEST_FAILED' || status === 'AI_INTERVIEW_FAILED';
+        }
+        
+        return status === filterStatus;
+      });
     }
 
     // 점수 필터링

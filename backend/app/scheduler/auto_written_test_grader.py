@@ -27,9 +27,9 @@ def update_written_test_pass_status(db, jobpost_id):
         cutoff_score = apps[cutoff-1].written_test_score
     for app in apps:
         if app.written_test_score is not None and app.written_test_score >= cutoff_score:
-            app.written_test_status = WrittenTestStatus.PASSED
+            update_stage_status(db, app.id, StageName.WRITTEN_TEST, StageStatus.PASSED)
         else:
-            app.written_test_status = WrittenTestStatus.FAILED
+            update_stage_status(db, app.id, StageName.WRITTEN_TEST, StageStatus.FAILED)
     db.commit()
 
 

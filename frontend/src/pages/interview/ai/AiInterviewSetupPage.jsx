@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Button, Divider, Card, CardContent } from '@mui/material';
-import { MdOutlinePlayCircle, MdCheckCircle, MdMic, MdVideocam, MdSettings } from 'react-icons/md';
+import SelectedQuestionsList from '../../../components/interview/SelectedQuestionsList';
+import { Box, Paper, Typography, Button, Divider, Chip, CardContent } from '@mui/material';
+import { MdOutlinePlayCircle, MdCheckCircle, MdMic, MdVideocam, MdSettings, MdDelete } from 'react-icons/md';
 import Navbar from '../../../components/Navbar';
 import ViewPostSidebar from '../../../components/ViewPostSidebar';
-import { mockQuestions } from '../../../api/mockData';
 import api from '../../../api/api';
+
+
 
 export default function AiInterviewSetupPage() {
   const { jobPostId } = useParams();
@@ -14,27 +16,32 @@ export default function AiInterviewSetupPage() {
   // 질문 목록 상태
   const [questions, setQuestions] = React.useState([]);
   const [draggedItemIndex, setDraggedItemIndex] = React.useState(null);
+  
+  // 리프레시 트리거 (질문 추가/삭제 시 SelectedQuestionsList 갱신용)
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
   // 질문 목록 가져오기 (API 호출 -> 실패 시 Mock Data)
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        // AI 면접 공통 질문 조회 API (가정)
-        const response = await api.get(`/interview-questions/job-post/${jobPostId}/ai-common`);
-        if (response.data && response.data.questions) {
+        console.log(`AI 면접 질문 조회 시작 (JobPostId: ${jobPostId})`);
+        // const response = await api.get(`/interview-questions/job-post/${jobPostId}/ai-common`);
+        
+        const response = await api.get(`/ai-interview/job-post/${jobPostId}/common-questions`);
+        
+        if (response.data && response.data.questions && response.data.questions.length > 0) {
           setQuestions(response.data.questions);
         } else {
-          throw new Error('데이터 형식 불일치');
+          throw new Error('데이터 없음');
         }
       } catch (error) {
         console.warn('AI 면접 질문 로드 실패. Mock Data를 사용합니다.', error);
-        // Fallback to mock data or default questions
         setQuestions([
-          "간단한 자기소개를 해주세요.",
-          "우리 회사에 지원하게 된 동기는 무엇인가요?",
-          "본인의 강점과 약점에 대해 설명해주세요.",
-          "직무와 관련된 프로젝트 경험이 있다면 이야기해주세요.",
-          "입사 후 5년 뒤 본인의 모습을 그려본다면?"
+          { question_text: "간단한 자기소개를 해주세요.", category: "introduction", difficulty: "easy" },
+          { question_text: "우리 회사에 지원하게 된 동기는 무엇인가요?", category: "motivation", difficulty: "medium" },
+          { question_text: "본인의 강점과 약점에 대해 설명해주세요.", category: "personality", difficulty: "medium" },
+          { question_text: "직무와 관련된 프로젝트 경험이 있다면 이야기해주세요.", category: "experience", difficulty: "hard" },
+          { question_text: "입사 후 5년 뒤 본인의 모습을 그려본다면?", category: "vision", difficulty: "medium" }
         ]);
       }
     };
@@ -43,176 +50,214 @@ export default function AiInterviewSetupPage() {
   }, [jobPostId]);
 
   const handleStartDemo = () => {
-    // 데모 모드 페이지로 이동 (applicantId 자리에 'demo' 사용)
     navigate(`/ai-interview-demo/${jobPostId}/demo`);
   };
 
   // Drag & Drop Handlers
-  const handleDragStart = (e, index) => {
-    setDraggedItemIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
+  const handleDragStart = (e, question) => {
+    e.dataTransfer.setData("question", JSON.stringify(question));
+    e.dataTransfer.effectAllowed = 'copy';
     e.currentTarget.style.opacity = '0.5';
   };
 
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
   const handleDragEnd = (e) => {
-    setDraggedItemIndex(null);
     e.currentTarget.style.opacity = '1';
   };
+  
+  // 클릭해서 추가하는 핸들러 (드래그 앤 드롭 대안)
+  const handleAddQuestion = async (question) => {
+    try {
+      await api.post(`/ai-interview/job-post/${jobPostId}/questions`, {
+        id: typeof question === 'object' ? question.id : undefined, // 기존 질문 ID 전달
+        question_text: typeof question === 'string' ? question : question.question_text,
+        category: question.category || 'general',
+        difficulty: question.difficulty || 'medium'
+      });
+      // 리스트 갱신 트리거
+      setRefreshTrigger(prev => prev + 1);
+      // 추천 리스트도 갱신 필요 (선택된 건 빠져야 하므로)
+      // fetchQuestions(); // -> useEffect 의존성 때문에 무한루프 가능성 있으니 별도 함수로 빼거나, 여기서 상태 업데이트만.
+      // 하지만 추천 리스트는 useEffect에서 로드하므로, 여기서 questions 상태를 직접 수정해서 빼는 게 UX상 좋음.
+      
+      if (typeof question === 'object') {
+          setQuestions(prev => prev.filter(q => q.id !== question.id));
+      }
+      
+    } catch (error) {
+      console.error('질문 추가 실패:', error);
+      alert('질문 추가에 실패했습니다.');
+    }
+  };
 
-  const handleDrop = (e, dropIndex) => {
-    e.preventDefault();
-    if (draggedItemIndex === null || draggedItemIndex === dropIndex) return;
-
-    const newQuestions = [...questions];
-    const [draggedItem] = newQuestions.splice(draggedItemIndex, 1);
-    newQuestions.splice(dropIndex, 0, draggedItem);
-    
-    setQuestions(newQuestions);
-    setDraggedItemIndex(null);
+  // Helper to get chip color based on difficulty
+  const getDifficultyColor = (difficulty) => {
+    switch(difficulty?.toLowerCase()) {
+      case 'easy': return { bg: '#e8f5e9', text: '#2e7d32' };
+      case 'hard': return { bg: '#ffebee', text: '#c62828' };
+      default: return { bg: '#fff3e0', text: '#ef6c00' }; // medium
+    }
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'grey.50' }}>
+    <Box sx={{ minHeight: '110vh', display: 'flex', flexDirection: 'column', bgcolor: 'grey.50' }}>
       <Navbar />
       <Box sx={{ display: 'flex', flex: 1 }}>
         <ViewPostSidebar />
-        <Box sx={{ flex: 1, p: 4, ml: '90px', mt: '64px' }}> {/* Sidebar width margin + Header height margin */}
-          <Box sx={{ maxWidth: '1200px', mx: 'auto', width: '100%' }}>
+        <Box sx={{ flex: 1, p: 4, ml: '90px', mt: '64px', height: 'calc(110vh - 64px)', overflow: 'hidden' }}> {/* Sidebar width margin + Header height margin */}
+          <Box sx={{ maxWidth: '1200px', mx: 'auto', width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
             
-            {/* 3D 스타일 헤더 섹션 */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 mb-8 shadow-lg transform transition-transform hover:scale-[1.01] duration-300">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            {/* 3D 스타일 헤더 섹션 (클릭 시 데모 시작) */}
+            <div 
+              onClick={handleStartDemo}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 mb-6 shadow-lg flex-shrink-0 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.01] group relative overflow-hidden"
+            >
+              {/* 클릭 유도 효과 */}
+              <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-300" />
+              
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
                 <div className="text-white">
-                  <Typography variant="h4" sx={{ fontWeight: '800', mb: 1, textShadow: '2px 2px 4px rgba(0,0,0,0.2)' }}>
-                    AI 면접 설정 및 체험
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                    <Typography variant="h4" sx={{ fontWeight: '800', textShadow: '2px 2px 4px rgba(0,0,0,0.2)' }}>
+                      AI 면접 설정 및 체험
+                    </Typography>
+                    <Chip 
+                      label="체험하기 Click" 
+                      color="secondary" 
+                      size="small" 
+                      sx={{ 
+                        fontWeight: 'bold', 
+                        animation: 'pulse 2s infinite',
+                        '@keyframes pulse': {
+                          '0%': { transform: 'scale(1)', opacity: 1 },
+                          '50%': { transform: 'scale(1.05)', opacity: 0.8 },
+                          '100%': { transform: 'scale(1)', opacity: 1 },
+                        }
+                      }} 
+                    />
+                  </Box>
                   <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: '600px', lineHeight: 1.6 }}>
                     우리 회사만의 AI 면접 환경을 구축하세요. 
-                    질문 리스트를 확인하고, 지원자가 경험하게 될 실제 면접 과정을 미리 시뮬레이션해볼 수 있습니다.
+                    질문 리스트를 확정하고, 이 영역을 클릭하여 실제 면접 과정을 미리 시뮬레이션해볼 수 있습니다.
                   </Typography>
                 </div>
-                <div className="hidden md:block bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20">
+                <div className="hidden md:block bg-white/10 p-4 rounded-xl backdrop-blur-sm border border-white/20 group-hover:bg-white/20 transition-colors">
                   <MdOutlinePlayCircle size={48} className="text-white" />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* 1. AI 면접 체험 카드 */}
-              <div className="col-span-1">
-                <Card sx={{ height: '100%', boxShadow: 2 }}>
-                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <MdOutlinePlayCircle size={28} color="#1976d2" />
-                      <Typography variant="h6" sx={{ ml: 1, fontWeight: 'bold' }}>
-                        AI 면접 체험하기 (Demo)
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" sx={{ color: 'grey.600', mb: 3, flex: 1 }}>
-                      설정된 공통 질문을 바탕으로 AI 면접을 직접 체험해볼 수 있습니다. 
-                      실제 채용 데이터에는 반영되지 않으니 안심하고 테스트하세요.
-                    </Typography>
-                    <Button 
-                      variant="contained" 
-                      size="large" 
-                      startIcon={<MdOutlinePlayCircle />}
-                      onClick={handleStartDemo}
-                      sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
-                    >
-                      데모 시작하기
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* 2. 환경 점검 카드 */}
-              <div className="col-span-1">
-                <Card sx={{ height: '100%', boxShadow: 2 }}>
-                  <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <MdSettings size={28} color="#ed6c02" />
-                      <Typography variant="h6" sx={{ ml: 1, fontWeight: 'bold' }}>
-                        시스템 환경 점검
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2" sx={{ color: 'grey.600', mb: 3 }}>
-                      카메라, 마이크, 스피커가 정상적으로 작동하는지 확인합니다. 
-                      면접 진행 전 시스템 호환성을 미리 점검하세요.
-                    </Typography>
-                    
-                    <Box sx={{ mt: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Paper sx={{ p: 2, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <MdVideocam size={20} color="#666" />
-                          <Typography variant="body2" sx={{ ml: 1 }}>카메라 권한</Typography>
-                        </Box>
-                        <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 'bold' }}>확인 필요</Typography>
-                      </Paper>
-                      <Paper sx={{ p: 2, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <MdMic size={20} color="#666" />
-                          <Typography variant="body2" sx={{ ml: 1 }}>마이크 권한</Typography>
-                        </Box>
-                        <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 'bold' }}>확인 필요</Typography>
-                      </Paper>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* 3. 등록된 질문 목록 (Read-only) */}
-              <div className="col-span-1 md:col-span-2">
-                <Paper sx={{ p: 3, boxShadow: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0 mb-6">
+              {/* 왼쪽: 질문 목록 추천 (Pool) */}
+              <div className="h-full flex flex-col min-h-0">
+                <Paper sx={{ p: 3, boxShadow: 2, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexShrink: 0 }}>
                     <MdCheckCircle size={28} color="#2e7d32" />
                     <Typography variant="h6" sx={{ ml: 1, fontWeight: 'bold' }}>
-                      등록된 공통 질문 목록
+                      추천 질문 리스트
                     </Typography>
+                    <Box sx={{ flex: 1 }} />
+                    <Button 
+                      size="small" 
+                      onClick={async () => {
+                        try {
+                          if (window.confirm('모든 질문을 다시 추천 목록으로 되돌리시겠습니까?')) {
+                            await api.post(`/ai-interview/job-post/${jobPostId}/reset-questions`);
+                            setRefreshTrigger(prev => prev + 1);
+                            // 화면 갱신을 위해 API 재호출 (useEffect 트리거)
+                            // jobPostId가 같으므로 fetchQuestions()를 직접 호출하는게 낫지만,
+                            // useEffect 의존성 배열에 refreshTrigger를 추가하거나,
+                            // 별도로 fetchQuestions를 호출하는게 깔끔함.
+                            // 여기서는 간단히 window reload 또는 상태 초기화.
+                            window.location.reload(); 
+                          }
+                        } catch (e) {
+                          console.error('초기화 실패', e);
+                        }
+                      }}
+                      sx={{ color: 'grey.600' }}
+                    >
+                      초기화
+                    </Button>
                   </Box>
-                  <Typography variant="body2" sx={{ color: 'grey.600', mb: 3 }}>
-                    현재 채용 공고에 설정된 AI 면접 공통 질문입니다. (DB 연동)
+                  <Typography variant="body2" sx={{ color: 'grey.600', mb: 2, flexShrink: 0 }}>
+                    클릭하여 우측의 확정된 질문 목록으로 추가하세요.
                   </Typography>
                   
-                  <Divider sx={{ mb: 2 }} />
+                  <Divider sx={{ mb: 2, flexShrink: 0 }} />
                   
-                  {/* TODO: 실제 DB 데이터 연동 필요 (현재는 드래그 앤 드롭 데모) */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: '320px', overflowY: 'auto', pr: 1 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto', pr: 1, flex: 1, minHeight: 0 }}>
                     {questions.map((q, idx) => (
                       <div
                         key={idx}
                         draggable
-                        onDragStart={(e) => handleDragStart(e, idx)}
-                        onDragOver={(e) => handleDragOver(e, idx)}
+                        onDragStart={(e) => handleDragStart(e, q)}
                         onDragEnd={handleDragEnd}
-                        onDrop={(e) => handleDrop(e, idx)}
-                        className={`transition-all duration-200 cursor-move ${draggedItemIndex === idx ? 'opacity-50' : ''}`}
+                        onClick={() => handleAddQuestion(q)}
+                        className="transition-all duration-200 cursor-pointer hover:translate-x-1 flex-shrink-0"
                       >
                         <Paper 
                           sx={{ 
                             p: 2, 
                             bgcolor: 'grey.50', 
                             borderLeft: '4px solid #2e7d32',
-                            '&:hover': { boxShadow: 2, bgcolor: 'white' }
+                            '&:hover': { boxShadow: 2, bgcolor: '#f1f8e9' }
                           }}
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'grey.800', mb: 0.5 }}>
-                                질문 {idx + 1}
-                              </Typography>
+                              <div className="flex items-center gap-2 mb-1">
+                                {/* 태그 표시 (Category & Difficulty) */}
+                                {typeof q !== 'string' && (
+                                  <>
+                                    {q.category && (
+                                      <Chip 
+                                        label={q.category} 
+                                        size="small" 
+                                        sx={{ 
+                                          bgcolor: '#e3f2fd', 
+                                          color: '#1565c0', 
+                                          fontSize: '0.7rem', 
+                                          height: '20px',
+                                          fontWeight: '500'
+                                        }} 
+                                      />
+                                    )}
+                                    {q.difficulty && (
+                                      <Chip 
+                                        label={q.difficulty} 
+                                        size="small" 
+                                        sx={{ 
+                                          bgcolor: getDifficultyColor(q.difficulty).bg, 
+                                          color: getDifficultyColor(q.difficulty).text, 
+                                          fontSize: '0.7rem', 
+                                          height: '20px',
+                                          fontWeight: '500'
+                                        }} 
+                                      />
+                                    )}
+                                  </>
+                                )}
+                              </div>
                               <Typography variant="body1" sx={{ color: 'grey.900' }}>
-                                {q}
+                                {typeof q === 'string' ? q : q.question_text}
                               </Typography>
                             </div>
-                            <div className="text-gray-400 ml-2">
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M9 3h2v2H9V3zm4 0h2v2h-2V3zm-4 4h2v2H9V7zm4 0h2v2h-2V7zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2zm-4 4h2v2H9v-2zm4 0h2v2h-2v-2z"/>
-                              </svg>
+                            <div className="text-gray-400 ml-2 cursor-pointer hover:text-red-500" onClick={(e) => {
+                              e.stopPropagation();
+                              // 질문 삭제 (숨김 처리)
+                              const handleDelete = async () => {
+                                try {
+                                  if (typeof q === 'object' && q.id) {
+                                    await api.delete(`/ai-interview/questions/${q.id}`);
+                                    setQuestions(prev => prev.filter(item => item.id !== q.id));
+                                  }
+                                } catch (err) {
+                                  console.error('질문 삭제 실패', err);
+                                }
+                              };
+                              handleDelete();
+                            }}>
+                              <MdDelete size={20} />
                             </div>
                           </div>
                         </Paper>
@@ -221,7 +266,13 @@ export default function AiInterviewSetupPage() {
                   </Box>
                 </Paper>
               </div>
+
+              {/* 오른쪽: 확정된 질문 목록 (Selected) */}
+              <div className="h-full flex flex-col min-h-0">
+                <SelectedQuestionsList jobPostId={jobPostId} refreshTrigger={refreshTrigger} />
+              </div>
             </div>
+
           </Box>
         </Box>
       </Box>

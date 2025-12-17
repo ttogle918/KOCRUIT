@@ -164,8 +164,6 @@ def get_company_job_post(
         "deadline": job_post.deadline,
         "status": job_post.status,
         "companyName": job_post.company.name if job_post.company else None,
-        "interviewReportDone": job_post.interview_report_done,
-        "finalReportDone": job_post.final_report_done,
         "created_at": job_post.created_at,
         "updated_at": job_post.updated_at,
         "teamMembers": team_members,

@@ -23,7 +23,9 @@ class InterviewQuestion(Base):
     question_text = Column(Text, nullable=False)  # 질문 내용
     category = Column(String(50), nullable=True)  # 질문 카테고리 (common, personal, company, job, game_test 등)
     difficulty = Column(String(20), nullable=True)  # 난이도 (easy, medium, hard)
-    is_active = Column(Boolean, default=True, nullable=False)  # 질문 활성화 상태
+    question_order = Column(Integer, default=0, nullable=True) # 질문 순서
+    is_selected = Column(Boolean, default=False, nullable=False) # 확정된 질문 여부
+    is_active = Column(Boolean, default=True, nullable=False)  # 질문 활성화 상태 (삭제 여부)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

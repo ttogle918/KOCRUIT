@@ -37,7 +37,9 @@ def get_applications(
     current_user: User = Depends(get_current_user)
 ):
     # joinedload를 사용하여 stages 정보를 함께 로드 (N+1 문제 방지)
-    applications = db.query(Application).options(joinedload(Application.stages)).offset(skip).limit(limit).all()
+    applications = db.query(Application).options(
+        joinedload(Application.stages)
+    ).offset(skip).limit(limit).all()
     return applications
 
 
@@ -304,6 +306,11 @@ def get_applicants_with_practical_interview(job_post_id: int, db: Session = Depe
         
         query = db.query(Application).join(AIStage, Application.id == AIStage.application_id)\
             .outerjoin(PracticalStage, Application.id == PracticalStage.application_id)\
+            .options(
+                joinedload(Application.user),
+                joinedload(Application.resume),
+                joinedload(Application.stages)
+            )\
             .filter(
                 Application.job_post_id == job_post_id,
                 AIStage.stage_name == StageName.AI_INTERVIEW,
@@ -313,9 +320,8 @@ def get_applicants_with_practical_interview(job_post_id: int, db: Session = Depe
             
         applicants = query.all()
         return applicants
-        
     except Exception as e:
-        logger.error(f"Failed to fetch applicants: {e}")
+        logger.error(f"Failed to fetch applicants with practical interview: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch applicants")
 
 
@@ -324,8 +330,15 @@ def get_applicants_with_executive_interview(job_post_id: int, db: Session = Depe
     """임원진 면접 지원자 목록 조회 API"""
     try:
         PracticalStage = aliased(ApplicationStage)
+        ExecutiveStage = aliased(ApplicationStage)
         
         query = db.query(Application).join(PracticalStage, Application.id == PracticalStage.application_id)\
+            .outerjoin(ExecutiveStage, Application.id == ExecutiveStage.application_id)\
+            .options(
+                joinedload(Application.user),
+                joinedload(Application.resume),
+                joinedload(Application.stages)
+            )\
             .filter(
                 Application.job_post_id == job_post_id,
                 PracticalStage.stage_name == StageName.PRACTICAL_INTERVIEW,
@@ -335,54 +348,69 @@ def get_applicants_with_executive_interview(job_post_id: int, db: Session = Depe
             
         applicants = query.all()
         return applicants
-        
     except Exception as e:
-        logger.error(f"Failed to fetch executive applicants: {e}")
+        logger.error(f"Failed to fetch applicants with executive interview: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch applicants")
 
 
-@router.get("/{application_id}/content")
-def get_application_content(
-    application_id: int,
-    db: Session = Depends(get_db)
-):
-    """Agent용: 인증 없이 자소서 내용만 가져오기"""
-    application = (
-        db.query(Application)
-        .options(
-            joinedload(Application.user),
-            joinedload(Application.resume).joinedload(Resume.specs)
+@router.get("/job/{job_post_id}/interview-statistics")
+def get_interview_statistics(job_post_id: int, db: Session = Depends(get_db)):
+    """면접 통계 및 예정된 면접 조회 API"""
+    try:
+        # 1. 해당 공고의 모든 지원자 조회 (Stages 포함)
+        applications = (
+            db.query(Application)
+            .options(joinedload(Application.stages))
+            .filter(Application.job_post_id == job_post_id)
+            .all()
         )
-        .filter(Application.id == application_id)
-        .first()
-    )
-    
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-    
-    return {
-        "content": application.resume.content if application.resume else "",
-        "application_id": application_id
-    }
+        
+        # 2. 통계 집계 초기화
+        stats = {
+            "ai_interview": {"passed": 0, "failed": 0, "in_progress": 0, "pending": 0, "completed": 0},
+            "practical_interview": {"passed": 0, "failed": 0, "in_progress": 0, "pending": 0, "completed": 0},
+            "executive_interview": {"passed": 0, "failed": 0, "in_progress": 0, "pending": 0, "completed": 0},
+        }
+        
+        for app in applications:
+            # AI 면접
+            ai_status = app.ai_interview_status
+            if ai_status == StageStatus.PASSED: stats["ai_interview"]["passed"] += 1
+            elif ai_status == StageStatus.FAILED: stats["ai_interview"]["failed"] += 1
+            elif ai_status == StageStatus.IN_PROGRESS: stats["ai_interview"]["in_progress"] += 1
+            elif ai_status == StageStatus.COMPLETED: stats["ai_interview"]["completed"] += 1
+            else: stats["ai_interview"]["pending"] += 1
+            
+            # 실무 면접
+            prac_status = app.practical_interview_status
+            if prac_status == StageStatus.PASSED: stats["practical_interview"]["passed"] += 1
+            elif prac_status == StageStatus.FAILED: stats["practical_interview"]["failed"] += 1
+            elif prac_status == StageStatus.IN_PROGRESS: stats["practical_interview"]["in_progress"] += 1
+            elif prac_status == StageStatus.COMPLETED: stats["practical_interview"]["completed"] += 1
+            else: stats["practical_interview"]["pending"] += 1
+            
+            # 임원 면접
+            exec_status = app.executive_interview_status
+            if exec_status == StageStatus.PASSED: stats["executive_interview"]["passed"] += 1
+            elif exec_status == StageStatus.FAILED: stats["executive_interview"]["failed"] += 1
+            elif exec_status == StageStatus.IN_PROGRESS: stats["executive_interview"]["in_progress"] += 1
+            elif exec_status == StageStatus.COMPLETED: stats["executive_interview"]["completed"] += 1
+            else: stats["executive_interview"]["pending"] += 1
 
-@router.get("/{application_id}/agent")
-def get_application_for_agent(
-    application_id: int,
-    db: Session = Depends(get_db)
-):
-    """Agent용: 인증 없이 application의 기본 정보만 가져오기"""
-    application = (
-        db.query(Application)
-        .filter(Application.id == application_id)
-        .first()
-    )
-    
-    if not application:
-        raise HTTPException(status_code=404, detail="Application not found")
-    
-    return {
-        "id": application.id,
-        "job_post_id": application.job_post_id,
-        "user_id": application.user_id,
-        "resume_id": application.resume_id
-    }
+        # 3. 예정된 면접 (Mock Data) - 실제 스케줄 테이블 연동 필요
+        # 임시로 랜덤 생성 또는 고정값 반환
+        upcoming_interviews = [
+            {"time": "09:00", "name": "김철수", "type": "실무진"},
+            {"time": "10:30", "name": "이영희", "type": "실무진"},
+            {"time": "14:00", "name": "박민수", "type": "임원진"},
+            {"time": "15:30", "name": "최지혜", "type": "AI면접"}
+        ]
+        
+        return {
+            "statistics": stats,
+            "upcoming_interviews": upcoming_interviews
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch interview statistics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch interview statistics")
