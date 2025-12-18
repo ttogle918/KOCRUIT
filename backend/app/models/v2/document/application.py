@@ -243,7 +243,7 @@ class ApplicationStage(Base):
     stage_name = Column(SqlEnum(StageName), nullable=False)
     stage_order = Column(Integer, default=1, nullable=False)
     
-    status = Column(SqlEnum(StageStatus), default=StageStatus.PENDING, nullable=False)
+    status = Column(SqlEnum(OverallStatus), default=OverallStatus.IN_PROGRESS, nullable=False)
     
     score = Column(Numeric(5, 2), nullable=True)
     pass_reason = Column(Text, nullable=True)

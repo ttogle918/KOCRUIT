@@ -272,6 +272,72 @@ class AiInterviewApi {
   }
 
   /**
+   * Whisper 기반 AI 분석 프로세스 시작
+   * @param {number} applicationId 
+   * @param {Object} options 
+   */
+  static async processWhisperAnalysis(applicationId, options = {}) {
+    try {
+      const response = await api.post(`/whisper-analysis/process-qa/${applicationId}`, {
+        run_emotion_context: options.run_emotion_context ?? true,
+        delete_video_after: options.delete_video_after ?? true,
+        ...options
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Whisper 분석 프로세스 시작 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 분석 결과 조회 API
+   * @param {number} applicationId 
+   * @param {string} analysisType 
+   */
+  static async getAnalysisResult(applicationId, analysisType) {
+    try {
+      const response = await api.get(`/analysis-results/application/${applicationId}/${analysisType}`);
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        throw error;
+      }
+      console.error('분석 결과 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 모든 분석 결과 조회 API
+   * @param {number} applicationId 
+   */
+  static async getAllAnalysisResults(applicationId) {
+    try {
+      const response = await api.get(`/analysis-results/application/${applicationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('모든 분석 결과 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 분석 결과 삭제 API
+   * @param {number} applicationId 
+   * @param {string} analysisType 
+   */
+  static async deleteAnalysisResult(applicationId, analysisType) {
+    try {
+      const response = await api.get(`/analysis-results/application/${applicationId}/${analysisType}`);
+      return response.data;
+    } catch (error) {
+      console.error('분석 결과 삭제 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 면접 유형별 Whisper 분석 결과 조회
    * @param {number} applicationId - 지원서 ID
    * @param {string} interviewType - 면접 유형 (executive, practice, ai_interview)

@@ -344,6 +344,23 @@ export const interviewPanelApi = {
   }
 };
 
+/**
+ * 이력서 기반 평가 기준 조회 API
+ */
+export const getResumeBasedEvaluationCriteria = async (resumeId, applicationId = null, interviewStage = null) => {
+  try {
+    const params = new URLSearchParams();
+    if (applicationId) params.append('application_id', applicationId);
+    if (interviewStage) params.append('interview_stage', interviewStage);
+    
+    const response = await axiosInstance.get(`/interview-questions/evaluation-criteria/resume/${resumeId}?${params}`);
+    return response.data;
+  } catch (error) {
+    console.error('이력서 기반 평가 기준 조회 실패:', error);
+    throw error;
+  }
+};
+
 export default {
   saveInterviewEvaluation,
   getInterviewEvaluation,
@@ -352,6 +369,7 @@ export default {
   getEvaluationCriteria,
   updateEvaluationCriteria,
   getInterviewEvaluationItems,
+  getResumeBasedEvaluationCriteria, // 추가됨
   saveExecutiveInterviewEvaluation,
   interviewPanelApi
 };

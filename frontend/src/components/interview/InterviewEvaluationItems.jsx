@@ -15,7 +15,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { ExpandMore, Assessment, QuestionAnswer, Star } from '@mui/icons-material';
-import { getInterviewEvaluationItems } from '../../api/api';
+import { getInterviewEvaluationItems } from '../../api/interview';
 
 const InterviewEvaluationItems = ({ 
   resumeId, 

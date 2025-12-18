@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiX, FiUsers, FiClock, FiCheckCircle, FiStar, FiSearch, FiEye } from 'react-icons/fi';
-import api from '../../api/api';
+import api from '../../api/interviewApi';
 import ApplicantInfoModal from '../ApplicantInfoModal';
 
 const PracticalInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
@@ -51,7 +51,7 @@ const PracticalInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
       }
       
       // 면접 대상자 조회 (AI 면접 합격자 중 실무진 면접 대상자)
-      const interviewEndpoint = `/applications/job/${jobPostId}/applicants-with-practical-interview`;
+      const interviewEndpoint = `/applications/job/${jobPostId}/applicants-practical-interview`;
       const interviewRes = await api.get(interviewEndpoint);
       
       console.log('✅ 면접 대상자 조회 완료:', interviewRes.data?.length || 0, '명');

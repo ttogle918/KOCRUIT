@@ -1112,8 +1112,7 @@ async def get_ai_common_questions(
         raise HTTPException(status_code=500, detail=f"질문 조회 중 오류가 발생했습니다: {str(e)}")
 
 # --- 질문 관리 (등록, 삭제, 순서) API ---
-
-@router.get("/job-post/{job_post_id}/selected-questions")
+@router.get("/ai-interview/job-post/{job_post_id}/selected-questions")
 async def get_selected_questions(
     job_post_id: int,
     db: Session = Depends(get_db)
@@ -1126,7 +1125,7 @@ async def get_selected_questions(
             InterviewQuestion.is_active == True,
             InterviewQuestion.is_selected == True # 선택된 것만
         ).order_by(InterviewQuestion.question_order.asc(), InterviewQuestion.id.asc()).all()
-        
+        logging.info(f"선택된 질문 조회 결과: {len(questions)}건")
         return {
             "success": True,
             "questions": [

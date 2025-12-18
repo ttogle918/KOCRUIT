@@ -80,24 +80,6 @@ import {
   Assessment as AssessmentIcon
 } from '@mui/icons-material';
 
-// DraggablePanel component is now imported from separate file
-
-// TabButton component is now imported from separate file
-
-// ApplicantListFull component is now imported from separate file
-
-// CommonQuestionsPanelFull component is now imported from separate file
-
-// CommonQuestionsPanel component is now imported from separate file
-
-// ResumePanel component is now imported from separate file
-
-// CustomQuestionsPanel component is now imported from separate file
-
-// QuestionRecommendationPanel component is now imported from separate file
-
-// EvaluationPanelFull component is now imported from separate file
-
 function InterviewProgress() {
   const { jobPostId, interviewStage = 'practice' } = useParams();
   const { user } = useAuth();
@@ -174,8 +156,8 @@ function InterviewProgress() {
       try {
         // 면접 단계에 따른 엔드포인트 분기
         const endpoint = interviewStage === 'executive'
-          ? `/applications/job/${jobPostId}/applicants-with-executive-interview`
-          : `/applications/job/${jobPostId}/applicants-with-practical-interview`;
+          ? `/applications/job/${jobPostId}/applicants-executive-interview`
+          : `/applications/job/${jobPostId}/applicants-practical-interview`;
 
         console.log('🚀 지원자 목록 API 호출:', endpoint);
         console.log('🚀 interviewStage:', interviewStage);

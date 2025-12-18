@@ -15,7 +15,7 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import { MdPerson, MdDescription, MdStar, MdBusiness, MdArrowBack, MdSave, MdEdit } from 'react-icons/md';
 import InterviewEvaluationItems from '../../../components/interview/InterviewEvaluationItems';
-import { saveExecutiveInterviewEvaluation } from '../../../api/api';
+import { saveExecutiveInterviewEvaluation, getInterviewEvaluationItems   } from '../../../api/interview';
 
 // TabPanel 컴포넌트 정의
 function TabPanel(props) {

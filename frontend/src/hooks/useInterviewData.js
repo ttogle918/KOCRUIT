@@ -3,19 +3,28 @@ import { useParams } from 'react-router-dom';
 import InterviewQuestionApi from '../api/interviewQuestionApi';
 import { getApplication } from '../api/api';
 
-const useInterviewData = (type = 'practical') => {
-  const { applicationId } = useParams();
+const useInterviewData = (type = 'practical', selectedApplicationId = null) => {
+  const { applicationId: paramId } = useParams();
+  // prop으로 받은 ID가 있으면 그걸 쓰고, 없으면 URL 파라미터를 씀 (URL 파라미터도 없으면 null)
+  const applicationId = selectedApplicationId || paramId;
+
   const [questions, setQuestions] = useState([]);
   const [application, setApplication] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // 초기값 false (ID 없으면 로딩 안함)
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!applicationId) return;
+      if (!applicationId) {
+        // ID가 없으면 데이터 초기화
+        setQuestions([]);
+        setApplication(null);
+        return;
+      }
 
       try {
         setLoading(true);
+        setError(null);
         
         // 1. 지원자 정보 조회
         const appData = await getApplication(applicationId);
@@ -60,4 +69,3 @@ const useInterviewData = (type = 'practical') => {
 };
 
 export default useInterviewData;
-

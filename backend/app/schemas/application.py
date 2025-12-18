@@ -16,6 +16,8 @@ class ApplicationBase(BaseModel):
     job_post_id: int
     resume_id: int
     status: ApplyStatus = ApplyStatus.PASSED
+    current_stage: StageName = StageName.DOCUMENT
+    overall_status: OverallStatus = OverallStatus.IN_PROGRESS
     document_status: DocumentStatus = DocumentStatus.PENDING
     ai_interview_status: InterviewStatus = InterviewStatus.PENDING
     practical_interview_status: InterviewStatus = InterviewStatus.PENDING
@@ -98,6 +100,8 @@ class ApplicationList(BaseModel):
     ai_interview_pass_reason: Optional[str] = None
     ai_interview_fail_reason: Optional[str] = None
     ai_interview_video_url: Optional[str] = None
+    current_stage: StageName
+    overall_status: OverallStatus
     
     # Frontend 호환 필드 (User 정보 등)
     name: Optional[str] = None

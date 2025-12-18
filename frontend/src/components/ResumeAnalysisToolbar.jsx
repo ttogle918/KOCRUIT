@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axiosInstance from '../api/axiosInstance';
-import { getAnalysisResult } from '../api/api';
+import { getAnalysisResult } from '../api/videoAnalysisApi';
 
 export default function ResumeAnalysisToolbar({ resumeId, applicationId, onAnalysisResult, onToolChange }) {
   const [loading, setLoading] = useState({});

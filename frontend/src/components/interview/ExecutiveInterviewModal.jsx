@@ -29,7 +29,7 @@ const ExecutiveInterviewModal = ({ isOpen, onClose, jobPostId, jobPost }) => {
       console.log('🚀 임원진 면접 모달 기본 데이터 로딩 시작');
       
       // 기본 지원자 목록 로드 (실무진 면접 합격자 중 임원진 면접 대상자)
-      const endpoint = `/applications/job/${jobPostId}/applicants-with-executive-interview`;
+      const endpoint = `/applications/job/${jobPostId}/applicants-executive-interview`;
       const res = await api.get(endpoint);
       
       // 기본 정보만 포함한 지원자 목록 (매핑 개선)

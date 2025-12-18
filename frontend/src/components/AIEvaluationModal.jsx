@@ -21,7 +21,7 @@ import {
   TrendingDown,
   Psychology
 } from '@mui/icons-material';
-import api from '../api/api';
+import api from '../api/interviewApi';
 
 const AIEvaluationModal = ({ 
   open, 

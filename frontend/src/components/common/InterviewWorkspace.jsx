@@ -4,7 +4,6 @@ import {
   FaMicrophone, 
   FaSquare, 
   FaPlay, 
-  FaDownload,
   FaTrash,
   FaCloudUploadAlt,
   FaFileAlt,
@@ -14,6 +13,8 @@ import {
 import { saveInterviewEvaluation, getInterviewEvaluation } from '../../api/interview';
 import { getApplication } from '../../api/api';
 import { uploadFileToGoogleDrive } from '../../utils/googleDrive';
+import useWebSocket from '../../hooks/useWebSocket';
+import useMediaRecorder from '../../hooks/useMediaRecorder';
 
 // 분리된 컴포넌트 import
 import ResumeViewer from './ResumeViewer';
@@ -28,14 +29,15 @@ const InterviewWorkspace = ({
   resumeInfo,
   jobPostId,
   interviewType = 'practical', // 'practical' 또는 'executive'
-  interviewStage = 'practical' // 'practical' 또는 'executive'
+  interviewStage = 'practical', // 'practical' 또는 'executive'
+  applicationId: propApplicationId // props로 전달받은 ID
 }) => {
-  const { jobId, applicantId, applicationId } = useParams(); // applicationId 추가
+  const { applicationId: paramApplicationId } = useParams(); 
+  const applicationId = propApplicationId || paramApplicationId;
   const navigate = useNavigate();
   
   // 상태 관리
-  const [isRecording, setIsRecording] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  // const [isRecording, setIsRecording] = useState(false); // useMediaRecorder에서 관리
   const [sessionId, setSessionId] = useState(null);
   
   // 새로운 상태들
@@ -53,24 +55,78 @@ const InterviewWorkspace = ({
   const [googleDriveApiKey, setGoogleDriveApiKey] = useState(process.env.REACT_APP_GOOGLE_DRIVE_API_KEY || '');
   
   // 실시간 음성 분석 관련 상태
-  const [isRealtimeAnalysisEnabled, setIsRealtimeAnalysisEnabled] = useState(false);
-  const [realtimeAnalysisResults, setRealtimeAnalysisResults] = useState([]);
-  const [currentAnalysisSession, setCurrentAnalysisSession] = useState(null);
+  const [isRealtimeAnalysisEnabled, setIsRealtimeAnalysisEnabled] = useState(true); // 기본값 켜기
   
   // 평가 결과 조회 관련 상태
   const [evaluationResult, setEvaluationResult] = useState(null);
   const [isEvaluationCompleted, setIsEvaluationCompleted] = useState(false);
   const [isLoadingResult, setIsLoadingResult] = useState(false);
   
-  // 실시간 오디오 관련
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const streamRef = useRef(null);
-  
   // 면접 정보
   const [interviewInfo, setInterviewInfo] = useState({
-    jobTitle: jobInfo?.title || '백엔드 개발자',
-    applicantName: applicantName || '김지원',
+    jobTitle: jobInfo?.title || '채용 공고',
+    applicantName: applicantName || '지원자',
+  });
+
+  // 1. WebSocket 연결
+  // wss://your-domain/api/v2/interview/ws/interview/{id}
+  // 로컬 개발 환경: ws://localhost:8000/api/v2/interview/ws/interview/{id}
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // const wsHost = window.location.host; // 프록시 사용 시
+  const wsHost = 'localhost:8000'; // 직접 연결 시 (백엔드 포트 확인 필요)
+  const wsUrl = `${wsProtocol}//${wsHost}/api/v2/interview/ws/interview/${applicationId}`;
+  
+  const { sendMessage, lastMessage, isConnected } = useWebSocket(wsUrl, {
+    autoConnect: !!applicationId,
+    reconnectInterval: 3000,
+  });
+
+  // 2. 실시간 상태 관리 (STT 로그, AI 피드백)
+  const [sttLogs, setSttLogs] = useState([]);
+  const [aiFeedback, setAiFeedback] = useState(null);
+
+  // 3. 메시지 수신 처리
+  useEffect(() => {
+    if (lastMessage) {
+      if (lastMessage.type === 'stt_result') {
+        setSttLogs(prev => [...prev, lastMessage]); // { text, speaker, timestamp }
+      } else if (lastMessage.type === 'ai_feedback') {
+        setAiFeedback(lastMessage); // { category, message }
+        // 10초 뒤 피드백 끄기 (옵션)
+        const timer = setTimeout(() => setAiFeedback(null), 10000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [lastMessage]);
+
+  // 4. 오디오 레코딩 설정 (useMediaRecorder 사용)
+  const handleAudioData = useCallback((chunk) => {
+    // 오디오 청크(Blob)를 바이너리로 전송
+    if (isConnected && isRealtimeAnalysisEnabled) {
+      sendMessage(chunk); 
+    }
+  }, [isConnected, isRealtimeAnalysisEnabled, sendMessage]);
+
+  const handleStopRecording = useCallback((blob) => {
+    // 녹음 완료 시 파일 목록에 추가
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `interview_${applicantName || 'applicant'}_${timestamp}.webm`;
+    const file = new File([blob], fileName, { type: 'audio/webm' });
+    
+    setRecordedFiles(prev => [...prev, {
+      id: Date.now(),
+      name: fileName,
+      file: file,
+      size: file.size,
+      timestamp: new Date(),
+      url: URL.createObjectURL(file)
+    }]);
+  }, [applicantName]);
+
+  const { startRecording, stopRecording, isRecording, error: recorderError } = useMediaRecorder({
+    onDataAvailable: handleAudioData,
+    onStop: handleStopRecording,
+    timeSlice: 1000 // 1초마다 전송
   });
 
   // 평가 결과 조회 (interview_status 기반)
@@ -103,7 +159,7 @@ const InterviewWorkspace = ({
                 setIsEvaluationCompleted(true);
               }
             } catch (evalError) {
-              console.log('평가 결과 조회 실패:', evalError);
+              console.log('평가 결과 조회 실패 (아직 평가 없을 수 있음):', evalError);
               setIsEvaluationCompleted(false);
             }
           } else {
@@ -120,88 +176,6 @@ const InterviewWorkspace = ({
 
     checkEvaluationStatus();
   }, [applicationId, interviewType]);
-
-  // 오디오 녹음 시작
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 16000
-        } 
-      });
-      
-      streamRef.current = stream;
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      // 실시간 분석 세션 시작
-      if (isRealtimeAnalysisEnabled) {
-        const sessionId = `session_${Date.now()}`;
-        setCurrentAnalysisSession(sessionId);
-        setRealtimeAnalysisResults([]);
-      }
-      
-      mediaRecorder.ondataavailable = async (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-          
-          // 실시간 분석이 활성화된 경우 청크 분석
-          if (isRealtimeAnalysisEnabled && currentAnalysisSession) {
-            await analyzeAudioChunk(event.data);
-          }
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        saveRecording();
-      };
-      
-      mediaRecorder.start(3000);
-      setIsRecording(true);
-      console.log('녹음이 시작되었습니다');
-      
-    } catch (error) {
-      console.error('녹음 시작 실패:', error);
-    }
-  };
-
-  // 오디오 녹음 중지
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      streamRef.current?.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-      console.log('녹음이 중지되었습니다');
-    }
-  };
-
-  // 녹음 파일 저장
-  const saveRecording = () => {
-    if (audioChunksRef.current.length === 0) return;
-    
-    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `interview_${applicantName}_${timestamp}.webm`;
-    
-    const file = new File([audioBlob], fileName, { type: 'audio/webm' });
-    
-    setRecordedFiles(prev => [...prev, {
-      id: Date.now(),
-      name: fileName,
-      file: file,
-      size: file.size,
-      timestamp: new Date(),
-      url: URL.createObjectURL(file)
-    }]);
-    
-    audioChunksRef.current = [];
-  };
 
   // 오디오 재생
   const playAudio = (file) => {
@@ -271,34 +245,6 @@ const InterviewWorkspace = ({
     }
   };
 
-  // 실시간 음성 분석
-  const analyzeAudioChunk = async (audioChunk) => {
-    try {
-      const arrayBuffer = await audioChunk.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      
-      const formData = new FormData();
-      formData.append('audio_data', base64Audio);
-      formData.append('session_id', currentAnalysisSession);
-      formData.append('timestamp', Date.now());
-      formData.append('application_id', applicationId || 'unknown');
-      
-      const response = await fetch('http://localhost:8000/realtime-audio-analysis', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setRealtimeAnalysisResults(prev => [...prev, result.result]);
-        }
-      }
-    } catch (error) {
-      console.error('실시간 음성 분석 오류:', error);
-    }
-  };
-
   // 평가 점수 변경 핸들러
   const handleScoreChange = useCallback((scores) => {
     setEvaluationScores(scores);
@@ -314,7 +260,6 @@ const InterviewWorkspace = ({
 
   // 질문 메모 저장 핸들러
   const handleSaveNote = useCallback((index) => {
-    // API 연동 가능
     console.log(`질문 ${index + 1} 메모 저장:`, questionNotes[index]);
   }, [questionNotes]);
 
@@ -323,7 +268,6 @@ const InterviewWorkspace = ({
     try {
       const evaluationData = {
         application_id: applicationId,
-        // resume_id: resumeId, // resumeId prop이 필요한지 확인
         interview_type: interviewType,
         interview_stage: interviewStage,
         total_score: Object.values(evaluationScores).reduce((sum, score) => sum + (score || 0), 0),
@@ -350,27 +294,20 @@ const InterviewWorkspace = ({
     }
   };
 
-  // 컴포넌트 마운트 시 세션 초기화
-  useEffect(() => {
-    const safeJobId = jobId || 'default_job';
-    const safeApplicantId = applicantId || 'default_applicant';
-    const newSessionId = `interview_${safeJobId}_${safeApplicantId}_${Date.now()}`;
-    setSessionId(newSessionId);
-    setIsConnected(true); // 임시 연결 상태
-  }, [jobId, applicantId]);
-
   // 컴포넌트 언마운트 시 정리
   useEffect(() => {
     return () => {
-      stopRecording();
+      if (isRecording) {
+        stopRecording();
+      }
       recordedFiles.forEach(file => {
         URL.revokeObjectURL(file.url);
       });
     };
-  }, []);
+  }, [isRecording, stopRecording, recordedFiles]);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50 relative">
       {/* 헤더 */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
@@ -394,7 +331,7 @@ const InterviewWorkspace = ({
               className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isRealtimeAnalysisEnabled ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-500 text-white hover:bg-gray-600'
               }`}
-              disabled={isRecording}
+              // disabled={isRecording}
             >
               <FaMicrophone className="w-4 h-4 mr-2" />
               {isRealtimeAnalysisEnabled ? "실시간 분석 ON" : "실시간 분석 OFF"}
@@ -405,7 +342,7 @@ const InterviewWorkspace = ({
               className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 isRecording ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-500 text-white hover:bg-blue-600'
               }`}
-              disabled={!isConnected}
+              // disabled={!isConnected}
             >
               {isRecording ? (
                 <FaSquare className="w-4 h-4 mr-2" />
@@ -417,6 +354,30 @@ const InterviewWorkspace = ({
           </div>
         </div>
       </div>
+
+      {/* AI 피드백 토스트 (우측 상단) */}
+      {aiFeedback && (
+         <div className="fixed top-20 right-8 z-50 animate-bounce-in">
+           <div className="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded shadow-lg max-w-sm">
+             <div className="flex items-start">
+               <div className="flex-shrink-0">
+                 <FaStar className="h-5 w-5 text-yellow-500" />
+               </div>
+               <div className="ml-3">
+                 <p className="text-sm font-bold">AI Insight ({aiFeedback.category})</p>
+                 <p className="text-sm mt-1">{aiFeedback.message}</p>
+               </div>
+               <button 
+                 onClick={() => setAiFeedback(null)}
+                 className="ml-auto -mx-1.5 -my-1.5 text-yellow-500 hover:text-yellow-600 p-1.5"
+               >
+                 <span className="sr-only">Dismiss</span>
+                 &times;
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex overflow-hidden">
@@ -433,15 +394,16 @@ const InterviewWorkspace = ({
           </div>
         </div>
 
-        {/* 가운데: 질문 */}
-        <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+        {/* 가운데: 질문 및 STT */}
+        <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col relative">
           <div className="p-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <FaComment className="w-5 h-5 mr-2" />
-              면접 질문
+              면접 질문 & 실시간 대화
             </h2>
           </div>
-          <div className="flex-1 overflow-y-auto p-4">
+          
+          <div className="flex-1 overflow-y-auto p-4 pb-40"> {/* 하단 STT 공간 확보 */}
             <QuestionList 
               questions={questions} 
               currentQuestion={currentQuestion}
@@ -450,6 +412,25 @@ const InterviewWorkspace = ({
               onNoteChange={handleNoteChange}
               onSaveNote={handleSaveNote}
             />
+          </div>
+
+          {/* STT 자막 오버레이 (하단 고정) */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gray-900 bg-opacity-90 text-white p-4 h-48 overflow-y-auto border-t border-gray-700">
+            <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase">Real-time Transcript</h3>
+            {sttLogs.length === 0 ? (
+              <p className="text-sm text-gray-500 italic">대화 내용이 여기에 표시됩니다...</p>
+            ) : (
+              <div className="space-y-2">
+                {sttLogs.map((log, i) => (
+                  <div key={i} className="animate-fade-in">
+                    <span className="text-xs text-blue-400 mr-2">[{new Date(log.timestamp).toLocaleTimeString()}]</span>
+                    <span className="text-sm">{log.text}</span>
+                  </div>
+                ))}
+                {/* 자동 스크롤을 위한 더미 요소 */}
+                <div ref={(el) => el?.scrollIntoView({ behavior: "smooth" })} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -478,34 +459,8 @@ const InterviewWorkspace = ({
               onEditEvaluation={() => setIsEvaluationCompleted(false)}
             />
 
-            {/* 실시간 분석 결과 */}
-            {isRealtimeAnalysisEnabled && realtimeAnalysisResults.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-semibold text-gray-900">실시간 분석 결과</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {realtimeAnalysisResults.slice(-5).map((result, index) => (
-                    <div key={index} className="p-2 bg-purple-50 rounded border border-purple-200">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-xs text-purple-600 font-medium">
-                          {new Date(result.timestamp).toLocaleTimeString()}
-                        </span>
-                        <span className="text-xs text-purple-600">
-                          {result.speech_rate?.toFixed(1)} wpm
-                        </span>
-                      </div>
-                      {result.transcription && (
-                        <p className="text-xs text-gray-700 line-clamp-2">
-                          "{result.transcription}"
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* 녹음 파일 목록 */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-4 border-t border-gray-100">
               <h3 className="font-semibold text-gray-900">녹음 파일</h3>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {recordedFiles.map((file) => (

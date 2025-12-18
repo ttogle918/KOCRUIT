@@ -295,63 +295,69 @@ def get_applicants_by_job(
     )
     return applications
 
-
-@router.get("/job/{job_post_id}/applicants-with-practical-interview")
+@router.get("/job/{job_post_id}/applicants-ai-interview")
 # @redis_cache(expire=300) 
-def get_applicants_with_practical_interview(job_post_id: int, db: Session = Depends(get_db)):
-    """실무진 면접 지원자 목록 조회 API"""
+def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """AI 면접 단계에 있는 지원자 목록 조회 API"""
     try:
-        AIStage = aliased(ApplicationStage)
-        PracticalStage = aliased(ApplicationStage)
-        
-        query = db.query(Application).join(AIStage, Application.id == AIStage.application_id)\
-            .outerjoin(PracticalStage, Application.id == PracticalStage.application_id)\
-            .options(
-                joinedload(Application.user),
-                joinedload(Application.resume),
-                joinedload(Application.stages)
-            )\
-            .filter(
-                Application.job_post_id == job_post_id,
-                AIStage.stage_name == StageName.AI_INTERVIEW,
-                AIStage.status == StageStatus.PASSED,
-                Application.overall_status == OverallStatus.IN_PROGRESS
-            )
+        query = db.query(Application).options(
+            joinedload(Application.user),
+            joinedload(Application.resume),
+            joinedload(Application.stages)
+        ).filter(
+            Application.job_post_id == job_post_id,
+            Application.current_stage == StageName.AI_INTERVIEW 
+        )
             
         applicants = query.all()
+        logger.error(f"AI 면접 applicants: {applicants}")
+        return applicants
+    except Exception as e:
+        logger.error(f"Failed to fetch applicants with ai interview: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch applicants")
+
+
+@router.get("/job/{job_post_id}/applicants-practical-interview")
+# @redis_cache(expire=300) 
+def get_applicants_with_practical_interview(job_post_id: int, db: Session = Depends(get_db)):
+    """실무진 면접 단계에 있는 지원자 목록 조회 API"""
+    try:
+        query = db.query(Application).options(
+            joinedload(Application.user),
+            joinedload(Application.resume),
+            joinedload(Application.stages)
+        ).filter(
+            Application.job_post_id == job_post_id,
+            Application.current_stage == StageName.PRACTICAL_INTERVIEW
+        )
+            
+        applicants = query.all()
+        logger.error(f"실무진 면접 applicants: {applicants}")
+
         return applicants
     except Exception as e:
         logger.error(f"Failed to fetch applicants with practical interview: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch applicants")
 
 
-@router.get("/job/{job_post_id}/applicants-with-executive-interview")
+@router.get("/job/{job_post_id}/applicants-executive-interview")
 def get_applicants_with_executive_interview(job_post_id: int, db: Session = Depends(get_db)):
-    """임원진 면접 지원자 목록 조회 API"""
+    """임원진 면접 단계에 있는 지원자 목록 조회 API"""
     try:
-        PracticalStage = aliased(ApplicationStage)
-        ExecutiveStage = aliased(ApplicationStage)
-        
-        query = db.query(Application).join(PracticalStage, Application.id == PracticalStage.application_id)\
-            .outerjoin(ExecutiveStage, Application.id == ExecutiveStage.application_id)\
-            .options(
-                joinedload(Application.user),
-                joinedload(Application.resume),
-                joinedload(Application.stages)
-            )\
-            .filter(
-                Application.job_post_id == job_post_id,
-                PracticalStage.stage_name == StageName.PRACTICAL_INTERVIEW,
-                PracticalStage.status == StageStatus.PASSED,
-                Application.overall_status == OverallStatus.IN_PROGRESS
-            )
+        query = db.query(Application).options(
+            joinedload(Application.user),
+            joinedload(Application.resume),
+            joinedload(Application.stages)
+        ).filter(
+            Application.job_post_id == job_post_id,
+            Application.current_stage == StageName.EXECUTIVE_INTERVIEW
+        )
             
         applicants = query.all()
         return applicants
     except Exception as e:
         logger.error(f"Failed to fetch applicants with executive interview: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch applicants")
-
+        raise HTTPException(status_code=500, detail="Failed to fetch applicants")### 조치 사항 및 확인 방법
 
 @router.get("/job/{job_post_id}/interview-statistics")
 def get_interview_statistics(job_post_id: int, db: Session = Depends(get_db)):

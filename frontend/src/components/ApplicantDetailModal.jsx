@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MdClose, MdDescription, MdQuestionAnswer, MdAssessment } from 'react-icons/md';
-import api from '../api/api';
+import api from '../api/interviewApi';
 
 const ApplicantDetailModal = ({ isOpen, onClose, applicant, jobPostId }) => {
   const [activeTab, setActiveTab] = useState('resume');

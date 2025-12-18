@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Paper, Typography, Box, List, ListItem, ListItemText, IconButton, Chip, TextField, Button, Divider } from '@mui/material';
 import { Delete as DeleteIcon, Add as AddIcon, DragIndicator as DragIcon } from '@mui/icons-material';
-import api from '../../api/api';
+import api from '../../api/interviewQuestionApi';
 
 const SelectedQuestionsList = ({ jobPostId, refreshTrigger }) => {
   const [questions, setQuestions] = useState([]);
