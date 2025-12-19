@@ -4,7 +4,6 @@ import ResumeAnalysisAccordion from './ResumeAnalysisAccordion';
 import HighlightedText from '../../components/HighlightedText';
 import axios from 'axios';
 import { useState, useEffect } from 'react';
-import ResumePlagiarismAccordion from './ResumePlagiarismAccordion';
 
 // 예시: 자기소개서 하이라이트 표시용 코드 (기존 코드 아래에 추가)
 function ResumeSelfIntroHighlight({ selfIntroText }) {

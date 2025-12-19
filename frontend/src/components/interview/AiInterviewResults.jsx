@@ -179,10 +179,10 @@ const AiInterviewResults = ({ applicationId, jobPostId }) => {
       </div>
 
       {/* 요약 */}
-      {evalData.summary && (
+      {evaluation.summary && (
         <div className="mt-6 bg-gray-50 rounded-lg p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">평가 요약</h3>
-          <p className="text-sm text-gray-700">{evalData.summary}</p>
+          <p className="text-sm text-gray-700">{evaluation.summary}</p>
         </div>
       )}
     </div>

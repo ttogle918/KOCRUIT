@@ -229,7 +229,7 @@ export default function STTTestPage() {
       {/* STT 결과 */}
       <Paper className="p-6">
         <Typography variant="h6" component="h2" className="mb-4">
-          STT 결과 ({sttResults.length}�?
+          STT 결과 ({sttResults.length})
         </Typography>
         
         {sttResults.length === 0 ? (

@@ -4,14 +4,186 @@ class InterviewQuestionApi {
   /**
    * 공고별 공통 질문 조회
    * @param {number} jobPostId - 공고 ID
+   * @param {string} interviewType - 'practical' 또는 'executive'
    * @returns {Promise<Object>} 공통 질문 목록
    */
-  static async getCommonQuestions(jobPostId) {
+  static async getCommonQuestions(jobPostId, interviewType = null) {
     try {
-      const response = await api.get(`/interview-questions/job/${jobPostId}/common-questions`);
+      const params = interviewType ? { interview_type: interviewType } : {};
+      const response = await api.get(`/before-interview/job/${jobPostId}/common-questions`, { params });
       return response.data;
     } catch (error) {
       console.error('공통 질문 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 면접 체크리스트 조회
+   * @param {number} jobPostId 
+   */
+  static async getJobBasedChecklist(jobPostId) {
+    try {
+      const response = await api.get(`/before-interview/interview-checklist/job/${jobPostId}`);
+      return response.data;
+    } catch (error) {
+      console.error('체크리스트 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 면접 체크리스트 생성
+   * @param {number} jobPostId 
+   * @param {string} companyName
+   */
+  static async generateJobBasedChecklist(jobPostId, companyName = "") {
+    try {
+      const response = await api.post('/interview-questions/interview-checklist/job-based', {
+        job_post_id: jobPostId,
+        company_name: companyName
+      });
+      return response.data;
+    } catch (error) {
+      console.error('체크리스트 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 면접 가이드라인 조회
+   * @param {number} jobPostId 
+   */
+  static async getJobBasedGuideline(jobPostId) {
+    try {
+      const response = await api.get(`/before-interview/interview-guideline/job/${jobPostId}`);
+      return response.data;
+    } catch (error) {
+      console.error('가이드라인 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 면접 가이드라인 생성
+   * @param {number} jobPostId 
+   * @param {string} companyName
+   */
+  static async generateJobBasedGuideline(jobPostId, companyName = "") {
+    try {
+      const response = await api.post('/interview-questions/interview-guideline/job-based', {
+        job_post_id: jobPostId,
+        company_name: companyName
+      });
+      return response.data;
+    } catch (error) {
+      console.error('가이드라인 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 강점/약점 조회
+   * @param {number} jobPostId 
+   */
+  static async getJobBasedStrengths(jobPostId) {
+    try {
+      const response = await api.get(`/before-interview/strengths-weaknesses/job/${jobPostId}`);
+      return response.data;
+    } catch (error) {
+      console.error('강점/약점 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 강점/약점 분석 생성
+   * @param {number} jobPostId 
+   * @param {string} companyName
+   */
+  static async generateJobBasedStrengths(jobPostId, companyName = "") {
+    try {
+      const response = await api.post('/interview-questions/strengths-weaknesses/job-based', {
+        job_post_id: jobPostId,
+        company_name: companyName
+      });
+      return response.data;
+    } catch (error) {
+      console.error('강점/약점 분석 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 평가 기준 조회
+   * @param {number} jobPostId 
+   */
+  static async getJobBasedEvaluationCriteria(jobPostId) {
+    try {
+      const response = await api.get(`/before-interview/evaluation-criteria/job/${jobPostId}`);
+      return response.data;
+    } catch (error) {
+      console.error('평가 기준 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공고 기반 평가 기준 생성
+   * @param {number} jobPostId 
+   * @param {string} companyName
+   */
+  static async generateJobBasedEvaluationCriteria(jobPostId, companyName = "") {
+    try {
+      const response = await api.post('/interview-questions/evaluation-criteria/job-based', {
+        job_post_id: jobPostId,
+        company_name: companyName
+      });
+      return response.data;
+    } catch (error) {
+      console.error('평가 기준 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 실무진 면접 질문 조회
+   * @param {number} applicationId 
+   */
+  static async getPracticalQuestions(applicationId) {
+    try {
+      const response = await api.get(`/before-interview/application/${applicationId}/practical-questions`);
+      return response.data;
+    } catch (error) {
+      console.error('실무진 질문 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 임원진 면접 질문 조회
+   * @param {number} applicationId 
+   */
+  static async getExecutiveQuestions(applicationId) {
+    try {
+      const response = await api.get(`/before-interview/application/${applicationId}/executive-questions`);
+      return response.data;
+    } catch (error) {
+      console.error('임원진 질문 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 개인별 심층 질문 조회
+   * @param {number} applicationId 
+   */
+  static async getPersonalQuestions(applicationId) {
+    try {
+      const response = await api.get(`/before-interview/personal-questions/${applicationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('개인별 질문 조회 실패:', error);
       throw error;
     }
   }
@@ -75,6 +247,22 @@ class InterviewQuestionApi {
       return response.data;
     } catch (error) {
       console.error('개별 질문 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 면접 로그 조회
+   * @param {number} applicationId 
+   * @param {string} interviewType 
+   */
+  static async getInterviewLogs(applicationId, interviewType = null) {
+    try {
+      const params = interviewType ? { interview_type: interviewType } : {};
+      const response = await api.get(`/before-interview/application/${applicationId}/logs`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('면접 로그 조회 실패:', error);
       throw error;
     }
   }

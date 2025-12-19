@@ -95,10 +95,28 @@ export const CommonQuestionsPanelFull = ({ questions, onQuestionsChange }) => {
   const getTypeLabel = (type) => {
     switch (type) {
       case 'COMMON': return '공통';
-      case 'PERSONAL': return '인성';
+      case 'PERSONAL': return '개인';
       case 'JOB': return '직무';
       case 'EXECUTIVE': return '임원';
       default: return type || '기타';
+    }
+  };
+
+  const getDifficultyChipColor = (difficulty) => {
+    switch (String(difficulty).toLowerCase()) {
+      case 'easy': return 'success';
+      case 'medium': return 'warning';
+      case 'hard': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const getDifficultyLabel = (difficulty) => {
+    switch (String(difficulty).toLowerCase()) {
+      case 'easy': return '쉬움';
+      case 'medium': return '보통';
+      case 'hard': return '어려움';
+      default: return difficulty || '보통';
     }
   };
 
@@ -172,6 +190,15 @@ export const CommonQuestionsPanelFull = ({ questions, onQuestionsChange }) => {
                           color={getTypeChipColor(question.type)} 
                           variant="outlined"
                           sx={{ height: '20px', fontSize: '0.7rem', fontWeight: 'bold' }}
+                        />
+                      )}
+                      {typeof question === 'object' && question.difficulty && (
+                        <Chip 
+                          label={getDifficultyLabel(question.difficulty)} 
+                          size="small" 
+                          color={getDifficultyChipColor(question.difficulty)} 
+                          variant="outlined"
+                          sx={{ height: '20px', fontSize: '0.7rem' }}
                         />
                       )}
                     </div>

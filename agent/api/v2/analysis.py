@@ -135,9 +135,9 @@ async def analyze_statistics(req: StatsAnalysisRequest):
     """통계 분석"""
     return report_tool.analyze_statistics(req.chart_data, req.chart_type, req.job_title)
 
-@router.post("/tools/interview-prep")
-async def generate_interview_prep(req: InterviewPrepRequest):
-    return await interview_prep_tool.generate_tools(req.job_post, req.resume_data, req.interview_type)
+# @router.post("/tools/interview-prep")
+# async def generate_interview_prep(req: InterviewPrepRequest):
+#     return await interview_prep_tool.generate_tools(req.job_post, req.resume_data, req.interview_type)
 
 @router.post("/tools/written-test/generate")
 async def generate_written_test(req: WrittenTestGenRequest):

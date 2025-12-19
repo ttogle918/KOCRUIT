@@ -165,6 +165,48 @@ export const saveExecutiveInterviewEvaluation = async (applicationId, evaluation
   }
 };
 
+/**
+ * 특정 지원자 정보 조회
+ * @param {number} applicationId 
+ */
+export const getApplication = async (applicationId) => {
+  try {
+    const response = await axiosInstance.get(`/applications/${applicationId}`);
+    return response.data;
+  } catch (error) {
+    console.error('지원자 정보 조회 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 면접 통계 조회 API
+ * @param {number} jobPostId 
+ */
+export const getInterviewStatistics = async (jobPostId) => {
+  try {
+    const response = await axiosInstance.get(`/applications/job/${jobPostId}/interview-statistics`);
+    return response.data;
+  } catch (error) {
+    console.error('면접 통계 조회 실패:', error);
+    throw error;
+  }
+};
+
+/**
+ * 채용공고 정보 조회
+ * @param {number} jobPostId 
+ */
+export const getJobPost = async (jobPostId) => {
+  try {
+    const response = await axiosInstance.get(`/company/jobposts/${jobPostId}`);
+    return response.data;
+  } catch (error) {
+    console.error('채용공고 조회 실패:', error);
+    throw error;
+  }
+};
+
 // === Interview Panel API ===
 
 const INTERVIEW_PANEL_API = '/interview-panel';
@@ -369,7 +411,10 @@ export default {
   getEvaluationCriteria,
   updateEvaluationCriteria,
   getInterviewEvaluationItems,
-  getResumeBasedEvaluationCriteria, // 추가됨
+  getResumeBasedEvaluationCriteria,
   saveExecutiveInterviewEvaluation,
+  getApplication,
+  getInterviewStatistics,
+  getJobPost,
   interviewPanelApi
 };

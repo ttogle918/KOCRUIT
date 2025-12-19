@@ -225,13 +225,44 @@ const QuestionVideoAnalysisModal = ({ isOpen, onClose, applicationId }) => {
                       </div>
                     </div>
 
-                    {/* 피드백 */}
-                    {result.question_feedback && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-sm text-gray-600 mb-1">피드백:</p>
-                        <p className="text-sm text-gray-800">{result.question_feedback}</p>
+                    {/* 답변 및 피드백 */}
+                    <div className="mt-4 space-y-3 pt-3 border-t">
+                      {/* 지원자 답변 섹션 추가 */}
+                      <div>
+                        <p className="text-xs font-bold text-blue-600 mb-1 uppercase tracking-wider">지원자 답변</p>
+                        <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 italic border border-gray-100">
+                          "{result.answer_text || result.audio_analysis?.transcription || '답변 내용이 없습니다.'}"
+                        </div>
                       </div>
-                    )}
+
+                      {/* 피드백 섹션 */}
+                      {result.question_feedback && (
+                        <div>
+                          <p className="text-xs font-bold text-green-600 mb-1 uppercase tracking-wider">AI 피드백</p>
+                          <div className="text-sm text-gray-800 space-y-1">
+                            {(() => {
+                              try {
+                                const feedback = typeof result.question_feedback === 'string' 
+                                  ? JSON.parse(result.question_feedback) 
+                                  : result.question_feedback;
+                                
+                                if (Array.isArray(feedback)) {
+                                  return feedback.map((msg, i) => (
+                                    <p key={i} className="flex items-start gap-2">
+                                      <span className="text-green-500 mt-1">•</span>
+                                      <span>{msg}</span>
+                                    </p>
+                                  ));
+                                }
+                                return <p>{feedback}</p>;
+                              } catch (e) {
+                                return <p>{result.question_feedback}</p>;
+                              }
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

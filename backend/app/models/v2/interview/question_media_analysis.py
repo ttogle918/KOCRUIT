@@ -6,7 +6,7 @@ from app.core.database import Base
 from datetime import datetime
 
 class QuestionMediaAnalysis(Base):
-    __tablename__ = "question_media_analysis"
+    __tablename__ = "question_video_analysis"
     
     id = Column(Integer, primary_key=True, index=True)
     application_id = Column(Integer, ForeignKey("application.id"), nullable=False)

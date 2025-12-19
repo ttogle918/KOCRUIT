@@ -84,7 +84,7 @@ const ApplicantCard = forwardRef(({
     plagiarismRequestCache.set(rid, req);
   }, [resumeId, applicant?.resumeId, applicant?.resume_id, applicant.plagiarism_checked_at]);
 
-  // 유사도 점수 계산 (실제 유사도)
+  // // 유사도 점수 계산 (실제 유사도)
   const getSimilarityScore = () => {
     if (!plagiarism || !plagiarism.most_similar_resume) return 0;
     return Math.round(plagiarism.most_similar_resume.similarity * 100);
@@ -111,7 +111,7 @@ const ApplicantCard = forwardRef(({
   const applicantAge = applicant?.birthDate ? calculateAge(applicant.birthDate) : '나이 정보 없음';
   const applicationSource = applicant?.applicationSource || 'DIRECT';
   const appliedDate = applicant?.appliedAt || applicant?.applied_at;
-  const aiScore = applicant?.ai_score || 0;
+  const aiScore = applicant?.aiScore ?? applicant?.ai_score ?? applicant?.aiscore ?? applicant?.score ?? 0;
 
   const similarityScore = getSimilarityScore();
   const similarityColor = getSimilarityColor(similarityScore);

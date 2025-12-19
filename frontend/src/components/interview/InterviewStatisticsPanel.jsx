@@ -47,6 +47,15 @@ const InterviewStatisticsPanel = ({
 
   // 통계 계산 (propStatistics가 있으면 사용, 없으면 applicants 기반 계산)
   useEffect(() => {
+    const initialStats = {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      pending: 0,
+      inProgress: 0,
+      scheduled: 0
+    };
+
     if (propStatistics) {
       // propStatistics가 있으면 해당 데이터 사용 (백엔드 데이터 구조에 맞춰 매핑 필요)
       // 백엔드 구조: { ai_interview: { passed: 0, ... }, practical_interview: { ... }, executive_interview: { ... } }
@@ -68,20 +77,20 @@ const InterviewStatisticsPanel = ({
       return;
     }
 
-    if (!applicants || applicants.length === 0) return;
+    if (!applicants || !Array.isArray(applicants) || applicants.length === 0) {
+      setStatistics(initialStats);
+      return;
+    }
 
+    const stats = { ...initialStats, total: applicants.length };
     const statusField = stageStatusFields[interviewStage];
-    const stats = {
-      total: applicants.length,
-      passed: 0,
-      failed: 0,
-      pending: 0,
-      inProgress: 0,
-      scheduled: 0
-    };
 
     applicants.forEach(applicant => {
-      const status = applicant[statusField] || 'PENDING';
+      if (!applicant) return;
+      
+      const status = applicant[statusField] || 
+                    applicant[statusField.replace(/_([a-z])/g, (g) => g[1].toUpperCase())] || 
+                    'PENDING';
       switch (status) {
         case 'PASSED':
           stats.passed++;

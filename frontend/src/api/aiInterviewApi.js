@@ -1,17 +1,18 @@
-import api from './api';
+import api from './axiosInstance';
 
 class AiInterviewApi {
   /**
-   * 특정 지원자의 AI 면접 평가 결과 조회
+   * 특정 지원자의 면접 평가 결과 조회 (AI, 실무, 임원)
    * @param {number} applicationId - 지원자 ID
-   * @returns {Promise<Object>} AI 면접 평가 결과
+   * @param {string} interviewType - 면접 유형 (ai, practice, executive)
+   * @returns {Promise<Object>} 평가 결과
    */
-  static async getAiInterviewEvaluation(applicationId) {
+  static async getAiInterviewEvaluation(applicationId, interviewType = 'ai') {
     try {
-      const response = await api.get(`/interview-evaluation/ai-interview/${applicationId}`);
+      const response = await api.get(`/interview-evaluation/${applicationId}/${interviewType}`);
       return response.data;
     } catch (error) {
-      console.error('AI 면접 평가 조회 실패:', error);
+      console.error(`${interviewType} 면접 평가 조회 실패:`, error);
       throw error;
     }
   }
@@ -272,7 +273,103 @@ class AiInterviewApi {
   }
 
   /**
-   * Whisper 기반 AI 분석 프로세스 시작
+   * Whisper 분석 상태 조회
+   * @param {number} applicationId 
+   */
+  static async getWhisperStatus(applicationId) {
+    try {
+      const response = await api.get(`/whisper-analysis/status/${applicationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Whisper 상태 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * QA 분석 결과 조회
+   * @param {number} applicationId 
+   */
+  static async getQaAnalysis(applicationId) {
+    try {
+      const response = await api.get(`/whisper-analysis/qa-analysis/${applicationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('QA 분석 결과 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Whisper 분석 프로세스 시작 (기본형)
+   * @param {number} applicationId 
+   */
+  static async processWhisper(applicationId) {
+    try {
+      const response = await api.post(`/whisper-analysis/process/${applicationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Whisper 분석 시작 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * AI 분석 결과 생성 요청
+   * @param {number} applicationId 
+   */
+  static async generateAiAnalysis(applicationId) {
+    try {
+      const response = await api.post(`/interview-questions/ai-analysis/generate/${applicationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('AI 분석 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 백그라운드 분석 대기 건수 조회
+   */
+  static async getPendingBackgroundCount() {
+    try {
+      const response = await api.get('/background-analysis/pending-count');
+      return response.data;
+    } catch (error) {
+      console.error('백그라운드 대기 건수 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 백그라운드 일괄 분석 시작
+   */
+  static async startBatchAnalysis() {
+    try {
+      const response = await api.post('/background-analysis/batch-analyze');
+      return response.data;
+    } catch (error) {
+      console.error('일괄 분석 시작 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 로컬 파일 기반 QA 분석 시작
+   * @param {Object} payload 
+   */
+  static async processQaLocal(payload) {
+    try {
+      const response = await api.post('/whisper-analysis/process-qa-local', payload);
+      return response.data;
+    } catch (error) {
+      console.error('로컬 QA 분석 시작 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Whisper 기반 AI 분석 프로세스 시작 (QA 포함)
    * @param {number} applicationId 
    * @param {Object} options 
    */
@@ -282,6 +379,8 @@ class AiInterviewApi {
         run_emotion_context: options.run_emotion_context ?? true,
         delete_video_after: options.delete_video_after ?? true,
         ...options
+      }, {
+        timeout: 300000 // 5분
       });
       return response.data;
     } catch (error) {

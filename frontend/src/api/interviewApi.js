@@ -61,6 +61,20 @@ class InterviewApi {
     }
   }
   /**
+   * 특정 지원자 정보 조회
+   * @param {number} applicationId 
+   */
+  static async getApplication(applicationId) {
+    try {
+      const response = await api.get(`/applications/${applicationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('지원자 정보 조회 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 면접 상태 업데이트 API
    * @param {number} applicationId 
    * @param {string} stageStatus 

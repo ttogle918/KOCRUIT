@@ -6,6 +6,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.models.v2.interview.interview_evaluation import InterviewEvaluation, InterviewEvaluationItem, EvaluationDetail
+from app.models.v2.common.schedule import ScheduleInterview, AIInterviewSchedule
 
 from app.models.v2.document.application import Application, StageName, StageStatus, OverallStatus
 from app.models.v2.common.schedule import ScheduleInterview
@@ -117,13 +118,31 @@ def get_evaluations_by_interview(interview_id: int, db: Session = Depends(get_db
 
 @router.get("/{application_id}/{interview_type}")
 def get_interview_evaluation_by_application(application_id: int, interview_type: str, db: Session = Depends(get_db)):
-    # ... (기존 조회 로직 유지)
+    """지원자 ID와 면접 유형으로 평가 결과 조회"""
     try:
-        evaluations = db.query(InterviewEvaluation).filter(
-            InterviewEvaluation.application_id == application_id,
-            # interview_type 필터링 필요시 추가
-        ).all()
-        return evaluations # 스키마 호환 확인 필요
+        from app.models.v2.interview.interview_evaluation import EvaluationType
+        
+        # interview_type 매핑 (ai -> AI, practice -> 실무진, executive -> 임원)
+        type_map = {
+            'ai': EvaluationType.AI,
+            'practice': EvaluationType.PRACTICAL,
+            'executive': EvaluationType.EXECUTIVE,
+            'ai_interview': EvaluationType.AI
+        }
+        target_type = type_map.get(interview_type.lower())
+        
+        # AIInterviewSchedule을 통해 해당 지원자의 평가 데이터 조회
+        query = db.query(InterviewEvaluation).join(
+            AIInterviewSchedule, InterviewEvaluation.interview_id == AIInterviewSchedule.id
+        ).filter(
+            AIInterviewSchedule.application_id == application_id
+        )
+        
+        if target_type:
+            query = query.filter(InterviewEvaluation.evaluation_type == target_type)
+            
+        evaluations = query.all()
+        return evaluations
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"평가 조회 중 오류가 발생했습니다: {str(e)}")
 

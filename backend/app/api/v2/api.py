@@ -24,6 +24,7 @@ from app.api.v2.test import written_test, job_aptitude_reports
 from app.api.v2.interview import (
     interview_evaluation,
     interview_question,
+    interview_before_helper,
     interview_panel,
     ai_evaluate,
     executive_interview,
@@ -66,13 +67,13 @@ api_router.include_router(schedules.router, prefix="/schedules", tags=["schedule
 
 # Test
 api_router.include_router(written_test.router, prefix="/written-test", tags=["written-test"])
-# job_aptitude_reports.router 이름 확인 필요 (보통 router 변수 사용)
 if hasattr(job_aptitude_reports, 'router'):
     api_router.include_router(job_aptitude_reports.router, prefix="/job-aptitude", tags=["job-aptitude"])
 
 # Interview
 api_router.include_router(interview_evaluation.router, prefix="/interview-evaluation", tags=["interview-evaluation"])
 api_router.include_router(interview_question.router, prefix="/interview-questions", tags=["interview-questions"])
+api_router.include_router(interview_before_helper.router, prefix="/before-interview", tags=["before-interview-helper-data"])
 api_router.include_router(interview_panel.router, prefix="/interview-panel", tags=["interview-panel"])
 api_router.include_router(ai_evaluate.router, prefix="/ai-evaluate", tags=["ai-evaluate"])
 api_router.include_router(executive_interview.router, prefix="/executive-interview", tags=["executive-interview"])

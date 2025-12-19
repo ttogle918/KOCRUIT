@@ -31,9 +31,18 @@ class ApplicationBase(BaseModel):
     fail_reason: Optional[str] = None
     applied_at: Optional[datetime] = None
     ai_interview_score: Optional[float] = None
+    practical_interview_score: Optional[float] = None
+    executive_interview_score: Optional[float] = None
     ai_interview_pass_reason: Optional[str] = None
     ai_interview_fail_reason: Optional[str] = None
     ai_interview_video_url: Optional[str] = None  # AI 면접 비디오 URL
+    
+    # 공통 정보 (Property 기반)
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    job_posting_title: Optional[str] = None
+    
     class Config:
         alias_generator = to_camel
         populate_by_name = True
@@ -54,11 +63,30 @@ class ApplicationUpdate(BaseModel):
         populate_by_name = True
 
 
+class ApplicationStageDetail(BaseModel):
+    id: int
+    application_id: int
+    stage_name: StageName
+    stage_order: int
+    status: OverallStatus
+    score: Optional[float] = None
+    pass_reason: Optional[str] = None
+    fail_reason: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        alias_generator = to_camel
+        populate_by_name = True
+        from_attributes = True
+
 class ApplicationDetail(ApplicationBase):
     id: int
     user_id: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    stages: List[ApplicationStageDetail] = []
+    job_posting_title: Optional[str] = None
     # 이력서 정보 필드 추가
     applicantName: Optional[str] = None
     gender: Optional[str] = None
@@ -102,6 +130,9 @@ class ApplicationList(BaseModel):
     ai_interview_video_url: Optional[str] = None
     current_stage: StageName
     overall_status: OverallStatus
+    ai_interview_score: Optional[float] = None
+    practical_interview_score: Optional[float] = None
+    executive_interview_score: Optional[float] = None
     
     # Frontend 호환 필드 (User 정보 등)
     name: Optional[str] = None
@@ -109,9 +140,11 @@ class ApplicationList(BaseModel):
     phone: Optional[str] = None
     degree: Optional[str] = None
     education: Optional[str] = None
+    job_posting_title: Optional[str] = None
     
     # [NEW] 프론트엔드 로직 호환용 합성 상태 (예: AI_INTERVIEW_PASSED)
     interview_status: Optional[str] = None
+    stage_status: Optional[str] = None  # Frontend 호환용
     
     class Config:
         alias_generator = to_camel
@@ -185,7 +218,6 @@ class ApplicationViewLogDetail(ApplicationViewLogBase):
         alias_generator = to_camel
         populate_by_name = True
         from_attributes = True 
-
 
 class ApplicationBulkStatusUpdate(BaseModel):
     application_ids: List[int]

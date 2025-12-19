@@ -38,7 +38,7 @@ const InterviewApplicantsTab = ({
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">지원자 정보</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">직무 공고</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI 점수</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI 면접</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">실무진 면접</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">임원진 면접</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
@@ -48,7 +48,7 @@ const InterviewApplicantsTab = ({
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedApplicants.map((applicant) => (
                     <tr 
-                      key={applicant.application_id}
+                      key={applicant.id}
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => handleRowClick(applicant)}
                     >
@@ -66,36 +66,47 @@ const InterviewApplicantsTab = ({
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{applicant.job_posting_title || 'N/A'}</div>
+                        <div className="text-sm text-gray-900">{applicant.jobPostingTitle || applicant.job_posting_title || '공공기관 IT사업 PM/PL 모집'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {applicant.ai_interview_score ? (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              applicant.ai_interview_score >= 80 ? 'bg-green-100 text-green-800' :
-                              applicant.ai_interview_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {applicant.ai_interview_score}점
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            통과
+                          </span>
+                          {(applicant.ai_score || applicant.aiScore || applicant.ai_score) && (
+                            <span className="text-xs text-blue-600 font-medium ml-1">
+                              {applicant.ai_score || applicant.aiScore || applicant.ai_score}점
                             </span>
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            통과
+                          </span>
+                          {(applicant.practicalInterviewScore || applicant.practical_interview_score) && (
+                            <span className="text-xs text-green-600 font-medium ml-1">
+                              {applicant.practicalInterviewScore || applicant.practical_interview_score}점
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            통과
+                          </span>
+                          {(applicant.executiveInterviewScore || applicant.executive_interview_score) && (
+                            <span className="text-xs text-orange-600 font-medium ml-1">
+                              {applicant.executiveInterviewScore || applicant.executive_interview_score}점
+                            </span>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {getStatusBadge(applicant.stage_status, StageName.PRACTICAL_INTERVIEW)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {getStatusBadge(applicant.stage_status, StageName.EXECUTIVE_INTERVIEW)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {getOverallStatusBadge(applicant.overall_status)}
+                          {getOverallStatusBadge(applicant.overallStatus || applicant.overall_status)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

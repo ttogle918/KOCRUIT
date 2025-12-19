@@ -317,7 +317,7 @@ def get_applicants_with_ai_interview(job_post_id: int, db: Session = Depends(get
         raise HTTPException(status_code=500, detail="Failed to fetch applicants")
 
 
-@router.get("/job/{job_post_id}/applicants-practical-interview")
+@router.get("/job/{job_post_id}/applicants-practical-interview", response_model=List[ApplicationList])
 # @redis_cache(expire=300) 
 def get_applicants_with_practical_interview(job_post_id: int, db: Session = Depends(get_db)):
     """실무진 면접 단계에 있는 지원자 목록 조회 API"""
@@ -340,7 +340,7 @@ def get_applicants_with_practical_interview(job_post_id: int, db: Session = Depe
         raise HTTPException(status_code=500, detail="Failed to fetch applicants")
 
 
-@router.get("/job/{job_post_id}/applicants-executive-interview")
+@router.get("/job/{job_post_id}/applicants-executive-interview", response_model=List[ApplicationList])
 def get_applicants_with_executive_interview(job_post_id: int, db: Session = Depends(get_db)):
     """임원진 면접 단계에 있는 지원자 목록 조회 API"""
     try:

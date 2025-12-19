@@ -127,12 +127,85 @@ const CommonInterviewQuestionsPanel = ({
     }
   };
 
-  // 🆕 컴포넌트 마운트 시 자동으로 DB 질문 로드
+  // 🆕 DB에서 분석 도구(체크리스트, 가이드라인 등) 조회
+  const [toolsData, setDbToolsData] = useState({
+    checklist: interviewChecklist || null,
+    guideline: interviewGuideline || null,
+    criteria: evaluationCriteria || null
+  });
+  const [dbToolsLoading, setDbToolsLoading] = useState(false);
+
+  const loadToolsFromDB = async () => {
+    if (!jobPostId) return;
+    
+    setDbToolsLoading(true);
+    try {
+      const companyName = ""; // 필요시 추가 전달
+      
+      // 1. 먼저 기존 데이터 조회 시도 (GET)
+      const results = await Promise.allSettled([
+        InterviewQuestionApi.getJobBasedChecklist(jobPostId),
+        InterviewQuestionApi.getJobBasedGuideline(jobPostId),
+        InterviewQuestionApi.getJobBasedEvaluationCriteria(jobPostId)
+      ]);
+
+      let checklist = results[0].status === 'fulfilled' ? results[0].value : null;
+      let guideline = results[1].status === 'fulfilled' ? results[1].value : null;
+      let criteria = results[2].status === 'fulfilled' ? results[2].value : null;
+
+      // 2. 없는 데이터가 있으면 생성 시도 (POST)
+      const generationPromises = [];
+      const missingIndices = [];
+
+      if (!checklist) {
+        generationPromises.push(InterviewQuestionApi.generateJobBasedChecklist(jobPostId, companyName));
+        missingIndices.push(0);
+      }
+      if (!guideline) {
+        generationPromises.push(InterviewQuestionApi.generateJobBasedGuideline(jobPostId, companyName));
+        missingIndices.push(1);
+      }
+      if (!criteria) {
+        generationPromises.push(InterviewQuestionApi.generateJobBasedEvaluationCriteria(jobPostId, companyName));
+        missingIndices.push(2);
+      }
+
+      if (generationPromises.length > 0) {
+        const genResults = await Promise.allSettled(generationPromises);
+        genResults.forEach((res, i) => {
+          if (res.status === 'fulfilled') {
+            const targetIdx = missingIndices[i];
+            if (targetIdx === 0) checklist = res.value;
+            if (targetIdx === 1) guideline = res.value;
+            if (targetIdx === 2) criteria = res.value;
+          }
+        });
+      }
+
+      setDbToolsData({ checklist, guideline, criteria });
+    } catch (error) {
+      console.error('❌ 분석 도구 조회 실패:', error);
+    } finally {
+      setDbToolsLoading(false);
+    }
+  };
+
+  // 🆕 컴포넌트 마운트 시 또는 탭 변경 시 데이터 로드
   useEffect(() => {
-    if (jobPostId && activeTab === 'questions') {
-      loadCommonQuestionsFromDB();
+    if (jobPostId) {
+      if (activeTab === 'questions') {
+        loadCommonQuestionsFromDB();
+      } else if (['checklist', 'guideline', 'criteria'].includes(activeTab)) {
+        loadToolsFromDB();
+      }
     }
   }, [jobPostId, activeTab]);
+
+  // props로 전달받은 데이터가 있으면 우선 사용
+  const currentChecklist = interviewChecklist || toolsData.checklist;
+  const currentGuideline = interviewGuideline || toolsData.guideline;
+  const currentCriteria = evaluationCriteria || toolsData.criteria;
+  const currentToolsLoading = toolsLoading || dbToolsLoading;
 
   // Drag & Drop
   const onDragEnd = (result) => {
@@ -362,35 +435,35 @@ const CommonInterviewQuestionsPanel = ({
         {activeTab === 'checklist' && (
           <div>
             <div className="mb-2 font-bold text-lg">면접 체크리스트</div>
-            {toolsLoading ? (
+            {currentToolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-2">체크리스트 분석 중입니다...</span>
               </div>
-            ) : interviewChecklist ? (
+            ) : currentChecklist ? (
               <div className="space-y-4 text-sm">
                 <div>
                   <h4 className="font-semibold text-green-700 dark:text-green-300">면접 전 체크리스트</h4>
                   <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.pre_interview_checklist?.map((item, i) => <li key={i}>{item}</li>)}
+                    {currentChecklist.pre_interview_checklist?.map((item, i) => <li key={i}>{item}</li>)}
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-semibold text-blue-700 dark:text-blue-300">면접 중 체크리스트</h4>
                   <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.during_interview_checklist?.map((item, i) => <li key={i}>{item}</li>)}
+                    {currentChecklist.during_interview_checklist?.map((item, i) => <li key={i}>{item}</li>)}
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-semibold text-red-700 dark:text-red-300">주의할 레드플래그</h4>
                   <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.red_flags_to_watch?.map((flag, i) => <li key={i}>{flag}</li>)}
+                    {currentChecklist.red_flags_to_watch?.map((flag, i) => <li key={i}>{flag}</li>)}
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-semibold text-green-700 dark:text-green-300">확인할 그린플래그</h4>
                   <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewChecklist.green_flags_to_confirm?.map((flag, i) => <li key={i}>{flag}</li>)}
+                    {currentChecklist.green_flags_to_confirm?.map((flag, i) => <li key={i}>{flag}</li>)}
                   </ul>
                 </div>
               </div>
@@ -402,21 +475,21 @@ const CommonInterviewQuestionsPanel = ({
         {activeTab === 'guideline' && (
           <div>
             <div className="mb-2 font-bold text-lg">면접 가이드라인</div>
-            {toolsLoading ? (
+            {currentToolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-2">가이드라인 분석 중입니다...</span>
               </div>
-            ) : interviewGuideline ? (
+            ) : currentGuideline ? (
               <div className="space-y-4 text-sm">
                 <div>
                   <h4 className="font-semibold text-blue-700 dark:text-blue-300">면접 접근 방식</h4>
-                  <p className="text-gray-700 dark:text-gray-200">{interviewGuideline.interview_approach}</p>
+                  <p className="text-gray-700 dark:text-gray-200">{currentGuideline.interview_approach}</p>
                 </div>
                 <div>
                   <h4 className="font-semibold text-blue-700 dark:text-blue-300">시간 배분</h4>
                   <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(interviewGuideline.time_allocation || {}).map(([area, time]) => (
+                    {Object.entries(currentGuideline.time_allocation || {}).map(([area, time]) => (
                       <div key={area} className="flex justify-between">
                         <span className="text-gray-700 dark:text-gray-200">{area}:</span>
                         <span className="font-medium">{time}</span>
@@ -427,7 +500,7 @@ const CommonInterviewQuestionsPanel = ({
                 <div>
                   <h4 className="font-semibold text-blue-700 dark:text-blue-300">후속 질문</h4>
                   <ul className="list-disc list-inside text-gray-700 dark:text-gray-200">
-                    {interviewGuideline.follow_up_questions?.map((question, i) => <li key={i}>{question}</li>)}
+                    {currentGuideline.follow_up_questions?.map((question, i) => <li key={i}>{question}</li>)}
                   </ul>
                 </div>
               </div>
@@ -439,16 +512,16 @@ const CommonInterviewQuestionsPanel = ({
         {activeTab === 'criteria' && (
           <div>
             <div className="mb-2 font-bold text-lg">평가 기준 제안</div>
-            {toolsLoading ? (
+            {currentToolsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 <span className="ml-2">평가 기준 분석 중입니다...</span>
               </div>
-            ) : evaluationCriteria ? (
+            ) : currentCriteria ? (
               <div className="space-y-4 text-sm">
                 <div>
                   <h4 className="font-semibold text-blue-700 dark:text-blue-300">제안 평가 기준</h4>
-                  {evaluationCriteria.suggested_criteria?.map((criteria, i) => (
+                  {currentCriteria.suggested_criteria?.map((criteria, i) => (
                     <div key={i} className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
                       <div className="font-medium">{criteria.criterion}</div>
                       <div className="text-gray-600 dark:text-gray-400">{criteria.description}</div>
@@ -458,7 +531,7 @@ const CommonInterviewQuestionsPanel = ({
                 </div>
                 <div>
                   <h4 className="font-semibold text-blue-700 dark:text-blue-300">가중치 권장사항</h4>
-                  {evaluationCriteria.weight_recommendations?.map((weight, i) => (
+                  {currentCriteria.weight_recommendations?.map((weight, i) => (
                     <div key={i} className="mb-1">
                       <span className="font-medium">{weight.criterion}:</span>
                       <span className="ml-2">{(weight.weight * 100).toFixed(0)}%</span>

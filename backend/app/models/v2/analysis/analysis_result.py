@@ -8,8 +8,8 @@ class AnalysisResult(Base):
     __tablename__ = "analysis_result"
     
     id = Column(Integer, primary_key=True, index=True)
-    application_id = Column(Integer, ForeignKey('application.id'), nullable=False)
-    resume_id = Column(Integer, ForeignKey('resume.id'), nullable=False)
+    application_id = Column(Integer, ForeignKey('application.id'), nullable=True) # Changed from nullable=False
+    resume_id = Column(Integer, ForeignKey('resume.id'), nullable=True)           # Changed from nullable=False
     jobpost_id = Column(Integer, ForeignKey('jobpost.id'))
     company_id = Column(Integer, ForeignKey('company.id'))
     

@@ -373,17 +373,6 @@ def create_question(question: InterviewQuestionCreate, db: Session = Depends(get
     db.refresh(db_question)
     return db_question
 
-@router.get("/application/{application_id}", response_model=List[InterviewQuestionResponse])
-@redis_cache(expire=300)  # 5분 캐시 (질문 조회)
-def get_questions_by_application(application_id: int, db: Session = Depends(get_db)):
-    return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == application_id).all()
-
-@router.get("/application/{application_id}/by-type", response_model=InterviewQuestionResponse)
-@redis_cache(expire=300)  # 5분 캐시 (질문 타입별 조회)
-def get_questions_by_type(application_id: int, db: Session = Depends(get_db)):
-    """지원서별 질문을 유형별로 분류하여 조회"""
-    return InterviewQuestionService.get_questions_by_type(db, application_id)
-
 @router.post("/bulk-create", response_model=List[InterviewQuestionResponse])
 def create_questions_bulk(bulk_data: InterviewQuestionBulkCreate, db: Session = Depends(get_db)):
     """대량 질문 생성"""
@@ -731,7 +720,6 @@ async def suggest_evaluation_criteria(request: EvaluationCriteriaRequest, db: Se
 @redis_cache(expire=3600)  # 1시간 캐시 (회사 정보 기반)
 async def generate_company_questions(request: CompanyQuestionRequest):
     """회사명 기반 면접 질문 생성 (인재상 + 뉴스 기반)"""
-    # POST /api/v2/interview-questions/company-questions
     # Content-Type: application/json
     # {    "company_name": "삼성전자"     }
     # TODO: 산업 트렌드/경쟁사 비교
@@ -747,140 +735,6 @@ async def generate_company_questions(request: CompanyQuestionRequest):
             questions = questions.strip().split("\n")
         
         return {"questions": questions}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/application/{application_id}/practical-questions")
-@redis_cache(expire=300)  # 5분 캐시 (실무진 질문 조회)
-async def get_practical_interview_questions(application_id: int, db: Session = Depends(get_db)):
-    """실무진 면접 질문 조회 (interview_question 테이블에서 COMMON, JOB, PERSONAL 타입 질문 가져오기)"""
-    try:
-        # application_id로 지원자 정보 조회
-        application = db.query(Application).filter(Application.id == application_id).first()
-        if not application:
-            raise HTTPException(status_code=404, detail="Application not found")
-        
-        # interview_question 테이블에서 실무진 면접용 질문 가져오기
-        # COMMON, JOB, PERSONAL(applicant_id 필터링) 타입만
-        questions = []
-        
-        # 1. COMMON 타입 질문 (모든 지원자에게 공통)
-        common_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == "COMMON"
-        ).all()
-        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in common_questions])
-        
-        # 2. JOB 타입 질문 (직무 관련) - application_id가 NULL인 것만
-        job_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == "JOB",
-            InterviewQuestion.application_id.is_(None)
-        ).all()
-        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in job_questions])
-        
-        # 3. PERSONAL 타입 질문 (특정 지원자 전용) - application_id 사용
-        personal_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == "PERSONAL",
-            InterviewQuestion.application_id == application_id
-        ).all()
-        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in personal_questions])
-        
-        # 질문 중복 제거 및 정렬 (question_text 기준)
-        seen_questions = set()
-        unique_questions = []
-        for q in questions:
-            if q["question_text"] not in seen_questions:
-                seen_questions.add(q["question_text"])
-                unique_questions.append(q)
-        
-        questions = sorted(unique_questions, key=lambda x: x["question_text"])
-        
-        # 질문 타입별 분류 정보 생성
-        question_details = {
-            "common": [q.question_text for q in common_questions],
-            "job": [q.question_text for q in job_questions],
-            "personal": [q.question_text for q in personal_questions]
-        }
-        
-        # 질문이 없으면 빈 배열 반환 (기본 질문 제거)
-        return {
-            "application_id": application_id,
-            "user_id": application.user_id,
-            "resume_id": application.resume_id,
-            "questions": questions,
-            "question_count": len(questions),
-            "types": ["COMMON", "JOB", "PERSONAL"],
-            "question_details": question_details,
-            "source": "database"
-        }
-    except Exception as e:
-        print(f"❌ 실무진 면접 질문 조회 오류: {str(e)}")
-        print(f"application_id: {application_id}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"실무진 면접 질문 조회 중 오류가 발생했습니다: {str(e)}")
-
-
-@router.get("/application/{application_id}/executive-questions")
-@redis_cache(expire=300)  # 5분 캐시 (임원진 질문 조회)
-async def get_executive_interview_questions(application_id: int, db: Session = Depends(get_db)):
-    """임원진 면접 질문 조회 (interview_question 테이블에서 COMMON, EXECUTIVE, PERSONAL 타입 질문 가져오기)"""
-    try:
-        # application_id로 지원자 정보 조회
-        application = db.query(Application).filter(Application.id == application_id).first()
-        if not application:
-            raise HTTPException(status_code=404, detail="Application not found")
-
-        # interview_question 테이블에서 임원진 면접용 질문 가져오기
-        # COMMON, EXECUTIVE, PERSONAL(applicant_id 필터링) 타입만
-        questions = []
-        
-        # 1. COMMON 타입 질문 (모든 지원자에게 공통)
-        common_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == "COMMON"
-        ).all()
-        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in common_questions])
-        
-        # 2. EXECUTIVE 타입 질문 (임원진 전용)
-        executive_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == "EXECUTIVE"
-        ).all()
-        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in executive_questions])
-        
-        # 3. PERSONAL 타입 질문 (특정 지원자 전용) - application_id 사용
-        personal_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.type == "PERSONAL",
-            InterviewQuestion.application_id == application_id
-        ).all()
-        questions.extend([{"question_text": q.question_text, "type": q.type, "category": q.category, "difficulty": q.difficulty} for q in personal_questions])
-        
-        # 질문 중복 제거 및 정렬 (question_text 기준)
-        seen_questions = set()
-        unique_questions = []
-        for q in questions:
-            if q["question_text"] not in seen_questions:
-                seen_questions.add(q["question_text"])
-                unique_questions.append(q)
-        
-        questions = sorted(unique_questions, key=lambda x: x["question_text"])
-        
-        # 질문 타입별 분류 정보 생성
-        question_details = {
-            "common": [q.question_text for q in common_questions],
-            "executive": [q.question_text for q in executive_questions],
-            "personal": [q.question_text for q in personal_questions]
-        }
-        
-        # 질문이 없으면 빈 배열 반환 (기본 질문 제거)
-        return {
-            "application_id": application_id,
-            "user_id": application.user_id,
-            "resume_id": application.resume_id,
-            "questions": questions,
-            "question_count": len(questions),
-            "types": ["COMMON", "EXECUTIVE", "PERSONAL"],
-            "question_details": question_details,
-            "source": "database"
-        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1369,6 +1223,8 @@ async def generate_job_common_questions(
 @redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Session = Depends(get_db)):
     try:
+        from app.models.v2.analysis.analysis_result import AnalysisResult
+        
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
@@ -1379,6 +1235,38 @@ async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Se
             job_info=job_info,
             company_name=request.company_name or ""
         )
+        
+        # DB 저장 (AnalysisResult)
+        try:
+            existing = db.query(AnalysisResult).filter(
+                AnalysisResult.jobpost_id == request.job_post_id,
+                AnalysisResult.analysis_type == 'job_based_checklist'
+            ).first()
+            
+            if existing:
+                existing.analysis_data = checklist_result
+                existing.updated_at = datetime.datetime.now()
+            else:
+                # job_post_id 기반이므로 resume_id나 application_id는 NULL일 수 있음
+                # 하지만 AnalysisResult 모델에서 resume_id와 application_id가 nullable=False임.
+                # 이를 확인하고 수정하거나, 더미 값을 넣어야 함. 
+                # 일단 Resume와 Application이 없어도 공고 기반이므로 nullable=True로 모델이 되어있어야 함.
+                # 아까 확인한 결과 application_id = Column(Integer, ForeignKey('application.id'), nullable=False) 였음.
+                # 모델을 수정해야 함.
+                new_result = AnalysisResult(
+                    application_id=None, # nullable=True로 변경 필요
+                    resume_id=None,      # nullable=True로 변경 필요
+                    jobpost_id=request.job_post_id,
+                    company_id=job_post.company_id,
+                    analysis_type='job_based_checklist',
+                    analysis_data=checklist_result
+                )
+                db.add(new_result)
+            db.commit()
+        except Exception as save_err:
+            print(f"Checklist DB 저장 실패: {save_err}")
+            db.rollback()
+            
         return checklist_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1388,6 +1276,8 @@ async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Se
 @redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsRequest, db: Session = Depends(get_db)):
     try:
+        from app.models.v2.analysis.analysis_result import AnalysisResult
+        
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
@@ -1398,6 +1288,31 @@ async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsReque
             job_info=job_info,
             company_name=request.company_name or ""
         )
+        
+        # DB 저장
+        try:
+            existing = db.query(AnalysisResult).filter(
+                AnalysisResult.jobpost_id == request.job_post_id,
+                AnalysisResult.analysis_type == 'job_based_strengths'
+            ).first()
+            if existing:
+                existing.analysis_data = analysis_result
+                existing.updated_at = datetime.datetime.now()
+            else:
+                new_res = AnalysisResult(
+                    application_id=None,
+                    resume_id=None,
+                    jobpost_id=request.job_post_id,
+                    company_id=job_post.company_id,
+                    analysis_type='job_based_strengths',
+                    analysis_data=analysis_result
+                )
+                db.add(new_res)
+            db.commit()
+        except Exception as e:
+            print(f"Strengths DB 저장 실패: {e}")
+            db.rollback()
+            
         return analysis_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1407,16 +1322,43 @@ async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsReque
 @redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
 async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Session = Depends(get_db)):
     try:
+        from app.models.v2.analysis.analysis_result import AnalysisResult
+        
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
         job_info = parse_job_post_data(job_post)
         from agent.agents.interview_question_node import generate_interview_guideline
-        guideline_result = generate_interview_guideline(
+        guideline_result = await generate_interview_guideline(
             resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
         )
+        
+        # DB 저장
+        try:
+            existing = db.query(AnalysisResult).filter(
+                AnalysisResult.jobpost_id == request.job_post_id,
+                AnalysisResult.analysis_type == 'job_based_guideline'
+            ).first()
+            if existing:
+                existing.analysis_data = guideline_result
+                existing.updated_at = datetime.datetime.now()
+            else:
+                new_res = AnalysisResult(
+                    application_id=None,
+                    resume_id=None,
+                    jobpost_id=request.job_post_id,
+                    company_id=job_post.company_id,
+                    analysis_type='job_based_guideline',
+                    analysis_data=guideline_result
+                )
+                db.add(new_res)
+            db.commit()
+        except Exception as e:
+            print(f"Guideline DB 저장 실패: {e}")
+            db.rollback()
+            
         return guideline_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1583,7 +1525,7 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
         # DB에 저장
         saved_count = 0
         if request.save_to_db and all_questions:
-            now = datetime.now()
+            now = datetime.datetime.now()
             # job_post_id 찾기
             job_post_id = None
             if request.application_id:
@@ -1652,346 +1594,6 @@ async def generate_and_save_ai_interview_questions(request: AiInterviewSaveReque
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/application/{application_id}/ai-questions")
-@redis_cache(expire=300)  # 5분 캐시 (AI 질문 조회)
-def get_ai_interview_questions(application_id: int, db: Session = Depends(get_db)):
-    """특정 지원자의 AI 면접 질문 조회 (job_post_id 기반)"""
-    try:
-        # 지원자의 job_post_id 찾기
-        application = db.query(Application).filter(Application.id == application_id).first()
-        if not application:
-            raise HTTPException(status_code=404, detail="Application not found")
-        
-        # job_post_id 기반으로 AI 면접 질문 조회
-        questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.job_post_id == application.job_post_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW
-        ).order_by(InterviewQuestion.category, InterviewQuestion.id).all()
-        
-        # 카테고리별로 그룹화
-        grouped_questions = {}
-        for question in questions:
-            category = question.category or "common"
-            if category not in grouped_questions:
-                grouped_questions[category] = []
-            grouped_questions[category].append({
-                "id": question.id,
-                "question_text": question.question_text,
-                "type": question.type.value,
-                "category": question.category,
-                "difficulty": question.difficulty,
-                "created_at": question.created_at
-            })
-        
-        return {
-            "application_id": application_id,
-            "job_post_id": application.job_post_id,
-            "interview_stage": "ai",
-            "questions": grouped_questions,
-            "total_count": len(questions)
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/job/{job_post_id}/ai-questions")
-@redis_cache(expire=300)  # 5분 캐시 (AI 질문 조회)
-def get_ai_interview_questions_by_job(job_post_id: int, db: Session = Depends(get_db)):
-    """공고별 AI 면접 질문 조회 (공통 + 직무별 + 게임)"""
-    try:
-        from app.models.v2.interview.interview_question import InterviewQuestion, QuestionType
-        from app.models.v2.recruitment.job import JobPost
-        
-        # 공고 정보 조회
-        job = db.query(JobPost).filter(JobPost.id == job_post_id).first()
-        if not job:
-            raise HTTPException(status_code=404, detail="Job post not found")
-        
-        # 1. 직무별 질문 조회 (job_post_id 기반)
-        job_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.job_post_id == job_post_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
-            InterviewQuestion.category == "job_specific"
-        ).order_by(InterviewQuestion.id).all()
-        
-        # 2. 공통 질문 조회 (job_post_id 기반으로 변경)
-        common_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.job_post_id == job_post_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
-            InterviewQuestion.category == "common"
-        ).order_by(InterviewQuestion.id).all()
-        
-        # 3. 게임 테스트 조회 (job_post_id 기반으로 변경)
-        game_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.job_post_id == job_post_id,
-            InterviewQuestion.type == QuestionType.AI_INTERVIEW,
-            InterviewQuestion.category == "game_test"
-        ).order_by(InterviewQuestion.id).all()
-        
-        # 카테고리별로 그룹화
-        grouped_questions = {
-            "common": [
-                {
-                    "id": q.id,
-                    "question_text": q.question_text,
-                    "type": q.type.value,
-                    "category": q.category,
-                    "difficulty": q.difficulty,
-                    "created_at": q.created_at
-                } for q in common_questions
-            ],
-            "job_specific": [
-                {
-                    "id": q.id,
-                    "question_text": q.question_text,
-                    "type": q.type.value,
-                    "category": q.category,
-                    "difficulty": q.difficulty,
-                    "created_at": q.created_at
-                } for q in job_questions
-            ],
-            "game_test": [
-                {
-                    "id": q.id,
-                    "question_text": q.question_text,
-                    "type": q.type.value,
-                    "category": q.category,
-                    "difficulty": q.difficulty,
-                    "created_at": q.created_at
-                } for q in game_questions
-            ]
-        }
-        
-        total_count = len(common_questions) + len(job_questions) + len(game_questions)
-        
-        return {
-            "job_post_id": job_post_id,
-            "company_id": job.company_id if job else None,
-            "interview_stage": "ai",
-            "questions": grouped_questions,
-            "total_count": total_count,
-            "breakdown": {
-                "common": len(common_questions),
-                "job_specific": len(job_questions),
-                "game_test": len(game_questions)
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/job/{job_post_id}/common-questions")
-@redis_cache(expire=300)  # 5분 캐시 (공통 질문 조회)
-def get_common_questions_for_job_post(
-    job_post_id: int,
-    db: Session = Depends(get_db)
-):
-    """공고별 공통 질문 조회"""
-    try:
-        # 해당 공고의 첫 번째 지원자에게 생성된 공통 질문 조회
-        first_application = db.query(Application).filter(
-            Application.job_post_id == job_post_id,
-            Application.stages.document_status == StageStatus.PASSED.value
-        ).first()
-        
-        if not first_application:
-            return {"common_questions": []}
-        
-        common_questions = db.query(InterviewQuestion).filter(
-            InterviewQuestion.application_id == first_application.id,
-            InterviewQuestion.type == QuestionType.COMMON
-        ).all()
-        
-        return {
-            "common_questions": [
-                {
-                    "id": q.id,
-                    "question_text": q.question_text,
-                    "category": q.category,
-                    "difficulty": q.difficulty,
-                    "created_at": q.created_at.isoformat() if q.created_at else None
-                }
-                for q in common_questions
-            ]
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"공통 질문 조회 실패: {str(e)}")
-
-@router.get("/application/{application_id}/questions")
-@redis_cache(expire=300)  # 5분 캐시 (질문 조회)
-def get_questions_for_application(
-    application_id: int,
-    question_type: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """지원자별 면접 질문 조회"""
-    try:
-        # 지원자 정보 확인
-        application = db.query(Application).filter(Application.id == application_id).first()
-        if not application:
-            raise HTTPException(status_code=404, detail="지원자를 찾을 수 없습니다.")
-        
-        # 질문 조회
-        query = db.query(InterviewQuestion).filter(
-            InterviewQuestion.application_id == application_id
-        )
-        
-        if question_type:
-            query = query.filter(InterviewQuestion.type == QuestionType(question_type))
-        
-        questions = query.all()
-        
-        # 타입별로 그룹화
-        grouped_questions = {}
-        for question in questions:
-            question_type_key = question.type.value
-            if question_type_key not in grouped_questions:
-                grouped_questions[question_type_key] = []
-            
-            grouped_questions[question_type_key].append({
-                "id": question.id,
-                "question_text": question.question_text,
-                "category": question.category,
-                "difficulty": question.difficulty,
-                "created_at": question.created_at.isoformat() if question.created_at else None
-            })
-        
-        return {
-            "application_id": application_id,
-            "questions": grouped_questions,
-            "total_count": len(questions)
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"질문 조회 실패: {str(e)}")
-
-@router.post("/job/{job_post_id}/generate-common-questions")
-def generate_common_questions_for_job_post(
-    job_post_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """공고별 공통 질문 수동 생성"""
-    try:
-        # 공고 정보 조회
-        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
-        if not job_post:
-            raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
-        
-        company_name = job_post.company.name if job_post.company else ""
-        job_info = parse_job_post_data(job_post)
-        
-        # 공통 질문 생성
-        questions = InterviewQuestionService.generate_common_questions_for_job_post(
-            db=db,
-            job_post_id=job_post_id,
-            company_name=company_name,
-            job_info=job_info
-        )
-        
-        return {
-            "message": f"공통 질문 생성 완료: {len(questions)}개",
-            "questions_count": len(questions)
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"공통 질문 생성 실패: {str(e)}")
-
-@router.post("/application/{application_id}/generate-individual-questions")
-def generate_individual_questions_for_application(
-    application_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """지원자별 개별 질문 수동 생성"""
-    try:
-        # 지원자 정보 확인
-        application = db.query(Application).filter(Application.id == application_id).first()
-        if not application:
-            raise HTTPException(status_code=404, detail="지원자를 찾을 수 없습니다.")
-        
-        # 공고 정보 조회
-        job_post = db.query(JobPost).filter(JobPost.id == application.job_post_id).first()
-        if not job_post:
-            raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
-        
-        company_name = job_post.company.name if job_post.company else ""
-        job_info = parse_job_post_data(job_post)
-        
-        # 개별 질문 생성
-        questions = InterviewQuestionService.generate_individual_questions_for_applicant(
-            db=db,
-            application_id=application_id,
-            job_info=job_info,
-            company_name=company_name
-        )
-        
-        return {
-            "message": f"개별 질문 생성 완료: {len(questions)}개",
-            "questions_count": len(questions)
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"개별 질문 생성 실패: {str(e)}")
-
-@router.get("/job/{job_post_id}/questions-status")
-@redis_cache(expire=60)  # 1분 캐시 (상태 조회)
-def get_questions_generation_status(
-    job_post_id: int,
-    db: Session = Depends(get_db)
-):
-    """공고별 질문 생성 상태 조회"""
-    try:
-        # 해당 공고의 지원자들 조회
-        applications = db.query(Application).filter(
-            Application.job_post_id == job_post_id,
-            Application.stages.status == StageStatus.PASSED.value
-        ).join(ApplicationStage, Application.id == ApplicationStage.application_id).filter(
-            ApplicationStage.stage_name == StageName.DOCUMENT,
-            ApplicationStage.status == StageStatus.PASSED
-        ).all()
-        
-        if not applications:
-            return {
-                "job_post_id": job_post_id,
-                "total_applications": 0,
-                "common_questions_generated": False,
-                "individual_questions_generated": 0,
-                "total_questions": 0
-            }
-        
-        # 공통 질문 생성 여부 확인
-        first_app = applications[0]
-        common_questions_count = db.query(InterviewQuestion).filter(
-            InterviewQuestion.application_id == first_app.id,
-            InterviewQuestion.type == QuestionType.COMMON
-        ).count()
-        
-        # 개별 질문 생성된 지원자 수 확인
-        individual_questions_count = 0
-        total_questions = 0
-        
-        for app in applications:
-            app_questions = db.query(InterviewQuestion).filter(
-                InterviewQuestion.application_id == app.id,
-                InterviewQuestion.type != QuestionType.COMMON
-            ).count()
-            
-            if app_questions > 0:
-                individual_questions_count += 1
-                total_questions += app_questions
-        
-        return {
-            "job_post_id": job_post_id,
-            "total_applications": len(applications),
-            "common_questions_generated": common_questions_count > 0,
-            "common_questions_count": common_questions_count,
-            "individual_questions_generated": individual_questions_count,
-            "total_questions": total_questions + common_questions_count
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"질문 상태 조회 실패: {str(e)}")
 
 # AI 도구 통합 API 엔드포인트 추가
 class AiToolsRequest(BaseModel):
@@ -2100,69 +1702,6 @@ async def generate_ai_tools(request: AiToolsRequest, db: Session = Depends(get_d
             }
         )
 
-@router.get("/application/{application_id}/logs")
-@redis_cache(expire=300)  # 5분 캐시 (로그 조회)
-def get_interview_question_logs_by_application(
-    application_id: int, 
-    interview_type: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """특정 지원자의 면접 질문+답변(텍스트/오디오/비디오) 로그 리스트 반환 (DB에서 읽기만)"""
-    query = db.query(InterviewQuestionLog).filter(InterviewQuestionLog.application_id == application_id)
-    if interview_type:
-        query = query.filter(InterviewQuestionLog.interview_type == interview_type)
-    logs = query.order_by(InterviewQuestionLog.created_at).all()
-
-    result = []
-    for log in logs:
-        item = {
-            "question_id": log.question_id,
-            "interview_type": log.interview_type.value if log.interview_type else "AI_INTERVIEW",
-            "question_text": log.question_text,
-            "answer_text": log.answer_text,
-            "answer_audio_url": log.answer_audio_url,
-            "answer_video_url": log.answer_video_url,
-            "answer_text_transcribed": log.answer_text_transcribed,
-            "emotion": log.emotion,
-            "attitude": log.attitude,
-            "answer_score": log.answer_score,
-            "answer_feedback": log.answer_feedback,
-            "created_at": log.created_at,
-            "updated_at": log.updated_at
-        }
-        result.append(item)
-    return result
-
-@router.get("/application/{application_id}/logs/statistics")
-@redis_cache(expire=300)  # 5분 캐시 (통계 조회)
-def get_interview_logs_statistics(application_id: int, db: Session = Depends(get_db)):
-    """특정 지원자의 면접 유형별 통계 반환"""
-    # 면접 유형별 개수 조회
-    stats = db.query(
-        InterviewQuestionLog.interview_type,
-        func.count(InterviewQuestionLog.id).label('count')
-    ).filter(
-        InterviewQuestionLog.application_id == application_id
-    ).group_by(
-        InterviewQuestionLog.interview_type
-    ).all()
-    
-    # 전체 통계
-    total_count = db.query(InterviewQuestionLog).filter(
-        InterviewQuestionLog.application_id == application_id
-    ).count()
-    
-    return {
-        "total_interviews": total_count,
-        "by_type": [
-            {
-                "interview_type": stat.interview_type.value if stat.interview_type else "AI_INTERVIEW",
-                "count": stat.count
-            }
-            for stat in stats
-        ]
-    }
-
 @router.post("/application/{application_id}/evaluate-audio")
 async def evaluate_audio(
     application_id: int,
@@ -2230,7 +1769,7 @@ async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest,
         
         # LangGraph를 통한 평가항목 생성
         from agent.agents.interview_question_node import suggest_evaluation_criteria
-        criteria_result = suggest_evaluation_criteria(
+        criteria_result = await suggest_evaluation_criteria(
             resume_text="",
             job_info=job_info,
             company_name=request.company_name or ""
@@ -2344,36 +1883,10 @@ async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest,
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/evaluation-criteria/job/{job_post_id}", response_model=JobBasedCriteriaResponse)
-@redis_cache(expire=300)  # 5분 캐시 (DB 조회)
-async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
-    """공고별 저장된 평가항목 조회"""
-    try:
-        from app.services.v2.interview.evaluation_criteria_service import EvaluationCriteriaService
-        
-        criteria_service = EvaluationCriteriaService(db)
-        criteria = criteria_service.get_evaluation_criteria_by_job_post(job_post_id)
-        
-        if not criteria:
-            raise HTTPException(status_code=404, detail="Evaluation criteria not found for this job post")
-        
-        return JobBasedCriteriaResponse(
-            suggested_criteria=criteria.suggested_criteria,
-            weight_recommendations=criteria.weight_recommendations,
-            evaluation_questions=criteria.evaluation_questions,
-            scoring_guidelines=criteria.scoring_guidelines,
-            evaluation_items=criteria.evaluation_items  # 새로운 구체적 평가 항목 추가
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.delete("/evaluation-criteria/job/{job_post_id}")
 async def delete_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 평가항목 삭제"""
     try:
-        now = datetime.now()
         criteria_service = EvaluationCriteriaService(db)
         success = criteria_service.delete_evaluation_criteria(job_post_id)
         
@@ -2528,36 +2041,6 @@ async def create_resume_based_evaluation_criteria(request: EvaluationCriteriaReq
             pass
         
         return criteria_result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/evaluation-criteria/resume/{resume_id}", response_model=EvaluationCriteriaResponse)
-@redis_cache(expire=300)  # 5분 캐시 (DB 조회)
-async def get_resume_based_evaluation_criteria(
-    resume_id: int, 
-    application_id: Optional[int] = None,
-    interview_stage: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """이력서 기반 저장된 평가 기준 조회"""
-    try:
-        from app.services.v2.interview.evaluation_criteria_service import EvaluationCriteriaService
-        
-        criteria_service = EvaluationCriteriaService(db)
-        criteria = criteria_service.get_evaluation_criteria_by_resume(resume_id, application_id, interview_stage)
-        
-        if not criteria:
-            raise HTTPException(status_code=404, detail="Evaluation criteria not found for this resume")
-        
-        return EvaluationCriteriaResponse(
-            suggested_criteria=criteria.suggested_criteria,
-            weight_recommendations=criteria.weight_recommendations,
-            evaluation_questions=criteria.evaluation_questions,
-            scoring_guidelines=criteria.scoring_guidelines,
-            evaluation_items=criteria.evaluation_items  # 새로운 구체적 평가 항목 추가
-        )
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -3054,78 +2537,3 @@ async def trigger_background_evaluation_tools_generation(request: AiToolsRequest
             "error": str(e),
             "task_type": "evaluation_tools_generation"
         }
-
-@router.get("/background/status/{application_id}")
-async def get_background_task_status(application_id: int, db: Session = Depends(get_db)):
-    """백그라운드 작업 상태 확인"""
-    try:
-        # DB에서 생성된 데이터 확인
-        questions_count = db.query(InterviewQuestion).filter(
-            InterviewQuestion.application_id == application_id
-        ).count()
-        
-        analysis_logs = db.query(InterviewQuestionLog).filter(
-            InterviewQuestionLog.application_id == application_id,
-            InterviewQuestionLog.interview_type.in_(["resume_analysis", "evaluation_tools"])
-        ).count()
-        
-        return {
-            "application_id": application_id,
-            "status": {
-                "interview_questions_generated": questions_count > 0,
-                "questions_count": questions_count,
-                "analysis_tools_generated": analysis_logs > 0,
-                "analysis_logs_count": analysis_logs
-            },
-            "last_updated": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        return {
-            "application_id": application_id,
-            "error": str(e),
-            "status": "error"
-        }
-
-@router.get("/personal-questions/{application_id}")
-def get_personal_questions(application_id: int, db: Session = Depends(get_db)):
-    """저장된 개인 질문 결과를 조회합니다."""
-    try:
-        print(f"🔍 개인 질문 결과 조회: application_id={application_id}")
-        
-        # 지원서 정보 확인
-        application = db.query(Application).filter(Application.id == application_id).first()
-        if not application:
-            print(f"❌ Application not found: {application_id}")
-            raise HTTPException(status_code=404, detail="Application not found")
-        
-        # 저장된 개인 질문 결과 조회
-        personal_result = db.query(PersonalQuestionResult).filter(
-            PersonalQuestionResult.application_id == application_id
-        ).first()
-        
-        if not personal_result:
-            print(f"❌ Personal question result not found: {application_id}")
-            raise HTTPException(status_code=404, detail="개인 질문 결과를 찾을 수 없습니다. 먼저 질문을 생성해주세요.")
-        
-        print(f"✅ 개인 질문 결과 조회 완료: ID {personal_result.id}")
-        
-        # 응답 데이터 구성
-        return {
-            "application_id": personal_result.application_id,
-            "jobpost_id": personal_result.jobpost_id,
-            "company_id": personal_result.company_id,
-            "questions": personal_result.questions,
-            "question_bundle": personal_result.question_bundle,
-            "job_matching_info": personal_result.job_matching_info,
-            "analysis_version": personal_result.analysis_version,
-            "analysis_duration": personal_result.analysis_duration,
-            "created_at": personal_result.created_at,
-            "updated_at": personal_result.updated_at
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ 개인 질문 결과 조회 오류: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"결과 조회 중 오류가 발생했습니다: {str(e)}")

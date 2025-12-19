@@ -42,7 +42,12 @@ function ApplicantListLeft({
     let filtered = Array.isArray(applicants) ? [...applicants] : [];
     
     // 디버깅: 점수 데이터 확인
-    console.log('🔍 지원자 점수 데이터:', filtered.map(app => ({ name: app.name, score: app.score, ai_score: app.ai_score })));
+    console.log('🔍 지원자 점수 데이터:', filtered.map(app => ({ 
+      name: app.name, 
+      score: app.score, 
+      ai_score: app.ai_score,
+      aiScore: app.aiScore 
+    })));
     const allowedStatuses = ['WAITING', 'SUITABLE', 'UNSUITABLE', 'REJECTED', 'PASSED'];
     const allowedDocumentStatuses = ['PENDING', 'REVIEWING', 'PASSED', 'REJECTED'];
     
@@ -54,11 +59,14 @@ function ApplicantListLeft({
     });
     
     if (activeTab === 'EXCLUDED') {
-      filtered = filtered.filter(app => app.score <= 20);
+      filtered = filtered.filter(app => (app.aiScore ?? app.ai_score ?? app.score ?? 0) <= 20);
     } else if (activeTab === 'UNSUITABLE') {
-      filtered = filtered.filter(app => app.score > 20 && app.score <= 60);
+      filtered = filtered.filter(app => {
+        const s = (app.aiScore ?? app.ai_score ?? app.score ?? 0);
+        return s > 20 && s <= 60;
+      });
     } else if (activeTab === 'SUITABLE') {
-      filtered = filtered.filter(app => app.score > 60);
+      filtered = filtered.filter(app => (app.aiScore ?? app.ai_score ?? app.score ?? 0) > 60);
     }
     if (searchQuery.trim() !== '') {
       filtered = filtered.filter(app =>
@@ -70,9 +78,9 @@ function ApplicantListLeft({
     }
     filtered.sort((a, b) => {
       if (sortConfig.type === 'score') {
-        // AI 점수 기준으로 정렬 (ai_score가 없으면 score 사용)
-        const scoreA = a.ai_score ?? a.score ?? 0;
-        const scoreB = b.ai_score ?? b.score ?? 0;
+        // AI 점수 기준으로 정렬 (aiScore -> ai_score -> score 순으로 확인)
+        const scoreA = a.aiScore ?? a.ai_score ?? a.score ?? 0;
+        const scoreB = b.aiScore ?? b.ai_score ?? b.score ?? 0;
         const result = sortConfig.isDesc ? scoreB - scoreA : scoreA - scoreB;
         console.log(`📊 AI점수 정렬: ${a.name}(AI:${scoreA}) vs ${b.name}(AI:${scoreB}) = ${result}`);
         return result;
@@ -206,6 +214,9 @@ function ApplicantListLeft({
                   onClick={() => {
                     console.log('🎯 ApplicantCard 클릭됨:', { 
                       applicant: applicant.name, 
+                      ai_score: applicant.ai_score,
+                      aiScore: applicant.aiScore,
+                      score: applicant.score,
                       globalIndex, 
                       splitMode, 
                       isSelected 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import InterviewWorkspace from '../../../../../components/interview/common/InterviewWorkspace';
 import useInterviewData from '../../../../../hooks/useInterviewData';
-import { getPracticalCandidates } from '../../../../../api/api';
+import { getPracticalCandidates } from '../../../../../api/interviewApi';
 
 // 실무진 면접 페이지 (Split View 구조)
 export default function PracticalInterviewPage() {

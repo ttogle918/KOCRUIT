@@ -7,12 +7,16 @@ __pycache__/
 *.sqlite3
 *.db
 *.db-journal
+*.mp4
+*.m4a
+*.wav
 instance/
 .venv/
 venv/
 ENV/
 env/
 env.bak/
+data/
 
 # === FastAPI secrets ===
 .env

@@ -3,20 +3,30 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../../components/Navbar';
 import ViewPostSidebar from '../../../components/ViewPostSidebar';
 import api from '../../../api/api';
+import interviewApi from '../../../api/interview';
+import InterviewQuestionApi from '../../../api/interviewQuestionApi';
 import { FiChevronLeft, FiChevronRight, FiPlus, FiEdit, FiTrash2, FiSave } from 'react-icons/fi';
 import { useAuth } from '../../../context/AuthContext';
 import { mapResumeData } from '../../../utils/resumeUtils';
 
 // Import modularized components
-import { CommonQuestionsPanel, CommonQuestionsPanelFull } from '../../../components/interview/CommonQuestionsPanel';
+import { CommonQuestionsPanel } from '../../../components/interview/CommonQuestionsPanel';
 import ResumePanel from '../../../components/interview/ResumePanel';
 import CustomQuestionsPanel from '../../../components/interview/CustomQuestionsPanel';
 import QuestionRecommendationPanel from '../../../components/interview/QuestionRecommendationPanel';
 
 import EvaluationSlider from '../../../components/interview/EvaluationSlider';
 import EvaluationPanelFull from '../../../components/interview/EvaluationPanel';
-import InterviewStatistics from '../../../components/interview/InterviewStatistics';
 import InterviewStatisticsPanel from '../../../components/interview/InterviewStatisticsPanel';
+
+// Import progress tab components
+import ApplicantListTab from '../../../components/interview/progress/ApplicantListTab';
+import QuestionsTab from '../../../components/interview/progress/QuestionsTab';
+import StatisticsTab from '../../../components/interview/progress/StatisticsTab';
+import ChecklistTab from '../../../components/interview/progress/ChecklistTab';
+import GuidelineTab from '../../../components/interview/progress/GuidelineTab';
+import StrengthsTab from '../../../components/interview/progress/StrengthsTab';
+import CriteriaTab from '../../../components/interview/progress/CriteriaTab';
 
 // Mock Data Import
 import { 
@@ -28,8 +38,6 @@ import {
 } from '../../../api/mockData';
 
 // Import existing better components
-import ApplicantCard from '../../../components/ApplicantCard';
-import ApplicantCardWithInterviewStatus from '../../../components/interview/ApplicantCardWithInterviewStatus';
 import ResumeCard from '../../../components/ResumeCard';
 
 // Material-UI 컴포넌트 import
@@ -47,11 +55,6 @@ import {
   Fab,
   Tooltip,
   Chip,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Divider,
   Paper,
   Grid,
   Stack,
@@ -61,7 +64,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert,
   Snackbar
 } from '@mui/material';
 import { Rating } from '@mui/material';
@@ -95,6 +97,13 @@ function InterviewProgress() {
   // 질문 관리 (초기화 및 API 연동으로 채움)
   const [commonQuestions, setCommonQuestions] = useState([]);
   const [customQuestions, setCustomQuestions] = useState([]);
+  
+  // 공통 도구 상태
+  const [commonChecklist, setCommonChecklist] = useState(null);
+  const [commonGuideline, setCommonGuideline] = useState(null);
+  const [commonStrengths, setCommonStrengths] = useState(null);
+  const [commonCriteria, setCommonCriteria] = useState(null);
+  const [toolsLoading, setToolsLoading] = useState(false);
   
   // 패널 상태
   const [showSelectionScreen, setShowSelectionScreen] = useState(true);
@@ -182,7 +191,6 @@ function InterviewProgress() {
           }
         }
         
-        console.log('🚀 파싱된 지원자 데이터:', data);
         console.log('🚀 첫 번째 지원자 샘플:', data[0]);
         setApplicants(data);
       } catch (err) {
@@ -204,8 +212,8 @@ function InterviewProgress() {
   useEffect(() => {
     const fetchJobPost = async () => {
       try {
-        const res = await api.get(`/company/jobposts/${jobPostId}`);
-        setJobPost(res.data);
+        const data = await interviewApi.getJobPost(jobPostId);
+        setJobPost(data);
       } catch (err) {
         console.error('공고 정보 로드 실패:', err);
         setJobPost(mockJobPost);
@@ -214,36 +222,102 @@ function InterviewProgress() {
 
     const fetchCommonQuestions = async () => {
       try {
-        // 공고별 공통 질문 로드 (지원자와 무관하게 로드)
-        const endpoint = interviewStage === 'executive'
-          ? `/interview-questions/job-post/${jobPostId}/executive-questions` // (가상 엔드포인트 - 실제 구현 필요할 수 있음)
-          : `/ai-interview/job-post/${jobPostId}/common-questions`; // 기존에 있는 공통 질문 엔드포인트 활용 (또는 별도 엔드포인트)
+        const res = await InterviewQuestionApi.getCommonQuestions(jobPostId, interviewStage);
         
-        // 현재 백엔드에는 /ai-interview/job-post/{id}/common-questions 만 존재하므로 일단 이거 사용하거나,
-        // 필요시 백엔드에 전형별 공통 질문 API 추가 필요.
-        // 우선 기존 fetchStageQuestions의 로직을 참고하여 Mocking 또는 호출
-        
-        // 임시: fetchStageQuestions 로직과 유사하게 하되 applicationId 없이 호출 가능한지 확인
-        // 만약 백엔드가 applicationId를 필수로 요구한다면, 여기서 호출 불가.
-        // 하지만 '공통' 질문은 지원자 무관해야 하므로, 백엔드 로직 수정이 권장됨.
-        
-        // 여기서는 일단 Mock 데이터를 기본으로 설정하고, 지원자 선택 시 덮어쓰도록 함.
-        if (interviewStage === 'executive') {
-           setCommonQuestions([
-            { question_text: '우리 회사의 비전에 대해 어떻게 생각하시나요?', type: 'EXECUTIVE', category: 'vision' },
-            { question_text: '리더십을 발휘했던 경험이 있다면 이야기해주세요.', type: 'EXECUTIVE', category: 'leadership' },
-            { question_text: '자기소개를 해주세요.', type: 'COMMON', category: 'introduction' }
-          ]);
-        } else {
-           setCommonQuestions([
-            { question_text: '자기소개를 해주세요.', type: 'COMMON', category: 'introduction' },
-            { question_text: '본인의 강점과 약점은 무엇입니까?', type: 'PERSONAL', category: 'personality' },
-            { question_text: '직무와 관련된 프로젝트 경험을 설명해주세요.', type: 'JOB', category: 'experience' }
-          ]);
+        if (res && (res.common_questions || res.job_specific_questions)) {
+          // 질문 데이터 가공
+          const combined = [
+            ...(res.common_questions || []).map(q => ({ 
+              ...q, 
+              type: q.type || 'COMMON',
+              question_text: q.question_text || q,
+              difficulty: q.difficulty || 'medium'
+            })),
+            ...(res.job_specific_questions || []).map(q => ({ 
+              ...q, 
+              type: q.type || (interviewStage === 'executive' ? 'EXECUTIVE' : 'JOB'),
+              question_text: q.question_text || q,
+              difficulty: q.difficulty || 'medium'
+            }))
+          ];
+          
+          setCommonQuestions(combined);
         }
-
       } catch (err) {
         console.warn('공통 질문 로드 실패:', err);
+        // Fallback
+        setCommonQuestions([
+          { question_text: '자기소개를 해주세요.', type: 'COMMON', difficulty: 'easy', category: 'introduction' },
+          { question_text: '본인의 강점과 약점은 무엇입니까?', type: 'PERSONAL', difficulty: 'medium', category: 'personality' },
+          { question_text: '직무와 관련된 프로젝트 경험을 설명해주세요.', type: 'JOB', difficulty: 'hard', category: 'experience' }
+        ]);
+      }
+    };
+
+    const fetchCommonTools = async () => {
+      setToolsLoading(true);
+      try {
+        const companyName = jobPost?.company?.name || "";
+        
+        // 1. 먼저 기존 데이터 조회 시도 (GET)
+        const results = await Promise.allSettled([
+          InterviewQuestionApi.getJobBasedChecklist(jobPostId),
+          InterviewQuestionApi.getJobBasedGuideline(jobPostId),
+          InterviewQuestionApi.getJobBasedStrengths(jobPostId),
+          InterviewQuestionApi.getJobBasedEvaluationCriteria(jobPostId)
+        ]);
+
+        let checklist = results[0].status === 'fulfilled' ? results[0].value : null;
+        let guideline = results[1].status === 'fulfilled' ? results[1].value : null;
+        let strengths = results[2].status === 'fulfilled' ? results[2].value : null;
+        let criteria = results[3].status === 'fulfilled' ? results[3].value : null;
+
+        // 2. 없는 데이터가 있으면 생성 시도 (POST)
+        const generationPromises = [];
+        const missingIndices = [];
+
+        if (!checklist) {
+          generationPromises.push(InterviewQuestionApi.generateJobBasedChecklist(jobPostId, companyName));
+          missingIndices.push(0);
+        }
+        if (!guideline) {
+          generationPromises.push(InterviewQuestionApi.generateJobBasedGuideline(jobPostId, companyName));
+          missingIndices.push(1);
+        }
+        if (!strengths) {
+          generationPromises.push(InterviewQuestionApi.generateJobBasedStrengths(jobPostId, companyName));
+          missingIndices.push(2);
+        }
+        if (!criteria) {
+          generationPromises.push(InterviewQuestionApi.generateJobBasedEvaluationCriteria(jobPostId, companyName));
+          missingIndices.push(3);
+        }
+
+        if (generationPromises.length > 0) {
+          console.log(`🚀 ${generationPromises.length}개의 도구 생성 시작...`);
+          const genResults = await Promise.allSettled(generationPromises);
+          
+          genResults.forEach((res, i) => {
+            if (res.status === 'fulfilled') {
+              const targetIdx = missingIndices[i];
+              if (targetIdx === 0) checklist = res.value;
+              if (targetIdx === 1) guideline = res.value;
+              if (targetIdx === 2) strengths = res.value;
+              if (targetIdx === 3) criteria = res.value;
+            }
+          });
+        }
+
+        // 상태 업데이트
+        setCommonChecklist(checklist);
+        setCommonGuideline(guideline);
+        setCommonStrengths(strengths);
+        setCommonCriteria(criteria);
+
+      } catch (err) {
+        console.error('공통 도구 로드/생성 실패:', err);
+      } finally {
+        setToolsLoading(false);
       }
     };
 
@@ -261,10 +335,10 @@ function InterviewProgress() {
     const fetchInterviewStatistics = async () => {
       try {
         setStatisticsLoading(true);
-        const res = await api.get(`/applications/job/${jobPostId}/interview-statistics`);
-        console.log('🚀 면접 통계:', res.data);
-        setInterviewStatistics(res.data.statistics);
-        setUpcomingInterviews(res.data.upcoming_interviews || []);
+        const data = await interviewApi.getInterviewStatistics(jobPostId);
+        console.log('🚀 면접 통계:', data);
+        setInterviewStatistics(data.statistics);
+        setUpcomingInterviews(data.upcoming_interviews || []);
       } catch (err) {
         console.error('면접 통계 로드 실패:', err);
         setInterviewStatistics(mockInterviewStatistics);
@@ -275,11 +349,12 @@ function InterviewProgress() {
 
     if (jobPostId) {
       fetchJobPost();
-      fetchCommonQuestions(); // 추가됨
+      fetchCommonQuestions();
+      fetchCommonTools(); // 추가
       fetchSchedules();
       fetchInterviewStatistics();
     }
-  }, [jobPostId, interviewStage]); // interviewStage 의존성 추가
+  }, [jobPostId, interviewStage, jobPost?.company?.name]); // jobPost?.company?.name 의존성 추가
 
   // 지원자 선택 핸들러
   const handleSelectApplicant = async (applicant) => {
@@ -293,8 +368,17 @@ function InterviewProgress() {
     try {
       // application_id 우선 사용 (없으면 user_id)
       const applicationId = applicant.application_id || applicant.applicant_id || applicant.id;
-      const res = await api.get(`/applications/${applicationId}`);
-      const mappedResume = mapResumeData(res.data);
+      const data = await interviewApi.getApplication(applicationId);
+      
+      // 상세 정보로 지원자 정보 업데이트 (이름 등 누락 방지)
+      setSelectedApplicant(prev => ({
+        ...prev,
+        ...data,
+        id: applicationId,
+        name: data.name || data.applicantName || prev.name || applicant.name
+      }));
+      
+      const mappedResume = mapResumeData(data);
       setResume(mappedResume);
       
       // 공통/맞춤형 질문 로드 (API 연동)
@@ -327,77 +411,47 @@ function InterviewProgress() {
   // 면접 단계별 질문 로드
   const fetchStageQuestions = async (applicationId) => {
     try {
-      // 1) 단계별 기본 질문 호출
-      const endpoint = interviewStage === 'executive'
-        ? `/interview-questions/application/${applicationId}/executive-questions`
-        : `/interview-questions/application/${applicationId}/practical-questions`;
-
-      const res = await api.get(endpoint);
-      const data = res.data || {};
-
-      // 다양한 응답 형태 처리
-      let fetchedCommon = [];
-      if (Array.isArray(data.questions)) {
-        // 객체 리스트인 경우 그대로 사용, 문자열 리스트인 경우 객체로 변환
-        fetchedCommon = data.questions.map(q => {
-          if (typeof q === 'string') {
-            return { question_text: q, type: 'COMMON' }; // 기본값
-          }
-          return q;
-        }).filter(Boolean);
-      } else if (data.questions_by_category && typeof data.questions_by_category === 'object') {
-        fetchedCommon = Object.values(data.questions_by_category)
-          .flat()
-          .map(q => {
-            if (typeof q === 'string') {
-              return { question_text: q, type: 'COMMON' };
-            }
-            return q;
-          })
-          .filter(Boolean);
-      }
-
-      if (fetchedCommon.length > 0) {
-        setCommonQuestions(fetchedCommon);
+      // 1) 단계별 질문 호출 (이미 DB에 저장된 질문들: COMMON, JOB, PERSONAL, EXECUTIVE 등)
+      let data = {};
+      if (interviewStage === 'executive') {
+        data = await InterviewQuestionApi.getExecutiveQuestions(applicationId);
       } else {
-        // 폴백 기본 질문 (Mock)
-        if (interviewStage === 'executive') {
-           setCommonQuestions([
-            { question_text: '우리 회사의 비전에 대해 어떻게 생각하시나요?', type: 'EXECUTIVE', category: 'vision' },
-            { question_text: '리더십을 발휘했던 경험이 있다면 이야기해주세요.', type: 'EXECUTIVE', category: 'leadership' },
-            { question_text: '자기소개를 해주세요.', type: 'COMMON', category: 'introduction' }
-          ]);
-        } else {
-           setCommonQuestions([
-            { question_text: '자기소개를 해주세요.', type: 'COMMON', category: 'introduction' },
-            { question_text: '본인의 강점과 약점은 무엇입니까?', type: 'PERSONAL', category: 'personality' },
-            { question_text: '직무와 관련된 프로젝트 경험을 설명해주세요.', type: 'JOB', category: 'experience' }
-          ]);
-        }
+        data = await InterviewQuestionApi.getPracticalQuestions(applicationId);
       }
 
-      // 2) 맞춤형 질문은 이력서 기반 초기화 (간단 폴백)
-      setCustomQuestions([
-        '주요 프로젝트 경험에 대해 설명해주세요.',
-        '어려운 기술 문제를 해결한 경험을 공유해주세요.',
-        '이 프로젝트에서의 역할과 기여도를 설명해주세요.'
-      ]);
+      if (data && data.questions && Array.isArray(data.questions)) {
+        const formattedQuestions = data.questions.map(q => ({
+          ...q,
+          question_text: q.question_text,
+          type: q.type || (interviewStage === 'executive' ? 'EXECUTIVE' : 'JOB'),
+          difficulty: q.difficulty || 'medium'
+        }));
+        setCommonQuestions(formattedQuestions);
+      } else {
+        console.log('📦 질문 데이터가 없어 기본 질문을 로드합니다.');
+      }
+
+      // 2) AI 개인별 심층 질문 로드
+      try {
+        const personalRes = await InterviewQuestionApi.getPersonalQuestions(applicationId);
+        if (personalRes && personalRes.questions) {
+          const personalQs = personalRes.questions.map(q => ({
+            question_text: typeof q === 'string' ? q : q.question_text,
+            type: 'PERSONAL',
+            difficulty: 'hard'
+          }));
+          setCustomQuestions(personalQs);
+        }
+      } catch (e) {
+        console.log('📦 개인별 심층 질문이 아직 생성되지 않았습니다.');
+        setCustomQuestions([
+          { question_text: '주요 프로젝트 경험에 대해 설명해주세요.', type: 'JOB', difficulty: 'medium' },
+          { question_text: '어려운 기술 문제를 해결한 경험을 공유해주세요.', type: 'JOB', difficulty: 'hard' },
+          { question_text: '이 프로젝트에서의 역할과 기여도를 설명해주세요.', type: 'JOB', difficulty: 'medium' }
+        ]);
+      }
     } catch (err) {
       console.error('질문 로드 실패:', err);
-      // 네트워크 오류 시 폴백 (Mock Data - 객체 구조)
-      if (interviewStage === 'executive') {
-        setCommonQuestions([
-          { question_text: '우리 회사의 비전에 대해 어떻게 생각하시나요?', type: 'EXECUTIVE', category: 'vision' },
-          { question_text: '리더십을 발휘했던 경험이 있다면 이야기해주세요.', type: 'EXECUTIVE', category: 'leadership' },
-          { question_text: '자기소개를 해주세요.', type: 'COMMON', category: 'introduction' }
-        ]);
-      } else {
-        setCommonQuestions([
-          { question_text: '자기소개를 해주세요.', type: 'COMMON', category: 'introduction' },
-          { question_text: '본인의 강점과 약점은 무엇입니까?', type: 'PERSONAL', category: 'personality' },
-          { question_text: '직무와 관련된 프로젝트 경험을 설명해주세요.', type: 'JOB', category: 'experience' }
-        ]);
-      }
     }
   };
 
@@ -955,89 +1009,129 @@ function InterviewProgress() {
                      <span className={activeTab === 'statistics' ? 'text-blue-700' : 'text-gray-600'}>면접 통계</span>
                    </div>
                  </Button>
+
+                 <Button
+                   onClick={() => setActiveTab('checklist')}
+                   className={`rounded-none min-w-fit px-6 py-3 border-b-2 transition-colors ${
+                     activeTab === 'checklist' 
+                       ? 'border-blue-600 text-blue-700 bg-white font-bold' 
+                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                   }`}
+                 >
+                   <div className="flex items-center space-x-2">
+                     <span>📋</span>
+                     <span className={activeTab === 'checklist' ? 'text-blue-700' : 'text-gray-600'}>체크리스트</span>
+                   </div>
+                 </Button>
+
+                 <Button
+                   onClick={() => setActiveTab('guideline')}
+                   className={`rounded-none min-w-fit px-6 py-3 border-b-2 transition-colors ${
+                     activeTab === 'guideline' 
+                       ? 'border-blue-600 text-blue-700 bg-white font-bold' 
+                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                   }`}
+                 >
+                   <div className="flex items-center space-x-2">
+                     <span>📖</span>
+                     <span className={activeTab === 'guideline' ? 'text-blue-700' : 'text-gray-600'}>가이드라인</span>
+                   </div>
+                 </Button>
+
+                 <Button
+                   onClick={() => setActiveTab('strengths')}
+                   className={`rounded-none min-w-fit px-6 py-3 border-b-2 transition-colors ${
+                     activeTab === 'strengths' 
+                       ? 'border-blue-600 text-blue-700 bg-white font-bold' 
+                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                   }`}
+                 >
+                   <div className="flex items-center space-x-2">
+                     <span>💪</span>
+                     <span className={activeTab === 'strengths' ? 'text-blue-700' : 'text-gray-600'}>강점/약점</span>
+                   </div>
+                 </Button>
+
+                 <Button
+                   onClick={() => setActiveTab('criteria')}
+                   className={`rounded-none min-w-fit px-6 py-3 border-b-2 transition-colors ${
+                     activeTab === 'criteria' 
+                       ? 'border-blue-600 text-blue-700 bg-white font-bold' 
+                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                   }`}
+                 >
+                   <div className="flex items-center space-x-2">
+                     <span>🎯</span>
+                     <span className={activeTab === 'criteria' ? 'text-blue-700' : 'text-gray-600'}>평가 기준</span>
+                   </div>
+                 </Button>
                </div>
              </Paper>
             
             {/* 탭 컨텐츠 */}
             <div className="flex-1 flex gap-6 p-2 sm:p-4 md:p-6 overflow-hidden">
-              {/* 좌측: 지원자 목록 */}
-              <div className="w-[40%] min-w-[300px] h-full flex flex-col">
+              {/* 좌측 메인 컨텐츠 */}
+              <div className={`h-full flex flex-col transition-all duration-300 ${activeTab === 'applicants' ? 'w-[70%]' : 'w-full'}`}>
                 {activeTab === 'applicants' ? (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 sm:p-4 md:p-6 flex-1 flex flex-col min-h-0">
-                    <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                      <Typography variant="h5" component="h3" className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
-                        지원자 목록
-                      </Typography>
-                      {filterStatus && (
-                        <Chip 
-                          label={`${filterStatus === 'PASSED' ? '합격자' : '불합격자'}만 보기`} 
-                          onDelete={() => setFilterStatus(null)}
-                          color={filterStatus === 'PASSED' ? 'primary' : 'error'}
-                          size="small"
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
-                      {filteredApplicants.length > 0 ? (
-                        filteredApplicants.map((applicant, index) => (
-                          <ApplicantCardWithInterviewStatus
-                            key={applicant.applicant_id || applicant.id}
-                            applicant={applicant}
-                            index={index + 1}
-                            isSelected={selectedApplicant?.id === (applicant.applicant_id || applicant.id)}
-                            onClick={() => handleSelectApplicant(applicant)}
-                            calculateAge={(birthDate) => {
-                              if (!birthDate) return 'N/A';
-                              const today = new Date();
-                              const birth = new Date(birthDate);
-                              let age = today.getFullYear() - birth.getFullYear();
-                              const monthDiff = today.getMonth() - birth.getMonth();
-                              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-                                age--;
-                              }
-                              return age;
-                            }}
-                            compact={true}
-                            interviewStage={interviewStage}
-                            showInterviewStatus={true}
-                          />
-                        ))
-                      ) : (
-                        <div className="text-center py-10 text-gray-500">
-                          해당 조건의 지원자가 없습니다.
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <ApplicantListTab 
+                    filteredApplicants={filteredApplicants}
+                    selectedApplicant={selectedApplicant}
+                    onSelectApplicant={handleSelectApplicant}
+                    filterStatus={filterStatus}
+                    onClearFilter={() => setFilterStatus(null)}
+                    interviewStage={interviewStage}
+                  />
                 ) : activeTab === 'statistics' ? (
-                  <InterviewStatistics 
+                  <StatisticsTab 
                     statistics={interviewStatistics}
                     loading={statisticsLoading}
                   />
+                ) : activeTab === 'checklist' ? (
+                  <ChecklistTab 
+                    loading={toolsLoading}
+                    checklist={commonChecklist}
+                  />
+                ) : activeTab === 'guideline' ? (
+                  <GuidelineTab 
+                    loading={toolsLoading}
+                    guideline={commonGuideline}
+                  />
+                ) : activeTab === 'strengths' ? (
+                  <StrengthsTab 
+                    loading={toolsLoading}
+                    strengths={commonStrengths}
+                  />
+                ) : activeTab === 'criteria' ? (
+                  <CriteriaTab 
+                    loading={toolsLoading}
+                    criteria={commonCriteria}
+                  />
                 ) : (
-                  <CommonQuestionsPanelFull
+                  <QuestionsTab 
                     questions={commonQuestions}
                     onQuestionsChange={setCommonQuestions}
                   />
                 )}
               </div>
 
-              {/* 우측: 통계 패널 */}
-              <div className="w-[30%] min-w-[280px] h-full flex flex-col">
-                <div className="flex-1 min-h-0">
-                  <InterviewStatisticsPanel
-                    applicants={applicants}
-                    interviewStage={interviewStage}
-                    filterStatus={filterStatus}
-                    onFilterChange={setFilterStatus}
-                    onNavigateToStage={(stage) => {
-                      navigate(`/interview-progress/${jobPostId}/${stage}`);
-                    }}
-                    statistics={interviewStatistics}
-                    todayInterviews={upcomingInterviews}
-                  />
+              {/* 우측: 통계 패널 (지원자 목록 탭에서만 표시) */}
+              {activeTab === 'applicants' && (
+                <div className="w-[30%] min-w-[280px] h-full flex flex-col">
+                  <div className="flex-1 min-h-0">
+                    <InterviewStatisticsPanel
+                      applicants={applicants}
+                      interviewStage={interviewStage}
+                      filterStatus={filterStatus}
+                      onFilterChange={setFilterStatus}
+                      onNavigateToStage={(stage) => {
+                        navigate(`/interview-progress/${jobPostId}/${stage}`);
+                      }}
+                      statistics={interviewStatistics}
+                      todayInterviews={upcomingInterviews}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         ) : (

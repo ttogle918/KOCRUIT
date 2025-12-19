@@ -78,11 +78,11 @@ const ApplicantCardWithInterviewStatus = ({
     
     switch (interviewStage) {
       case 'ai':
-        return applicant?.ai_interview_status || 'PENDING';
+        return applicant?.aiInterviewStatus || applicant?.ai_interview_status || 'PENDING';
       case 'practice':
-        return applicant?.practical_interview_status || 'PENDING';
+        return applicant?.practicalInterviewStatus || applicant?.practical_interview_status || 'PENDING';
       case 'executive':
-        return applicant?.executive_interview_status || 'PENDING';
+        return applicant?.executiveInterviewStatus || applicant?.executive_interview_status || 'PENDING';
       default:
         return 'PENDING';
     }

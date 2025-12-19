@@ -5,6 +5,7 @@ import {
   FiCheckCircle, FiPlus, FiTrash2, FiList, FiCheckSquare
 } from 'react-icons/fi';
 import api from '../../api/api';
+import InterviewQuestionApi from '../../api/interviewQuestionApi';
 import { mockQuestions, mockSttLogs } from '../../api/mockData';
 
 // --- [Component] Audio Visualizer ---
@@ -209,23 +210,35 @@ const QuestionRecommendationPanel = ({
     setError(null);
 
     try {
+      let mainQuestions = [];
       if (interviewType === 'practical') {
-        const practicalResponse = await api.get(`/interview-questions/application/${applicationId}/practical-questions`);
-        if (practicalResponse.data.questions) {
-          setQuestions(prev => ({
-            ...prev,
-            practical: practicalResponse.data.questions
-          }));
-        }
+        const practicalResponse = await InterviewQuestionApi.getPracticalQuestions(applicationId);
+        mainQuestions = practicalResponse.questions || [];
       } else if (interviewType === 'executive') {
-        const executiveResponse = await api.get(`/interview-questions/application/${applicationId}/executive-questions`);
-        if (executiveResponse.data.questions) {
-          setQuestions(prev => ({
-            ...prev,
-            executive: executiveResponse.data.questions
+        const executiveResponse = await InterviewQuestionApi.getExecutiveQuestions(applicationId);
+        mainQuestions = executiveResponse.questions || [];
+      }
+
+      // 개인별 심층 질문(AI 생성) 가져오기
+      let personalQs = [];
+      try {
+        const personalRes = await InterviewQuestionApi.getPersonalQuestions(applicationId);
+        if (personalRes && personalRes.questions) {
+          personalQs = personalRes.questions.map(q => ({
+            question_text: typeof q === 'string' ? q : q.question_text,
+            type: 'PERSONAL',
+            difficulty: 'HARD'
           }));
         }
+      } catch (e) {
+        console.log('개인별 심층 질문 없음');
       }
+
+      setQuestions(prev => ({
+        ...prev,
+        [interviewType]: [...mainQuestions, ...personalQs]
+      }));
+      
       setLastUpdated(new Date());
     } catch (err) {
       console.error('질문 내역 조회 실패:', err);
@@ -244,8 +257,8 @@ const QuestionRecommendationPanel = ({
 
     setSttLoading(true);
     try {
-      const response = await api.get(`/interview-questions/application/${applicationId}/logs`);
-      const answersWithQuestions = response.data.filter(log => 
+      const data = await InterviewQuestionApi.getInterviewLogs(applicationId);
+      const answersWithQuestions = (data || []).filter(log => 
         log.answer_text || log.answer_text_transcribed || log.answer_audio_url
       );
       setSttAnswers(answersWithQuestions);
@@ -396,7 +409,12 @@ const QuestionRecommendationPanel = ({
   };
 
   const getTypeLabel = (type) => {
-    const labelMap = { 'COMMON': '공통', 'JOB': '직무', 'PERSONAL': '개인', 'EXECUTIVE': '임원' };
+    const labelMap = { 
+      'COMMON': '공통', 
+      'JOB': '직무', 
+      'PERSONAL': '개인', 
+      'EXECUTIVE': '임원' 
+    };
     return labelMap[type] || type;
   };
 

@@ -13,6 +13,7 @@ import {
 import interviewApi from '../../../api/interviewApi';
 import AiInterviewApi from '../../../api/aiInterviewApi';
 import videoAnalysisApi from '../../../api/videoAnalysisApi';
+import api from '../../../api/api';
 
 
 // 컴포넌트 import
@@ -212,7 +213,7 @@ const InterviewAdminPage = () => {
     // 직무 공고 필터링
     if (filterJobPosting) {
       filtered = filtered.filter(applicant =>
-        applicant.job_posting_title === filterJobPosting
+        (applicant.jobPostingTitle || applicant.job_posting_title) === filterJobPosting
       );
     }
 
@@ -296,7 +297,7 @@ const InterviewAdminPage = () => {
     if (filterScore) {
       const [min, max] = filterScore.split('-').map(Number);
       filtered = filtered.filter(applicant => {
-        const score = applicant.ai_interview_score;
+        const score = applicant.aiInterviewScore || applicant.ai_interview_score;
         if (!score) return false;
         return score >= min && score <= max;
       });
@@ -330,16 +331,16 @@ const InterviewAdminPage = () => {
           bValue = b.name.toLowerCase();
           break;
         case 'score':
-          aValue = a.ai_interview_score || 0;
-          bValue = b.ai_interview_score || 0;
+          aValue = a.aiInterviewScore || a.ai_interview_score || 0;
+          bValue = b.aiInterviewScore || b.ai_interview_score || 0;
           break;
         case 'date':
           aValue = new Date(a.created_at);
           bValue = new Date(b.created_at);
           break;
         case 'status':
-          aValue = a.interview_status || '';
-          bValue = b.interview_status || '';
+          aValue = a.interviewStatus || a.interview_status || '';
+          bValue = b.interviewStatus || b.interview_status || '';
           break;
         default:
           aValue = a.name.toLowerCase();
@@ -502,12 +503,12 @@ const headers = ['이름', '이메일', '직무공고', 'AI점수', '현재단�
 const rows = data.map(applicant => [
   applicant.name,
   applicant.email,
-  applicant.job_posting_title || 'N/A',
-  applicant.ai_interview_score || 'N/A',
-  applicant.current_stage,
-  getStatusText(applicant.stage_status),
-  getOverallStatusText(applicant.overall_status),
-  new Date(applicant.created_at).toLocaleDateString()
+  applicant.jobPostingTitle || applicant.job_posting_title || 'N/A',
+  applicant.aiInterviewScore || applicant.ai_interview_score || 'N/A',
+  applicant.currentStage || applicant.current_stage,
+  getStatusText(applicant.stageStatus || applicant.stage_status),
+  getOverallStatusText(applicant.overallStatus || applicant.overall_status),
+  new Date(applicant.createdAt || applicant.created_at).toLocaleDateString()
 ]);
 
 return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -754,7 +755,7 @@ return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).joi
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option key="" value="">모든 직무</option>
-                {Array.from(new Set(applicantsList.map(a => a.job_posting_title))).map(title => (
+                {Array.from(new Set(applicantsList.map(a => a.jobPostingTitle || a.job_posting_title))).filter(Boolean).map(title => (
                   <option key={title} value={title}>{title}</option>
                 ))}
               </select>
