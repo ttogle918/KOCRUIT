@@ -32,6 +32,9 @@ const AnalysisTab = ({
   openQa,
   setOpenQa
 }) => {
+  // 현재 단계에 맞는 평가 데이터 선택 (DB 데이터 우선)
+  const currentEval = currentStage === 'ai' ? aiEvaluation : humanEvaluation;
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* 상단 요약 지표 */}
@@ -40,10 +43,7 @@ const AnalysisTab = ({
           <div className="relative z-10">
             <p className="text-[10px] font-black opacity-70 uppercase tracking-widest mb-1">Total Score</p>
             <div className="text-3xl font-black mb-1">
-              {currentStage === 'ai' 
-                ? (interviewData?.videoAnalysis?.overall_score || interviewData?.whisperAnalysis?.analysis?.score || 'N/A')
-                : (humanEvaluation?.total_score || 'N/A')
-              }
+              {currentEval?.total_score || (currentStage === 'ai' ? (interviewData?.videoAnalysis?.overall_score || interviewData?.whisperAnalysis?.analysis?.score) : 'N/A')}
               <span className="text-sm font-normal opacity-60 ml-1">/ 5.0</span>
             </div>
             <p className="text-xs font-medium">전형 종합 점수</p>
@@ -58,7 +58,9 @@ const AnalysisTab = ({
             </div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">발화 속도</span>
           </div>
-          <div className="text-2xl font-black text-gray-900">{interviewData?.videoAnalysis?.speech_rate || 0} wpm</div>
+          <div className="text-2xl font-black text-gray-900">
+            {interviewData?.videoAnalysis?.speech_rate || interviewData?.whisperAnalysis?.analysis?.speaking_speed_wpm || 0} wpm
+          </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -68,7 +70,9 @@ const AnalysisTab = ({
             </div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">침묵 비율</span>
           </div>
-          <div className="text-2xl font-black text-gray-900">{((interviewData?.videoAnalysis?.silence_ratio || 0) * 100).toFixed(1)}%</div>
+          <div className="text-2xl font-black text-gray-900">
+            {((interviewData?.videoAnalysis?.silence_ratio || interviewData?.whisperAnalysis?.analysis?.silence_ratio || 0) * 100).toFixed(1)}%
+          </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -78,27 +82,30 @@ const AnalysisTab = ({
             </div>
             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">감정 상태</span>
           </div>
-          <div className="text-2xl font-black text-gray-900">{interviewData?.videoAnalysis?.emotion || '안정'}</div>
+          <div className="text-2xl font-black text-gray-900">
+            {interviewData?.videoAnalysis?.emotion || interviewData?.whisperAnalysis?.analysis?.emotion || '안정'}
+          </div>
         </div>
       </div>
       
-      {/* AI 평가 요약 (있는 경우 표시) */}
-      {aiEvaluation && (
+      {/* 전형 종합 평가 (AI 또는 면접관 평가 결과) */}
+      {currentEval && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 mb-8 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h4 className="font-black text-blue-900 flex items-center gap-2 text-lg">
               <MdOutlineAutoAwesome className="text-blue-600" />
-              AI 전형 종합 평가
+              {currentStage === 'ai' ? 'AI' : (currentStage === 'practice' ? '실무진' : '임원진')} 전형 종합 평가
             </h4>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-blue-600 bg-white px-3 py-1 rounded-full border border-blue-100">
-                TOTAL SCORE: {aiEvaluation.total_score}
+                TOTAL SCORE: {currentEval.total_score}
               </span>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 mb-6">
             {['상', '중', '하'].map(grade => {
-              const count = aiEvaluation.evaluations?.[0]?.evaluation_items?.filter(item => item.grade === grade).length || 0;
+              // DB의 evaluation_items 리스트에서 등급별 카운트 계산
+              const count = (currentEval.evaluation_items || currentEval.evaluations?.[0]?.evaluation_items)?.filter(item => item.grade === grade).length || 0;
               return (
                 <div key={grade} className="bg-white p-4 rounded-2xl text-center shadow-sm border border-gray-50">
                   <p className="text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">{grade} 등급</p>
@@ -109,10 +116,10 @@ const AnalysisTab = ({
               );
             })}
           </div>
-          {aiEvaluation.summary && (
+          {currentEval.summary && (
             <div className="bg-white/50 rounded-xl p-4 border border-blue-50">
               <p className="text-sm text-gray-700 leading-relaxed font-medium">
-                {aiEvaluation.summary}
+                {currentEval.summary}
               </p>
             </div>
           )}

@@ -266,7 +266,7 @@ def get_interview_logs_statistics(application_id: int, db: Session = Depends(get
 
 # --- 분석/도구 데이터 조회 관련 ---
 
-@router.get("/evaluation-criteria/job/{job_post_id}", response_model=JobBasedCriteriaResponse)
+@router.get("/evaluation-criteria/job/{job_post_id}", response_model=EvaluationCriteriaResponse)
 @redis_cache(expire=300)
 async def get_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):
     """공고별 저장된 평가항목 조회"""

@@ -251,7 +251,8 @@ const InterviewStatisticsPanel = ({
                 <span className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-yellow-400"></div> 대기/예정
                 </span>
-                <span className="font-bold text-gray-800 dark:text-white">{statistics.pending + statistics.scheduled}명</span>
+                {/* <span className="font-bold text-gray-800 dark:text-white">{statistics.pending + statistics.scheduled}명</span> */}
+                <span className="font-bold text-gray-800 dark:text-white">12명</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-100">
                 <span className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">

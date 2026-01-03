@@ -10,7 +10,17 @@ const GuidelineTab = ({ guideline, loading }) => {
     );
   }
 
-  if (!guideline) {
+  // 데이터가 문자열로 오면 파싱 시도 (백엔드 캐시 잔재 대비)
+  let data = guideline;
+  if (typeof guideline === 'string') {
+    try {
+      data = JSON.parse(guideline.replace(/```json|```/g, '').trim());
+    } catch (e) {
+      console.error('Guideline parsing error:', e);
+    }
+  }
+
+  if (!data) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 flex-1 text-center py-10 text-gray-500">
         데이터가 없습니다.
@@ -26,26 +36,30 @@ const GuidelineTab = ({ guideline, loading }) => {
       <div className="space-y-6">
         <Alert severity="info" className="mb-4">
           <Typography variant="subtitle2" className="font-bold">면접 접근 방식</Typography>
-          {guideline.interview_approach}
+          {data.interview_approach || '정보가 없습니다.'}
         </Alert>
         <div>
           <Typography variant="subtitle1" className="font-bold text-slate-800 mb-3">카테고리별 주요 질문</Typography>
           <div className="space-y-4">
-            {Object.entries(guideline.key_questions_by_category || {}).map(([cat, qs], i) => (
-              <div key={i}>
-                <Chip label={cat} size="small" color="primary" className="mb-2" />
-                <List dense>
-                  {qs.map((q, j) => <ListItem key={j}><ListItemText primary={q} /></ListItem>)}
-                </List>
-              </div>
-            ))}
+            {Object.entries(data.key_questions_by_category || {}).length > 0 ? (
+              Object.entries(data.key_questions_by_category || {}).map(([cat, qs], i) => (
+                <div key={i}>
+                  <Chip label={cat} size="small" color="primary" className="mb-2" />
+                  <List dense>
+                    {Array.isArray(qs) ? qs.map((q, j) => <ListItem key={j}><ListItemText primary={q} /></ListItem>) : null}
+                  </List>
+                </div>
+              ))
+            ) : (
+              <Typography variant="body2" className="text-gray-500">생성된 질문이 없습니다.</Typography>
+            )}
           </div>
         </div>
         <Divider />
         <div>
           <Typography variant="subtitle1" className="font-bold text-slate-800 mb-3">시간 배분 제안</Typography>
           <div className="flex gap-2 flex-wrap">
-            {Object.entries(guideline.time_allocation || {}).map(([task, time], i) => (
+            {Object.entries(data.time_allocation || {}).map(([task, time], i) => (
               <Chip key={i} label={`${task}: ${time}`} variant="outlined" />
             ))}
           </div>

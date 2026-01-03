@@ -16,7 +16,8 @@ class EvaluationCriteriaService:
             suggested_criteria=criteria_data.suggested_criteria,
             weight_recommendations=criteria_data.weight_recommendations,
             evaluation_questions=criteria_data.evaluation_questions,
-            scoring_guidelines=criteria_data.scoring_guidelines
+            scoring_guidelines=criteria_data.scoring_guidelines,
+            evaluation_items=criteria_data.evaluation_items
         )
         
         self.db.add(db_criteria)
@@ -51,6 +52,7 @@ class EvaluationCriteriaService:
         db_criteria.weight_recommendations = criteria_data.weight_recommendations
         db_criteria.evaluation_questions = criteria_data.evaluation_questions
         db_criteria.scoring_guidelines = criteria_data.scoring_guidelines
+        db_criteria.evaluation_items = criteria_data.evaluation_items
         
         self.db.commit()
         self.db.refresh(db_criteria)
@@ -127,6 +129,7 @@ class EvaluationCriteriaService:
         db_criteria.weight_recommendations = criteria_data.weight_recommendations
         db_criteria.evaluation_questions = criteria_data.evaluation_questions
         db_criteria.scoring_guidelines = criteria_data.scoring_guidelines
+        db_criteria.evaluation_items = criteria_data.evaluation_items
         
         self.db.commit()
         self.db.refresh(db_criteria)
