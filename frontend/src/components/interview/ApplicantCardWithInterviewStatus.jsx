@@ -112,13 +112,11 @@ const ApplicantCardWithInterviewStatus = ({
           applicant={applicant}
           index={index}
           isSelected={isSelected}
-          // onClick은 상위 div에서 처리하므로 여기선 제외하거나 전파 방지
-          // onClick={onClick} 
+          onClick={onClick} 
           onBookmarkToggle={onBookmarkToggle}
           calculateAge={calculateAge}
           compact={compact}
           resumeId={resumeId}
-          // 기존 스타일 무력화를 위해 className 전달 가능 시 사용
         />
       </div>
       

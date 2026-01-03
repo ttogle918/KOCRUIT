@@ -108,7 +108,7 @@ const ApplicantCard = forwardRef(({
 
   // 안전한 값 접근을 위한 변수 정의 (한 번만 선언)
   const applicantName = applicant?.name || '이름 없음';
-  const applicantAge = applicant?.birthDate ? calculateAge(applicant.birthDate) : '나이 정보 없음';
+  const applicantAge = applicant?.birthDate ? calculateAge(applicant.birthDate) : '';
   const applicationSource = applicant?.applicationSource || 'DIRECT';
   const appliedDate = applicant?.appliedAt || applicant?.applied_at;
   const aiScore = applicant?.aiScore ?? applicant?.ai_score ?? applicant?.aiscore ?? applicant?.score ?? 0;
@@ -158,7 +158,7 @@ const ApplicantCard = forwardRef(({
             {applicantName}
           </div>
           <div className={`text-gray-500 dark:text-gray-400 truncate ${compact ? 'text-[11px]' : 'text-sm'} mb-1`}>
-            {applicantAge}세
+            {applicantAge}
           </div>
           <div className={`text-gray-400 dark:text-gray-500 truncate ${compact ? 'text-[10px]' : 'text-xs'}`}>
             {applicationSource}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional, Dict, Any
@@ -1218,150 +1218,263 @@ async def generate_job_common_questions(
     result = {"question_bundle": question_bundle}
     return result
 
+import json
+import re
+
+def parse_json_from_llm(content):
+    """LLM 응답에서 마크다운 펜스를 제거하고 JSON으로 변환"""
+    if isinstance(content, dict): return content
+    try:
+        # 마크다운 블록 제거
+        clean_content = re.sub(r'```(?:json)?\s*([\s\S]*?)\s*```', r'\1', content)
+        return json.loads(clean_content.strip())
+    except Exception as e:
+        print(f"❌ JSON 파싱 실패: {e}")
+        return content
+
 # --- 공고 기반 체크리스트 ---
-@router.post("/interview-checklist/job-based", response_model=JobBasedChecklistResponse)
-@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
-async def generate_job_based_checklist(request: JobBasedChecklistRequest, db: Session = Depends(get_db)):
+@router.post("/interview-checklist/job-based")
+@redis_cache(expire=3600)
+async def generate_job_based_checklist(
+    request: JobBasedChecklistRequest, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """공고 기반 면접 체크리스트 생성 (DB 체크 후 없으면 Background Task)"""
     try:
         from app.models.v2.analysis.analysis_result import AnalysisResult
         
+        # 1. 먼저 DB에 데이터가 있는지 확인
+        existing = db.query(AnalysisResult).filter(
+            AnalysisResult.jobpost_id == request.job_post_id,
+            AnalysisResult.analysis_type == 'job_based_checklist'
+        ).first()
+        
+        if existing:
+            return existing.analysis_data
+
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
-        job_info = parse_job_post_data(job_post)
+        
+        # 백그라운드 작업 추가
+        background_tasks.add_task(
+            process_job_based_checklist,
+            request.job_post_id,
+            request.company_name or "",
+            job_post.company_id
+        )
+        
+        return {"message": "generating"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def process_job_based_checklist(job_post_id: int, company_name: str, company_id: int):
+    """실제 체크리스트 생성 및 DB 저장 (Background)"""
+    db = next(get_db())
+    try:
+        from app.models.v2.analysis.analysis_result import AnalysisResult
         from agent.agents.interview_question_node import generate_interview_checklist
-        checklist_result = await generate_interview_checklist(
+        
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        job_info = parse_job_post_data(job_post)
+        
+        print(f"🚀 [Background] 체크리스트 생성 시작: JobPost {job_post_id}")
+        
+        raw_result = generate_interview_checklist(
             resume_text="",
             job_info=job_info,
-            company_name=request.company_name or ""
+            company_name=company_name
         )
+        checklist_result = parse_json_from_llm(raw_result)
         
         # DB 저장 (AnalysisResult)
-        try:
-            existing = db.query(AnalysisResult).filter(
-                AnalysisResult.jobpost_id == request.job_post_id,
-                AnalysisResult.analysis_type == 'job_based_checklist'
-            ).first()
-            
-            if existing:
-                existing.analysis_data = checklist_result
-                existing.updated_at = datetime.datetime.now()
-            else:
-                # job_post_id 기반이므로 resume_id나 application_id는 NULL일 수 있음
-                # 하지만 AnalysisResult 모델에서 resume_id와 application_id가 nullable=False임.
-                # 이를 확인하고 수정하거나, 더미 값을 넣어야 함. 
-                # 일단 Resume와 Application이 없어도 공고 기반이므로 nullable=True로 모델이 되어있어야 함.
-                # 아까 확인한 결과 application_id = Column(Integer, ForeignKey('application.id'), nullable=False) 였음.
-                # 모델을 수정해야 함.
-                new_result = AnalysisResult(
-                    application_id=None, # nullable=True로 변경 필요
-                    resume_id=None,      # nullable=True로 변경 필요
-                    jobpost_id=request.job_post_id,
-                    company_id=job_post.company_id,
-                    analysis_type='job_based_checklist',
-                    analysis_data=checklist_result
-                )
-                db.add(new_result)
-            db.commit()
-        except Exception as save_err:
-            print(f"Checklist DB 저장 실패: {save_err}")
-            db.rollback()
-            
-        return checklist_result
+        existing = db.query(AnalysisResult).filter(
+            AnalysisResult.jobpost_id == job_post_id,
+            AnalysisResult.analysis_type == 'job_based_checklist'
+        ).first()
+        
+        if existing:
+            existing.analysis_data = checklist_result
+            existing.updated_at = datetime.datetime.now()
+        else:
+            new_result = AnalysisResult(
+                application_id=None,
+                resume_id=None,
+                jobpost_id=job_post_id,
+                company_id=company_id,
+                analysis_type='job_based_checklist',
+                analysis_data=checklist_result
+            )
+            db.add(new_result)
+        db.commit()
+        print(f"✅ [Background] 체크리스트 생성 및 저장 완료: JobPost {job_post_id}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ [Background] 체크리스트 생성 실패: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 # --- 공고 기반 강점/약점 ---
-@router.post("/strengths-weaknesses/job-based", response_model=JobBasedStrengthsResponse)
-@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
-async def analyze_job_based_strengths_weaknesses(request: JobBasedStrengthsRequest, db: Session = Depends(get_db)):
+@router.post("/strengths-weaknesses/job-based")
+@redis_cache(expire=3600)
+async def analyze_job_based_strengths_weaknesses(
+    request: JobBasedStrengthsRequest, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """공고 기반 강점/약점 분석 (DB 체크 후 없으면 Background Task)"""
     try:
         from app.models.v2.analysis.analysis_result import AnalysisResult
         
+        # 1. 먼저 DB에 데이터가 있는지 확인
+        existing = db.query(AnalysisResult).filter(
+            AnalysisResult.jobpost_id == request.job_post_id,
+            AnalysisResult.analysis_type == 'job_based_strengths'
+        ).first()
+        
+        if existing:
+            return {"message": "기존 데이터를 반환합니다.", "data": existing.analysis_data, "job_post_id": request.job_post_id}
+
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
-        job_info = parse_job_post_data(job_post)
-        from agent.agents.interview_question_node import analyze_candidate_strengths_weaknesses
-        analysis_result = await analyze_candidate_strengths_weaknesses(
-            resume_text="",
-            job_info=job_info,
-            company_name=request.company_name or ""
+            
+        background_tasks.add_task(
+            process_job_based_strengths,
+            request.job_post_id,
+            request.company_name or "",
+            job_post.company_id
         )
         
-        # DB 저장
-        try:
-            existing = db.query(AnalysisResult).filter(
-                AnalysisResult.jobpost_id == request.job_post_id,
-                AnalysisResult.analysis_type == 'job_based_strengths'
-            ).first()
-            if existing:
-                existing.analysis_data = analysis_result
-                existing.updated_at = datetime.datetime.now()
-            else:
-                new_res = AnalysisResult(
-                    application_id=None,
-                    resume_id=None,
-                    jobpost_id=request.job_post_id,
-                    company_id=job_post.company_id,
-                    analysis_type='job_based_strengths',
-                    analysis_data=analysis_result
-                )
-                db.add(new_res)
-            db.commit()
-        except Exception as e:
-            print(f"Strengths DB 저장 실패: {e}")
-            db.rollback()
-            
-        return analysis_result
+        return {"message": "강점/약점 분석이 백그라운드에서 시작되었습니다.", "job_post_id": request.job_post_id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+async def process_job_based_strengths(job_post_id: int, company_name: str, company_id: int):
+    """실제 강점/약점 분석 및 저장 (Background)"""
+    db = next(get_db())
+    try:
+        from app.models.v2.analysis.analysis_result import AnalysisResult
+        from agent.agents.interview_question_node import analyze_candidate_strengths_weaknesses
+        
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        job_info = parse_job_post_data(job_post)
+        
+        print(f"🚀 [Background] 강점/약점 분석 시작: JobPost {job_post_id}")
+        
+        analysis_result = analyze_candidate_strengths_weaknesses(
+            resume_text="",
+            job_info=job_info,
+            company_name=company_name
+        )
+        
+        existing = db.query(AnalysisResult).filter(
+            AnalysisResult.jobpost_id == job_post_id,
+            AnalysisResult.analysis_type == 'job_based_strengths'
+        ).first()
+        
+        if existing:
+            existing.analysis_data = analysis_result
+            existing.updated_at = datetime.datetime.now()
+        else:
+            new_res = AnalysisResult(
+                application_id=None,
+                resume_id=None,
+                jobpost_id=job_post_id,
+                company_id=company_id,
+                analysis_type='job_based_strengths',
+                analysis_data=analysis_result
+            )
+            db.add(new_res)
+        db.commit()
+        print(f"✅ [Background] 강점/약점 분석 및 저장 완료: JobPost {job_post_id}")
+    except Exception as e:
+        print(f"❌ [Background] 강점/약점 분석 실패: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
 # --- 공고 기반 가이드라인 ---
-@router.post("/interview-guideline/job-based", response_model=JobBasedGuidelineResponse)
-@redis_cache(expire=3600)  # 1시간 캐시 (공고 기반)
-async def generate_job_based_guideline(request: JobBasedGuidelineRequest, db: Session = Depends(get_db)):
+@router.post("/interview-guideline/job-based")
+@redis_cache(expire=3600)
+async def generate_job_based_guideline(
+    request: JobBasedGuidelineRequest, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """공고 기반 가이드라인 생성 (DB 체크 후 없으면 Background Task)"""
     try:
         from app.models.v2.analysis.analysis_result import AnalysisResult
         
+        # 1. 먼저 DB에 데이터가 있는지 확인
+        existing = db.query(AnalysisResult).filter(
+            AnalysisResult.jobpost_id == request.job_post_id,
+            AnalysisResult.analysis_type == 'job_based_guideline'
+        ).first()
+        
+        if existing:
+            return existing.analysis_data
+
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
-        job_info = parse_job_post_data(job_post)
-        from agent.agents.interview_question_node import generate_interview_guideline
-        guideline_result = await generate_interview_guideline(
-            resume_text="",
-            job_info=job_info,
-            company_name=request.company_name or ""
+            
+        background_tasks.add_task(
+            process_job_based_guideline,
+            request.job_post_id,
+            request.company_name or "",
+            job_post.company_id
         )
         
-        # DB 저장
-        try:
-            existing = db.query(AnalysisResult).filter(
-                AnalysisResult.jobpost_id == request.job_post_id,
-                AnalysisResult.analysis_type == 'job_based_guideline'
-            ).first()
-            if existing:
-                existing.analysis_data = guideline_result
-                existing.updated_at = datetime.datetime.now()
-            else:
-                new_res = AnalysisResult(
-                    application_id=None,
-                    resume_id=None,
-                    jobpost_id=request.job_post_id,
-                    company_id=job_post.company_id,
-                    analysis_type='job_based_guideline',
-                    analysis_data=guideline_result
-                )
-                db.add(new_res)
-            db.commit()
-        except Exception as e:
-            print(f"Guideline DB 저장 실패: {e}")
-            db.rollback()
-            
-        return guideline_result
+        return {"message": "generating"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+async def process_job_based_guideline(job_post_id: int, company_name: str, company_id: int):
+    """실제 가이드라인 생성 및 저장 (Background)"""
+    db = next(get_db())
+    try:
+        from app.models.v2.analysis.analysis_result import AnalysisResult
+        from agent.agents.interview_question_node import generate_interview_guideline
+        
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        job_info = parse_job_post_data(job_post)
+        
+        print(f"🚀 [Background] 가이드라인 생성 시작: JobPost {job_post_id}")
+        
+        raw_result = generate_interview_guideline(
+            resume_text="",
+            job_info=job_info,
+            company_name=company_name
+        )
+        guideline_result = parse_json_from_llm(raw_result)
+        
+        existing = db.query(AnalysisResult).filter(
+            AnalysisResult.jobpost_id == job_post_id,
+            AnalysisResult.analysis_type == 'job_based_guideline'
+        ).first()
+        
+        if existing:
+            existing.analysis_data = guideline_result
+            existing.updated_at = datetime.datetime.now()
+        else:
+            new_res = AnalysisResult(
+                application_id=None,
+                resume_id=None,
+                jobpost_id=job_post_id,
+                company_id=company_id,
+                analysis_type='job_based_guideline',
+                analysis_data=guideline_result
+            )
+            db.add(new_res)
+        db.commit()
+        print(f"✅ [Background] 가이드라인 생성 및 저장 완료: JobPost {job_post_id}")
+    except Exception as e:
+        print(f"❌ [Background] 가이드라인 생성 실패: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 # --- 공고 기반 평가 기준 (중복 제거) ---
 
@@ -1757,131 +1870,100 @@ async def evaluate_audio(
             os.remove(tmp_path)
 
 # --- 공고 기반 평가 기준 ---
-@router.post("/evaluation-criteria/job-based", response_model=JobBasedCriteriaResponse)
-async def create_job_based_evaluation_criteria(request: JobBasedCriteriaRequest, db: Session = Depends(get_db)):
-    """공고 기반 평가항목 생성 및 DB 저장"""
+@router.post("/evaluation-criteria/job-based")
+@redis_cache(expire=3600)
+async def create_job_based_evaluation_criteria(
+    request: JobBasedCriteriaRequest, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """공고 기반 평가항목 생성 (DB 체크 후 없으면 Background Task)"""
     try:
+        from app.services.v2.interview.evaluation_criteria_service import EvaluationCriteriaService
+        
+        # 1. 먼저 DB에 데이터가 있는지 확인
+        criteria_service = EvaluationCriteriaService(db)
+        existing = criteria_service.get_evaluation_criteria_by_job_post(request.job_post_id)
+        
+        if existing:
+            return existing
+
         job_post = db.query(JobPost).filter(JobPost.id == request.job_post_id).first()
         if not job_post:
             raise HTTPException(status_code=404, detail="Job post not found")
-        
-        job_info = parse_job_post_data(job_post)
-        
-        # LangGraph를 통한 평가항목 생성
-        from agent.agents.interview_question_node import suggest_evaluation_criteria
-        criteria_result = await suggest_evaluation_criteria(
-            resume_text="",
-            job_info=job_info,
-            company_name=request.company_name or ""
+            
+        background_tasks.add_task(
+            process_job_based_evaluation_criteria,
+            request.job_post_id,
+            request.company_name or ""
         )
         
-        # DB 저장은 임시로 제거 (에러 디버깅 중)
-        print(f"🔍 LangGraph 결과: {criteria_result}")
-        
-        # DB 저장 시도 (에러 발생 시 로그만 출력)
-        try:
-            print("🔍 EvaluationCriteriaService import 성공")
-            criteria_service = EvaluationCriteriaService(db)
-            print("🔍 EvaluationCriteriaService 인스턴스 생성 성공")
-            
-            # 기존 데이터가 있으면 업데이트, 없으면 새로 생성
-            existing_criteria = criteria_service.get_evaluation_criteria_by_job_post(request.job_post_id)
-            print(f"🔍 기존 데이터 확인: {existing_criteria}")
-            
-            # LangGraph 결과를 스키마에 맞게 변환
-            suggested_criteria = []
-            for item in criteria_result.get("suggested_criteria", []):
-                if isinstance(item, dict):
-                    suggested_criteria.append({
-                        "criterion": item.get("criterion", ""),
-                        "description": item.get("description", ""),
-                        "max_score": item.get("max_score", 10)
-                    })
-            
-            weight_recommendations = []
-            for item in criteria_result.get("weight_recommendations", []):
-                if isinstance(item, dict):
-                    weight_recommendations.append({
-                        "criterion": item.get("criterion", ""),
-                        "weight": float(item.get("weight", 0.0)),
-                        "reason": item.get("reason", "")
-                    })
-            
-            # Pydantic 모델을 딕셔너리로 변환 (JSON 직렬화를 위해)
-            suggested_criteria_dict = []
-            for item in suggested_criteria:
-                suggested_criteria_dict.append({
-                    "criterion": item["criterion"],
-                    "description": item["description"],
-                    "max_score": item["max_score"]
-                })
-            
-            weight_recommendations_dict = []
-            for item in weight_recommendations:
-                weight_recommendations_dict.append({
-                    "criterion": item["criterion"],
-                    "weight": item["weight"],
-                    "reason": item["reason"]
-                })
-            
-            evaluation_questions = criteria_result.get("evaluation_questions", [])
-            if not isinstance(evaluation_questions, list):
-                evaluation_questions = []
-            
-            scoring_guidelines = criteria_result.get("scoring_guidelines", {})
-            if not isinstance(scoring_guidelines, dict):
-                scoring_guidelines = {}
-            
-            # evaluation_items 처리 (새로운 구체적 평가 항목)
-            evaluation_items = criteria_result.get("evaluation_items", [])
-            if not isinstance(evaluation_items, list):
-                evaluation_items = []
-            
-            print(f"🔍 변환된 데이터:")
-            print(f"  - suggested_criteria: {suggested_criteria_dict}")
-            print(f"  - weight_recommendations: {weight_recommendations_dict}")
-            print(f"  - evaluation_questions: {evaluation_questions}")
-            print(f"  - scoring_guidelines: {scoring_guidelines}")
-            print(f"  - evaluation_items: {evaluation_items}")
-            
-            criteria_data = EvaluationCriteriaCreate(
-                job_post_id=request.job_post_id,
-                company_name=request.company_name,
-                suggested_criteria=suggested_criteria_dict,
-                weight_recommendations=weight_recommendations_dict,
-                evaluation_questions=evaluation_questions,
-                scoring_guidelines=scoring_guidelines,
-                evaluation_items=evaluation_items  # 새로운 구체적 평가 항목 추가
-            )
-            print(f"🔍 criteria_data 생성 성공: {criteria_data}")
-            
-            if existing_criteria:
-                # 기존 데이터 업데이트
-                criteria_service.update_evaluation_criteria(request.job_post_id, criteria_data)
-                print(f"✅ 평가항목 업데이트 완료: job_post_id={request.job_post_id}")
-            else:
-                # 새로 생성
-                criteria_service.create_evaluation_criteria(criteria_data)
-                print(f"✅ 평가항목 생성 완료: job_post_id={request.job_post_id}")
-                
-        except Exception as db_error:
-            print(f"⚠️ DB 저장 중 오류 발생: {db_error}")
-            print(f"⚠️ 오류 타입: {type(db_error)}")
-            import traceback
-            print(f"⚠️ 상세 오류: {traceback.format_exc()}")
-            # DB 저장 실패해도 LangGraph 결과는 반환
-            pass
-        
-        # evaluation_items가 포함된 응답 반환
-        return JobBasedCriteriaResponse(
-            suggested_criteria=criteria_result.get("suggested_criteria", []),
-            weight_recommendations=criteria_result.get("weight_recommendations", []),
-            evaluation_questions=criteria_result.get("evaluation_questions", []),
-            scoring_guidelines=criteria_result.get("scoring_guidelines", {}),
-            evaluation_items=criteria_result.get("evaluation_items", [])  # 새로운 구체적 평가 항목 추가
-        )
+        return {"message": "generating"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+async def process_job_based_evaluation_criteria(job_post_id: int, company_name: str):
+    """실제 평가항목 생성 및 저장 (Background)"""
+    db = next(get_db())
+    try:
+        from app.services.v2.interview.evaluation_criteria_service import EvaluationCriteriaService
+        from app.schemas.evaluation_criteria import EvaluationCriteriaCreate
+        from agent.agents.interview_question_node import suggest_evaluation_criteria
+        
+        job_post = db.query(JobPost).filter(JobPost.id == job_post_id).first()
+        job_info = parse_job_post_data(job_post)
+        
+        print(f"🚀 [Background] 평가항목 생성 시작: JobPost {job_post_id}")
+        
+        raw_result = suggest_evaluation_criteria(
+            resume_text="",
+            job_info=job_info,
+            company_name=company_name
+        )
+        criteria_result = parse_json_from_llm(raw_result)
+        
+        criteria_service = EvaluationCriteriaService(db)
+        existing_criteria = criteria_service.get_evaluation_criteria_by_job_post(job_post_id)
+        
+        # 데이터 변환 로직
+        suggested_criteria_dict = []
+        for item in criteria_result.get("suggested_criteria", []):
+            if isinstance(item, dict):
+                suggested_criteria_dict.append({
+                    "criterion": item.get("criterion", ""),
+                    "description": item.get("description", ""),
+                    "max_score": item.get("max_score", 10)
+                })
+        
+        weight_recommendations_dict = []
+        for item in criteria_result.get("weight_recommendations", []):
+            if isinstance(item, dict):
+                weight_recommendations_dict.append({
+                    "criterion": item.get("criterion", ""),
+                    "weight": float(item.get("weight", 0.0)),
+                    "reason": item.get("reason", "")
+                })
+        
+        criteria_data = EvaluationCriteriaCreate(
+            job_post_id=job_post_id,
+            company_name=company_name,
+            suggested_criteria=suggested_criteria_dict,
+            weight_recommendations=weight_recommendations_dict,
+            evaluation_questions=criteria_result.get("evaluation_questions", []),
+            scoring_guidelines=criteria_result.get("scoring_guidelines", {}),
+            evaluation_items=criteria_result.get("evaluation_items", [])
+        )
+        
+        if existing_criteria:
+            criteria_service.update_evaluation_criteria(job_post_id, criteria_data)
+        else:
+            criteria_service.create_evaluation_criteria(criteria_data)
+            
+        print(f"✅ [Background] 평가항목 생성 및 저장 완료: JobPost {job_post_id}")
+    except Exception as e:
+        print(f"❌ [Background] 평가항목 생성 실패: {e}")
+    finally:
+        db.close()
 
 @router.delete("/evaluation-criteria/job/{job_post_id}")
 async def delete_job_based_evaluation_criteria(job_post_id: int, db: Session = Depends(get_db)):

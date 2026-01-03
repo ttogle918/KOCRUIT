@@ -45,7 +45,10 @@ const ApplicantListTab = ({
               applicant={applicant}
               index={index + 1}
               isSelected={selectedApplicant?.id === (applicant.applicant_id || applicant.id)}
-              onClick={() => handleSelectApplicant(applicant)}
+              onClick={() => {
+                console.log('👆 ApplicantListTab: 지원자 클릭됨', applicant.name);
+                handleSelectApplicant(applicant);
+              }}
               calculateAge={calculateAge}
               compact={true}
               interviewStage={interviewStage}
